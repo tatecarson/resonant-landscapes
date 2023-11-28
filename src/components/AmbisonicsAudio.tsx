@@ -5,11 +5,8 @@ const AmbisonicAudio = () => {
     const [audioContext, setAudioContext] = useState(null);
     const [soundBuffer, setSoundBuffer] = useState(null);
     const [sound, setSound] = useState(null);
-
-    const [irBuffer, setIrBuffer] = useState(null);
-    const [isPlaying, setIsPlaying] = useState(false);
     const [isSoundPlaying, setIsSoundPlaying] = useState(false);
-    const [playButtonDisabled, setPlayButtonDisabled] = useState(true);
+    const divRef = useRef(null);
 
     const decoderRef = useRef(null);
     const mirrorRef = useRef(null);
@@ -64,6 +61,20 @@ const AmbisonicAudio = () => {
     };
 
 
+    // Define mouse drag on spatial map .png local impact
+    const mouseActionLocal = (event) => {
+        const divWidth = divRef.current.offsetWidth;
+        const angleX = (event.clientX / divWidth) * 360 - 180; // Map to range [-180, 180]
+        const angleY = (event.clientY / divWidth) * 360 - 180; // Map to range [-180, 180]
+
+        rotatorRef.current.yaw = -angleX;
+        rotatorRef.current.pitch = angleY;
+        rotatorRef.current.updateRotMtx();
+
+        console.log(`Mouse moved to: [${angleX}, ${angleY}]`);
+    };
+
+
     // Initialize audio context and load audio files
     useEffect(() => {
         // Initialize audio context immediately inside useEffect
@@ -78,10 +89,10 @@ const AmbisonicAudio = () => {
         const gainOut = audioContext.createGain();
 
         // Connect audio graph
-        converterF2ARef.current.out.connect(mirrorRef.current.in);
-        mirrorRef.current.out.connect(rotatorRef.current.in);
+        converterF2ARef.current.out.connect(rotatorRef.current.in);
+        // mirrorRef.current.out.connect(rotatorRef.current.in);
         rotatorRef.current.out.connect(decoderRef.current.in);
-        rotatorRef.current.out.connect(analyserRef.current.in);
+        // rotatorRef.current.out.connect(analyserRef.current.in);
         decoderRef.current.out.connect(gainOut);
         gainOut.connect(audioContext.destination);
 
@@ -103,7 +114,7 @@ const AmbisonicAudio = () => {
 
     // Render
     return (
-        <div>
+        <div ref={divRef} onMouseMove={mouseActionLocal}>
             <button onClick={resumeAudioContext}>Start Audio</button>
             <button onClick={handleToggleClick}>
                 {isSoundPlaying ? 'Stop' : 'Play'}
