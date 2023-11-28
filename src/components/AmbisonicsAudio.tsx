@@ -4,9 +4,18 @@ import * as ambisonics from 'ambisonics';
 const AmbisonicAudio = () => {
     const [audioContext, setAudioContext] = useState(null);
     const [soundBuffer, setSoundBuffer] = useState(null);
+    const [sound, setSound] = useState(null);
+
     const [irBuffer, setIrBuffer] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
-    const decoderRef = useRef(null); // Using useRef to keep a persistent reference to the decoder
+    const [isSoundPlaying, setIsSoundPlaying] = useState(false);
+    const [playButtonDisabled, setPlayButtonDisabled] = useState(true);
+
+    const decoderRef = useRef(null);
+    const mirrorRef = useRef(null);
+    const rotatorRef = useRef(null);
+    const analyserRef = useRef(null);
+    const converterF2ARef = useRef(null);
 
     // URLs for the sound and IR files
     const soundUrl = "/sounds/BF_rec1.ogg";
@@ -23,6 +32,37 @@ const AmbisonicAudio = () => {
         }
     };
 
+    // function to assign sample to the sound buffer for playback (and enable playbutton)
+    const assignSample2SoundBuffer = (decodedBuffer) => {
+        setSoundBuffer(decodedBuffer);
+        setPlayButtonDisabled(false);
+    }
+
+    // function to assign sample to the filter buffers for convolution
+    const assignSample2Filters = (decodedBuffer) => {
+        decoderRef.current.updateFilters(decodedBuffer);
+    }
+
+    // Function to handle toggle button click
+    const handleToggleClick = () => {
+        if (isSoundPlaying) {
+            if (sound) {
+                sound.stop(0);
+            }
+
+            setIsSoundPlaying(false);
+        } else {
+            const soundSource = audioContext.createBufferSource();
+            soundSource.buffer = soundBuffer;
+            soundSource.loop = true;
+            soundSource.connect(converterF2ARef.current.in);
+            soundSource.start(0);
+
+            setSound(soundSource);
+            setIsSoundPlaying(true);
+        }
+    };
+
 
     // Initialize audio context and load audio files
     useEffect(() => {
@@ -30,13 +70,23 @@ const AmbisonicAudio = () => {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         setAudioContext(audioContext)
 
-        console.log(ambisonics)
+        mirrorRef.current = new ambisonics.sceneMirror(audioContext, 1);
+        rotatorRef.current = new ambisonics.sceneRotator(audioContext, 1);
         decoderRef.current = new ambisonics.binDecoder(audioContext, 1);
-        // Handle state changes of the audio context
+        analyserRef.current = new ambisonics.intensityAnalyser(audioContext, 1);
+        converterF2ARef.current = new ambisonics.converters.wxyz2acn(audioContext);
+        const gainOut = audioContext.createGain();
 
+        // Connect audio graph
+        converterF2ARef.current.out.connect(mirrorRef.current.in);
+        mirrorRef.current.out.connect(rotatorRef.current.in);
+        rotatorRef.current.out.connect(decoderRef.current.in);
+        rotatorRef.current.out.connect(analyserRef.current.in);
+        decoderRef.current.out.connect(gainOut);
+        gainOut.connect(audioContext.destination);
 
-        loadAudio(soundUrl, audioContext).then(buffer => setSoundBuffer(buffer));
-        loadAudio(irUrl, audioContext).then(buffer => setIrBuffer(buffer));
+        loadAudio(soundUrl, audioContext).then(buffer => assignSample2SoundBuffer(buffer));
+        loadAudio(irUrl, audioContext).then(buffer => assignSample2Filters(buffer));
     }, []);
 
 
@@ -49,18 +99,14 @@ const AmbisonicAudio = () => {
         // ... load audio files or start playback
     };
 
-    // Function to handle playback
-    const togglePlayback = () => {
-        // Implementation of playback logic using soundBuffer and irBuffer
-        setIsPlaying(!isPlaying);
-    };
+
 
     // Render
     return (
         <div>
             <button onClick={resumeAudioContext}>Start Audio</button>
-            <button onClick={togglePlayback} disabled={!soundBuffer || !irBuffer}>
-                {isPlaying ? 'Stop' : 'Play'}
+            <button onClick={handleToggleClick}>
+                {isSoundPlaying ? 'Stop' : 'Play'}
             </button>
         </div>
     );
