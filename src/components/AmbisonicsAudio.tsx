@@ -6,31 +6,25 @@ const AmbisonicAudio = () => {
     const [soundBuffer, setSoundBuffer] = useState(null);
     const [sound, setSound] = useState(null);
     const [isSoundPlaying, setIsSoundPlaying] = useState(false);
-    const divRef = useRef(null);
+    const [sliderValue, setSliderValue] = useState(0);
 
     const decoderRef = useRef(null);
     const mirrorRef = useRef(null);
+    const limiterRef = useRef(null);
     const rotatorRef = useRef(null);
     const analyserRef = useRef(null);
-    const converterF2ARef = useRef(null);
 
     // URLs for the sound and IR files
-    const soundUrl = "/sounds/BF_rec1.ogg";
-    const irUrl = "/IRs/ambisonic2binaural_filters/aalto2016_N1.wav";
+    const soundUrl = "/sounds/HOA3_rec4.ogg";
+    const irUrl_0 = "IRs/ambisonic2binaural_filters/HOA3_IRC_1008_virtual.wav";
+    const irUrl_1 = "IRs/ambisonic2binaural_filters/aalto2016_N3.wav";
+    const irUrl_2 = "IRs/ambisonic2binaural_filters/HOA3_BRIRs-medium.wav";
 
-    // Function to load audio files
-    const loadAudio = async (url, audioContext) => {
-        try {
-            const response = await fetch(url);
-            const arrayBuffer = await response.arrayBuffer();
-            return await audioContext.decodeAudioData(arrayBuffer);
-        } catch (error) {
-            console.error("Error loading audio file:", error);
-        }
-    };
+    const maxOrder = 3;
+    const orderOut = 3;
+    const [playButtonDisabled, setPlayButtonDisabled] = useState(true);
 
-    // function to assign sample to the sound buffer for playback (and enable playbutton)
-    const assignSample2SoundBuffer = (decodedBuffer) => {
+    const assignSample2SoundBuffer = (decodedBuffer: AudioBuffer) => {
         setSoundBuffer(decodedBuffer);
         setPlayButtonDisabled(false);
     }
@@ -38,6 +32,7 @@ const AmbisonicAudio = () => {
     // function to assign sample to the filter buffers for convolution
     const assignSample2Filters = (decodedBuffer) => {
         decoderRef.current.updateFilters(decodedBuffer);
+        setPlayButtonDisabled(false);
     }
 
     // Function to handle toggle button click
@@ -52,7 +47,7 @@ const AmbisonicAudio = () => {
             const soundSource = audioContext.createBufferSource();
             soundSource.buffer = soundBuffer;
             soundSource.loop = true;
-            soundSource.connect(converterF2ARef.current.in);
+            soundSource.connect(rotatorRef.current.in);
             soundSource.start(0);
 
             setSound(soundSource);
@@ -61,17 +56,15 @@ const AmbisonicAudio = () => {
     };
 
 
-    // Define mouse drag on spatial map .png local impact
-    const mouseActionLocal = (event) => {
-        const divWidth = divRef.current.offsetWidth;
-        const angleX = (event.clientX / divWidth) * 360 - 180; // Map to range [-180, 180]
-        const angleY = (event.clientY / divWidth) * 360 - 180; // Map to range [-180, 180]
+    // Function to handle slider change
+    const handleSliderChange = (event) => {
+        const value = event.target.value;
+        setSliderValue(value);
 
-        rotatorRef.current.yaw = -angleX;
-        rotatorRef.current.pitch = angleY;
-        rotatorRef.current.updateRotMtx();
-
-        console.log(`Mouse moved to: [${angleX}, ${angleY}]`);
+        if (rotatorRef.current) {
+            rotatorRef.current.yaw = -value;
+            rotatorRef.current.updateRotMtx();
+        }
     };
 
 
@@ -81,23 +74,26 @@ const AmbisonicAudio = () => {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         setAudioContext(audioContext)
 
-        mirrorRef.current = new ambisonics.sceneMirror(audioContext, 1);
-        rotatorRef.current = new ambisonics.sceneRotator(audioContext, 1);
-        decoderRef.current = new ambisonics.binDecoder(audioContext, 1);
-        analyserRef.current = new ambisonics.intensityAnalyser(audioContext, 1);
-        converterF2ARef.current = new ambisonics.converters.wxyz2acn(audioContext);
+        mirrorRef.current = new ambisonics.sceneMirror(audioContext, maxOrder);
+        limiterRef.current = new ambisonics.orderLimiter(audioContext, maxOrder, orderOut);
+        rotatorRef.current = new ambisonics.sceneRotator(audioContext, maxOrder);
+        decoderRef.current = new ambisonics.binDecoder(audioContext, maxOrder);
+        analyserRef.current = new ambisonics.intensityAnalyser(audioContext, maxOrder);
         const gainOut = audioContext.createGain();
 
         // Connect audio graph
-        converterF2ARef.current.out.connect(rotatorRef.current.in);
         // mirrorRef.current.out.connect(rotatorRef.current.in);
-        rotatorRef.current.out.connect(decoderRef.current.in);
-        // rotatorRef.current.out.connect(analyserRef.current.in);
+        rotatorRef.current.out.connect(limiterRef.current.in);
+        limiterRef.current.out.connect(decoderRef.current.in);
         decoderRef.current.out.connect(gainOut);
         gainOut.connect(audioContext.destination);
 
-        loadAudio(soundUrl, audioContext).then(buffer => assignSample2SoundBuffer(buffer));
-        loadAudio(irUrl, audioContext).then(buffer => assignSample2Filters(buffer));
+        // Load sound and filters
+        const loader_sound = new ambisonics.HOAloader(audioContext, maxOrder, soundUrl, assignSample2SoundBuffer);
+        loader_sound.load();
+
+        const loader_filters = new ambisonics.HOAloader(audioContext, maxOrder, irUrl_2, assignSample2Filters);
+        loader_filters.load();
     }, []);
 
 
@@ -114,9 +110,11 @@ const AmbisonicAudio = () => {
 
     // Render
     return (
-        <div ref={divRef} onMouseMove={mouseActionLocal}>
+        <div>
+            <input type="range" min="-180" max="180" value={sliderValue} onChange={handleSliderChange} />
+
             <button onClick={resumeAudioContext}>Start Audio</button>
-            <button onClick={handleToggleClick}>
+            <button onClick={handleToggleClick} disabled={playButtonDisabled}>
                 {isSoundPlaying ? 'Stop' : 'Play'}
             </button>
         </div>
