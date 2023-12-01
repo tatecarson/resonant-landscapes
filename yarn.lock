@@ -447,6 +447,11 @@ chalk@^4.0.0:
     ansi-styles "^4.1.0"
     supports-color "^7.1.0"
 
+clsx@^1.1.1:
+  version "1.2.1"
+  resolved "https://registry.npmjs.org/clsx/-/clsx-1.2.1.tgz"
+  integrity sha512-EcR6r5a8bj6pu3ycsa/E/cKVGuTgZJZdsyUYHOksG/UHIiKfjxzRxYJpyVBwYaQeOvghal9fcc4PidlgzugAQg==
+
 color-convert@^2.0.1:
   version "2.0.1"
   resolved "https://registry.npmjs.org/color-convert/-/color-convert-2.0.1.tgz"
@@ -856,8 +861,7 @@ for-each@^0.3.3:
 
 fractional-delay@Ircam-RnD/fractional-delay#gh-pages:
   version "0.1.0"
-  resolved "https://codeload.github.com/Ircam-RnD/fractional-delay/tar.gz/687be9b8c42716c72ccae922510867c264a0ccf5"
-  integrity sha512-BY6uMIW2XRtbK45YS56oA4en8rS+PScWhUEL13JhXgIhdGiReiNSSv/4RVyh7RiA0szuu9+pa+zg+DG1CYJd8Q==
+  resolved "git+ssh://git@github.com/Ircam-RnD/fractional-delay.git#687be9b8c42716c72ccae922510867c264a0ccf5"
   dependencies:
     babel-runtime "^5.8.20"
 
@@ -1295,8 +1299,8 @@ json-stable-stringify-without-jsonify@^1.0.1:
 
 kd.tree@akshaylive/node-kdt#39bc780704a324393bca68a17cf7bc71be8544c6:
   version "0.1.3"
-  resolved "https://codeload.github.com/akshaylive/node-kdt/tar.gz/39bc780704a324393bca68a17cf7bc71be8544c6"
-  integrity sha512-Kl43bRk6YowwH5A6gSvAYl72lPD7rddiSb3oAu7AFrY22EAYzxwVuRjexige+fqzxtrBNmql0957DTwbOf7F3A==
+  resolved "git+ssh://git@github.com/akshaylive/node-kdt.git#39bc780704a324393bca68a17cf7bc71be8544c6"
+  integrity sha512-BiE2oCRozOpchV4HT4TE9K6/H6yBMeBskZSTKbbMNPQxHRWbIPpmZ9964KEvdM3XIpzrGe3KTl5CmEPEzJfKOw==
 
 levn@^0.4.1:
   version "0.4.1"
@@ -1439,6 +1443,11 @@ object.values@^1.1.6:
     define-properties "^1.1.4"
     es-abstract "^1.20.4"
 
+omnitone@^1.0.5:
+  version "1.3.0"
+  resolved "https://registry.npmjs.org/omnitone/-/omnitone-1.3.0.tgz"
+  integrity sha512-iYmS66kHMw5K3E4cXaiBjjBg3hzinUhD9NrvkGZc33QcYSZVclytcD84Du2aL1Wdp7ulAfxfNMHlC8TXxuhgew==
+
 once@^1.3.0:
   version "1.4.0"
   resolved "https://registry.npmjs.org/once/-/once-1.4.0.tgz"
@@ -1547,7 +1556,7 @@ queue-microtask@^1.2.2:
   resolved "https://registry.npmjs.org/queue-microtask/-/queue-microtask-1.2.3.tgz"
   integrity sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==
 
-react-dom@^18.2.0:
+react-dom@^18.2.0, "react-dom@>= 16.3.0":
   version "18.2.0"
   resolved "https://registry.npmjs.org/react-dom/-/react-dom-18.2.0.tgz"
   integrity sha512-6IMTriUmvsjHUjNtEDudZfuDQUoWXVxKHhlEGSk81n4YFS+r/Kl99wXiwlVXtPBtJenozv2P+hxDsw9eA7Xo6g==
@@ -1555,12 +1564,25 @@ react-dom@^18.2.0:
     loose-envify "^1.1.0"
     scheduler "^0.23.0"
 
+react-draggable@^4.4.6:
+  version "4.4.6"
+  resolved "https://registry.npmjs.org/react-draggable/-/react-draggable-4.4.6.tgz"
+  integrity sha512-LtY5Xw1zTPqHkVmtM3X8MUOxNDOUhv/khTgBgrUvwaS064bwVvxT+q5El0uUFNx5IEPKXuRejr7UqLwBIg5pdw==
+  dependencies:
+    clsx "^1.1.1"
+    prop-types "^15.8.1"
+
+react-icons@^4.12.0:
+  version "4.12.0"
+  resolved "https://registry.npmjs.org/react-icons/-/react-icons-4.12.0.tgz"
+  integrity sha512-IBaDuHiShdZqmfc/TwHu6+d6k2ltNCf3AszxNmjJc1KUfXdEeRJOKyNvLmAHaarhzGmTSVygNdyu8/opXv2gaw==
+
 react-is@^16.13.1:
   version "16.13.1"
   resolved "https://registry.npmjs.org/react-is/-/react-is-16.13.1.tgz"
   integrity sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==
 
-react@^18.2.0:
+react@*, react@^18.2.0, "react@>= 16.3.0":
   version "18.2.0"
   resolved "https://registry.npmjs.org/react/-/react-18.2.0.tgz"
   integrity sha512-/3IjMdb2L9QbBdWiW5e3P2/npwMBaU9mHCSCUzNln0ZCYbcfTsGbTJrU/kGemdH2IWmB2ioZ+zkxtmq6g09fGQ==
@@ -1606,6 +1628,13 @@ resolve@^2.0.0-next.4:
     is-core-module "^2.9.0"
     path-parse "^1.0.7"
     supports-preserve-symlinks-flag "^1.0.0"
+
+resonance-audio@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.npmjs.org/resonance-audio/-/resonance-audio-1.0.0.tgz"
+  integrity sha512-9ciGZtOhvSyfAIcAF1V6u4UKasgT02R0a19j3KE2/zC5TgMY3pVf+f+k5KXEcPP4TGOzh+KDNM6QVvBsj0e3qg==
+  dependencies:
+    omnitone "^1.0.5"
 
 reusify@^1.0.4:
   version "1.0.4"
@@ -1701,8 +1730,7 @@ semver@^7.5.4:
 
 "serve-sofa-hrir@github:Ircam-RnD/serveSofaHrir":
   version "0.4.2"
-  resolved "https://codeload.github.com/Ircam-RnD/serveSofaHrir/tar.gz/33a72fc68a4fb35375da4845e758d50dfdef3836"
-  integrity sha512-7XgcrfuUHSJJsoHgBfHZyshwwbzDXua8qeIZVwr0moKudYNbFH7eVwbwhuGwEs5Yu9Od6Jm98BhbPDgvYUPXPg==
+  resolved "git+ssh://git@github.com/Ircam-RnD/serveSofaHrir.git#33a72fc68a4fb35375da4845e758d50dfdef3836"
   dependencies:
     fractional-delay Ircam-RnD/fractional-delay#gh-pages
     gl-matrix "^2.4.0"

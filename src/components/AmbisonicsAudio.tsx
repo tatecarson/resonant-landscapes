@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { AudioContext } from '../contexts/AudioContextProvider';
 import * as ambisonics from 'ambisonics';
 
 const AmbisonicAudio = () => {
-    const [audioContext, setAudioContext] = useState(null);
+    const audioContext = useContext(AudioContext);
     const [soundBuffer, setSoundBuffer] = useState(null);
     const [sound, setSound] = useState(null);
     const [isSoundPlaying, setIsSoundPlaying] = useState(false);
@@ -70,15 +71,18 @@ const AmbisonicAudio = () => {
 
     // Initialize audio context and load audio files
     useEffect(() => {
-        // Initialize audio context immediately inside useEffect
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        setAudioContext(audioContext)
+
+        if (!audioContext) {
+            return;
+        }
 
         mirrorRef.current = new ambisonics.sceneMirror(audioContext, maxOrder);
         limiterRef.current = new ambisonics.orderLimiter(audioContext, maxOrder, orderOut);
         rotatorRef.current = new ambisonics.sceneRotator(audioContext, maxOrder);
         decoderRef.current = new ambisonics.binDecoder(audioContext, maxOrder);
         analyserRef.current = new ambisonics.intensityAnalyser(audioContext, maxOrder);
+
+        // Create a new PannerNode
         const gainOut = audioContext.createGain();
 
         // Connect audio graph
@@ -86,6 +90,8 @@ const AmbisonicAudio = () => {
         rotatorRef.current.out.connect(limiterRef.current.in);
         limiterRef.current.out.connect(decoderRef.current.in);
         decoderRef.current.out.connect(gainOut);
+        decoderRef.current.out.connect(panner);
+        panner.connect(gainOut);
         gainOut.connect(audioContext.destination);
 
         // Load sound and filters
@@ -94,7 +100,7 @@ const AmbisonicAudio = () => {
 
         const loader_filters = new ambisonics.HOAloader(audioContext, maxOrder, irUrl_2, assignSample2Filters);
         loader_filters.load();
-    }, []);
+    }, [audioContext]);
 
 
     const resumeAudioContext = async () => {
