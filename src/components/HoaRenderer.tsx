@@ -13,8 +13,9 @@ const HOARenderer = () => {
     const [sound, setSound] = useState(null);
     const [soundBuffer, setSoundBuffer] = useState(null);
     const [position, setPosition] = useState({ x: 0, y: 0, z: 0 });
+    const [orientation, setOrientation] = useState({ x: 0, y: 0, z: 0 });
 
-    const exampleSoundPathList = ['/sounds/HOA3_rec1_01-08ch.ogg', '/sounds/HOA3_rec1_09-16ch.ogg']
+    const exampleSoundPathList = ['/sounds/output_8ch.m4a', '/sounds/output_mono.m4a']
 
     useEffect(() => {
         if (!audioContext) {
@@ -68,7 +69,7 @@ const HOARenderer = () => {
     };
 
 
-    const handleSliderChange = (event) => {
+    const handleListenerPosition = (event) => {
         const { name, value } = event.target;
         setPosition(prevPosition => {
             const newPosition = { ...prevPosition, [name]: value };
@@ -76,9 +77,20 @@ const HOARenderer = () => {
             return newPosition;
         });
     };
+
+    const handleListenerOrientation = (event) => {
+        const { name, value } = event.target;
+
+        setOrientation(prevPosition => {
+            const newOrientation = { ...prevPosition, [name]: value };
+            sceneRef.current.setListenerOrientation(newOrientation.x, newOrientation.y, newOrientation.z, 0, 1, 0);
+            return newOrientation;
+        });
+    }
+
     return (
         <div>
-            <h1>Example: HOARenderer</h1>
+            <h1>Example: HOARenderer update</h1>
             <p>HOARenderer is an optimized higher-order ambisonic renderer...</p>
             <div id="secSource">
 
@@ -86,12 +98,23 @@ const HOARenderer = () => {
                 <button onClick={onTogglePlayback}>{isPlaying ? 'Stop' : 'Play'}</button>
             </div>
             <div>
+                <h2>Listener Position</h2>
                 <label htmlFor="x">X: </label>
-                <input type="range" id="x" min="0" max="10" name="x" value={position.x} onChange={handleSliderChange} />
+                <input type="range" id="x" min="0" max="10" name="x" value={position.x} onChange={handleListenerPosition} />
                 <label htmlFor="y">Y: </label>
-                <input type="range" id="y" min="0" max="10" name="y" value={position.y} onChange={handleSliderChange} />
+                <input type="range" id="y" min="0" max="10" name="y" value={position.y} onChange={handleListenerPosition} />
                 <label htmlFor="z">Z: </label>
-                <input type="range" id="z" min="0" max="10" name="z" value={position.z} onChange={handleSliderChange} />
+                <input type="range" id="z" min="0" max="10" name="z" value={position.z} onChange={handleListenerPosition} />
+            </div>
+
+            <div>
+                <h2>Listener Orientation</h2>
+                <label htmlFor="x">X: </label>
+                <input type="range" id="x" min="0" max="10" name="x" value={orientation.x} onChange={handleListenerOrientation} />
+                <label htmlFor="y">Y: </label>
+                <input type="range" id="y" min="0" max="10" name="y" value={orientation.y} onChange={handleListenerOrientation} />
+                <label htmlFor="z">Z: </label>
+                <input type="range" id="z" min="0" max="10" name="z" value={orientation.z} onChange={handleListenerOrientation} />
             </div>
         </div>
     );
