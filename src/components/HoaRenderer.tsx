@@ -1,28 +1,35 @@
-import React, { useEffect, useState, useContext, useRef } from 'react';
+import React, { useEffect, useState, useContext, useRef, useCallback } from 'react';
 import { AudioContext } from '../contexts/AudioContextProvider';
 import Omnitone from 'omnitone/build/omnitone.min.esm.js';
 import { ResonanceAudio } from "resonance-audio";
+import Gimbal from '../js/Gimbal';
 
 const HOARenderer = () => {
     const audioContext = useContext(AudioContext);
     const sceneGain = useRef(null);
     const sceneRef = useRef(null);
     const sourceRef = useRef(null);
-
+    const gimbalRef = useRef(null);
+    const requestRef = useRef<number>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [sound, setSound] = useState(null);
     const [soundBuffer, setSoundBuffer] = useState(null);
     const [position, setPosition] = useState({ x: 0, y: 0, z: 0 });
     const [orientation, setOrientation] = useState({ x: 0, y: 0, z: 0 });
 
-    const exampleSoundPathList = ['/sounds/output_8ch.m4a', '/sounds/output_mono.m4a']
+    const exampleSoundPathList = ['/sounds/output_8ch-smc.m4a', '/sounds/output_mono-smc.m4a']
+    const DEG = 180 / Math.PI;
+
+    useEffect(() => {
+        gimbalRef.current = new Gimbal();
+    }, [])
 
     useEffect(() => {
         if (!audioContext) {
             return;
         }
 
-        sceneGain.current = audioContext.createGain();
+        sceneGain.current = audioContext.createGain(); ``
         sceneRef.current = new ResonanceAudio(audioContext, { ambisonicOrder: 2 });
 
         // toaRenderer.current = Omnitone.createHOARenderer(audioContext);
@@ -32,21 +39,32 @@ const HOARenderer = () => {
 
         Promise.all([
             Omnitone.createBufferList(audioContext, exampleSoundPathList),
-            // toaRenderer.current.initialize(),
+
         ]).then((results) => {
             setSoundBuffer(Omnitone.mergeBufferListByChannel(audioContext, results[0]))
-            // sceneGain.current.connect(toaRenderer.current.input);
 
-            // toaRenderer.current.output.connect(audioContext.destination);
 
             setIsPlaying(false);
         });
     }, [audioContext]);
 
+    const permission = useCallback(() => {
+        if (typeof (DeviceMotionEvent) !== "undefined" && typeof (DeviceMotionEvent.requestPermission) === "function") {
+            DeviceMotionEvent.requestPermission()
+                .then(response => {
+                    if (response === "granted") {
+                        gimbalRef.current.enable();
+
+                        animate()
+                    }
+                })
+                .catch(console.error)
+        } else {
+            alert("DeviceMotionEvent is not defined");
+        }
+    }, []);
 
     const onTogglePlayback = () => {
-
-
         if (!isPlaying) {
             sourceRef.current = sceneRef.current.createSource();
             // center of the room 
@@ -78,7 +96,7 @@ const HOARenderer = () => {
         });
     };
 
-    const handleListenerOrientation = (event) => {
+    const handleListenerOrientation = (event: { target: { name: any; value: any; }; }) => {
         const { name, value } = event.target;
 
         setOrientation(prevPosition => {
@@ -88,12 +106,34 @@ const HOARenderer = () => {
         });
     }
 
+    const animate = () => {
+        // animation code here
+        gimbalRef.current.update();
+        // console.count('animate')
+
+        console.log('Gimabal Data: ', gimbalRef.current.yaw, gimbalRef.current.pitch, gimbalRef.current.roll)
+        console.log("Deg: ", gimbalRef.current.yaw * DEG, gimbalRef.current.pitch * DEG, gimbalRef.current.roll * DEG)
+
+        // TODO: use gimbal data to update orientation
+        requestRef.current = requestAnimationFrame(animate)
+        if (gimbalRef.current) {
+        }
+    }
+    useEffect(() => {
+        return () => {
+            if (requestRef.current) {
+                cancelAnimationFrame(requestRef.current);
+            }
+        };
+    }, []);
+
     return (
         <div>
-            <h1>Example: HOARenderer update</h1>
+            <h1>Example: HOARenderer 2</h1>
             <p>HOARenderer is an optimized higher-order ambisonic renderer...</p>
             <div id="secSource">
 
+                <button id="request" onClick={permission}>Request Permission</button>
 
                 <button onClick={onTogglePlayback}>{isPlaying ? 'Stop' : 'Play'}</button>
             </div>
