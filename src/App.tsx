@@ -4,6 +4,7 @@ import "./App.css";
 import AmbisonicAudio from "./components/AmbisonicsAudio";
 import DraggableArrow from "./components/DraggableArrow";
 import HOARenderer from "./components/HoaRenderer";
+import OffAxis from "./components/OffAxis";
 // import ResonanceAudioComponent from "./components/ResonanceAudioComponent";
 
 function App() {
@@ -11,14 +12,12 @@ function App() {
     <AudioContextProvider>
       <div className="app">
         <header className="app-header">
-          <h1>Ambisonic Audio Player</h1>
 
         </header>
         <main>
-          <HOARenderer />
-          {/* <ResonanceAudioComponent /> */}
+          {/* <HOARenderer /> */}
+          <OffAxis />
 
-          {/* <AmbisonicAudio /> */}
         </main>
       </div>
     </AudioContextProvider>
