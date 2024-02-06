@@ -1,6 +1,6 @@
 import { useState } from "react";
 import AudioContextProvider from "./contexts/AudioContextProvider";
-import "./App.css";
+// import "./App.css";
 import AmbisonicAudio from "./components/AmbisonicsAudio";
 import DraggableArrow from "./components/DraggableArrow";
 import HOARenderer from "./components/HoaRenderer";
@@ -10,16 +10,16 @@ import OffAxis from "./components/OffAxis";
 function App() {
   return (
     <AudioContextProvider>
-      <div className="app">
+      <OffAxis />
+      {/* <div className="app">
         <header className="app-header">
 
         </header>
-        <main>
-          {/* <HOARenderer /> */}
-          <OffAxis />
-
+        <main> */}
+      {/* <HOARenderer /> */}
+      {/* 
         </main>
-      </div>
+      </div> */}
     </AudioContextProvider>
   );
 }
