@@ -1,9 +1,8 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useRef, useState, useEffect, useCallback } from 'react';
+import { Canvas } from '@react-three/fiber';
 import { Flex, Box } from '@react-three/flex';
-import { OrthographicCamera, Resize } from '@react-three/drei';
 import * as THREE from 'three';
-import { ArrowHelper, Vector3 } from 'three';
+import useGimbalStore from '../stores/gimbalStore';
 import Gimbal from '../js/Gimbal';
 import 'tailwindcss/tailwind.css';
 
@@ -22,24 +21,16 @@ const GimbalTest = () => {
 
 
     const [buttonClicked, setButtonClicked] = useState(false);
-
-    useEffect(() => {
-        const handleResize = () => {
-            // Implement resize logic if necessary
-        };
-
-        window.addEventListener('resize', handleResize);
-
-        // Optional: Implement device permission request logic for gyroscope
-
-        return () => {
-            window.removeEventListener('resize', handleResize);
-        };
-    }, []);
+    const setYawStore = useGimbalStore((state) => state.setYaw);
+    const setPitchStore = useGimbalStore((state) => state.setPitch);
+    const setRollStore = useGimbalStore((state) => state.setRoll);
 
     useEffect(() => {
         const renderLoop = () => {
             gimbal.update();
+
+            // TODO: set global state with gimbal values
+            setYawStore(gimbal.yaw);
 
             // Update state with gimbal values
             setYaw(gimbal.yaw * DEG);
@@ -82,8 +73,6 @@ const GimbalTest = () => {
     // Function to create arrow mesh (adapted from makeArrowMesh)
     const makeArrowMesh = (color) => {
 
-
-        console.log('makeArrowMesh')
         const shape = new THREE.Shape();
         // Define the arrowhead (a triangle)
         shape.moveTo(1, -2);
@@ -103,6 +92,7 @@ const GimbalTest = () => {
         const arrowGeom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
         return <mesh geometry={arrowGeom} material={new THREE.MeshLambertMaterial({ color })} />;
     };
+
 
 
     return (

@@ -6,26 +6,30 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import GimbalComponent from './Gimbal';
 import Gimbal from '../js/Gimbal';
+import useGimbalStore from '../stores/gimbalStore';
+
 
 const HOARenderer = () => {
     const audioContext = useContext(AudioContext);
     const sceneGain = useRef(null);
     const sceneRef = useRef(null);
     const sourceRef = useRef(null);
-    const gimbalRef = useRef(null);
+
     const requestRef = useRef<number>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [sound, setSound] = useState(null);
     const [soundBuffer, setSoundBuffer] = useState(null);
-    const [position, setPosition] = useState({ x: 0, y: 0, z: 0 });
-    const [orientation, setOrientation] = useState({ x: 0, y: 0, z: 0 });
+
+    const yaw = useGimbalStore(state => state.yaw);
+    const pitch = useGimbalStore(state => state.pitch);
+    const roll = useGimbalStore(state => state.roll);
 
     const exampleSoundPathList = ['/sounds/output_8ch-smc.m4a', '/sounds/output_mono-smc.m4a']
-    const DEG = 180 / Math.PI;
+    // const DEG = 180 / Math.PI;
 
-    useEffect(() => {
-        gimbalRef.current = new Gimbal();
-    }, [])
+    // useEffect(() => {
+    //     gimbalRef.current = new Gimbal();
+    // }, [])
 
     useEffect(() => {
         if (!audioContext) {
@@ -51,24 +55,6 @@ const HOARenderer = () => {
         });
     }, [audioContext]);
 
-    const permission = useCallback(() => {
-        if (typeof (DeviceMotionEvent) !== "undefined" && typeof (DeviceMotionEvent.requestPermission) === "function") {
-            DeviceMotionEvent.requestPermission()
-                .then(response => {
-                    if (response === "granted") {
-                        gimbalRef.current.enable();
-
-                        console.log(`gimbalRef.current: `, gimbalRef.current)
-
-                        animate()
-                    }
-                })
-                .catch(console.error)
-        } else {
-            alert("DeviceMotionEvent is not defined");
-        }
-    }, []);
-
     const onTogglePlayback = () => {
         if (!isPlaying) {
             sourceRef.current = sceneRef.current.createSource();
@@ -82,6 +68,8 @@ const HOARenderer = () => {
             currentBufferSource.start();
             setSound(currentBufferSource);
             setIsPlaying(true);
+
+            animate();
         } else {
             if (sound) {
                 sound.stop(0);
@@ -91,36 +79,16 @@ const HOARenderer = () => {
         }
     };
 
-
-    const handleListenerPosition = (event) => {
-        const { name, value } = event.target;
-        setPosition(prevPosition => {
-            const newPosition = { ...prevPosition, [name]: value };
-            sceneRef.current.setListenerPosition(newPosition.x, newPosition.y, newPosition.z);
-            return newPosition;
-        });
-    };
-
-    const handleListenerOrientation = (event: { target: { name: any; value: any; }; }) => {
-        const { name, value } = event.target;
-
-        setOrientation(prevPosition => {
-            const newOrientation = { ...prevPosition, [name]: value };
-            sceneRef.current.setListenerOrientation(newOrientation.x, newOrientation.y, newOrientation.z, 0, 1, 0);
-            return newOrientation;
-        });
-    }
-
     // Roll = X, Pitch = Y,Yaw = Z,
 
     const animate = () => {
         try {
-            // animation code here
-            gimbalRef.current.update();
+            if (Number.isFinite(yaw)) {
+                // console.log('yaw: ', yaw)
 
-            // Use gimbal data to update orientation
-            if (Number.isFinite(gimbalRef.current.yaw)) {
-                sceneRef.current.setListenerOrientation(gimbalRef.current.roll, gimbalRef.current.pitch, gimbalRef.current.yaw, 0, 1, 0);
+                // FIXME: this is updating but doesn't seem to have any effect on the sound
+                sceneRef.current.setListenerOrientation(pitch, yaw, roll, 0, 1, 0);
+
             }
 
             requestRef.current = requestAnimationFrame(animate)
@@ -138,26 +106,15 @@ const HOARenderer = () => {
     }, []);
 
     return (
-        // TODO: bring the CSS in from the original project
         <div>
             <div id="secSource">
 
-                <button id="request" onClick={permission}>Request Permission</button>
+                <p>Yaw: {yaw}</p>
 
                 <button onClick={onTogglePlayback}>{isPlaying ? 'Stop' : 'Play'}</button>
             </div>
 
-            <Canvas>
-                <Suspense fallback={null}>
-                    <ambientLight intensity={0.5} />
-                    <OrbitControls />
-                    <GimbalComponent />
-                </Suspense>
-            </Canvas>
-            <div id="recalibrateBtn">Recalibrate</div>
-            <div id="overlay">
-                <div id="permissionBtn">Request gyroscope access</div>
-            </div>
+
             {/* <div>
                 <h2>Listener Position</h2>
                 <label htmlFor="x">X: </label>

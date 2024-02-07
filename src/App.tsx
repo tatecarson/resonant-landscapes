@@ -12,6 +12,7 @@ function App() {
   return (
     <AudioContextProvider>
       <GimbalTest />
+      <HOARenderer />
       {/* <div className="app">
         <header className="app-header">
 
