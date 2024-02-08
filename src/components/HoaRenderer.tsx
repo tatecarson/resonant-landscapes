@@ -2,10 +2,6 @@ import React, { useEffect, useState, useContext, useRef, useCallback, Suspense }
 import { AudioContext } from '../contexts/AudioContextProvider';
 import Omnitone from 'omnitone/build/omnitone.min.esm.js';
 import { ResonanceAudio } from "resonance-audio";
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
-import GimbalComponent from './Gimbal';
-import Gimbal from '../js/Gimbal';
 import useGimbalStore from '../stores/gimbalStore';
 
 
@@ -20,16 +16,21 @@ const HOARenderer = () => {
     const [sound, setSound] = useState(null);
     const [soundBuffer, setSoundBuffer] = useState(null);
 
-    const yaw = useGimbalStore(state => state.yaw);
-    const pitch = useGimbalStore(state => state.pitch);
-    const roll = useGimbalStore(state => state.roll);
+    const forwardX = useGimbalStore(state => state.forwardX);
+    const latestForwardX = useRef(forwardX);
+    const forwardY = useGimbalStore(state => state.forwardY);
+    const latestForwardY = useRef(forwardY);
+    const forwardZ = useGimbalStore(state => state.forwardZ);
+    const latestForwardZ = useRef(forwardZ);
+    const upX = useGimbalStore(state => state.upX);
+    const latestUpX = useRef(upX);
+    const upY = useGimbalStore(state => state.upY);
+    const latestUpY = useRef(upY);
+    const upZ = useGimbalStore(state => state.upZ);
+    const latestUpZ = useRef(upZ);
+
 
     const exampleSoundPathList = ['/sounds/output_8ch-smc.m4a', '/sounds/output_mono-smc.m4a']
-    // const DEG = 180 / Math.PI;
-
-    // useEffect(() => {
-    //     gimbalRef.current = new Gimbal();
-    // }, [])
 
     useEffect(() => {
         if (!audioContext) {
@@ -46,10 +47,8 @@ const HOARenderer = () => {
 
         Promise.all([
             Omnitone.createBufferList(audioContext, exampleSoundPathList),
-
         ]).then((results) => {
             setSoundBuffer(Omnitone.mergeBufferListByChannel(audioContext, results[0]))
-
 
             setIsPlaying(false);
         });
@@ -57,6 +56,7 @@ const HOARenderer = () => {
 
     const onTogglePlayback = () => {
         if (!isPlaying) {
+            console.log('play')
             sourceRef.current = sceneRef.current.createSource();
             // center of the room 
             sourceRef.current.setPosition(-0.707, -0.707, 0);
@@ -79,19 +79,26 @@ const HOARenderer = () => {
         }
     };
 
-    // Roll = X, Pitch = Y,Yaw = Z,
+
+    useEffect(() => {
+        latestForwardX.current = forwardX;
+        latestForwardY.current = forwardY;
+        latestForwardZ.current = forwardZ;
+        latestUpX.current = upX;
+        latestUpY.current = upY;
+        latestUpZ.current = upZ;
+
+    }, [forwardX, forwardY, forwardZ, upX, upY, upZ]);
 
     const animate = () => {
         try {
-            if (Number.isFinite(yaw)) {
-                // console.log('yaw: ', yaw)
-
-                // FIXME: this is updating but doesn't seem to have any effect on the sound
-                sceneRef.current.setListenerOrientation(pitch, yaw, roll, 0, 1, 0);
-
+            if (sceneRef.current) {
+                sceneRef.current.setListenerOrientation(latestForwardX.current, latestForwardY.current, latestForwardZ.current, latestUpX.current, latestUpY.current, latestUpZ.current);
             }
 
-            requestRef.current = requestAnimationFrame(animate)
+            if (requestRef.current !== undefined) {
+                requestRef.current = requestAnimationFrame(animate)
+            }
         } catch (error) {
             console.error("Error in animate: ", error)
         }
@@ -109,31 +116,10 @@ const HOARenderer = () => {
         <div>
             <div id="secSource">
 
-                <p>Yaw: {yaw}</p>
+                <p>{ }</p>
 
                 <button onClick={onTogglePlayback}>{isPlaying ? 'Stop' : 'Play'}</button>
             </div>
-
-
-            {/* <div>
-                <h2>Listener Position</h2>
-                <label htmlFor="x">X: </label>
-                <input type="range" id="x" min="0" max="10" name="x" value={position.x} onChange={handleListenerPosition} />
-                <label htmlFor="y">Y: </label>
-                <input type="range" id="y" min="0" max="10" name="y" value={position.y} onChange={handleListenerPosition} />
-                <label htmlFor="z">Z: </label>
-                <input type="range" id="z" min="0" max="10" name="z" value={position.z} onChange={handleListenerPosition} />
-            </div> */}
-
-            {/* <div>
-                <h2>Listener Orientation</h2>
-                <label htmlFor="x">X: </label>
-                <input type="range" id="x" min="0" max="10" name="x" value={orientation.x} onChange={handleListenerOrientation} />
-                <label htmlFor="y">Y: </label>
-                <input type="range" id="y" min="0" max="10" name="y" value={orientation.y} onChange={handleListenerOrientation} />
-                <label htmlFor="z">Z: </label>
-                <input type="range" id="z" min="0" max="10" name="z" value={orientation.z} onChange={handleListenerOrientation} />
-            </div> */}
         </div>
     );
 }

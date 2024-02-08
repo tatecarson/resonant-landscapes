@@ -6,47 +6,22 @@ import useGimbalStore from '../stores/gimbalStore';
 import Gimbal from '../js/Gimbal';
 import 'tailwindcss/tailwind.css';
 
-const DEG = 180 / Math.PI;
-
-
 const GimbalTest = () => {
     const [gimbal] = useState(new Gimbal());
-    const [yaw, setYaw] = useState(0);
-    const [pitch, setPitch] = useState(0);
-    const [roll, setRoll] = useState(0);
-    const arrowYaw = useRef();
-    const arrowPitch = useRef();
-    const arrowRoll = useRef();
     const arrowAll = useRef();
 
-
     const [buttonClicked, setButtonClicked] = useState(false);
-    const setYawStore = useGimbalStore((state) => state.setYaw);
-    const setPitchStore = useGimbalStore((state) => state.setPitch);
-    const setRollStore = useGimbalStore((state) => state.setRoll);
+    const setForwardStore = useGimbalStore((state) => state.setForward);
+    const setUpStore = useGimbalStore((state) => state.setUp);
 
     useEffect(() => {
         const renderLoop = () => {
             gimbal.update();
 
-            // TODO: set global state with gimbal values
-            setYawStore(gimbal.yaw);
+            // set global state with gimbal values
+            setForwardStore(gimbal.vectorFwd.x, gimbal.vectorFwd.z, gimbal.vectorFwd.z);
+            setUpStore(gimbal.vectorUp.x, gimbal.vectorUp.y, gimbal.vectorUp.z);
 
-            // Update state with gimbal values
-            setYaw(gimbal.yaw * DEG);
-            setPitch(gimbal.pitch * DEG);
-            setRoll(gimbal.roll * DEG);
-
-            // Update arrow quaternions or rotations
-            if (arrowYaw.current) {
-                arrowYaw.current.rotation.y = gimbal.yaw;
-            }
-            if (arrowPitch.current) {
-                arrowPitch.current.rotation.x = gimbal.pitch;
-            }
-            if (arrowRoll.current) {
-                arrowRoll.current.rotation.z = gimbal.roll;
-            }
             if (arrowAll.current) {
                 arrowAll.current.quaternion.copy(gimbal.quaternion);
             }
@@ -93,8 +68,6 @@ const GimbalTest = () => {
         return <mesh geometry={arrowGeom} material={new THREE.MeshLambertMaterial({ color })} />;
     };
 
-
-
     return (
         <div className="relative w-full h-full">
 
@@ -110,13 +83,12 @@ const GimbalTest = () => {
                 </button>
             ) : (
                 <>
-
                     <Canvas
                         onCreated={({ gl, camera }) => {
                             camera.updateProjectionMatrix();
                             gl.setSize(window.innerWidth, window.innerHeight);
                         }}
-                        camera={{ position: [0, 0, 10], aspect: window.innerWidth / window.innerHeight, zoom: 15 }} orthographic={true} style={{ background: '#f0f0f0' }}  >
+                        camera={{ position: [0, 0, 10], aspect: window.innerWidth / window.innerHeight, zoom: 20 }} orthographic={true} style={{ background: '#f0f0f0' }}  >
 
                         <ambientLight intensity={0.1} position={[0.5, -1, 1]} />
                         <directionalLight color="#ffffff" position={[0, 0, 5]} />
@@ -125,37 +97,14 @@ const GimbalTest = () => {
                             alignItems="center" // Align items in the cross axis
                             justifyContent="center" // Align items in the main axis
                         >
-
                             <Box centerAnchor>
-                                <group position={[-5, 5, 0]} ref={arrowYaw}>{makeArrowMesh(0xff0099)}</group>
-                            </Box>
-                            <Box centerAnchor>
-                                <group position={[5, 5, 0]} ref={arrowPitch}>{makeArrowMesh(0x99ff00)}</group>
-                            </Box>
-                            <Box centerAnchor>
-                                <group position={[-5, -5, 0]} ref={arrowRoll}>{makeArrowMesh(0x0099ff)}</group>
-                            </Box>
-                            <Box centerAnchor>
-                                <group position={[5, -5, 0]} ref={arrowAll}>{makeArrowMesh(0xff9900)}</group>
+                                <group position={[0, 0, 0]} ref={arrowAll}>{makeArrowMesh(0xff9900)}</group>
                             </Box>
 
                         </Flex>
 
                     </Canvas>
-                    <div className="absolute bottom-0 left-0 w-1/2 h-1/2 border border-dashed border-gray-600 p-2">
-                        <div className="text-lg font-bold">Yaw</div>
-                        <div className="mt-4">{yaw.toFixed(1)}°</div>
-                    </div>
-                    <div className="absolute bottom-0 right-0 w-1/2 h-1/2 border border-dashed border-gray-600 p-2">
-                        <div className="text-lg font-bold">Pitch</div>
-                        <div className="mt-4">{pitch.toFixed(1)}°</div>
-                    </div>
-                    <div className="absolute bottom-1/2 left-0 w-1/2 h-1/2 border border-dashed border-gray-600 p-2">
-                        <div className="text-lg font-bold">Roll</div>
-                        <div className="mt-4">{roll.toFixed(1)}°</div>
-                    </div>
-                    <div className="absolute bottom-1/2 right-0 w-1/2 h-1/2 border border-dashed border-gray-600 p-2">
-                    </div>
+
                     <div
                         className="absolute bottom-0 right-0 w-1/2 bg-gray-800 text-center py-2 font-bold text-white cursor-pointer hover:bg-gray-700"
                         onClick={() => gimbal.recalibrate()}>
@@ -164,7 +113,6 @@ const GimbalTest = () => {
 
                 </>
             )}
-
         </div>
     );
 }
