@@ -4,7 +4,6 @@ import Omnitone from 'omnitone/build/omnitone.min.esm.js';
 import { ResonanceAudio } from "resonance-audio";
 import useGimbalStore from '../stores/gimbalStore';
 
-
 const HOARenderer = () => {
     const audioContext = useContext(AudioContext);
     const sceneGain = useRef(null);
@@ -28,7 +27,6 @@ const HOARenderer = () => {
     const latestUpY = useRef(upY);
     const upZ = useGimbalStore(state => state.upZ);
     const latestUpZ = useRef(upZ);
-
 
     const exampleSoundPathList = ['/sounds/output_8ch-smc.m4a', '/sounds/output_mono-smc.m4a']
 
