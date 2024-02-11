@@ -30,8 +30,8 @@ function createArrowMesh(bearing) {
     const material = new THREE.MeshBasicMaterial({ color: 0x0000ff }); // Blue color
     const mesh = new THREE.Mesh(geometry, material);
 
-    const bearingRadians = THREE.MathUtils.degToRad(bearing);
-    mesh.rotation.y = bearingRadians; // Rotate the arrow to point in the bearing direction
+    // const bearingRadians = THREE.MathUtils.degToRad(bearing);
+    // mesh.rotation.y = bearingRadians; // Rotate the arrow to point in the bearing direction
 
     return mesh;
 }
@@ -39,81 +39,65 @@ function createArrowMesh(bearing) {
 
 const GeoLocatedScene = ({ refLatitude, refLongitude }) => {
     const mountRef = useRef(null);
+    const sceneRef = useRef(null);
+    const rendererRef = useRef(null);
+    const cameraRef = useRef(null);
     const [isClose, setIsClose] = useState(false);
     const [distanceToRef, setDistanceToRef] = useState(null);
     const [bearing, setBearing] = useState(0);
-    const alphaRef = useRef(null);
+    const [alpha, setAlpha] = useState(null);
     const arrowMeshRef = useRef(null);
 
-    useEffect(() => {
+    const [currentLatitude, setCurrentLatitude] = useState();
+    const [currentLongitude, setCurrentLongitude] = useState();
 
+    useEffect(() => {
         const scene = new THREE.Scene();
+        sceneRef.current = scene;
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 5;
+        cameraRef.current = camera;
+        cameraRef.current.position.z = 5;
 
         const renderer = new THREE.WebGLRenderer({ alpha: true });
+        rendererRef.current = renderer;
         renderer.setSize(window.innerWidth, window.innerHeight);
         mountRef.current.appendChild(renderer.domElement);
 
-        const initialArrowMesh = createArrowMesh(0);
-        scene.add(initialArrowMesh);
+        const initialArrowMesh = createArrowMesh(bearing);
+        sceneRef.current.add(initialArrowMesh);
         arrowMeshRef.current = initialArrowMesh; // Store arrow mesh in state for later updates
 
+    }, [bearing]);
 
-        // FIXME: It "sort of works" - do some more testing 
+    useEffect(() => {
         // Animation loop
         const animate = () => {
             requestAnimationFrame(animate);
 
-            if (arrowMeshRef.current && alphaRef.current !== null) {
+            if (arrowMeshRef.current && alpha !== null) {
                 // Combine device orientation with geolocation bearing
                 // Note: You might need to adjust this calculation depending on your exact requirements
-                const deviceOrientation = alphaRef.current;
+                const deviceOrientation = alpha;
                 const totalBearing = (bearing - deviceOrientation + 360) % 360;
                 const bearingRadians = THREE.MathUtils.degToRad(totalBearing);
 
-                // Assuming you want to rotate around Z to adjust for compass heading
                 arrowMeshRef.current.rotation.z = bearingRadians;
             }
 
-
-            renderer.render(scene, camera);
+            rendererRef.current.render(sceneRef.current, cameraRef.current);
         };
         animate();
 
+    }, [bearing, alpha]);
 
+    useEffect(() => {
 
         const watchID = navigator.geolocation.watchPosition(position => {
             const { latitude, longitude } = position.coords;
 
-            // Turf.js to calculate distance and bearing
-            const from = turf.point([refLongitude, refLatitude]);
-            const to = turf.point([longitude, latitude]);
-            const options = { units: 'meters' };
+            setCurrentLatitude(latitude);
+            setCurrentLongitude(longitude);
 
-            const distance = turf.distance(from, to, options);
-            setDistanceToRef(distance);
-
-            console.log('Distance to ref:', distance, 'meters')
-
-            const bearingToRef = turf.bearing(from, to);
-
-            setBearing(bearingToRef);
-
-            if (distance < 2) {
-
-                scene.remove(arrowMeshRef.current);
-                setIsClose(true);
-
-                // change background color of canvas
-                renderer.setClearColor(0x00ff00); // Green color
-            } else {
-                scene.add(arrowMeshRef.current);
-                setIsClose(false);
-
-                // change background color of canvas
-                renderer.setClearColor(0x000000); // Black color
-            }
 
         }, error => console.error(`ERROR(${error.code}): ${error.message}`), {
             enableHighAccuracy: true,
@@ -123,19 +107,52 @@ const GeoLocatedScene = ({ refLatitude, refLongitude }) => {
 
         return () => {
             navigator.geolocation.clearWatch(watchID);
-            if (mountRef.current && renderer.domElement) {
-                mountRef.current.removeChild(renderer.domElement);
+            if (mountRef.current && rendererRef.current.domElement) {
+                mountRef.current.removeChild(rendererRef.current.domElement);
             }
         };
-    }, [refLatitude, refLongitude]);
+    }, [currentLatitude, currentLongitude])
+
+
+    useEffect(() => {
+        if (currentLatitude && currentLongitude) {
+            const refPoint = turf.point([refLongitude, refLatitude]);
+            const currentPoint = turf.point([currentLongitude, currentLatitude]);
+            const options = { units: 'meters' };
+            const distance = turf.distance(refPoint, currentPoint, options);
+            const bearing = turf.bearing(refPoint, currentPoint);
+
+            setDistanceToRef(distance);
+            setBearing(bearing);
+
+            if (distance < 2) {
+
+                sceneRef.current.remove(arrowMeshRef.current);
+                setIsClose(true);
+
+                // change background color of canvas
+                rendererRef.current.setClearColor(0x00ff00); // Green color
+            } else {
+                sceneRef.current.add(arrowMeshRef.current);
+                setIsClose(false);
+
+                // change background color of canvas
+                // FIXME: this isn't turning the background black, or it blinks back and forth 
+                rendererRef.current.setClearColor(0x000000); // Black color
+            }
+        }
+    }, [currentLatitude, currentLongitude, refLatitude, refLongitude, rendererRef.current, sceneRef.current]);
+
 
     // Define handleOrientation function
     const handleOrientation = useCallback((event) => {
         const { alpha } = event; // Device's compass heading
 
-        alphaRef.current = alpha;
+        setAlpha(alpha);
 
-    }, [bearing, arrowMeshRef.current]);
+        // console.log(alphaRef.current, 'degrees')
+
+    }, [arrowMeshRef.current]);
 
     // Request device orientation permission and set up event listener
     const requestGyroPermission = useCallback(async () => {
@@ -162,7 +179,16 @@ const GeoLocatedScene = ({ refLatitude, refLongitude }) => {
                     {isClose
                         ? `You're close to the reference point! Distance: ${distanceToRef.toFixed(2)} meters`
                         : `You're not close to the reference point. Distance: ${distanceToRef.toFixed(2)} meters. 
-                            Bearing: ${bearing.toFixed(2)} degrees.`}
+                            
+                            Bearing: ${bearing.toFixed(2)} degrees. 
+                            
+                            Alpha: ${alpha !== null ? alpha.toFixed(2) : 'N/A'}
+                            
+                            arrowMeshRef.current.rotation.z: ${arrowMeshRef.current ? arrowMeshRef.current.rotation.z.toFixed(2) : 'N/A'}  
+                            `
+
+                    }
+
                 </div>
             )}
         </div>
