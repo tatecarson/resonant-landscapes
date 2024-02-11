@@ -1,6 +1,9 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { MapContainer, TileLayer, useMap, Marker, Popup, useMapEvents } from 'react-leaflet'
+import "leaflet/dist/leaflet.css";
+// import L from "leaflet";
 import * as turf from '@turf/turf';
 
 function createArrowShape() {
@@ -59,19 +62,34 @@ const GeoLocatedArrow = ({ bearing, alpha }) => {
     return null; // This component does not render anything itself
 };
 
+function LocationMarker({ setCurrentPosition }) {
+    const map = useMap();
+
+    useEffect(() => {
+        // map.invalidateSize()
+        map.locate({ setView: true, maxZoom: 16 }).on('locationfound', (e) => {
+            setCurrentPosition(e.latlng); // Update parent component's state
+            map.flyTo(e.latlng, map.getZoom());
+        });
+
+    }, [map, setCurrentPosition]);
+
+    return null; // Marker is managed via map events
+}
+
 const GeoLocatedScene = ({ refLatitude, refLongitude }) => {
     const [isClose, setIsClose] = useState(false);
     const [distanceToRef, setDistanceToRef] = useState(null);
     const [bearing, setBearing] = useState(0);
     const [alpha, setAlpha] = useState(null);
-    const [currentLatitude, setCurrentLatitude] = useState();
-    const [currentLongitude, setCurrentLongitude] = useState();
+    const [currentPosition, setCurrentPosition] = useState({ lat: 0, lng: 0 });
+    const [mapHeight, setMapHeight] = useState(window.innerHeight);
 
     useEffect(() => {
         const watchID = navigator.geolocation.watchPosition(position => {
             const { latitude, longitude } = position.coords;
-            setCurrentLatitude(latitude);
-            setCurrentLongitude(longitude);
+
+            setCurrentPosition({ lat: latitude, lng: longitude });
         }, error => console.error(`ERROR(${error.code}): ${error.message}`), {
             enableHighAccuracy: true,
             maximumAge: 0,
@@ -82,9 +100,9 @@ const GeoLocatedScene = ({ refLatitude, refLongitude }) => {
     }, []);
 
     useEffect(() => {
-        if (currentLatitude && currentLongitude) {
+        if (currentPosition.lat && currentPosition.lng && refLatitude && refLongitude) {
             const refPoint = turf.point([refLongitude, refLatitude]);
-            const currentPoint = turf.point([currentLongitude, currentLatitude]);
+            const currentPoint = turf.point([currentPosition.lng, currentPosition.lat]);
             const options = { units: 'meters' };
             const distance = turf.distance(refPoint, currentPoint, options);
             const bearing = turf.bearing(refPoint, currentPoint);
@@ -93,12 +111,13 @@ const GeoLocatedScene = ({ refLatitude, refLongitude }) => {
             setBearing(bearing);
             setIsClose(distance < 2);
         }
-    }, [currentLatitude, currentLongitude, refLatitude, refLongitude]);
+    }, [currentPosition, refLatitude, refLongitude]);
 
     const handleOrientation = useCallback((event) => {
         const { alpha } = event;
         setAlpha(alpha);
     }, []);
+
 
     const requestGyroPermission = useCallback(async () => {
         if (typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -113,16 +132,40 @@ const GeoLocatedScene = ({ refLatitude, refLongitude }) => {
         }
     }, [handleOrientation]);
 
+    // useEffect(() => {
+    //     const handleResize = () => {
+    //         setMapHeight(window.innerHeight);
+    //     };
+
+    //     window.addEventListener('resize', handleResize);
+
+    //     // Cleanup
+    //     return () => window.removeEventListener('resize', handleResize);
+    // }, []);
+
     return (
-        <div>
-            <button onClick={requestGyroPermission}>Enable Orientation</button>
-            <Canvas style={{ width: '100%', height: '100vh', background: isClose ? 'green' : 'black' }} camera={{ position: [0, 0, 5] }}>
+        <div style={{ width: '100%', height: '100vh', position: 'relative' }}>
+            <button onClick={requestGyroPermission} style={{ position: 'absolute', zIndex: 10 }}>
+                Enable Orientation
+            </button>
+            <MapContainer
+                center={currentPosition}
+                zoom={13}
+                style={{ height: '100%', width: '100%', position: 'absolute', zIndex: 1 }}
+                scrollWheelZoom={false}>
+                <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <LocationMarker setCurrentPosition={setCurrentPosition} />
+            </MapContainer>
+            <Canvas style={{ width: '100%', height: '100vh', position: 'absolute', top: 0, left: 0, zIndex: 2 }} camera={{ position: [0, 0, 5] }}>
                 <ambientLight />
                 <pointLight position={[10, 10, 10]} />
                 {!isClose && <GeoLocatedArrow bearing={bearing} alpha={alpha} />}
             </Canvas>
             {distanceToRef !== null && (
-                <div style={{ position: 'absolute', top: '30px', left: '10px', color: 'white', backgroundColor: 'rgba(0,0,0,0.5)', padding: '10px', borderRadius: '8px' }}>
+                <div style={{ position: 'absolute', top: '30px', left: '10px', zIndex: 5, color: 'white', backgroundColor: 'rgba(0,0,0,0.5)', padding: '10px', borderRadius: '8px' }}>
                     {isClose
                         ? `You're close to the reference point! Distance: ${distanceToRef.toFixed(2)} meters`
                         : `You're not close to the reference point. Distance: ${distanceToRef.toFixed(2)} meters. Bearing: ${bearing.toFixed(2)} degrees. Alpha: ${alpha !== null ? alpha.toFixed(2) : 'N/A'}`

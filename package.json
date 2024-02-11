@@ -16,10 +16,12 @@
     "@turf/helpers": "^6.5.0",
     "@turf/turf": "^6.5.0",
     "ambisonics": "0.4.0",
+    "leaflet": "^1.9.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-draggable": "^4.4.6",
     "react-icons": "^4.12.0",
+    "react-leaflet": "^4.2.1",
     "resonance-audio": "^1.0.0",
     "three": "^0.161.0",
     "zustand": "^4.5.0"
