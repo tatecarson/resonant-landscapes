@@ -34,26 +34,28 @@ function createArrowMesh(bearing) {
     const material = new THREE.MeshBasicMaterial({ color: 0x0000ff }); // Blue color
     const mesh = new THREE.Mesh(geometry, material);
 
-    const bearingRadians = THREE.MathUtils.degToRad(bearing);
-    mesh.rotation.y = bearingRadians; // Rotate the arrow to point in the bearing direction
+    // const bearingRadians = THREE.MathUtils.degToRad(bearing);
+    // mesh.rotation.y = bearingRadians; // Rotate the arrow to point in the bearing direction
 
     return mesh;
 }
 
 const GeoLocatedArrow = ({ bearing, alpha }) => {
     const arrowMeshRef = useRef();
-    const { scene } = useThree();
+    const { scene, size } = useThree();
 
     useFrame(() => {
         if (arrowMeshRef.current && alpha !== null) {
-            const totalBearing = (bearing - alpha + 360) % 360;
+            const totalBearing = (bearing - alpha);
             const bearingRadians = THREE.MathUtils.degToRad(totalBearing);
             arrowMeshRef.current.rotation.z = bearingRadians;
         }
     });
 
     useEffect(() => {
-        const initialArrowMesh = createArrowMesh(0);
+        // TODO: start the arrow pointing in the cardinal directoin my phone is facing 
+        const initialArrowMesh = createArrowMesh(alpha);
+        initialArrowMesh.scale.set(size.width / 100, size.height / 100, 1);
         scene.add(initialArrowMesh);
         arrowMeshRef.current = initialArrowMesh;
         return () => scene.remove(arrowMeshRef.current);
@@ -114,38 +116,38 @@ const GeoLocatedScene = ({ refLatitude, refLongitude }) => {
     }, [currentPosition, refLatitude, refLongitude]);
 
     const handleOrientation = useCallback((event) => {
-        const { alpha } = event;
+
+        const alpha = event.webkitCompassHeading;
+
+
+        // console.log(event.webkitCompassHeading)
+        // console.log(`alpha: ${alpha}, absolute: ${absolute}`)
+
         setAlpha(alpha);
     }, []);
 
 
     const requestGyroPermission = useCallback(async () => {
+
         if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-            const permission = await DeviceOrientationEvent.requestPermission();
-            if (permission === 'granted') {
-                window.addEventListener('deviceorientation', handleOrientation, true);
-            } else {
-                console.log('Gyroscope permission not granted');
-            }
+            DeviceOrientationEvent.requestPermission()
+                .then(permissionState => {
+                    if (permissionState === 'granted') {
+                        // FIXME: this is supposed to return the absolute position, but doesn't work 
+                        window.addEventListener('deviceorientation', handleOrientation, true);
+                    }
+                })
+                .catch(console.error);
         } else {
+            // handle regular non iOS 13+ devices
             window.addEventListener('deviceorientation', handleOrientation, true);
         }
+
     }, [handleOrientation]);
-
-    // useEffect(() => {
-    //     const handleResize = () => {
-    //         setMapHeight(window.innerHeight);
-    //     };
-
-    //     window.addEventListener('resize', handleResize);
-
-    //     // Cleanup
-    //     return () => window.removeEventListener('resize', handleResize);
-    // }, []);
 
     return (
         <div style={{ width: '100%', height: '100vh', position: 'relative' }}>
-            <button onClick={requestGyroPermission} style={{ position: 'absolute', zIndex: 10 }}>
+            <button onClick={requestGyroPermission} style={{ position: 'absolute', right: '10px', zIndex: 10 }}>
                 Enable Orientation
             </button>
             <MapContainer
@@ -158,21 +160,30 @@ const GeoLocatedScene = ({ refLatitude, refLongitude }) => {
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
                 <LocationMarker setCurrentPosition={setCurrentPosition} />
+                <Marker position={[refLatitude, refLongitude]}>
+                    <Popup>
+                        Reference Point
+                    </Popup>
+                </Marker>
             </MapContainer>
-            <Canvas style={{ width: '100%', height: '100vh', position: 'absolute', top: 0, left: 0, zIndex: 2 }} camera={{ position: [0, 0, 5] }}>
-                <ambientLight />
+            <Canvas style={{
+                position: 'absolute', top: '25%', right: "50%", width: '30%', height: '30%', zIndex: 2
+            }} camera={{ position: [0, 0, 5] }}>
+                < ambientLight />
                 <pointLight position={[10, 10, 10]} />
                 {!isClose && <GeoLocatedArrow bearing={bearing} alpha={alpha} />}
             </Canvas>
-            {distanceToRef !== null && (
-                <div style={{ position: 'absolute', top: '30px', left: '10px', zIndex: 5, color: 'white', backgroundColor: 'rgba(0,0,0,0.5)', padding: '10px', borderRadius: '8px' }}>
-                    {isClose
-                        ? `You're close to the reference point! Distance: ${distanceToRef.toFixed(2)} meters`
-                        : `You're not close to the reference point. Distance: ${distanceToRef.toFixed(2)} meters. Bearing: ${bearing.toFixed(2)} degrees. Alpha: ${alpha !== null ? alpha.toFixed(2) : 'N/A'}`
-                    }
-                </div>
-            )}
-        </div>
+            {
+                distanceToRef !== null && (
+                    <div style={{ position: 'absolute', bottom: '100px', left: '10px', zIndex: 5, color: 'white', backgroundColor: 'rgba(0,0,0,0.5)', padding: '10px', borderRadius: '8px' }}>
+                        {isClose
+                            ? `You're close to the reference point! Distance: ${distanceToRef.toFixed(2)} meters`
+                            : `You're not close to the reference point. Distance: ${distanceToRef.toFixed(2)} meters. Bearing: ${bearing.toFixed(2)} degrees. Alpha: ${alpha !== null ? alpha.toFixed(2) : 'N/A'}`
+                        }
+                    </div>
+                )
+            }
+        </div >
     );
 };
 

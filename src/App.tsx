@@ -2,10 +2,10 @@ import { useState } from "react";
 import AudioContextProvider from "./contexts/AudioContextProvider";
 import HOARenderer from "./components/HoaRenderer";
 import GimbalTest from "./components/GimbalTest";
-
+import OpenLayers from "./components/OpenLayers";
 import GeoLocatedScene from "./components/GeoLocatedScene";
 
-import './App.css'
+// import './App.css'
 
 function App() {
 
@@ -20,7 +20,8 @@ function App() {
       <HOARenderer /> */}
       {/* <ARScene /> */}
 
-      <GeoLocatedScene refLatitude={home[0]} refLongitude={home[1]} />
+      {/* <GeoLocatedScene refLatitude={home[0]} refLongitude={home[1]} /> */}
+      <OpenLayers />
     </AudioContextProvider>
   );
 }
