@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { fromLonLat } from "ol/proj";
+import { fromLonLat, to } from "ol/proj";
 import { Geometry, Point, LineString } from "ol/geom";
 import { Geolocation as OLGeoLoc } from "ol";
 import "ol/ol.css";
@@ -15,9 +15,10 @@ import {
     useOL,
 } from "rlayers";
 import locationIcon from "../assets/geolocation_marker_heading.png";
+import marker from '../assets/react.svg'
 
 // modulo for negative values
-function mod(n) {
+function mod(n: number) {
     return ((n % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 }
 
@@ -59,9 +60,9 @@ function GeolocComp(): JSX.Element {
 
         positions.setCoordinates(positions.getCoordinates().slice(-20));
     }
+
     // recenters the view by putting the given coordinates at 3/4 from the top or
     // the screen
-
     function getCenterWithHeading(position: [number, number], rotation: number, resolution: number) {
         const size = map?.getSize();
         if (!size) return position; // Return early if map size is not available
@@ -84,7 +85,7 @@ function GeolocComp(): JSX.Element {
 
         const c = positions.getCoordinateAtM(m, true);
 
-        // console.log(c)
+
         if (c) {
             view.setCenter(getCenterWithHeading([c[0], c[1]], -c[2], view.getResolution() ?? 0));
             view.setRotation(-c[2]);
@@ -100,13 +101,14 @@ function GeolocComp(): JSX.Element {
                 trackingOptions={{ enableHighAccuracy: true }}
 
                 onChange={useCallback(
-                    (e) => {
+                    (e: { target: OLGeoLoc; }) => {
                         const geoloc = e.target as OLGeoLoc;
                         const position = geoloc.getPosition();
                         if (position) {
+                            const [x, y] = position; // Destructure the position into x and y coordinates
                             setAccuracy(new LineString([position]));
                             const m = Date.now();
-                            addPosition(position, geoloc.getHeading() ?? 0, m, geoloc.getSpeed() ?? 0);
+                            addPosition([x, y], geoloc.getHeading() ?? 0, m, geoloc.getSpeed() ?? 0); // Pass [x, y] as the position
 
                             const coords = positions.getCoordinates();
                             const len = coords.length;
@@ -128,6 +130,23 @@ function GeolocComp(): JSX.Element {
                 {pos && <RFeature geometry={new Point(pos)}></RFeature>}
                 {accuracy && <RFeature geometry={accuracy}></RFeature>}
             </RLayerVector>
+
+            <RLayerVector zIndex={9}>
+                <RStyle.RStyle>
+                    <RStyle.RIcon src={marker} anchor={[0.5, 0.8]} />
+                    <RStyle.RStroke color={"#007bff"} width={3} />
+                </RStyle.RStyle>
+                <RFeature
+                    geometry={new Point(fromLonLat([-97.11346902337957, 44.013071487192235]))}
+                >
+                </RFeature>
+                <RFeature
+                    geometry={new Point(fromLonLat([-97.11266215609334, 44.012974903049155]))}
+                >
+                </RFeature>
+            </RLayerVector>
+
+
         </>
     );
 }
@@ -140,6 +159,8 @@ export default function Geolocation(): JSX.Element {
         >
             <ROSM />
             <GeolocComp />
+
+
         </RMap>
     );
 }
