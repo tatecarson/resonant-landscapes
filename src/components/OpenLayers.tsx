@@ -1,11 +1,7 @@
 import React, { useState, useCallback } from "react";
-import { fromLonLat, to } from "ol/proj";
+import { fromLonLat } from "ol/proj";
 import { Geometry, Point, LineString } from "ol/geom";
 import { Geolocation as OLGeoLoc } from "ol";
-import * as turf from "@turf/turf";
-import "ol/ol.css";
-import './layers.css'
-
 import {
     RMap,
     ROSM,
@@ -15,72 +11,25 @@ import {
     RStyle,
     ROverlay,
     useOL,
+    RPopup,
 } from "rlayers";
+import * as turf from '@turf/turf';
+
+import "ol/ol.css";
+import './layers.css'
+
+import scaledPoints from "../js/scaledParks";
 import locationIcon from "../assets/geolocation_marker_heading.png";
-import marker from '../assets/react.svg'
+import marker from '../assets/trees.png'
 
 // modulo for negative values
 function mod(n: number) {
     return ((n % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 }
 
-
-// lon, lat 
-const stateParks = [
-    { name: "Sica Hollow State Park", cords: [-97.24267, 45.7421] },
-    { name: "Roy Lake State Park", cords: [-97.44881, 45.70969] },
-    { name: "Fort Sisseton Historic State Park", cords: [-97.52827, 45.6594] },
-    { name: "Hartford Beach State Park", cords: [-96.67307, 45.40219] },
-    { name: "Fisher Grove State Park", cords: [-98.35471, 44.88346] },
-    { name: "Oakwood Lakes State Park", cords: [-96.98198, 44.44975] },
-    { name: "Lake Herman State Park", cords: [-97.16042, 43.99288] },
-    { name: "Palisades State Park", cords: [-96.51717, 43.68764] },
-    { name: "Good Earth State Park", cords: [-96.61351, 43.47997] },
-    { name: "Newton Hills State Park", cords: [-96.57019, 43.21904] },
-    { name: "Union Grove State Park", cords: [-96.78532, 42.92024] },
-    { name: "Custer State Park", cords: [-103.689, 43.61433] },
-    { name: "Bear Butte State Park", cords: [-103.4509, 44.45989] },
-];
-
-// Placeholder for your scale factors
-const scaleLat = 0.00065;
-const scaleLong = 0.000660;
-
-// Assuming a reference point (for example, the center of DSU campus)
-const referencePoint = turf.point([-97.111488, 44.012222]);
-
-// Translate points to origin, apply scale, and translate back
-const scaledPoints = stateParks.map(park => {
-    // Original park point
-    const originalPoint = turf.point(park.cords);
-
-    // Calculate the difference from the reference point
-    const diffLat = originalPoint.geometry.coordinates[1] - referencePoint.geometry.coordinates[1];
-    const diffLong = originalPoint.geometry.coordinates[0] - referencePoint.geometry.coordinates[0];
-
-    // Apply scale factors
-    const scaledLat = diffLat * scaleLat;
-    const scaledLong = diffLong * scaleLong;
-
-    // Translate points back
-    const scaledPoint = turf.point([
-        referencePoint.geometry.coordinates[0] + scaledLong,
-        referencePoint.geometry.coordinates[1] + scaledLat
-    ]);
-
-    return {
-        ...park,
-        scaledCoords: scaledPoint.geometry.coordinates
-    };
-});
-
-console.log(scaledPoints)
-
 function GeolocComp(): JSX.Element {
     const [pos, setPos] = useState(new Point(fromLonLat([0, 0]), 'XYZM'));
     const [accuracy, setAccuracy] = useState<LineString | null>(null);
-    // const [heading, setHeading] = useState<number>(0);
-    // const [speed, setSpeed] = useState<number>(0);
 
     const positions = new LineString([], 'XYZM');
 
@@ -129,7 +78,6 @@ function GeolocComp(): JSX.Element {
         ];
     }
 
-
     function updateView() {
         if (!view) return; // Guard clause if view is not available
 
@@ -139,28 +87,35 @@ function GeolocComp(): JSX.Element {
 
         const c = positions.getCoordinateAtM(m, true);
 
-
         if (c) {
             view.setCenter(getCenterWithHeading([c[0], c[1]], -c[2], view.getResolution() ?? 0));
             view.setRotation(-c[2]);
             setPos(c); // Fix: Pass the coordinate array as an argument to setPos
+
+            // TODO: test this IRL 
+            // Added it up here so it doesn't get called too often
+            const userLocation = turf.point(c);
+            scaledPoints.forEach(park => {
+                const parkLocation = turf.point(park.scaledCoords);
+                const distance = turf.distance(userLocation, parkLocation, { units: 'meters' });
+
+                if (distance < 10) {
+                    console.log('You are in', park.name);
+                }
+            })
         }
     }
 
-
-
     function createParkFeature(scaledCoords: [number, number], name: string, key: number) {
         return (
-            // FIXME: Add a key prop
             <RFeature
                 geometry={new Point(fromLonLat(scaledCoords))} key={key}>
-                <ROverlay className="example-overlay">
-                    {name} {key}
-                </ROverlay>
+                <RPopup trigger={"click"} className="example-overlay">
+                    {name}
+                </RPopup>
             </RFeature>
         );
     }
-
 
     return (
         <>
@@ -185,6 +140,8 @@ function GeolocComp(): JSX.Element {
                             }
 
                             updateView();
+
+
                         }
                     },
                     [positions, map] // Dependency array updated
@@ -201,15 +158,14 @@ function GeolocComp(): JSX.Element {
 
             <RLayerVector zIndex={9}>
                 <RStyle.RStyle>
+                    <RStyle.RCircle radius={5} />
+                    <RStyle.RStroke color={"#000"} width={10} />
                     <RStyle.RIcon src={marker} anchor={[0.5, 0.8]} />
-                    <RStyle.RStroke color={"#007bff"} width={3} />
+
                 </RStyle.RStyle>
 
-                {scaledPoints && scaledPoints.map((park, i) => createParkFeature(park.scaledCoords, park.name, i))}
-
+                {scaledPoints.map((park, i) => createParkFeature(park.scaledCoords, park.name, i))}
             </RLayerVector>
-
-
         </>
     );
 }
@@ -223,8 +179,6 @@ export default function Geolocation(): JSX.Element {
         >
             <ROSM />
             <GeolocComp />
-
-
         </RMap>
     );
 }
