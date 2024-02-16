@@ -37,6 +37,7 @@ function GeolocComp(): JSX.Element {
     const [deltaMean, setDeltaMean] = useState<number>(500);
     const [previousM, setPreviousM] = useState<number>(0);
     const [simulationData, setSimulationData] = useState(null);
+    const [currentIndex, setCurrentIndex] = useState(0); // New state for tracking current index
 
     const positions = new LineString([], 'XYZM');
 
@@ -52,33 +53,61 @@ function GeolocComp(): JSX.Element {
     }, []);
 
     // Simulate geolocation movement
-    const simulateGeolocation = useCallback(() => {
+    // const simulateGeolocation = useCallback(() => {
 
-        if (!simulationData || simulationData.length === 0) return;
+    //     if (!simulationData || simulationData.length === 0) return;
 
-        let currentIndex = 0;
+    //     let currentIndex = 0;
 
-        const simulateNextStep = () => {
-            if (currentIndex >= simulationData.length) return;
+    //     const simulateNextStep = () => {
+    //         if (currentIndex >= simulationData.length) return;
 
-            const { coords, timestamp } = simulationData[currentIndex];
-            const projectedPosition = fromLonLat([coords.longitude, coords.latitude]);
-            console.log('projected position', projectedPosition)
-            // Example function to update the position based on simulation data
-            addPosition([projectedPosition[0], projectedPosition[1]], degToRad(coords.heading), Date.now(), coords.speed);
+    //         const { coords, timestamp } = simulationData[currentIndex];
+    //         const projectedPosition = fromLonLat([coords.longitude, coords.latitude]);
+    //         console.log('projected position', projectedPosition)
+    //         // Example function to update the position based on simulation data
+    //         addPosition([projectedPosition[0], projectedPosition[1]], degToRad(coords.heading), Date.now(), coords.speed);
 
-            currentIndex++;
-            if (currentIndex < simulationData.length) {
-                const nextTimestamp = simulationData[currentIndex].timestamp;
-                setTimeout(simulateNextStep, (nextTimestamp - timestamp) / 0.5); // Adjust timing as needed
-            }
+    //         currentIndex++;
+    //         if (currentIndex < simulationData.length) {
+    //             const nextTimestamp = simulationData[currentIndex].timestamp;
+    //             setTimeout(simulateNextStep, (nextTimestamp - timestamp) / 0.5); // Adjust timing as needed
+    //         }
 
-            updateView();
-        };
+    //         updateView();
+    //     };
 
-        simulateNextStep();
+    //     simulateNextStep();
 
-    }, [simulationData, addPosition]);
+    // }, [simulationData, addPosition]);
+
+    // Function to move to the next simulation step
+    const nextStep = useCallback(() => {
+        if (!simulationData || currentIndex >= simulationData.length - 1) return;
+
+        const newIndex = currentIndex + 1;
+        simulateStep(newIndex);
+        setCurrentIndex(newIndex);
+    }, [currentIndex, simulationData]);
+
+    // Function to move to the previous simulation step
+    const prevStep = useCallback(() => {
+        if (!simulationData || currentIndex <= 0) return;
+
+        const newIndex = currentIndex - 1;
+        simulateStep(newIndex);
+        setCurrentIndex(newIndex);
+    }, [currentIndex, simulationData]);
+
+    // Function to simulate a specific step based on index
+    const simulateStep = (index: number) => {
+        const { coords, timestamp } = simulationData[index];
+        const projectedPosition = fromLonLat([coords.longitude, coords.latitude]);
+        // Your logic to update position and view based on the new step...
+        addPosition([projectedPosition[0], projectedPosition[1]], degToRad(coords.heading), Date.now(), coords.speed);
+
+        updateView(); // Ensure this function updates the view correctly based on the new index
+    };
 
     function addPosition(position: [number, number], heading: number, m: number, speed: number) {
         if (!position) return; // Guard clause if position is not provided
@@ -206,7 +235,9 @@ function GeolocComp(): JSX.Element {
 
                 {scaledPoints.map((park, i) => createParkFeature(park.scaledCoords, park.name, i))}
             </RLayerVector>
-            <button onClick={simulateGeolocation}>Simulate Movement</button>
+            {/* <button onClick={simulateGeolocation}>Simulate Movement</button> */}
+            <button onClick={prevStep}>Previous Step</button>
+            <button onClick={nextStep}>Next Step</button>
         </>
     );
 }
