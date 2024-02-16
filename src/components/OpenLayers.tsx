@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from "react";
-import { fromLonLat } from "ol/proj";
+import React, { useState, useEffect, useCallback } from "react";
+import { fromLonLat, toLonLat } from "ol/proj";
 import { Geometry, Point, LineString } from "ol/geom";
 import { Geolocation as OLGeoLoc } from "ol";
 import {
@@ -27,19 +27,58 @@ function mod(n: number) {
     return ((n % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 }
 
+function degToRad(deg: number) {
+    return (deg * Math.PI) / 180;
+}
+
 function GeolocComp(): JSX.Element {
     const [pos, setPos] = useState(new Point(fromLonLat([0, 0]), 'XYZM'));
     const [accuracy, setAccuracy] = useState<LineString | null>(null);
-
-    const positions = new LineString([], 'XYZM');
-
     const [deltaMean, setDeltaMean] = useState<number>(500);
     const [previousM, setPreviousM] = useState<number>(0);
+    const [simulationData, setSimulationData] = useState(null);
+
+    const positions = new LineString([], 'XYZM');
 
     // Low-level access to the OpenLayers API
     const { map } = useOL();
 
     const view = map?.getView();
+
+    useEffect(() => {
+        fetch('data/geolocation-orientation.json') // Adjust path if necessary
+            .then((response) => response.json())
+            .then((data) => setSimulationData(data.data));
+    }, []);
+
+    // Simulate geolocation movement
+    const simulateGeolocation = useCallback(() => {
+
+        if (!simulationData || simulationData.length === 0) return;
+
+        let currentIndex = 0;
+
+        const simulateNextStep = () => {
+            if (currentIndex >= simulationData.length) return;
+
+            const { coords, timestamp } = simulationData[currentIndex];
+            const projectedPosition = fromLonLat([coords.longitude, coords.latitude]);
+            console.log('projected position', projectedPosition)
+            // Example function to update the position based on simulation data
+            addPosition([projectedPosition[0], projectedPosition[1]], degToRad(coords.heading), Date.now(), coords.speed);
+
+            currentIndex++;
+            if (currentIndex < simulationData.length) {
+                const nextTimestamp = simulationData[currentIndex].timestamp;
+                setTimeout(simulateNextStep, (nextTimestamp - timestamp) / 0.5); // Adjust timing as needed
+            }
+
+            updateView();
+        };
+
+        simulateNextStep();
+
+    }, [simulationData, addPosition]);
 
     function addPosition(position: [number, number], heading: number, m: number, speed: number) {
         if (!position) return; // Guard clause if position is not provided
@@ -94,13 +133,14 @@ function GeolocComp(): JSX.Element {
 
             // TODO: test this IRL 
             // Added it up here so it doesn't get called too often
-            const userLocation = turf.point(c);
+            const userLocation = turf.point(toLonLat([c[0], c[1]]));
+            console.log("userLocation", userLocation)
             scaledPoints.forEach(park => {
                 const parkLocation = turf.point(park.scaledCoords);
                 const distance = turf.distance(userLocation, parkLocation, { units: 'meters' });
-
-                if (distance < 10) {
-                    console.log('You are in', park.name);
+                console.log("distance", distance, "to ", park.name)
+                if (distance < 3) {
+                    alert(`You are in ${park.name}`); // Fix: Pass a single string argument containing the park name
                 }
             })
         }
@@ -131,7 +171,7 @@ function GeolocComp(): JSX.Element {
                             const [x, y] = position; // Destructure the position into x and y coordinates
                             setAccuracy(new LineString([position]));
                             const m = Date.now();
-                            addPosition([x, y], geoloc.getHeading() ?? 0, m, geoloc.getSpeed() ?? 0); // Pass [x, y] as the position
+                            // addPosition([x, y], geoloc.getHeading() ?? 0, m, geoloc.getSpeed() ?? 0); // Pass [x, y] as the position
 
                             const coords = positions.getCoordinates();
                             const len = coords.length;
@@ -166,6 +206,7 @@ function GeolocComp(): JSX.Element {
 
                 {scaledPoints.map((park, i) => createParkFeature(park.scaledCoords, park.name, i))}
             </RLayerVector>
+            <button onClick={simulateGeolocation}>Simulate Movement</button>
         </>
     );
 }
@@ -173,12 +214,14 @@ function GeolocComp(): JSX.Element {
 
 export default function Geolocation(): JSX.Element {
     return (
-        <RMap
-            className="map"
-            initial={{ center: fromLonLat([0, 0]), zoom: 19 }}
-        >
-            <ROSM />
-            <GeolocComp />
-        </RMap>
+        <>
+            <RMap
+                className="map"
+                initial={{ center: fromLonLat([0, 0]), zoom: 19 }}
+            >
+                <ROSM />
+                <GeolocComp />
+            </RMap>
+        </>
     );
 }
