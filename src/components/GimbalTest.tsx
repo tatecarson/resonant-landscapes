@@ -6,6 +6,8 @@ import useGimbalStore from '../stores/gimbalStore';
 import Gimbal from '../js/Gimbal';
 import 'tailwindcss/tailwind.css';
 
+// FIXME: something weird is happening where when the gyroscope permission is requested
+// the page reloads
 const GimbalTest = () => {
     const [gimbal] = useState(new Gimbal());
     const arrowAll = useRef();
