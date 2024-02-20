@@ -15,6 +15,8 @@ import {
 } from "rlayers";
 import * as turf from '@turf/turf';
 
+
+import ParkModal from "./ParkModal";
 import "ol/ol.css";
 import './layers.css'
 
@@ -39,6 +41,8 @@ function GeolocComp(): JSX.Element {
     const [simulationData, setSimulationData] = useState(null);
     const [currentIndex, setCurrentIndex] = useState(0); // New state for tracking current index
 
+    const [isOpen, setIsOpen] = useState(false)
+
     const positions = new LineString([], 'XYZM');
 
     // Low-level access to the OpenLayers API
@@ -52,34 +56,7 @@ function GeolocComp(): JSX.Element {
             .then((data) => setSimulationData(data.data));
     }, []);
 
-    // Simulate geolocation movement
-    // const simulateGeolocation = useCallback(() => {
 
-    //     if (!simulationData || simulationData.length === 0) return;
-
-    //     let currentIndex = 0;
-
-    //     const simulateNextStep = () => {
-    //         if (currentIndex >= simulationData.length) return;
-
-    //         const { coords, timestamp } = simulationData[currentIndex];
-    //         const projectedPosition = fromLonLat([coords.longitude, coords.latitude]);
-    //         console.log('projected position', projectedPosition)
-    //         // Example function to update the position based on simulation data
-    //         addPosition([projectedPosition[0], projectedPosition[1]], degToRad(coords.heading), Date.now(), coords.speed);
-
-    //         currentIndex++;
-    //         if (currentIndex < simulationData.length) {
-    //             const nextTimestamp = simulationData[currentIndex].timestamp;
-    //             setTimeout(simulateNextStep, (nextTimestamp - timestamp) / 0.5); // Adjust timing as needed
-    //         }
-
-    //         updateView();
-    //     };
-
-    //     simulateNextStep();
-
-    // }, [simulationData, addPosition]);
 
     // Function to move to the next simulation step
     const nextStep = useCallback(() => {
@@ -163,13 +140,15 @@ function GeolocComp(): JSX.Element {
             // TODO: test this IRL 
             // Added it up here so it doesn't get called too often
             const userLocation = turf.point(toLonLat([c[0], c[1]]));
-            console.log("userLocation", userLocation)
+            // console.log("userLocation", userLocation)
             scaledPoints.forEach(park => {
                 const parkLocation = turf.point(park.scaledCoords);
                 const distance = turf.distance(userLocation, parkLocation, { units: 'meters' });
-                console.log("distance", distance, "to ", park.name)
-                if (distance < 3) {
-                    alert(`You are in ${park.name}`); // Fix: Pass a single string argument containing the park name
+                // console.log("distance", distance, "to ", park.name)
+                if (distance < 10) {
+                    // alert(`You are in ${park.name}`); // Fix: Pass a single string argument containing the park name
+                    // <ParkModal open={true} />
+                    setIsOpen(true)
                 }
             })
         }
@@ -210,7 +189,6 @@ function GeolocComp(): JSX.Element {
 
                             updateView();
 
-
                         }
                     },
                     [positions, map] // Dependency array updated
@@ -235,6 +213,7 @@ function GeolocComp(): JSX.Element {
 
                 {scaledPoints.map((park, i) => createParkFeature(park.scaledCoords, park.name, i))}
             </RLayerVector>
+            {isOpen && <ParkModal isOpen={isOpen} setIsOpen={setIsOpen} />}
             {/* <button onClick={simulateGeolocation}>Simulate Movement</button> */}
             <button onClick={prevStep}>Previous Step</button>
             <button onClick={nextStep}>Next Step</button>
@@ -253,6 +232,7 @@ export default function Geolocation(): JSX.Element {
                 <ROSM />
                 <GeolocComp />
             </RMap>
+
         </>
     );
 }
