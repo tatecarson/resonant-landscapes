@@ -42,6 +42,7 @@ function GeolocComp(): JSX.Element {
     const [currentIndex, setCurrentIndex] = useState(0); // New state for tracking current index
 
     const [isOpen, setIsOpen] = useState(false)
+    const [parkName, setParkName] = useState<string>('');
 
     const positions = new LineString([], 'XYZM');
 
@@ -146,9 +147,8 @@ function GeolocComp(): JSX.Element {
                 const distance = turf.distance(userLocation, parkLocation, { units: 'meters' });
                 // console.log("distance", distance, "to ", park.name)
                 if (distance < 10) {
-                    // alert(`You are in ${park.name}`); // Fix: Pass a single string argument containing the park name
-                    // <ParkModal open={true} />
                     setIsOpen(true)
+                    setParkName(park.name)
                 }
             })
         }
@@ -213,7 +213,7 @@ function GeolocComp(): JSX.Element {
 
                 {scaledPoints.map((park, i) => createParkFeature(park.scaledCoords, park.name, i))}
             </RLayerVector>
-            {isOpen && <ParkModal isOpen={isOpen} setIsOpen={setIsOpen} />}
+            {isOpen && <ParkModal isOpen={isOpen} setIsOpen={setIsOpen} parkName={parkName} />}
             {/* <button onClick={simulateGeolocation}>Simulate Movement</button> */}
             <button onClick={prevStep}>Previous Step</button>
             <button onClick={nextStep}>Next Step</button>
