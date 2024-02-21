@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useContext } from "react";
 import { ResonanceAudio } from "resonance-audio";
 import { createBufferList, mergeBufferListByChannel } from 'omnitone';
-import { AudioContext } from '../contexts/AudioContextProvider';
+import { AudioContext } from '../../contexts/AudioContextProvider';
 import { render } from "react-dom";
 
 const ResonanceAudioComponent = () => {

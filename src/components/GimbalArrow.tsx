@@ -8,7 +8,7 @@ import 'tailwindcss/tailwind.css';
 
 // FIXME: something weird is happening where when the gyroscope permission is requested
 // the page reloads
-const GimbalTest = () => {
+const GimbalArrow = () => {
     const [gimbal] = useState(new Gimbal());
     const arrowAll = useRef();
 
@@ -34,18 +34,18 @@ const GimbalTest = () => {
         renderLoop();
     }, [gimbal]);
 
-    const requestGyroPermission = useCallback(async () => {
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-            const permission = await DeviceOrientationEvent.requestPermission();
-            if (permission === 'granted') {
-                gimbal.enable()
-            } else {
-                console.log('Gyroscope permission not granted');
-            }
-        } else {
-            // For non iOS 13+ devices
-        }
-    }, [gimbal]);
+    // const requestGyroPermission = useCallback(async () => {
+    //     if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    //         const permission = await DeviceOrientationEvent.requestPermission();
+    //         if (permission === 'granted') {
+    //             gimbal.enable()
+    //         } else {
+    //             console.log('Gyroscope permission not granted');
+    //         }
+    //     } else {
+    //         // For non iOS 13+ devices
+    //     }
+    // }, [gimbal]);
 
     // Function to create arrow mesh (adapted from makeArrowMesh)
     const makeArrowMesh = (color) => {
@@ -72,7 +72,7 @@ const GimbalTest = () => {
 
     return (
         <div className="relative w-full h-full">
-
+            {/* 
             {!buttonClicked ? (
                 <button
                     className="absolute top-0 left-0 m-4 py-2 px-4 bg-blue-500 text-white font-bold rounded hover:bg-blue-700 focus:outline-none"
@@ -83,40 +83,40 @@ const GimbalTest = () => {
                 >
                     Request Gyroscope Permission
                 </button>
-            ) : (
-                <>
-                    <Canvas
-                        onCreated={({ gl, camera }) => {
-                            camera.updateProjectionMatrix();
-                            gl.setSize(window.innerWidth, window.innerHeight);
-                        }}
-                        camera={{ position: [0, 0, 10], aspect: window.innerWidth / window.innerHeight, zoom: 20 }} orthographic={true} style={{ background: '#f0f0f0' }}  >
+            ) : ( */}
+            <>
+                <Canvas
+                    onCreated={({ gl, camera }) => {
+                        camera.updateProjectionMatrix();
+                        gl.setSize(window.innerWidth, window.innerHeight);
+                    }}
+                    camera={{ position: [0, 0, 10], aspect: window.innerWidth / window.innerHeight, zoom: 20 }} orthographic={true} style={{ background: '#f0f0f0' }}  >
 
-                        <ambientLight intensity={0.1} position={[0.5, -1, 1]} />
-                        <directionalLight color="#ffffff" position={[0, 0, 5]} />
+                    <ambientLight intensity={0.1} position={[0.5, -1, 1]} />
+                    <directionalLight color="#ffffff" position={[0, 0, 5]} />
 
-                        <Flex
-                            alignItems="center" // Align items in the cross axis
-                            justifyContent="center" // Align items in the main axis
-                        >
-                            <Box centerAnchor>
-                                <group position={[0, 0, 0]} ref={arrowAll}>{makeArrowMesh(0xff9900)}</group>
-                            </Box>
+                    <Flex
+                        alignItems="center" // Align items in the cross axis
+                        justifyContent="center" // Align items in the main axis
+                    >
+                        <Box centerAnchor>
+                            <group position={[0, 0, 0]} ref={arrowAll}>{makeArrowMesh(0xff9900)}</group>
+                        </Box>
 
-                        </Flex>
+                    </Flex>
 
-                    </Canvas>
+                </Canvas>
 
-                    <div
-                        className="absolute bottom-0 right-0 w-1/2 bg-gray-800 text-center py-2 font-bold text-white cursor-pointer hover:bg-gray-700"
-                        onClick={() => gimbal.recalibrate()}>
-                        Recalibrate
-                    </div>
+                <div
+                    className="absolute bottom-0 right-0 w-1/2 bg-gray-800 text-center py-2 font-bold text-white cursor-pointer hover:bg-gray-700"
+                    onClick={() => gimbal.recalibrate()}>
+                    Recalibrate
+                </div>
 
-                </>
-            )}
+            </>
+            {/* )} */}
         </div>
     );
 }
 
-export default GimbalTest;
+export default GimbalArrow;

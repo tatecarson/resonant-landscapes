@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import Gimbal from '../js/Gimbal';
+import Gimbal from '../../js/Gimbal';
 import Arrow from './Arrow';
 
 const GimbalComponent = () => {

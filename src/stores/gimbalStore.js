@@ -2,6 +2,8 @@ import { create} from 'zustand'
 
 
 const  useGimbalStore = create((set) => ({
+   permission: null,
+   setPermission: (permission) => set({ permission }),
    forwardX: 0,
     forwardY: 0,
     forwardZ: 0,

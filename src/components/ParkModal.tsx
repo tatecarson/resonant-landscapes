@@ -1,12 +1,17 @@
 import { Fragment, useRef, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import useGimbalStore from '../stores/gimbalStore'
 import HOARenderer from './HoaRenderer'
-import GimbalTest from './GimbalTest'
+import GimbalArrow from './GimbalArrow'
 
 export default function ParkModal({ setIsOpen, isOpen, parkName }) {
 
     const cancelButtonRef = useRef(null)
+
+    const gyroscopePermission = useGimbalStore((state) => state.permission)
+
+    console.log(gyroscopePermission)
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
@@ -45,10 +50,11 @@ export default function ParkModal({ setIsOpen, isOpen, parkName }) {
                                                 {parkName}
                                             </Dialog.Title>
                                             <div className="mt-2">
-                                                <p className="text-sm text-gray-500">
-                                                    <HOARenderer />
-                                                    <GimbalTest />
-                                                </p>
+
+                                                {/* FIXME: these components are rerendering.. */}
+                                                <HOARenderer />
+                                                {gyroscopePermission == "granted" && <GimbalArrow />}
+
                                             </div>
                                         </div>
                                     </div>

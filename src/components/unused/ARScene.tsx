@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import * as THREE from 'three';
-import * as THREEx from '../js/ar-threex-location-only.js';
+import * as THREEx from '../../js/unused/ar-threex-location-only.js/index.js';
 
 const ARScene = () => {
     const canvasRef = useRef(null);

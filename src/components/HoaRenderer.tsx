@@ -114,7 +114,7 @@ const HOARenderer = () => {
         <div>
             <div id="secSource">
 
-                <p>{ }</p>
+
 
                 <button onClick={onTogglePlayback}>{isPlaying ? 'Stop' : 'Play'}</button>
             </div>
