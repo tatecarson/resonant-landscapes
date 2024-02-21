@@ -11,8 +11,6 @@ export default function ParkModal({ setIsOpen, isOpen, parkName }) {
 
     const gyroscopePermission = useGimbalStore((state) => state.permission)
 
-    console.log(gyroscopePermission)
-
     return (
         <Transition.Root show={isOpen} as={Fragment}>
             <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} onClose={setIsOpen}>
@@ -52,9 +50,10 @@ export default function ParkModal({ setIsOpen, isOpen, parkName }) {
                                             <div className="mt-2">
 
                                                 {/* FIXME: these components are rerendering.. */}
-                                                <HOARenderer />
-                                                {gyroscopePermission == "granted" && <GimbalArrow />}
-
+                                                {/* OK the rerender is in HOARenderer */}
+                                                {/* <HOARenderer /> */}
+                                                {gyroscopePermission}
+                                                {gyroscopePermission === "granted" && <GimbalArrow />}
                                             </div>
                                         </div>
                                     </div>

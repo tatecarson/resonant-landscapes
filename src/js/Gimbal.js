@@ -96,6 +96,8 @@ class Gimbal {
 
         window.addEventListener("deviceorientation", this.onSensorMove.bind(this), false);
         window.addEventListener("orientationchange", this.onDeviceReorientation.bind(this), false);
+
+        console.log("Gimbal enabled");
     }
 
     // Disables gimbal

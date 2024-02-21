@@ -2,37 +2,34 @@ import React, { useState, useEffect, useCallback } from 'react';
 import useGimbalStore from '../stores/gimbalStore';
 
 const GyroscopePermissionProvider = ({ children }) => {
-    const [hasGyroPermission, setHasGyroPermission] = useState(false);
+    const [hasGyroPermission, setHasGyroPermission] = useState('not-determined');
     const setPermission = useGimbalStore((state) => state.setPermission);
 
     const requestPermission = useCallback(async () => {
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-            try {
+        try {
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
                 const permission = await DeviceOrientationEvent.requestPermission();
                 setHasGyroPermission(permission === 'granted');
                 setPermission(permission);
-            } catch (error) {
-                console.error('Error requesting gyroscope permission:', error);
-                // Handle permission request failure (e.g., inform user)
+            } else {
+                console.log('Gyroscope not supported on this device');
+                // Handle non-supporting devices
             }
-        } else {
-            console.log('Gyroscope not supported on this device');
-            // Handle non-supporting devices
+        } catch (error) {
+            console.error('Error requesting gyroscope permission:', error);
+            // Handle permission request failure (e.g., inform user)
         }
-    }, []);
+    }, [setPermission]);
 
     useEffect(() => {
-        // Trigger permission request on button click or touch event
-        // Replace 'handleClick' with your actual user interaction handler
         const handleClick = () => requestPermission();
 
         handleClick(); // Request permission initially
 
-        // Optionally add event listener for later user interactions
         window.addEventListener('click', handleClick);
 
         return () => window.removeEventListener('click', handleClick);
-    }, []);
+    }, [requestPermission]);
 
     return (
         <div>
