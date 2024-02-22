@@ -1,13 +1,15 @@
-import { Fragment, useRef, useState } from 'react'
+import { Fragment, useRef, useState, memo } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import useGimbalStore from '../stores/gimbalStore'
 import HOARenderer from './HoaRenderer'
 import GimbalArrow from './GimbalArrow'
 
+// FIXME: ok figure out why this reloads
 export default function ParkModal({ setIsOpen, isOpen, parkName }) {
 
     const cancelButtonRef = useRef(null)
+    const MemoizedHOARenderer = memo(HOARenderer);
 
     const gyroscopePermission = useGimbalStore((state) => state.permission)
 
@@ -48,12 +50,8 @@ export default function ParkModal({ setIsOpen, isOpen, parkName }) {
                                                 {parkName}
                                             </Dialog.Title>
                                             <div className="mt-2">
-
-                                                {/* FIXME: these components are rerendering.. */}
-                                                {/* OK the rerender is in HOARenderer */}
-                                                {/* <HOARenderer /> */}
-                                                {gyroscopePermission}
-                                                {gyroscopePermission === "granted" && <GimbalArrow />}
+                                                {gyroscopePermission === "granted" && <MemoizedHOARenderer />}
+                                                {/* {gyroscopePermission === "granted" && <GimbalArrow />} */}
                                             </div>
                                         </div>
                                     </div>

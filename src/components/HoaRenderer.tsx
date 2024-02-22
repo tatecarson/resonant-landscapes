@@ -30,7 +30,10 @@ const HOARenderer = () => {
 
     const exampleSoundPathList = ['/sounds/output_8ch-smc.m4a', '/sounds/output_mono-smc.m4a']
 
+    // FIXME: this is rerendering loading omnitone twice
+    // FIXME: actually it reloads before clicking play 
     useEffect(() => {
+        console.log(audioContext)
         if (!audioContext) {
             return;
         }
@@ -53,6 +56,7 @@ const HOARenderer = () => {
     }, [audioContext]);
 
     const onTogglePlayback = () => {
+        console.log('onTogglePlayback')
         if (!isPlaying) {
             console.log('play')
             sourceRef.current = sceneRef.current.createSource();
@@ -113,9 +117,6 @@ const HOARenderer = () => {
     return (
         <div>
             <div id="secSource">
-
-
-
                 <button onClick={onTogglePlayback}>{isPlaying ? 'Stop' : 'Play'}</button>
             </div>
         </div>
