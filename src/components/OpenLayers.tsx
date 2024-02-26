@@ -47,11 +47,11 @@ function GeolocComp(): JSX.Element {
 
     const positions = new LineString([], 'XYZM');
 
-    const areEqual = (prevProps, nextProps) => {
-        return prevProps.isOpen === nextProps.isOpen && prevProps.parkName === nextProps.parkName;
-    }
+    // const areEqual = (prevProps, nextProps) => {
+    //     return prevProps.isOpen === nextProps.isOpen && prevProps.parkName === nextProps.parkName;
+    // }
 
-    const MemoParkModal = memo(ParkModal, areEqual); // Memoize the component
+    // const MemoParkModal = memo(ParkModal, areEqual); // Memoize the component
 
     // Low-level access to the OpenLayers API
     const { map } = useOL();
@@ -221,7 +221,7 @@ function GeolocComp(): JSX.Element {
 
                 {scaledPoints.map((park, i) => createParkFeature(park.scaledCoords, park.name, i))}
             </RLayerVector>
-            {isOpen && <MemoParkModal isOpen={isOpen} setIsOpen={setIsOpen} parkName={"Fort Sisseton Historic State Park"} />}
+            {isOpen && <ParkModal isOpen={isOpen} setIsOpen={setIsOpen} parkName={"Fort Sisseton Historic State Park"} />}
             {/* <button onClick={simulateGeolocation}>Simulate Movement</button> */}
             <button onClick={prevStep}>Previous Step</button>
             <button onClick={nextStep}>Next Step</button>

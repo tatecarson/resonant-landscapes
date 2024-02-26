@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext, useRef, memo, useCallback, Suspense } from 'react';
 import Omnitone from 'omnitone/build/omnitone.min.esm.js';
-import AudioContextProvider, { useAudioContext } from '../contexts/AudioContextProvider';
+import { useAudioContext } from '../contexts/AudioContextProvider';
 // import { ResonanceAudio } from "resonance-audio";
 import useGimbalStore from '../stores/gimbalStore';
 
@@ -39,7 +39,6 @@ const HOARenderer = () => {
             return;
         }
 
-        console.log(audioContext, resonanceAudioScene)
         // sceneGain.current = audioContext.createGain();
         sceneRef.current = resonanceAudioScene;
 

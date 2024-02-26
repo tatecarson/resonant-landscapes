@@ -6,7 +6,7 @@ import useGimbalPermissionStore from '../stores/gimbalPermissionStore'
 import GimbalArrow from './GimbalArrow'
 
 // FIXME: ok figure out why this reloads
-export default function ParkModal({ setIsOpen, isOpen, parkName }) {
+function ParkModal({ setIsOpen, isOpen, parkName }) {
 
     const cancelButtonRef = useRef(null);
 
@@ -49,11 +49,11 @@ export default function ParkModal({ setIsOpen, isOpen, parkName }) {
                                                 {parkName}
                                             </Dialog.Title>
                                             <div className="mt-2">
-                                                {gyroscopePermission === "granted" &&
+                                                {/* {gyroscopePermission === "granted" && */}
 
-                                                    <HOARenderer />
+                                                <HOARenderer />
 
-                                                }
+                                                {/* } */}
                                                 {/* {gyroscopePermission === "granted" && <GimbalArrow />} */}
                                             </div>
                                         </div>
@@ -84,3 +84,5 @@ export default function ParkModal({ setIsOpen, isOpen, parkName }) {
         </Transition.Root>
     )
 }
+
+export default memo(ParkModal)
