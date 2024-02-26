@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, memo, useRef } from "react";
 import { fromLonLat, toLonLat } from "ol/proj";
 import { Geometry, Point, LineString } from "ol/geom";
 import { Geolocation as OLGeoLoc } from "ol";
@@ -43,8 +43,15 @@ function GeolocComp(): JSX.Element {
 
     const [isOpen, setIsOpen] = useState(false)
     const [parkName, setParkName] = useState<string>('');
+    const lastParkNameRef = useRef<string | null>(null);
 
     const positions = new LineString([], 'XYZM');
+
+    const areEqual = (prevProps, nextProps) => {
+        return prevProps.isOpen === nextProps.isOpen && prevProps.parkName === nextProps.parkName;
+    }
+
+    const MemoParkModal = memo(ParkModal, areEqual); // Memoize the component
 
     // Low-level access to the OpenLayers API
     const { map } = useOL();
@@ -56,7 +63,6 @@ function GeolocComp(): JSX.Element {
             .then((response) => response.json())
             .then((data) => setSimulationData(data.data));
     }, []);
-
 
 
     // Function to move to the next simulation step
@@ -125,7 +131,7 @@ function GeolocComp(): JSX.Element {
     }
 
     function updateView() {
-        if (!view) return; // Guard clause if view is not available
+        if (!view) return;
 
         let m = Date.now() - deltaMean * 1.5;
         m = Math.max(m, previousM);
@@ -136,23 +142,25 @@ function GeolocComp(): JSX.Element {
         if (c) {
             view.setCenter(getCenterWithHeading([c[0], c[1]], -c[2], view.getResolution() ?? 0));
             view.setRotation(-c[2]);
-            setPos(c); // Fix: Pass the coordinate array as an argument to setPos
+            setPos(c);
 
-            // TODO: test this IRL 
-            // Added it up here so it doesn't get called too often
             const userLocation = turf.point(toLonLat([c[0], c[1]]));
-            // console.log("userLocation", userLocation)
             scaledPoints.forEach(park => {
                 const parkLocation = turf.point(park.scaledCoords);
                 const distance = turf.distance(userLocation, parkLocation, { units: 'meters' });
-                // console.log("distance", distance, "to ", park.name)
-                if (distance < 10) {
-                    setIsOpen(true)
-                    setParkName(park.name)
+                if (distance < 10 && !isOpen && lastParkNameRef.current !== park.name) {
+
+
+                    // NOTE: this only happens once 
+                    // console.count('Chaning state')
+                    setIsOpen(true);
+                    setParkName(park.name);
+                    lastParkNameRef.current = park.name; // Update lastParkName to current park's name
                 }
-            })
+            });
         }
     }
+
 
     function createParkFeature(scaledCoords: [number, number], name: string, key: number) {
         return (
@@ -213,7 +221,7 @@ function GeolocComp(): JSX.Element {
 
                 {scaledPoints.map((park, i) => createParkFeature(park.scaledCoords, park.name, i))}
             </RLayerVector>
-            {isOpen && <ParkModal isOpen={isOpen} setIsOpen={setIsOpen} parkName={parkName} />}
+            {isOpen && <MemoParkModal isOpen={isOpen} setIsOpen={setIsOpen} parkName={"Fort Sisseton Historic State Park"} />}
             {/* <button onClick={simulateGeolocation}>Simulate Movement</button> */}
             <button onClick={prevStep}>Previous Step</button>
             <button onClick={nextStep}>Next Step</button>

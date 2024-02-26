@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useContext, useRef, useCallback, Suspense } from 'react';
-import { AudioContext } from '../contexts/AudioContextProvider';
+import React, { useEffect, useState, useContext, useRef, memo, useCallback, Suspense } from 'react';
 import Omnitone from 'omnitone/build/omnitone.min.esm.js';
-import { ResonanceAudio } from "resonance-audio";
+import AudioContextProvider, { useAudioContext } from '../contexts/AudioContextProvider';
+// import { ResonanceAudio } from "resonance-audio";
 import useGimbalStore from '../stores/gimbalStore';
 
 const HOARenderer = () => {
-    const audioContext = useContext(AudioContext);
+    const { audioContext, resonanceAudioScene } = useAudioContext();
     const sceneGain = useRef(null);
     const sceneRef = useRef(null);
     const sourceRef = useRef(null);
@@ -33,18 +33,20 @@ const HOARenderer = () => {
     // FIXME: this is rerendering loading omnitone twice
     // FIXME: actually it reloads before clicking play 
     useEffect(() => {
-        console.log(audioContext)
-        if (!audioContext) {
+
+        if (!audioContext || !resonanceAudioScene) {
+            // console.count()
             return;
         }
 
-        sceneGain.current = audioContext.createGain();
-        sceneRef.current = new ResonanceAudio(audioContext, { ambisonicOrder: 2 });
+        console.log(audioContext, resonanceAudioScene)
+        // sceneGain.current = audioContext.createGain();
+        sceneRef.current = resonanceAudioScene;
 
         // toaRenderer.current = Omnitone.createHOARenderer(audioContext);
-        sourceRef.current = sceneRef.current.createSource();
-        sceneRef.current.output.connect(sceneGain.current);
-        sceneGain.current.connect(audioContext.destination);
+        sourceRef.current = resonanceAudioScene.createSource();
+        resonanceAudioScene.output.connect(audioContext.destination);
+        // sceneGain.current.connect(audioContext.destination);
 
         Promise.all([
             Omnitone.createBufferList(audioContext, exampleSoundPathList),
@@ -53,7 +55,7 @@ const HOARenderer = () => {
 
             setIsPlaying(false);
         });
-    }, [audioContext]);
+    }, [audioContext, resonanceAudioScene]);
 
     const onTogglePlayback = () => {
         console.log('onTogglePlayback')
@@ -71,7 +73,8 @@ const HOARenderer = () => {
             setSound(currentBufferSource);
             setIsPlaying(true);
 
-            animate();
+            // animate();
+
         } else {
             if (sound) {
                 sound.stop(0);
@@ -82,45 +85,47 @@ const HOARenderer = () => {
     };
 
 
-    useEffect(() => {
-        latestForwardX.current = forwardX;
-        latestForwardY.current = forwardY;
-        latestForwardZ.current = forwardZ;
-        latestUpX.current = upX;
-        latestUpY.current = upY;
-        latestUpZ.current = upZ;
+    // useEffect(() => {
+    //     latestForwardX.current = forwardX;
+    //     latestForwardY.current = forwardY;
+    //     latestForwardZ.current = forwardZ;
+    //     latestUpX.current = upX;
+    //     latestUpY.current = upY;
+    //     latestUpZ.current = upZ;
 
-    }, [forwardX, forwardY, forwardZ, upX, upY, upZ]);
+    // }, [forwardX, forwardY, forwardZ, upX, upY, upZ]);
 
-    const animate = () => {
-        try {
-            if (sceneRef.current) {
-                sceneRef.current.setListenerOrientation(latestForwardX.current, latestForwardY.current, latestForwardZ.current, latestUpX.current, latestUpY.current, latestUpZ.current);
-            }
+    // const animate = () => {
+    //     try {
+    //         if (sceneRef.current) {
+    //             sceneRef.current.setListenerOrientation(latestForwardX.current, latestForwardY.current, latestForwardZ.current, latestUpX.current, latestUpY.current, latestUpZ.current);
+    //         }
 
-            if (requestRef.current !== undefined) {
-                requestRef.current = requestAnimationFrame(animate)
-            }
-        } catch (error) {
-            console.error("Error in animate: ", error)
-        }
-    }
+    //         if (requestRef.current !== undefined) {
+    //             requestRef.current = requestAnimationFrame(animate)
+    //         }
+    //     } catch (error) {
+    //         console.error("Error in animate: ", error)
+    //     }
+    // }
 
-    useEffect(() => {
-        return () => {
-            if (requestRef.current) {
-                cancelAnimationFrame(requestRef.current);
-            }
-        };
-    }, []);
+    // useEffect(() => {
+    //     return () => {
+    //         if (requestRef.current) {
+    //             cancelAnimationFrame(requestRef.current);
+    //         }
+    //     };
+    // }, []);
 
     return (
-        <div>
+        <>
+
             <div id="secSource">
                 <button onClick={onTogglePlayback}>{isPlaying ? 'Stop' : 'Play'}</button>
             </div>
-        </div>
+
+        </>
     );
 }
 
-export default HOARenderer;
+export default memo(HOARenderer);

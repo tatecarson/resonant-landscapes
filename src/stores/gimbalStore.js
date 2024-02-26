@@ -2,8 +2,7 @@ import { create} from 'zustand'
 
 
 const  useGimbalStore = create((set) => ({
-   permission: null,
-   setPermission: (permission) => set({ permission }),
+
    forwardX: 0,
     forwardY: 0,
     forwardZ: 0,
@@ -14,5 +13,7 @@ const  useGimbalStore = create((set) => ({
     setUp: (x, y, z) => set({ upX: x, upY: y, upZ: z }),
    setGimbal: () => set({ yaw, pitch, roll }),
 }))
+
+
 
 export default useGimbalStore

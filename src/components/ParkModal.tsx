@@ -1,17 +1,16 @@
-import { Fragment, useRef, useState, memo } from 'react'
+import { Fragment, useRef, useState, useMemo, memo, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
-import useGimbalStore from '../stores/gimbalStore'
 import HOARenderer from './HoaRenderer'
+import useGimbalPermissionStore from '../stores/gimbalPermissionStore'
 import GimbalArrow from './GimbalArrow'
 
 // FIXME: ok figure out why this reloads
 export default function ParkModal({ setIsOpen, isOpen, parkName }) {
 
-    const cancelButtonRef = useRef(null)
-    const MemoizedHOARenderer = memo(HOARenderer);
+    const cancelButtonRef = useRef(null);
 
-    const gyroscopePermission = useGimbalStore((state) => state.permission)
+    const gyroscopePermission = useGimbalPermissionStore((state) => state.permission);
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
@@ -50,7 +49,11 @@ export default function ParkModal({ setIsOpen, isOpen, parkName }) {
                                                 {parkName}
                                             </Dialog.Title>
                                             <div className="mt-2">
-                                                {gyroscopePermission === "granted" && <MemoizedHOARenderer />}
+                                                {gyroscopePermission === "granted" &&
+
+                                                    <HOARenderer />
+
+                                                }
                                                 {/* {gyroscopePermission === "granted" && <GimbalArrow />} */}
                                             </div>
                                         </div>

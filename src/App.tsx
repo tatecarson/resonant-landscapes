@@ -8,11 +8,12 @@ import OpenLayers from "./components/OpenLayers";
 function App() {
 
   return (
-    <AudioContextProvider>
-      <GyroscopePermissionProvider>
+    <GyroscopePermissionProvider>
+      <AudioContextProvider>
+        {/* FIXME: this is making everything rerender, what's the correct way to do this? */}
         <OpenLayers />
-      </GyroscopePermissionProvider>
-    </AudioContextProvider>
+      </AudioContextProvider>
+    </GyroscopePermissionProvider>
   );
 }
 
