@@ -10,10 +10,10 @@ function App() {
 
   return (
     <AudioContextProvider>
-      <HoaRenderer />
+      {/* <HoaRenderer /> */}
       {/* <GyroscopePermissionProvider> */}
       {/* FIXME: this is making everything rerender, what's the correct way to do this? */}
-      {/* <OpenLayers /> */}
+      <OpenLayers />
       {/* </GyroscopePermissionProvider> */}
     </AudioContextProvider>
   );

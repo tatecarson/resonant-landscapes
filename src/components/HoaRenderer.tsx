@@ -5,15 +5,12 @@ import { useAudioContext } from '../contexts/AudioContextProvider';
 import useGimbalStore from '../stores/gimbalStore';
 
 const HOARenderer = () => {
-    const { audioContext, resonanceAudioScene } = useAudioContext();
-    const sceneGain = useRef(null);
-    const sceneRef = useRef(null);
-    const sourceRef = useRef(null);
+    const { audioContext, resonanceAudioScene, playSound, stopSound } = useAudioContext();
 
     const requestRef = useRef<number>(null);
     const [isPlaying, setIsPlaying] = useState(false);
-    const [sound, setSound] = useState(null);
     const [soundBuffer, setSoundBuffer] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     const forwardX = useGimbalStore(state => state.forwardX);
     const latestForwardX = useRef(forwardX);
@@ -35,53 +32,35 @@ const HOARenderer = () => {
     useEffect(() => {
 
         if (!audioContext || !resonanceAudioScene) {
-            // console.count()
             return;
         }
 
-        // sceneGain.current = audioContext.createGain();
-        sceneRef.current = resonanceAudioScene;
-
-        // toaRenderer.current = Omnitone.createHOARenderer(audioContext);
-        sourceRef.current = resonanceAudioScene.createSource();
-        resonanceAudioScene.output.connect(audioContext.destination);
-        // sceneGain.current.connect(audioContext.destination);
+        setIsLoading(true);
 
         Promise.all([
             Omnitone.createBufferList(audioContext, exampleSoundPathList),
         ]).then((results) => {
+            console.log(results)
             setSoundBuffer(Omnitone.mergeBufferListByChannel(audioContext, results[0]))
 
+            console.log(soundBuffer)
             setIsPlaying(false);
+            setIsLoading(false);
         });
     }, [audioContext, resonanceAudioScene]);
 
+
     const onTogglePlayback = () => {
-        console.log('onTogglePlayback')
         if (!isPlaying) {
-            console.log('play')
-            sourceRef.current = sceneRef.current.createSource();
-            // center of the room 
-            sourceRef.current.setPosition(-0.707, -0.707, 0);
-
-            const currentBufferSource = audioContext.createBufferSource();
-            currentBufferSource.buffer = soundBuffer;
-            currentBufferSource.loop = true;
-            currentBufferSource.connect(sourceRef.current.input);
-            currentBufferSource.start();
-            setSound(currentBufferSource);
+            console.log('playing');
+            playSound(soundBuffer);
             setIsPlaying(true);
-
-            // animate();
-
         } else {
-            if (sound) {
-                sound.stop(0);
-            }
-
-            setIsPlaying(false);
+            stopSound();
+            setIsPlaying(false)
         }
     };
+
 
 
     // useEffect(() => {
@@ -117,13 +96,13 @@ const HOARenderer = () => {
     // }, []);
 
     return (
-        <>
-
-            <div id="secSource">
+        <div id="secSource">
+            {isLoading ? (
+                <div>Loading...</div> // Placeholder for your loading indicator
+            ) : (
                 <button onClick={onTogglePlayback}>{isPlaying ? 'Stop' : 'Play'}</button>
-            </div>
-
-        </>
+            )}
+        </div>
     );
 }
 
