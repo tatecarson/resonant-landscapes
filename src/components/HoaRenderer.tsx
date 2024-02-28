@@ -2,66 +2,60 @@ import React, { useEffect, useState, useContext, useRef, memo, useCallback, Susp
 import Omnitone from 'omnitone/build/omnitone.min.esm.js';
 import { useAudioContext } from '../contexts/AudioContextProvider';
 // import { ResonanceAudio } from "resonance-audio";
-import useGimbalStore from '../stores/gimbalStore';
+import GimbalArrow from './GimbalArrow';
+// import useGimbalStore from '../stores/gimbalStore';
 
 const HOARenderer = () => {
     const { audioContext, resonanceAudioScene, playSound, stopSound } = useAudioContext();
 
     const requestRef = useRef<number>(null);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [bufferList, setBufferList] = useState([]);
     const [soundBuffer, setSoundBuffer] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    const forwardX = useGimbalStore(state => state.forwardX);
-    const latestForwardX = useRef(forwardX);
-    const forwardY = useGimbalStore(state => state.forwardY);
-    const latestForwardY = useRef(forwardY);
-    const forwardZ = useGimbalStore(state => state.forwardZ);
-    const latestForwardZ = useRef(forwardZ);
-    const upX = useGimbalStore(state => state.upX);
-    const latestUpX = useRef(upX);
-    const upY = useGimbalStore(state => state.upY);
-    const latestUpY = useRef(upY);
-    const upZ = useGimbalStore(state => state.upZ);
-    const latestUpZ = useRef(upZ);
+    // const forwardX = useGimbalStore(state => state.forwardX);
+    // const latestForwardX = useRef(forwardX);
+    // const forwardY = useGimbalStore(state => state.forwardY);
+    // const latestForwardY = useRef(forwardY);
+    // const forwardZ = useGimbalStore(state => state.forwardZ);
+    // const latestForwardZ = useRef(forwardZ);
+    // const upX = useGimbalStore(state => state.upX);
+    // const latestUpX = useRef(upX);
+    // const upY = useGimbalStore(state => state.upY);
+    // const latestUpY = useRef(upY);
+    // const upZ = useGimbalStore(state => state.upZ);
+    // const latestUpZ = useRef(upZ);
 
     const exampleSoundPathList = ['/sounds/output_8ch-smc.m4a', '/sounds/output_mono-smc.m4a']
 
     // FIXME: this is rerendering loading omnitone twice
-    // FIXME: actually it reloads before clicking play 
     useEffect(() => {
-
-        if (!audioContext || !resonanceAudioScene) {
-            return;
-        }
-
+        console.log('Effect running due to change in dependencies');
         setIsLoading(true);
 
         Promise.all([
             Omnitone.createBufferList(audioContext, exampleSoundPathList),
         ]).then((results) => {
-            console.log(results)
-            setSoundBuffer(Omnitone.mergeBufferListByChannel(audioContext, results[0]))
 
-            console.log(soundBuffer)
+            setBufferList(results[0]);
             setIsPlaying(false);
             setIsLoading(false);
         });
-    }, [audioContext, resonanceAudioScene]);
+    }, [audioContext])
 
 
     const onTogglePlayback = () => {
         if (!isPlaying) {
             console.log('playing');
-            playSound(soundBuffer);
+            // NOTE: load the buffer here instead of in the promis because that causes an app refresh
+            playSound(Omnitone.mergeBufferListByChannel(audioContext, bufferList));
             setIsPlaying(true);
         } else {
             stopSound();
             setIsPlaying(false)
         }
     };
-
-
 
     // useEffect(() => {
     //     latestForwardX.current = forwardX;
@@ -100,10 +94,13 @@ const HOARenderer = () => {
             {isLoading ? (
                 <div>Loading...</div> // Placeholder for your loading indicator
             ) : (
-                <button onClick={onTogglePlayback}>{isPlaying ? 'Stop' : 'Play'}</button>
+                <>
+                    <button onClick={onTogglePlayback}>{isPlaying ? 'Stop' : 'Play'}</button>
+                    <GimbalArrow />
+                </>
             )}
         </div>
     );
 }
 
-export default memo(HOARenderer);
+export default HOARenderer;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo, useRef } from "react";
+import React, { useState, useEffect, useCallback, memo, useRef, useContext } from "react";
 import { fromLonLat, toLonLat } from "ol/proj";
 import { Geometry, Point, LineString } from "ol/geom";
 import { Geolocation as OLGeoLoc } from "ol";
@@ -15,7 +15,6 @@ import {
 } from "rlayers";
 import * as turf from '@turf/turf';
 
-
 import ParkModal from "./ParkModal";
 import "ol/ol.css";
 import './layers.css'
@@ -23,6 +22,7 @@ import './layers.css'
 import scaledPoints from "../js/scaledParks";
 import locationIcon from "../assets/geolocation_marker_heading.png";
 import marker from '../assets/trees.png'
+import GimbalArrow from "./GimbalArrow";
 
 // modulo for negative values
 function mod(n: number) {
@@ -34,6 +34,7 @@ function degToRad(deg: number) {
 }
 
 function GeolocComp(): JSX.Element {
+
     const [pos, setPos] = useState(new Point(fromLonLat([0, 0]), 'XYZM'));
     const [accuracy, setAccuracy] = useState<LineString | null>(null);
     const [deltaMean, setDeltaMean] = useState<number>(500);
@@ -47,11 +48,7 @@ function GeolocComp(): JSX.Element {
 
     const positions = new LineString([], 'XYZM');
 
-    // const areEqual = (prevProps, nextProps) => {
-    //     return prevProps.isOpen === nextProps.isOpen && prevProps.parkName === nextProps.parkName;
-    // }
 
-    // const MemoParkModal = memo(ParkModal, areEqual); // Memoize the component
 
     // Low-level access to the OpenLayers API
     const { map } = useOL();
@@ -174,7 +171,8 @@ function GeolocComp(): JSX.Element {
     }
 
     return (
-        <>
+
+        <div>
             <RGeolocation
                 tracking={true}
                 trackingOptions={{ enableHighAccuracy: true }}
@@ -225,7 +223,9 @@ function GeolocComp(): JSX.Element {
             {/* <button onClick={simulateGeolocation}>Simulate Movement</button> */}
             <button onClick={prevStep}>Previous Step</button>
             <button onClick={nextStep}>Next Step</button>
-        </>
+            {/* <GimbalArrow /> */}
+        </div>
+
     );
 }
 
@@ -233,6 +233,7 @@ function GeolocComp(): JSX.Element {
 export default function Geolocation(): JSX.Element {
     return (
         <>
+
             <RMap
                 className="map"
                 initial={{ center: fromLonLat([0, 0]), zoom: 19 }}
