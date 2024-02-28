@@ -1,9 +1,6 @@
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { ResonanceAudio } from "resonance-audio";
 
-
-// TODO: add other audio capabilities to this so that they're not reredering 
-// in the other component 
 // Creating the context with an extended initial value
 const AudioContextState = createContext({
     audioContext: null,

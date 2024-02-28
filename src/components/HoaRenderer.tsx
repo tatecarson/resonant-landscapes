@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useContext, useRef, memo, useCallback, Suspense } from 'react';
 import Omnitone from 'omnitone/build/omnitone.min.esm.js';
 import { useAudioContext } from '../contexts/AudioContextProvider';
-// import { ResonanceAudio } from "resonance-audio";
 import GimbalArrow from './GimbalArrow';
+import { buffer } from 'ol/size';
 // import useGimbalStore from '../stores/gimbalStore';
 
 const HOARenderer = () => {
@@ -11,7 +11,6 @@ const HOARenderer = () => {
     const requestRef = useRef<number>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [bufferList, setBufferList] = useState([]);
-    const [soundBuffer, setSoundBuffer] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
     // const forwardX = useGimbalStore(state => state.forwardX);
@@ -32,17 +31,32 @@ const HOARenderer = () => {
     // FIXME: this is rerendering loading omnitone twice
     useEffect(() => {
         console.log('Effect running due to change in dependencies');
+        if (bufferList.length > 0) return;
+
         setIsLoading(true);
 
         Promise.all([
             Omnitone.createBufferList(audioContext, exampleSoundPathList),
         ]).then((results) => {
-
             setBufferList(results[0]);
-            setIsPlaying(false);
             setIsLoading(false);
         });
     }, [audioContext])
+
+    useEffect(() => {
+        console.log('Component mounted');
+
+        return () => {
+            console.log('Cleanup on unmount');
+            // Your cleanup logic here
+            if (isPlaying) {
+                stopSound();
+                setIsPlaying(false);
+            }
+
+            setBufferList([]);
+        };
+    }, []); // Empty dependency array
 
 
     const onTogglePlayback = () => {

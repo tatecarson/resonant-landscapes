@@ -5,7 +5,6 @@ import HOARenderer from './HoaRenderer'
 // import useDeviceOrientation from '../hooks/useDeviceOrientation';
 // import GimbalArrow from './GimbalArrow'
 
-// FIXME: ok figure out why this reloads
 function ParkModal({ setIsOpen, isOpen, parkName }) {
 
     const cancelButtonRef = useRef(null);
