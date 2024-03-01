@@ -6,13 +6,10 @@ import useGimbalStore from '../stores/gimbalStore';
 import Gimbal from '../js/Gimbal';
 import 'tailwindcss/tailwind.css';
 
-const GimbalArrow = () => {
+const GimbalArrow = ({ setForward, setUp }) => {
     const [gimbal] = useState(new Gimbal());
     const arrowAll = useRef();
     const [permissionGranted, setPermissionGranted] = useState(false);
-
-    // const setForwardStore = useGimbalStore((state) => state.setForward);
-    // const setUpStore = useGimbalStore((state) => state.setUp);
 
     const requestPermission = useCallback(async () => {
         // Check local storage first
@@ -63,8 +60,9 @@ const GimbalArrow = () => {
 
         const renderLoop = () => {
             gimbal.update();
-            // setForwardStore(gimbal.vectorFwd.x, gimbal.vectorFwd.z, gimbal.vectorFwd.z);
-            // setUpStore(gimbal.vectorUp.x, gimbal.vectorUp.y, gimbal.vectorUp.z);
+
+            setForward(gimbal.vectorFwd.x, gimbal.vectorFwd.y, gimbal.vectorFwd.z);
+            setUp(gimbal.vectorUp.x, gimbal.vectorUp.y, gimbal.vectorUp.z);
 
             if (arrowAll.current) {
                 arrowAll.current.quaternion.copy(gimbal.quaternion);

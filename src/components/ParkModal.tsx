@@ -2,8 +2,7 @@ import { Fragment, useRef, useState, useMemo, memo, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import HOARenderer from './HoaRenderer'
-// import useDeviceOrientation from '../hooks/useDeviceOrientation';
-// import GimbalArrow from './GimbalArrow'
+import { ErrorBoundary } from "react-error-boundary";
 
 function ParkModal({ setIsOpen, isOpen, parkName }) {
 
@@ -46,8 +45,9 @@ function ParkModal({ setIsOpen, isOpen, parkName }) {
                                                 {parkName}
                                             </Dialog.Title>
                                             <div className="mt-2">
-                                                <HOARenderer />
-
+                                                <ErrorBoundary fallback={<div>Error</div>}>
+                                                    <HOARenderer />
+                                                </ErrorBoundary>
                                             </div>
                                         </div>
                                     </div>

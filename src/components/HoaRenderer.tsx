@@ -2,27 +2,13 @@ import React, { useEffect, useState, useContext, useRef, memo, useCallback, Susp
 // import Omnitone from 'omnitone/build/omnitone.min.esm.js';
 import { useAudioContext } from '../contexts/AudioContextProvider';
 import GimbalArrow from './GimbalArrow';
-// import useGimbalStore from '../stores/gimbalStore';
 
 const HOARenderer = () => {
     const { audioContext, resonanceAudioScene, playSound, stopSound, loadBuffers, isLoading, isPlaying, buffers } = useAudioContext();
 
-    const requestRef = useRef<number>(null);
 
-    // const forwardX = useGimbalStore(state => state.forwardX);
-    // const latestForwardX = useRef(forwardX);
-    // const forwardY = useGimbalStore(state => state.forwardY);
-    // const latestForwardY = useRef(forwardY);
-    // const forwardZ = useGimbalStore(state => state.forwardZ);
-    // const latestForwardZ = useRef(forwardZ);
-    // const upX = useGimbalStore(state => state.upX);
-    // const latestUpX = useRef(upX);
-    // const upY = useGimbalStore(state => state.upY);
-    // const latestUpY = useRef(upY);
-    // const upZ = useGimbalStore(state => state.upZ);
-    // const latestUpZ = useRef(upZ);
-
-    // const exampleSoundPathList = ['/sounds/output_8ch-smc.m4a', '/sounds/output_mono-smc.m4a']
+    const [forward, setForward] = useState({ x: 0, y: 0, z: 0 });
+    const [up, setUp] = useState({ x: 0, y: 0, z: 0 });
 
     // Effect to load buffers on component mount
 
@@ -57,37 +43,25 @@ const HOARenderer = () => {
         }
     }, [buffers, playSound, stopSound]);
 
-    // useEffect(() => {
-    //     latestForwardX.current = forwardX;
-    //     latestForwardY.current = forwardY;
-    //     latestForwardZ.current = forwardZ;
-    //     latestUpX.current = upX;
-    //     latestUpY.current = upY;
-    //     latestUpZ.current = upZ;
 
-    // }, [forwardX, forwardY, forwardZ, upX, upY, upZ]);
+    const handleSetForward = useCallback((vector) => {
+        // console.log(vector)
+        setForward(vector);
+    }, []);
 
-    // const animate = () => {
-    //     try {
-    //         if (sceneRef.current) {
-    //             sceneRef.current.setListenerOrientation(latestForwardX.current, latestForwardY.current, latestForwardZ.current, latestUpX.current, latestUpY.current, latestUpZ.current);
-    //         }
+    const handleSetUp = useCallback((vector) => {
+        setUp(vector);
+    }, []);
 
-    //         if (requestRef.current !== undefined) {
-    //             requestRef.current = requestAnimationFrame(animate)
-    //         }
-    //     } catch (error) {
-    //         console.error("Error in animate: ", error)
-    //     }
-    // }
+    useEffect(() => {
+        console.log("isPlaying", isPlaying)
+        if (resonanceAudioScene && isPlaying && !isLoading) {
+            console.log('Setting listener orientation');
+            // FIXME: hmm somethign about this is breaking the app
+            // resonanceAudioScene.setListenerOrientation(forward.x, forward.y, forward.z, up.x, up.y, up.z);
+        }
+    }, [forward, up, isPlaying])
 
-    // useEffect(() => {
-    //     return () => {
-    //         if (requestRef.current) {
-    //             cancelAnimationFrame(requestRef.current);
-    //         }
-    //     };
-    // }, []);
 
     return (
         <div id="secSource">
@@ -96,7 +70,7 @@ const HOARenderer = () => {
             ) : (
                 <>
                     <button onClick={onTogglePlayback}>{isPlaying ? 'Stop' : 'Play'}</button>
-                    <GimbalArrow />
+                    <GimbalArrow setForward={handleSetForward} setUp={handleSetUp} />
                 </>
             )}
         </div>
