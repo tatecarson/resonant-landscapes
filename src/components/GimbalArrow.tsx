@@ -14,11 +14,18 @@ const GimbalArrow = () => {
     // const setForwardStore = useGimbalStore((state) => state.setForward);
     // const setUpStore = useGimbalStore((state) => state.setUp);
 
-    // Handle device orientation permission request
     const requestPermission = useCallback(async () => {
+        // Check local storage first
+        const storedPermission = localStorage.getItem('deviceOrientationPermission');
+        if (storedPermission === 'granted') {
+            setPermissionGranted(true);
+            return;
+        }
+
         if (typeof DeviceOrientationEvent.requestPermission === 'function') {
             try {
                 const permission = await DeviceOrientationEvent.requestPermission();
+                localStorage.setItem('deviceOrientationPermission', permission); // Store the permission state
                 if (permission === 'granted') {
                     setPermissionGranted(true);
                 }
@@ -27,6 +34,15 @@ const GimbalArrow = () => {
             }
         } else {
             // Automatically grant permission if the browser does not support requestPermission
+            setPermissionGranted(true);
+            localStorage.setItem('deviceOrientationPermission', 'granted'); // Assume granted for browsers without requestPermission
+        }
+    }, []);
+
+    useEffect(() => {
+        // Immediate check for permission on component mount
+        const storedPermission = localStorage.getItem('deviceOrientationPermission');
+        if (storedPermission === 'granted') {
             setPermissionGranted(true);
         }
     }, []);
