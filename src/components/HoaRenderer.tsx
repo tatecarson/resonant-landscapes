@@ -1,16 +1,30 @@
-import React, { useEffect, useState, useContext, useRef, memo, useCallback, Suspense } from 'react';
-// import Omnitone from 'omnitone/build/omnitone.min.esm.js';
+'use client';
+
+import React, { useEffect, useState, useCallback, Suspense } from 'react';
 import { useAudioContext } from '../contexts/AudioContextProvider';
 import GimbalArrow from './GimbalArrow';
+import { ErrorBoundary } from "react-error-boundary";
 
-const HOARenderer = () => {
-    const { audioContext, resonanceAudioScene, playSound, stopSound, loadBuffers, isLoading, isPlaying, buffers } = useAudioContext();
+function ErrorFallback({ error, resetErrorBoundary }) {
+    console.assert(error);
+    return (
+        <div role="alert">
+            <p>Something went wrong:</p>
+            <pre>{error.message}</pre>
+            <button onClick={resetErrorBoundary}>Try again</button>
+        </div>
+    )
+}
+
+const HOARenderer = ({ userOrientation }) => {
+    const { audioContext, resonanceAudioScene, playSound,
+        stopSound, loadBuffers, isLoading, isPlaying, buffers } = useAudioContext();
 
 
+    const [showGimbalArrow, setShowGimbalArrow] = useState(false);
     const [forward, setForward] = useState({ x: 0, y: 0, z: 0 });
     const [up, setUp] = useState({ x: 0, y: 0, z: 0 });
-
-    // Effect to load buffers on component mount
+    const [isReady, setIsReady] = useState(false);
 
     const exampleSoundPathList = ['/sounds/output_8ch-smc.m4a', '/sounds/output_mono-smc.m4a']
 
@@ -18,10 +32,11 @@ const HOARenderer = () => {
         async function load() {
             if (audioContext && buffers.length === 0) {
                 await loadBuffers(exampleSoundPathList);
+                setIsReady(true);
             }
         }
         load();
-    }, [audioContext, buffers.length, loadBuffers]); // Ensure dependencies are correctly listed
+    }, [audioContext, buffers.length, loadBuffers]);
 
 
     // Cleanup effect
@@ -43,36 +58,43 @@ const HOARenderer = () => {
         }
     }, [buffers, playSound, stopSound]);
 
+    const toggleGimbalArrowVisibility = () => {
+        setShowGimbalArrow(prevState => !prevState);
+    };
 
-    const handleSetForward = useCallback((vector) => {
-        // console.log(vector)
-        setForward(vector);
-    }, []);
 
-    const handleSetUp = useCallback((vector) => {
-        setUp(vector);
-    }, []);
+    // const onToggleOrientation
 
-    useEffect(() => {
-        console.log("isPlaying", isPlaying)
-        if (resonanceAudioScene && isPlaying && !isLoading) {
-            console.log('Setting listener orientation');
-            // FIXME: hmm somethign about this is breaking the app
-            // resonanceAudioScene.setListenerOrientation(forward.x, forward.y, forward.z, up.x, up.y, up.z);
-        }
-    }, [forward, up, isPlaying])
+    // const handleSetForward = useCallback((vector) => {
+    //     // console.log(vector)
+    //     setForward(vector);
+    // }, []);
 
+    // const handleSetUp = useCallback((vector) => {
+    //     setUp(vector);
+    // }, []);
+
+    // useEffect(() => {
+    //     if (resonanceAudioScene && isPlaying && !isLoading && userOrientation) {
+    //         resonanceAudioScene.setListenerOrientation(forward.x, forward.y, forward.z, up.x, up.y, up.z);
+    //     }
+    // }, [forward, up, isPlaying, userOrientation])
 
     return (
         <div id="secSource">
-            {isLoading ? (
-                <div>Loading...</div>
-            ) : (
-                <>
-                    <button onClick={onTogglePlayback}>{isPlaying ? 'Stop' : 'Play'}</button>
-                    <GimbalArrow setForward={handleSetForward} setUp={handleSetUp} />
-                </>
-            )}
+            {
+                isLoading ? (
+                    <div>Loading...</div>
+                ) : (
+                    <>
+                        <button onClick={onTogglePlayback}>{isPlaying ? 'Stop' : 'Play'}</button>
+                        <br></br>
+                        {isPlaying && userOrientation && <button onClick={toggleGimbalArrowVisibility}>Toggle Gimbal Arrow</button>}
+                        {showGimbalArrow && <GimbalArrow />}
+                    </>
+                )
+            }
+
         </div>
     );
 }

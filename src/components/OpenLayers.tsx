@@ -22,7 +22,7 @@ import './layers.css'
 import scaledPoints from "../js/scaledParks";
 import locationIcon from "../assets/geolocation_marker_heading.png";
 import marker from '../assets/trees.png'
-import GimbalArrow from "./GimbalArrow";
+import { ErrorBoundary } from "react-error-boundary";
 
 // modulo for negative values
 function mod(n: number) {
@@ -44,6 +44,8 @@ function GeolocComp(): JSX.Element {
 
     const [isOpen, setIsOpen] = useState(false)
     const [parkName, setParkName] = useState<string>('');
+    const [parkDistance, setParkDistance] = useState<number>(0);
+    const [enableUserOrientation, setEanbleUserOrientation] = useState(false);
     const lastParkNameRef = useRef<string | null>(null);
 
     const positions = new LineString([], 'XYZM');
@@ -146,13 +148,22 @@ function GeolocComp(): JSX.Element {
                 const parkLocation = turf.point(park.scaledCoords);
                 const distance = turf.distance(userLocation, parkLocation, { units: 'meters' });
                 if (distance < 10 && !isOpen && lastParkNameRef.current !== park.name) {
+                    console.log("Distance", distance, "to ", park.name)
 
 
                     // NOTE: this only happens once 
                     // console.count('Chaning state')
                     setIsOpen(true);
                     setParkName(park.name);
+                    setParkDistance(distance);
                     lastParkNameRef.current = park.name; // Update lastParkName to current park's name
+
+                    if (distance < 2) {
+                        console.log("User is close to ", park.name)
+                        setEanbleUserOrientation(true);
+                    } else {
+                        setEanbleUserOrientation(false);
+                    }
                 }
             });
         }
@@ -185,6 +196,7 @@ function GeolocComp(): JSX.Element {
                             const [x, y] = position; // Destructure the position into x and y coordinates
                             setAccuracy(new LineString([position]));
                             const m = Date.now();
+                            // this line enables the geolocation feature 
                             // addPosition([x, y], geoloc.getHeading() ?? 0, m, geoloc.getSpeed() ?? 0); // Pass [x, y] as the position
 
                             const coords = positions.getCoordinates();
@@ -219,11 +231,11 @@ function GeolocComp(): JSX.Element {
 
                 {scaledPoints.map((park, i) => createParkFeature(park.scaledCoords, park.name, i))}
             </RLayerVector>
-            {isOpen && <ParkModal isOpen={isOpen} setIsOpen={setIsOpen} parkName={"Fort Sisseton Historic State Park"} />}
-            {/* <button onClick={simulateGeolocation}>Simulate Movement</button> */}
+            <ErrorBoundary fallback={<div>Error</div>}>
+                {isOpen && <ParkModal isOpen={isOpen} setIsOpen={setIsOpen} parkName={parkName} parkDistance={parkDistance} userOrientation={enableUserOrientation} />}
+            </ErrorBoundary>
             <button onClick={prevStep}>Previous Step</button>
             <button onClick={nextStep}>Next Step</button>
-            {/* <GimbalArrow /> */}
         </div>
 
     );

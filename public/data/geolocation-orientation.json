@@ -12,6 +12,15 @@
         {
       "coords": {
         "speed": 1.7330950498580933,
+        "longitude": -97.11084175239999,
+        "heading": 67.5,
+        "latitude": 44.01340930253874
+      },
+      "timestamp": 1394788264972
+    },
+        {
+      "coords": {
+        "speed": 1.7330950498580933,
         "longitude": -97.112151,
         "heading": 67.5,
         "latitude": 44.012592

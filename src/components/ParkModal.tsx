@@ -1,12 +1,13 @@
-import { Fragment, useRef, useState, useMemo, memo, useEffect } from 'react'
+import { Fragment, useRef, useState, useMemo, memo, Suspense, lazy } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
-import HOARenderer from './HoaRenderer'
-import { ErrorBoundary } from "react-error-boundary";
+// import HOARenderer from './HoaRenderer'
 
-function ParkModal({ setIsOpen, isOpen, parkName }) {
+function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation }) {
 
     const cancelButtonRef = useRef(null);
+
+    const HOARenderer = lazy(() => import('./HoaRenderer'));
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
@@ -44,10 +45,16 @@ function ParkModal({ setIsOpen, isOpen, parkName }) {
                                             <Dialog.Title as="h3" className="text-base font-semibold leading-6 text-gray-900">
                                                 {parkName}
                                             </Dialog.Title>
+                                            <p className="text-sm text-gray-500">
+                                                {parkDistance} meters away
+                                            </p>
                                             <div className="mt-2">
-                                                <ErrorBoundary fallback={<div>Error</div>}>
-                                                    <HOARenderer />
-                                                </ErrorBoundary>
+
+                                                <Suspense fallback={<div>Loading...</div>}>
+                                                    <HOARenderer userOrientation={userOrientation} />
+                                                </Suspense>
+
+
                                             </div>
                                         </div>
                                     </div>
