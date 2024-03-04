@@ -19,14 +19,10 @@ function ErrorFallback({ error, resetErrorBoundary }) {
 const HOARenderer = ({ userOrientation }) => {
     const { audioContext, playSound,
         stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, buffers } = useAudioContext();
-
     const [loadError, setLoadError] = useState(null); // State to track loading errors
-
     const [showGimbalArrow, setShowGimbalArrow] = useState(false);
-    const [forward, setForward] = useState({ x: 0, y: 0, z: 0 });
-    const [up, setUp] = useState({ x: 0, y: 0, z: 0 });
-    const [isReady, setIsReady] = useState(false);
 
+    // TODO: load other sound files 
     const exampleSoundPathList = ['/sounds/output_8ch-smc.m4a', '/sounds/output_mono-smc.m4a']
 
     useEffect(() => {
@@ -54,8 +50,7 @@ const HOARenderer = ({ userOrientation }) => {
 
     const retryLoading = () => {
         setLoadError(null); // Reset the error state
-        // You can directly call load() here if it's defined within this useEffect,
-        // or trigger the loading logic by changing a state that load() depends on.
+        setIsLoading(false); // will this run the effect? 
     };
 
 
@@ -101,21 +96,6 @@ const HOARenderer = ({ userOrientation }) => {
                     {showGimbalArrow && <GimbalArrow />}
                 </>
             )}
-
-            {/* 
-            {
-                isLoading ? (
-                    <div>Loading...</div>
-                ) : (
-                    <>
-                        <button onClick={onTogglePlayback}>{isPlaying ? 'Stop' : 'Play'}</button>
-                        <br></br>
-                        {isPlaying && userOrientation && <button onClick={toggleGimbalArrowVisibility}>Toggle Gimbal Arrow</button>}
-                        {showGimbalArrow && <GimbalArrow />}
-                    </>
-                )
-            } */}
-
         </div>
     );
 }

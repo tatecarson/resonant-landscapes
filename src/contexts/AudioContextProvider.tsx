@@ -22,7 +22,6 @@ const AudioContextProvider = ({ children }) => {
     const [buffers, setBuffers] = useState([]);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [isReady, setIsReady] = useState(false);
     const bufferSourceRef = useRef(null);
 
     const loadBuffers = async (urls) => {
@@ -34,13 +33,11 @@ const AudioContextProvider = ({ children }) => {
 
         setIsLoading(true);
         try {
-            // Assuming Omnitone.createBufferList is an asynchronous function that returns a Promise.
             console.log("Loading buffers...");
             const loadedBuffers = await Omnitone.createBufferList(audioContext, urls);
             setBuffers(loadedBuffers);
         } catch (error) {
             console.error('Error loading buffers with Omnitone:', error);
-            // Optionally, handle the error by updating the state or notifying the user.
         } finally {
             setIsLoading(false);
         }
@@ -80,9 +77,9 @@ const AudioContextProvider = ({ children }) => {
                 const scene = new ResonanceAudio(context);
                 setResonanceAudioScene(scene);
                 scene.output.connect(context.destination);
-                setIsReady(true);
+
             } catch (error) {
-                setIsReady(false);
+
                 console.error('Error initializing audio:', error);
             }
         };
