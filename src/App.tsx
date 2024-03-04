@@ -1,6 +1,4 @@
 'use client';
-
-import { useState } from "react";
 import AudioContextProvider from "./contexts/AudioContextProvider";
 import OpenLayers from "./components/OpenLayers";
 import { ErrorBoundary } from "react-error-boundary";
@@ -11,11 +9,11 @@ function App() {
 
   return (
 
-    <AudioContextProvider>
-      <ErrorBoundary fallback={<div>Error</div>}>
+    <ErrorBoundary fallback={<div>Error</div>}>
+      <AudioContextProvider>
         <OpenLayers />
-      </ErrorBoundary>
-    </AudioContextProvider>
+      </AudioContextProvider>
+    </ErrorBoundary>
 
   );
 }

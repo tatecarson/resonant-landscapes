@@ -19,6 +19,8 @@ import ParkModal from "./ParkModal";
 import "ol/ol.css";
 import './layers.css'
 
+import { useAudioContext } from "../contexts/AudioContextProvider";
+
 import scaledPoints from "../js/scaledParks";
 import locationIcon from "../assets/geolocation_marker_heading.png";
 import marker from '../assets/trees.png'
@@ -48,9 +50,9 @@ function GeolocComp(): JSX.Element {
     const [enableUserOrientation, setEanbleUserOrientation] = useState(false);
     const lastParkNameRef = useRef<string | null>(null);
 
+    const { resonanceAudioScene } = useAudioContext();
+
     const positions = new LineString([], 'XYZM');
-
-
 
     // Low-level access to the OpenLayers API
     const { map } = useOL();
@@ -148,15 +150,14 @@ function GeolocComp(): JSX.Element {
                 const parkLocation = turf.point(park.scaledCoords);
                 const distance = turf.distance(userLocation, parkLocation, { units: 'meters' });
                 if (distance < 10 && !isOpen && lastParkNameRef.current !== park.name) {
-                    console.log("Distance", distance, "to ", park.name)
+                    // console.log("Distance", distance, "to ", park.name)
 
-
-                    // NOTE: this only happens once 
-                    // console.count('Chaning state')
-                    setIsOpen(true);
-                    setParkName(park.name);
-                    setParkDistance(distance);
-                    lastParkNameRef.current = park.name; // Update lastParkName to current park's name
+                    // TODO: set the listener distance 
+                    // check if this is working
+                    if (resonanceAudioScene) {
+                        console.log("Setting listener position to ", distance, distance, 0)
+                        resonanceAudioScene.setListenerPosition(distance, distance, 0);
+                    }
 
                     if (distance < 2) {
                         console.log("User is close to ", park.name)
@@ -164,6 +165,11 @@ function GeolocComp(): JSX.Element {
                     } else {
                         setEanbleUserOrientation(false);
                     }
+                    setIsOpen(true);
+                    setParkName(park.name);
+                    setParkDistance(distance);
+                    lastParkNameRef.current = park.name; // Update lastParkName to current park's name
+
                 }
             });
         }

@@ -12,7 +12,7 @@ const GimbalArrow = () => {
     const [gimbal] = useState(new Gimbal());
     const arrowAll = useRef();
     const [permissionGranted, setPermissionGranted] = useState(false);
-    const { audioContext, resonanceAudioScene } = useAudioContext();
+    const { resonanceAudioScene } = useAudioContext();
 
 
     const requestPermission = useCallback(async (event) => {
@@ -38,15 +38,12 @@ const GimbalArrow = () => {
         }
     }, []);
 
-    useEffect(() => {
-        // Immediate check for permission on component mount
-        const storedPermission = localStorage.getItem('deviceOrientationPermission');
-        if (storedPermission === 'granted') {
-            setPermissionGranted(true);
-            gimbal.enable(); // Ensure gimbal is enabled if permission was previously granted
-        }
-    }, []);
 
+    useEffect(() => {
+        if (!permissionGranted) {
+            requestPermission();
+        }
+    }, [])
 
     useEffect(() => {
         gimbal.enable();
@@ -79,7 +76,7 @@ const GimbalArrow = () => {
             animationFrameId = requestAnimationFrame(renderLoop);
         };
 
-        renderLoop();
+        renderLoop()
 
         return () => {
             cancelAnimationFrame(animationFrameId);

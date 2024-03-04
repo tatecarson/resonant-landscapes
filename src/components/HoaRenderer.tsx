@@ -17,9 +17,10 @@ function ErrorFallback({ error, resetErrorBoundary }) {
 }
 
 const HOARenderer = ({ userOrientation }) => {
-    const { audioContext, resonanceAudioScene, playSound,
-        stopSound, loadBuffers, isLoading, isPlaying, buffers } = useAudioContext();
+    const { audioContext, playSound,
+        stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, buffers } = useAudioContext();
 
+    const [loadError, setLoadError] = useState(null); // State to track loading errors
 
     const [showGimbalArrow, setShowGimbalArrow] = useState(false);
     const [forward, setForward] = useState({ x: 0, y: 0, z: 0 });
@@ -29,14 +30,33 @@ const HOARenderer = ({ userOrientation }) => {
     const exampleSoundPathList = ['/sounds/output_8ch-smc.m4a', '/sounds/output_mono-smc.m4a']
 
     useEffect(() => {
-        async function load() {
-            if (audioContext && buffers.length === 0) {
-                await loadBuffers(exampleSoundPathList);
-                setIsReady(true);
+        // Define the loadBuffers function within the useEffect or import it if defined externally
+        const load = async () => {
+            console.log("Loading buffers...");
+            if (audioContext && !isLoading && buffers.length === 0) {
+                try {
+                    console.log('Loading buffers...');
+                    setIsLoading(true);
+                    // Assuming loadBuffers is available in the context or imported
+                    await loadBuffers(exampleSoundPathList);
+                } catch (error) {
+                    console.error('Failed to load buffers:', error);
+                    setLoadError(error.message); // Set the error message to display it to the user
+                } finally {
+                    setIsLoading(false);
+                }
             }
-        }
+        };
+
         load();
-    }, [audioContext, buffers.length, loadBuffers]);
+    }, [audioContext, buffers.length, isLoading]); // Depend on relevant states
+
+
+    const retryLoading = () => {
+        setLoadError(null); // Reset the error state
+        // You can directly call load() here if it's defined within this useEffect,
+        // or trigger the loading logic by changing a state that load() depends on.
+    };
 
 
     // Cleanup effect
@@ -62,26 +82,27 @@ const HOARenderer = ({ userOrientation }) => {
         setShowGimbalArrow(prevState => !prevState);
     };
 
-
-    // const onToggleOrientation
-
-    // const handleSetForward = useCallback((vector) => {
-    //     // console.log(vector)
-    //     setForward(vector);
-    // }, []);
-
-    // const handleSetUp = useCallback((vector) => {
-    //     setUp(vector);
-    // }, []);
-
-    // useEffect(() => {
-    //     if (resonanceAudioScene && isPlaying && !isLoading && userOrientation) {
-    //         resonanceAudioScene.setListenerOrientation(forward.x, forward.y, forward.z, up.x, up.y, up.z);
-    //     }
-    // }, [forward, up, isPlaying, userOrientation])
-
     return (
         <div id="secSource">
+            {isLoading && <div>Loading...</div>}
+
+            {loadError && (
+                <div>
+                    <p>Failed to load buffers:</p>
+                    <pre>{loadError}</pre>
+                    <button onClick={retryLoading}>Retry</button>
+                </div>
+            )}
+            {!isLoading && !loadError && (
+                <>
+                    <button onClick={onTogglePlayback}>{isPlaying ? 'Stop' : 'Play'}</button>
+                    <br></br>
+                    {isPlaying && userOrientation && <button onClick={toggleGimbalArrowVisibility}>Toggle Gimbal Arrow</button>}
+                    {showGimbalArrow && <GimbalArrow />}
+                </>
+            )}
+
+            {/* 
             {
                 isLoading ? (
                     <div>Loading...</div>
@@ -93,7 +114,7 @@ const HOARenderer = ({ userOrientation }) => {
                         {showGimbalArrow && <GimbalArrow />}
                     </>
                 )
-            }
+            } */}
 
         </div>
     );

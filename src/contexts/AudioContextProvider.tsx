@@ -10,6 +10,7 @@ const AudioContextState = createContext({
     stopSound: () => { },
     loadBuffers: (urls) => { },
     isLoading: false,
+    setIsLoading: (boolean) => { },
     isPlaying: false,
     buffers: []
 });
@@ -20,22 +21,33 @@ const AudioContextProvider = ({ children }) => {
     const [resonanceAudioScene, setResonanceAudioScene] = useState(null);
     const [buffers, setBuffers] = useState([]);
     const [isPlaying, setIsPlaying] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isReady, setIsReady] = useState(false);
     const bufferSourceRef = useRef(null);
 
-    // Function to load buffers    
-    const loadBuffers = (urls) => {
-        if (!audioContext) return;
+    const loadBuffers = async (urls) => {
+        console.log(audioContext, resonanceAudioScene);
+        if (!audioContext || !resonanceAudioScene || !urls.length) {
+            console.error("Missing audio context, resonance scene, or URLs.");
+            return;
+        }
 
         setIsLoading(true);
-        // Initialize Omnitone with the audio context
-        Omnitone.createBufferList(audioContext, urls).then((loadedBuffers) => {
-            setIsLoading(false);
+        try {
+            // Assuming Omnitone.createBufferList is an asynchronous function that returns a Promise.
+            console.log("Loading buffers...");
+            const loadedBuffers = await Omnitone.createBufferList(audioContext, urls);
             setBuffers(loadedBuffers);
-        }).catch((error) => {
+        } catch (error) {
             console.error('Error loading buffers with Omnitone:', error);
-        });
+            // Optionally, handle the error by updating the state or notifying the user.
+        } finally {
+            setIsLoading(false);
+        }
     };
+
+
+
     // Function to play sound
     const playSound = (buffer) => {
         if (!audioContext || !resonanceAudioScene || isPlaying) return;
@@ -68,7 +80,9 @@ const AudioContextProvider = ({ children }) => {
                 const scene = new ResonanceAudio(context);
                 setResonanceAudioScene(scene);
                 scene.output.connect(context.destination);
+                setIsReady(true);
             } catch (error) {
+                setIsReady(false);
                 console.error('Error initializing audio:', error);
             }
         };
@@ -86,7 +100,7 @@ const AudioContextProvider = ({ children }) => {
     return (
         <AudioContextState.Provider value={{
             audioContext, resonanceAudioScene,
-            playSound, stopSound, loadBuffers, isLoading, isPlaying, buffers
+            playSound, stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, buffers
         }}>
             {children}
         </AudioContextState.Provider>
@@ -95,5 +109,4 @@ const AudioContextProvider = ({ children }) => {
 
 export default AudioContextProvider;
 
-// Custom hook for consuming context
 export const useAudioContext = () => useContext(AudioContextState);
