@@ -17,22 +17,21 @@ function ErrorFallback({ error, resetErrorBoundary }) {
 }
 
 const HOARenderer = ({ userOrientation }) => {
-    const { audioContext, playSound,
-        stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, buffers } = useAudioContext();
+    const { audioContext, resonanceAudioScene, playSound,
+        stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, buffers, setBuffers } = useAudioContext();
     const [loadError, setLoadError] = useState(null); // State to track loading errors
     const [showGimbalArrow, setShowGimbalArrow] = useState(false);
 
     // TODO: load other sound files 
     // const exampleSoundPathList = ['/sounds/hartford-beach-1-8ch.m4a', '/sounds/hartford-beach-1-mono.m4a']
-    const exampleSoundPathList = ['/sounds/output_8ch-smc.m4a', '/sounds/output_mono-smc.m4a']
+    const exampleSoundPathList = ['/sounds/newton-hills-1-8ch.m4a', '/sounds/newton-hills-1-mono.m4a']
+    // const exampleSoundPathList = ['/sounds/output_8ch-smc.m4a', '/sounds/output_mono-smc.m4a']
 
     useEffect(() => {
         // Define the loadBuffers function within the useEffect or import it if defined externally
         const load = async () => {
-            console.log("Loading buffers...");
             if (audioContext && !isLoading && buffers.length === 0) {
                 try {
-                    console.log('Loading buffers...');
                     setIsLoading(true);
                     // Assuming loadBuffers is available in the context or imported
                     await loadBuffers(exampleSoundPathList);
@@ -63,6 +62,8 @@ const HOARenderer = ({ userOrientation }) => {
             if (isPlaying) {
                 stopSound();
             }
+
+            setBuffers([]); // Clear the buffers
         };
     }, []);
 
@@ -70,6 +71,8 @@ const HOARenderer = ({ userOrientation }) => {
         if (isPlaying) {
             stopSound();
         } else {
+            console.log('Playing sound...', buffers);
+            console.log('Resonance Audio Scene:', resonanceAudioScene);
             playSound(buffers[0]);
         }
     }, [buffers, playSound, stopSound]);

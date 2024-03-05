@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { ResonanceAudio } from "resonance-audio";
-import Omnitone from 'omnitone/build/omnitone.min.esm.js'; // Ensure Omnitone is imported
+import Omnitone from 'omnitone/build/omnitone.min.esm.js';
 
 // Creating the context with an extended initial value
 const AudioContextState = createContext({
@@ -12,7 +12,8 @@ const AudioContextState = createContext({
     isLoading: false,
     setIsLoading: (boolean) => { },
     isPlaying: false,
-    buffers: []
+    buffers: [],
+    setBuffers: (buffers) => { },
 });
 
 
@@ -32,8 +33,9 @@ const AudioContextProvider = ({ children }) => {
 
         setIsLoading(true);
         try {
-            console.log("Loading buffers...");
+            console.log("Urls:", urls);
             const loadedBuffers = await Omnitone.createBufferList(audioContext, urls);
+            console.log("Loaded buffers:", loadedBuffers);
             setBuffers(loadedBuffers);
         } catch (error) {
             console.error('Error loading buffers with Omnitone:', error);
@@ -74,6 +76,7 @@ const AudioContextProvider = ({ children }) => {
                 const context = new (window.AudioContext || window.webkitAudioContext)();
                 setAudioContext(context);
                 const scene = new ResonanceAudio(context);
+                scene.setAmbisonicOrder(2)
                 setResonanceAudioScene(scene);
                 scene.output.connect(context.destination);
 
@@ -89,6 +92,10 @@ const AudioContextProvider = ({ children }) => {
             if (audioContext) {
                 audioContext.close();
             }
+
+            if (resonanceAudioScene) {
+                resonanceAudioScene.dispose();
+            }
         };
     }, []);
 
@@ -96,7 +103,7 @@ const AudioContextProvider = ({ children }) => {
     return (
         <AudioContextState.Provider value={{
             audioContext, resonanceAudioScene,
-            playSound, stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, buffers
+            playSound, stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, buffers, setBuffers
         }}>
             {children}
         </AudioContextState.Provider>
