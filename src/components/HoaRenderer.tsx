@@ -22,9 +22,10 @@ const HOARenderer = ({ userOrientation }) => {
     const [loadError, setLoadError] = useState(null); // State to track loading errors
     const [showGimbalArrow, setShowGimbalArrow] = useState(false);
 
-    // TODO: load other sound files 
-    // const exampleSoundPathList = ['/sounds/hartford-beach-1-8ch.m4a', '/sounds/hartford-beach-1-mono.m4a']
-    const exampleSoundPathList = ['sounds/newton-hills-1-8ch.m4a', 'sounds/newton-hills-1-mono.m4a']
+    // FIXME: it's loading but it takes a while 
+    // still crashing on mobile 
+    const exampleSoundPathList = ['/sounds/hartford-beach-1-8ch.m4a', '/sounds/hartford-beach-1-mono.m4a']
+    // const exampleSoundPathList = ['sounds/newton-hills-1-8ch.m4a', 'sounds/newton-hills-1-mono.m4a']
     // const exampleSoundPathList = ['/sounds/output_8ch-smc.m4a', '/sounds/output_mono-smc.m4a']
 
     useEffect(() => {
@@ -45,7 +46,7 @@ const HOARenderer = ({ userOrientation }) => {
         };
 
         load();
-    }, [audioContext, buffers.length, isLoading]); // Depend on relevant states
+    }, [audioContext, buffers.length, isLoading]);
 
 
     const retryLoading = () => {
