@@ -23,6 +23,7 @@ const HOARenderer = ({ userOrientation }) => {
     const [showGimbalArrow, setShowGimbalArrow] = useState(false);
 
     // TODO: load other sound files 
+    // const exampleSoundPathList = ['/sounds/hartford-beach-1-8ch.m4a', '/sounds/hartford-beach-1-mono.m4a']
     const exampleSoundPathList = ['/sounds/output_8ch-smc.m4a', '/sounds/output_mono-smc.m4a']
 
     useEffect(() => {

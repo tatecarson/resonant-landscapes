@@ -25,7 +25,6 @@ const AudioContextProvider = ({ children }) => {
     const bufferSourceRef = useRef(null);
 
     const loadBuffers = async (urls) => {
-        console.log(audioContext, resonanceAudioScene);
         if (!audioContext || !resonanceAudioScene || !urls.length) {
             console.error("Missing audio context, resonance scene, or URLs.");
             return;
