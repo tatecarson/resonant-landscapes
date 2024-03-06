@@ -33,8 +33,6 @@ const AudioContextProvider = ({ children }) => {
 
         setIsLoading(true);
 
-
-
         Omnitone.createBufferList(audioContext, urls)
             .then((results) => {
 

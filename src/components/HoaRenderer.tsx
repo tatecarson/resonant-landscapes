@@ -11,9 +11,9 @@ const HOARenderer = ({ userOrientation }) => {
     // TODO: load other sound files 
 
     useEffect(() => {
-        const exampleSoundPathList = ['/sounds/hartford-beach-1-8ch.m4a', '/sounds/hartford-beach-1-mono.m4a']
-        // const exampleSoundPathList = ['/sounds/newton-hills-1-8ch.m4a', '/sounds/newton-hills-1-mono.m4a'];
-        // const exampleSoundPathList = ['/sounds/output_8ch-smc.m4a', '/sounds/output_mono-smc.m4a']
+        // const exampleSoundPathList = ['./sounds/hartford-beach-1-8ch.m4a', './sounds/hartford-beach-1-mono.m4a']
+        const exampleSoundPathList = ['./sounds/newton-hills-1-8ch.m4a', './sounds/newton-hills-1-mono.m4a'];
+        // const exampleSoundPathList = ['./sounds/output_8ch-smc.m4a', './sounds/output_mono-smc.m4a']
 
         const load = async () => {
             await loadBuffers(exampleSoundPathList)
@@ -35,6 +35,7 @@ const HOARenderer = ({ userOrientation }) => {
                 stopSound();
             }
 
+            setIsLoading(false); // Reset loading state
             setBuffers([]); // Clear the buffers
         };
     }, []);
@@ -44,8 +45,7 @@ const HOARenderer = ({ userOrientation }) => {
             stopSound();
         } else {
             if (buffers.length > 0) {
-
-                playSound();
+                playSound(buffers);
             }
         }
     }, [buffers, isPlaying, playSound, stopSound]);
@@ -53,8 +53,6 @@ const HOARenderer = ({ userOrientation }) => {
     const toggleGimbalArrowVisibility = () => {
         setShowGimbalArrow(prevState => !prevState);
     };
-
-
 
     const retryLoading = useCallback(() => {
         setLoadError(null); // Reset error state before retrying
