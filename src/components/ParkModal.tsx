@@ -1,13 +1,12 @@
 import { Fragment, useRef, useState, useMemo, memo, Suspense, lazy } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
-// import HOARenderer from './HoaRenderer'
+const HOARenderer = lazy(() => import('./HoaRenderer'));
 
 function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation }) {
 
     const cancelButtonRef = useRef(null);
 
-    const HOARenderer = lazy(() => import('./HoaRenderer'));
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
@@ -50,9 +49,9 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation 
                                             </p>
                                             <div className="mt-2">
 
-                                                <Suspense fallback={<div>Loading...</div>}>
-                                                    <HOARenderer userOrientation={userOrientation} />
-                                                </Suspense>
+                                                {/* <Suspense fallback={<div>Loading...</div>}> */}
+                                                <HOARenderer userOrientation={userOrientation} />
+                                                {/* </Suspense> */}
 
 
                                             </div>

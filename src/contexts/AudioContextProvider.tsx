@@ -32,29 +32,36 @@ const AudioContextProvider = ({ children }) => {
         }
 
         setIsLoading(true);
-        try {
-            console.log("Urls:", urls);
-            const loadedBuffers = await Omnitone.createBufferList(audioContext, urls);
-            console.log("Loaded buffers:", loadedBuffers);
-            setBuffers(loadedBuffers);
-        } catch (error) {
-            console.error('Error loading buffers with Omnitone:', error);
-        } finally {
-            setIsLoading(false);
-        }
+
+
+
+        Omnitone.createBufferList(audioContext, urls)
+            .then((results) => {
+
+                console.log("Results", results)
+                const contentBuffer = Omnitone.mergeBufferListByChannel(audioContext, results); // Adjust if needed
+                console.log(contentBuffer)
+                setBuffers(contentBuffer); // Ensure buffers is set with the correct format, wrapped in an array if necessary
+                setIsLoading(false); // Update loading state
+            })
+            .catch((error) => {
+                console.error("Error loading buffers with Omnitone:", error);
+                // setLoadError(error); // Update state to reflect loading error
+                setIsLoading(false); // Ensure loading state is updated even in case of error
+            });
     };
 
 
 
     // Function to play sound
-    const playSound = (buffer) => {
+    const playSound = () => {
         if (!audioContext || !resonanceAudioScene || isPlaying) return;
 
-        console.log('Playing sound...');
+        console.log('Playing sound...', buffers);
         const source = resonanceAudioScene.createSource();
         const bufferSource = audioContext.createBufferSource();
         bufferSourceRef.current = bufferSource;
-        bufferSource.buffer = buffer;
+        bufferSource.buffer = buffers;
         bufferSource.loop = true;
         bufferSource.connect(source.input);
         bufferSource.start();
@@ -66,6 +73,7 @@ const AudioContextProvider = ({ children }) => {
         if (bufferSourceRef.current && isPlaying) {
             console.log('Stopping sound...');
             bufferSourceRef.current.stop();
+            bufferSourceRef.current.disconnect()
             setIsPlaying(false);
         }
     };
