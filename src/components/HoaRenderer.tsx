@@ -14,7 +14,8 @@ const HOARenderer = ({ userOrientation }) => {
         // const exampleSoundPathList = ['./sounds/hartford-beach-1-8ch.m4a', './sounds/hartford-beach-1-mono.m4a']
         // const exampleSoundPathList = ['./sounds/newton-hills-1-8ch.m4a', './sounds/newton-hills-1-mono.m4a'];
         // const exampleSoundPathList = ['./sounds/output_8ch-smc.m4a', './sounds/output_mono-smc.m4a']
-        const exampleSoundPathList = ['./sounds/newton-hills-1-1min-8ch.m4a', './sounds/newton-hills-1-1min-mono.m4a']
+        const exampleSoundPathList = ['./sounds/sica-hallow-003_8ch.m4a', './sounds/sica-hallow-003_mono.m4a']
+        // const exampleSoundPathList = ['./sounds/newton-hills-1-2min-8ch.m4a', './sounds/newton-hills-1-2min-mono.m4a']
 
         const load = async () => {
             await loadBuffers(exampleSoundPathList)
