@@ -8,12 +8,13 @@ const AudioContextState = createContext({
     resonanceAudioScene: null, // Add the ResonanceAudio scene to the context
     playSound: (buffer) => { },
     stopSound: () => { },
-    loadBuffers: (urls) => { },
     isLoading: false,
     setIsLoading: (boolean) => { },
     isPlaying: false,
     buffers: [],
+    loadBuffers: (urls) => { },
     setBuffers: (buffers) => { },
+    bufferSourceRef: null
 });
 
 
@@ -38,7 +39,7 @@ const AudioContextProvider = ({ children }) => {
 
                 console.log("Results", results)
                 const contentBuffer = Omnitone.mergeBufferListByChannel(audioContext, results); // Adjust if needed
-                console.log(contentBuffer)
+
                 setBuffers(contentBuffer); // Ensure buffers is set with the correct format, wrapped in an array if necessary
                 setIsLoading(false); // Update loading state
             })
@@ -71,9 +72,19 @@ const AudioContextProvider = ({ children }) => {
         if (bufferSourceRef.current && isPlaying) {
             console.log('Stopping sound...');
             bufferSourceRef.current.stop();
+            // bufferSourceRef.current.buffer = null;
             bufferSourceRef.current.disconnect()
             setIsPlaying(false);
         }
+    };
+
+    // Cleanup method to free up buffer memory
+    const cleanupBuffers = () => {
+        if (buffers.length > 0) {
+            // Assuming buffers is an array of AudioBuffer or similar
+            setBuffers([]); // Clearing the buffers array
+        }
+        // Additional cleanup logic if needed
     };
 
     useEffect(() => {
@@ -102,13 +113,15 @@ const AudioContextProvider = ({ children }) => {
             if (resonanceAudioScene) {
                 resonanceAudioScene.dispose();
             }
+            cleanupBuffers();
         };
+
     }, []);
 
 
     return (
         <AudioContextState.Provider value={{
-            audioContext, resonanceAudioScene,
+            audioContext, resonanceAudioScene, bufferSourceRef,
             playSound, stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, buffers, setBuffers
         }}>
             {children}

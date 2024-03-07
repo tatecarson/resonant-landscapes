@@ -134,6 +134,7 @@ function GeolocComp(): JSX.Element {
     function updateView() {
         if (!view) return;
 
+        // console.count('updateView() called');
         let m = Date.now() - deltaMean * 1.5;
         m = Math.max(m, previousM);
         setPreviousM(m);
@@ -166,6 +167,7 @@ function GeolocComp(): JSX.Element {
                         setEanbleUserOrientation(false);
                     }
                     setIsOpen(true);
+                    console.count('isOpen set to true');
                     setParkName(park.name);
                     setParkDistance(distance);
                     lastParkNameRef.current = park.name; // Update lastParkName to current park's name

@@ -4,27 +4,29 @@ import GimbalArrow from './GimbalArrow';
 
 const HOARenderer = ({ userOrientation }) => {
     const { playSound,
-        stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, buffers, setBuffers } = useAudioContext();
-    const [loadError, setLoadError] = useState(null); // State to track loading errors
+        stopSound, loadBuffers, bufferSourceRef, isLoading, setIsLoading, isPlaying, buffers, setBuffers } = useAudioContext();
+    const [loadError, setLoadError] = useState(false); // State to track loading errors
     const [showGimbalArrow, setShowGimbalArrow] = useState(false);
 
     // TODO: load other sound files 
 
     useEffect(() => {
         // const exampleSoundPathList = ['./sounds/hartford-beach-1-8ch.m4a', './sounds/hartford-beach-1-mono.m4a']
-        const exampleSoundPathList = ['./sounds/newton-hills-1-8ch.m4a', './sounds/newton-hills-1-mono.m4a'];
+        // const exampleSoundPathList = ['./sounds/newton-hills-1-8ch.m4a', './sounds/newton-hills-1-mono.m4a'];
         // const exampleSoundPathList = ['./sounds/output_8ch-smc.m4a', './sounds/output_mono-smc.m4a']
+        const exampleSoundPathList = ['./sounds/newton-hills-1-1min-8ch.m4a', './sounds/newton-hills-1-1min-mono.m4a']
 
         const load = async () => {
             await loadBuffers(exampleSoundPathList)
+            setLoadError(false)
         }
         load()
 
     }, []);
 
-    useEffect(() => {
-        console.log('Is loading:', isLoading);
-    }, [isLoading])
+    // useEffect(() => {
+    //     console.log('Is loading:', isLoading);
+    // }, [isLoading])
 
     // Cleanup effect
     useEffect(() => {
@@ -37,6 +39,11 @@ const HOARenderer = ({ userOrientation }) => {
 
             setIsLoading(false); // Reset loading state
             setBuffers([]); // Clear the buffers
+
+            if (bufferSourceRef.current) {
+                bufferSourceRef.current.stop();
+                bufferSourceRef.current = null;
+            }
         };
     }, []);
 
@@ -55,7 +62,7 @@ const HOARenderer = ({ userOrientation }) => {
     };
 
     const retryLoading = useCallback(() => {
-        setLoadError(null); // Reset error state before retrying
+        setLoadError(false); // Reset error state before retrying
         // Reattempt loading buffers here; this requires refactoring to avoid duplication
     }, []); // Add dependencies if necessary
 
