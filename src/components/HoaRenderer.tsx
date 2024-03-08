@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useCallback, Suspense } from 'react';
+import { PlayCircleIcon, StopCircleIcon } from '@heroicons/react/24/solid'
 import { useAudioContext } from '../contexts/AudioContextProvider';
 import GimbalArrow from './GimbalArrow';
 
 import stateParks from '../data/stateParks.json';
+import LeavesCanvas from './LeavesCanvas';
 
 function soundPath(parkName: string, parksJSON) {
 
@@ -33,8 +35,6 @@ const HOARenderer = ({ parkName, userOrientation }) => {
     // TODO: load other sound files 
 
     useEffect(() => {
-        const exampleSoundPathList = ['./sounds/sica-hallow-003_8ch.m4a', './sounds/sica-hallow-003_mono.m4a']
-
         const load = async () => {
             const soundPathList = soundPath(parkName, stateParks);
 
@@ -45,10 +45,6 @@ const HOARenderer = ({ parkName, userOrientation }) => {
         load()
 
     }, [parkName]);
-
-    // useEffect(() => {
-    //     console.log('Is loading:', isLoading);
-    // }, [isLoading])
 
     // Cleanup effect
     useEffect(() => {
@@ -72,6 +68,7 @@ const HOARenderer = ({ parkName, userOrientation }) => {
     const onTogglePlayback = useCallback(() => {
         if (isPlaying) {
             stopSound();
+            toggleGimbalArrowVisibility();
         } else {
             if (buffers.length > 0) {
                 playSound(buffers);
@@ -102,8 +99,13 @@ const HOARenderer = ({ parkName, userOrientation }) => {
             )}
             {!isLoading && !loadError && (
                 <>
-                    <button onClick={onTogglePlayback}>{isPlaying ? 'Stop' : 'Play'}</button>
+                    <button onClick={onTogglePlayback}>{isPlaying ?
+                        <StopCircleIcon className="h-10 w-10 text-green-600" aria-hidden="true" /> :
+                        <PlayCircleIcon className="h-10 w-10 text-green-600" aria-hidden="true" />}
+                    </button>
                     <br></br>
+                    <LeavesCanvas />
+                    {/* TODO: make this a better UI */}
                     {isPlaying && userOrientation && <button onClick={toggleGimbalArrowVisibility}>Toggle Gimbal Arrow</button>}
                     {showGimbalArrow && <GimbalArrow />}
                 </>
