@@ -50,7 +50,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation 
                                             </p>
                                             <div className="mt-2">
 
-                                                <HOARenderer userOrientation={userOrientation} />
+                                                <HOARenderer parkName={"Newton Hills State Park"} userOrientation={userOrientation} />
 
 
 
