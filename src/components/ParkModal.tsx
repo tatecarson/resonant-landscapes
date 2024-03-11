@@ -49,7 +49,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation 
                                                 {Math.floor(parkDistance)} meters away
                                             </p>
                                             <div className="mt-2">
-                                                <HOARenderer parkName={"Newton Hills State Park"} userOrientation={userOrientation} />
+                                                <HOARenderer parkName={"Newton Hills State Park"} parkDistance={parkDistance} userOrientation={userOrientation} />
                                             </div>
                                         </div>
                                     </div>

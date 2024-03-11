@@ -33,8 +33,8 @@ class Leaf {
         this.randomColor = colors[Math.floor(Math.random() * colors.length)];
     }
 
-    update() {
-        this.ty += this.speed * 0.1;
+    update(leafSpeed) {
+        this.ty += this.speed * leafSpeed;
         if (this.ty > this.height + this.y4) {
             this.reset();
         }
@@ -53,10 +53,24 @@ class Leaf {
     }
 }
 
+function map(value, start1, stop1, start2, stop2, withinBounds = false) {
+    const newValue = ((value - start1) / (stop1 - start1)) * (stop2 - start2) + start2;
+    const invertedValue = stop2 + start2 - newValue;
+    if (!withinBounds) {
+        return invertedValue;
+    }
+    if (start2 < stop2) {
+        return Math.min(Math.max(invertedValue, start2), stop2);
+    } else {
+        return Math.max(Math.min(invertedValue, start2), stop2);
+    }
+}
+
 // The React component
-function LeavesCanvas() {
+function LeavesCanvas({ parkDistance }) {
     const canvasRef = useRef(null);
-    const [leaves, setLeaves] = useState([]);
+    const leavesRef = useRef([]);
+    const leafSpeedRef = useRef(0);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -64,24 +78,35 @@ function LeavesCanvas() {
         const width = canvas.width;
         const height = canvas.height;
 
+        leafSpeedRef.current = map(parkDistance, 2, 10, 0.5, 8, true);
+
+        const updateLeaves = () => {
+            if (leavesRef.current.length < 10 && Math.random() > 0.8) {
+                leavesRef.current.push(new Leaf(ctx, width, height));
+            }
+
+            leavesRef.current.forEach(leaf => {
+                leaf.update(leafSpeedRef.current);
+                leaf.show();
+            });
+        };
+
         const update = () => {
             ctx.fillStyle = 'rgba(140, 180, 255, 1)';
             ctx.fillRect(0, 0, width, height);
 
-            if (leaves.length < 25 && Math.random() > 0.8) {
-                setLeaves([...leaves, new Leaf(ctx, width, height)]);
-            }
-
-            leaves.forEach(leaf => {
-                leaf.update();
-                leaf.show();
-            });
+            updateLeaves();
 
             requestAnimationFrame(update);
         };
 
         update();
-    }, [leaves]);
+
+        // Cleanup function to potentially clear the animation frame request
+        return () => {
+            cancelAnimationFrame(update);
+        };
+    }, [parkDistance]); // Depend on parkDistance to recreate the effect when it changes
 
     return <canvas ref={canvasRef} width={300} height={200} />;
 }

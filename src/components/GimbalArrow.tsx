@@ -7,19 +7,13 @@ import { useAudioContext } from '../contexts/AudioContextProvider';
 import 'tailwindcss/tailwind.css';
 import { ErrorBoundary } from 'react-error-boundary';
 
-// TODO: set the resonance audio stuff from here 
 const GimbalArrow = () => {
     const [gimbal] = useState(new Gimbal());
     const arrowAll = useRef();
     const [permissionGranted, setPermissionGranted] = useState(false);
     const { resonanceAudioScene } = useAudioContext();
 
-
     const requestPermission = useCallback(async (event) => {
-        // event.preventDefault();
-        // Check local storage first
-
-
         if (typeof DeviceOrientationEvent.requestPermission === 'function') {
             try {
                 const permission = await DeviceOrientationEvent.requestPermission();
@@ -69,6 +63,7 @@ const GimbalArrow = () => {
                 resonanceAudioScene.setListenerOrientation(gimbal.vectorFwd.x, gimbal.vectorFwd.y, gimbal.vectorFwd.z, gimbal.vectorUp.x, gimbal.vectorUp.y, gimbal.vectorUp.z);
             }
 
+            // TODO: update this to change leave direction based on orientation
             if (arrowAll.current) {
                 arrowAll.current.quaternion.copy(gimbal.quaternion);
             }

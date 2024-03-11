@@ -26,7 +26,7 @@ function soundPath(parkName: string, parksJSON) {
 }
 
 
-const HOARenderer = ({ parkName, userOrientation }) => {
+const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
     const { playSound,
         stopSound, loadBuffers, bufferSourceRef, isLoading, setIsLoading, isPlaying, buffers, setBuffers } = useAudioContext();
     const [loadError, setLoadError] = useState(false); // State to track loading errors
@@ -104,7 +104,7 @@ const HOARenderer = ({ parkName, userOrientation }) => {
                         <PlayCircleIcon className="h-10 w-10 text-green-600" aria-hidden="true" />}
                     </button>
                     <br></br>
-                    <LeavesCanvas />
+                    <LeavesCanvas parkDistance={parkDistance} />
                     {/* TODO: make this a better UI */}
                     {isPlaying && userOrientation && <button onClick={toggleGimbalArrowVisibility}>Toggle Gimbal Arrow</button>}
                     {showGimbalArrow && <GimbalArrow />}
