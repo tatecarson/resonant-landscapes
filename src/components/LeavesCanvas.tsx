@@ -89,6 +89,7 @@ function LeavesCanvas({ parkDistance }) {
                 leaf.update(leafSpeedRef.current);
                 leaf.show();
             });
+
         };
 
         const update = () => {

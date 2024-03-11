@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, Suspense } from 'react';
 import { PlayCircleIcon, StopCircleIcon } from '@heroicons/react/24/solid'
+import { Switch } from '@headlessui/react'
 import { useAudioContext } from '../contexts/AudioContextProvider';
 import GimbalArrow from './GimbalArrow';
 
@@ -9,14 +10,11 @@ import LeavesCanvas from './LeavesCanvas';
 function soundPath(parkName: string, parksJSON) {
 
     const foundPark = parksJSON.find(park => park.name === parkName);
-
     const recordingsCount = foundPark?.recordingsCount;
     const sectionsCount = foundPark?.sectionsCount;
-
     const cleanParkName = parkName.toLowerCase().split(' ').slice(0, 2).join('-')
 
     const recordingPicker = Math.floor(Math.random() * recordingsCount) + 1;
-
     const sectionPicker = Math.floor(Math.random() * sectionsCount) + 1;
 
     const url = [`./sounds/${cleanParkName}-${recordingPicker}-00${sectionPicker}_8ch.m4a`,
@@ -31,6 +29,7 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
         stopSound, loadBuffers, bufferSourceRef, isLoading, setIsLoading, isPlaying, buffers, setBuffers } = useAudioContext();
     const [loadError, setLoadError] = useState(false); // State to track loading errors
     const [showGimbalArrow, setShowGimbalArrow] = useState(false);
+    const [enabled, setEnabled] = useState(false)
 
     // TODO: load other sound files 
 
@@ -68,7 +67,12 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
     const onTogglePlayback = useCallback(() => {
         if (isPlaying) {
             stopSound();
-            toggleGimbalArrowVisibility();
+
+            if (showGimbalArrow) {
+                // toggleGimbalArrowVisibility();
+                setShowGimbalArrow(false);
+            }
+
         } else {
             if (buffers.length > 0) {
                 playSound(buffers);
@@ -76,9 +80,9 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
         }
     }, [buffers, isPlaying, playSound, stopSound]);
 
-    const toggleGimbalArrowVisibility = () => {
-        setShowGimbalArrow(prevState => !prevState);
-    };
+    // const toggleGimbalArrowVisibility = () => {
+    //     setShowGimbalArrow(prevState => !prevState);
+    // };
 
     const retryLoading = useCallback(() => {
         setLoadError(false); // Reset error state before retrying
@@ -103,11 +107,31 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
                         <StopCircleIcon className="h-10 w-10 text-green-600" aria-hidden="true" /> :
                         <PlayCircleIcon className="h-10 w-10 text-green-600" aria-hidden="true" />}
                     </button>
+                    {/* TODO: add a gimbal toggle here  */}
+                    {
+                        isPlaying && parkDistance < 2 &&
+                        <Switch.Group>
+                            <div className="flex items-center">
+                                <Switch.Label className="mr-4">Enable Head Turn</Switch.Label>
+                                <Switch
+                                    checked={showGimbalArrow}
+                                    onChange={setShowGimbalArrow}
+                                    className={`${showGimbalArrow ? 'bg-blue-600' : 'bg-gray-200'
+                                        } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
+                                >
+                                    <span
+                                        className={`${showGimbalArrow ? 'translate-x-6' : 'translate-x-1'
+                                            } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                                    />
+                                </Switch>
+                            </div>
+                        </Switch.Group>
+                    }
+
                     <br></br>
-                    <LeavesCanvas parkDistance={parkDistance} />
+                    {isPlaying && !showGimbalArrow && <LeavesCanvas parkDistance={parkDistance} />}
                     {/* TODO: make this a better UI */}
-                    {isPlaying && userOrientation && <button onClick={toggleGimbalArrowVisibility}>Toggle Gimbal Arrow</button>}
-                    {showGimbalArrow && <GimbalArrow />}
+                    {isPlaying && showGimbalArrow && <GimbalArrow />}
                 </>
             )}
         </div>
