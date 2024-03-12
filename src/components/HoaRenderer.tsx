@@ -12,11 +12,12 @@ function soundPath(parkName: string, parksJSON) {
     const foundPark = parksJSON.find(park => park.name === parkName);
     const recordingsCount = foundPark?.recordingsCount;
     const sectionsCount = foundPark?.sectionsCount;
-    const cleanParkName = parkName.toLowerCase().split(' ').slice(0, 2).join('-')
+    const cleanParkName = parkName.split(' ').slice(0, 2).join('-')
 
     const recordingPicker = Math.floor(Math.random() * recordingsCount) + 1;
     const sectionPicker = Math.floor(Math.random() * sectionsCount) + 1;
 
+    // const s3 = "https://sd-state-parks.s3.us-east-2.amazonaws.com/parks/"
     const url = [`./sounds/${cleanParkName}-${recordingPicker}-00${sectionPicker}_8ch.m4a`,
     `./sounds/${cleanParkName}-${recordingPicker}-00${sectionPicker}_mono.m4a`]
 
@@ -107,7 +108,6 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
                         <StopCircleIcon className="h-10 w-10 text-green-600" aria-hidden="true" /> :
                         <PlayCircleIcon className="h-10 w-10 text-green-600" aria-hidden="true" />}
                     </button>
-                    {/* TODO: add a gimbal toggle here  */}
                     {
                         isPlaying && parkDistance < 2 &&
                         <Switch.Group>
@@ -130,7 +130,6 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
 
                     <br></br>
                     {isPlaying && !showGimbalArrow && <LeavesCanvas parkDistance={parkDistance} />}
-                    {/* TODO: make this a better UI */}
                     {isPlaying && showGimbalArrow && <GimbalArrow />}
                 </>
             )}

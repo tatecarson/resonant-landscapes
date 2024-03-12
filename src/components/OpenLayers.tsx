@@ -150,11 +150,12 @@ function GeolocComp(): JSX.Element {
             scaledPoints.forEach(park => {
                 const parkLocation = turf.point(park.scaledCoords);
                 const distance = turf.distance(userLocation, parkLocation, { units: 'meters' });
-                if (distance < 10 && !isOpen && lastParkNameRef.current !== park.name) {
-                    // console.log("Distance", distance, "to ", park.name)
+                if (distance < 10 && !isOpen) {
+                    setIsOpen(true);
+                    console.count('isOpen set to true');
+                    setParkName(park.name);
+                    setParkDistance(distance);
 
-                    // TODO: set the listener distance 
-                    // check if this is working
                     if (resonanceAudioScene) {
                         console.log("Setting listener position to ", distance, distance, 0)
                         resonanceAudioScene.setListenerPosition(distance, distance, 0);
@@ -166,12 +167,6 @@ function GeolocComp(): JSX.Element {
                     } else {
                         setEanbleUserOrientation(false);
                     }
-                    setIsOpen(true);
-                    console.count('isOpen set to true');
-                    setParkName(park.name);
-                    setParkDistance(distance);
-                    lastParkNameRef.current = park.name; // Update lastParkName to current park's name
-
                 }
             });
         }
