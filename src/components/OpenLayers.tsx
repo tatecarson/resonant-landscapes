@@ -59,40 +59,40 @@ function GeolocComp(): JSX.Element {
 
     const view = map?.getView();
 
-    useEffect(() => {
-        fetch('data/geolocation-orientation.json') // Adjust path if necessary
-            .then((response) => response.json())
-            .then((data) => setSimulationData(data.data));
-    }, []);
+    // useEffect(() => {
+    //     fetch('data/geolocation-orientation.json') // Adjust path if necessary
+    //         .then((response) => response.json())
+    //         .then((data) => setSimulationData(data.data));
+    // }, []);
 
 
     // Function to move to the next simulation step
-    const nextStep = useCallback(() => {
-        if (!simulationData || currentIndex >= simulationData.length - 1) return;
+    // const nextStep = useCallback(() => {
+    //     if (!simulationData || currentIndex >= simulationData.length - 1) return;
 
-        const newIndex = currentIndex + 1;
-        simulateStep(newIndex);
-        setCurrentIndex(newIndex);
-    }, [currentIndex, simulationData]);
+    //     const newIndex = currentIndex + 1;
+    //     simulateStep(newIndex);
+    //     setCurrentIndex(newIndex);
+    // }, [currentIndex, simulationData]);
 
     // Function to move to the previous simulation step
-    const prevStep = useCallback(() => {
-        if (!simulationData || currentIndex <= 0) return;
+    // const prevStep = useCallback(() => {
+    //     if (!simulationData || currentIndex <= 0) return;
 
-        const newIndex = currentIndex - 1;
-        simulateStep(newIndex);
-        setCurrentIndex(newIndex);
-    }, [currentIndex, simulationData]);
+    //     const newIndex = currentIndex - 1;
+    //     simulateStep(newIndex);
+    //     setCurrentIndex(newIndex);
+    // }, [currentIndex, simulationData]);
 
     // Function to simulate a specific step based on index
-    const simulateStep = (index: number) => {
-        const { coords, timestamp } = simulationData[index];
-        const projectedPosition = fromLonLat([coords.longitude, coords.latitude]);
-        // Your logic to update position and view based on the new step...
-        addPosition([projectedPosition[0], projectedPosition[1]], degToRad(coords.heading), Date.now(), coords.speed);
+    // const simulateStep = (index: number) => {
+    //     const { coords, timestamp } = simulationData[index];
+    //     const projectedPosition = fromLonLat([coords.longitude, coords.latitude]);
+    //     // Your logic to update position and view based on the new step...
+    //     addPosition([projectedPosition[0], projectedPosition[1]], degToRad(coords.heading), Date.now(), coords.speed);
 
-        updateView(); // Ensure this function updates the view correctly based on the new index
-    };
+    //     updateView(); // Ensure this function updates the view correctly based on the new index
+    // };
 
     function addPosition(position: [number, number], heading: number, m: number, speed: number) {
         if (!position) return; // Guard clause if position is not provided
@@ -200,7 +200,7 @@ function GeolocComp(): JSX.Element {
                             setAccuracy(new LineString([position]));
                             const m = Date.now();
                             // this line enables the geolocation feature 
-                            // addPosition([x, y], geoloc.getHeading() ?? 0, m, geoloc.getSpeed() ?? 0); // Pass [x, y] as the position
+                            addPosition([x, y], geoloc.getHeading() ?? 0, m, geoloc.getSpeed() ?? 0); // Pass [x, y] as the position
 
                             const coords = positions.getCoordinates();
                             const len = coords.length;
@@ -237,8 +237,8 @@ function GeolocComp(): JSX.Element {
             <ErrorBoundary fallback={<div>Error</div>}>
                 {isOpen && <ParkModal isOpen={isOpen} setIsOpen={setIsOpen} parkName={parkName} parkDistance={parkDistance} userOrientation={enableUserOrientation} />}
             </ErrorBoundary>
-            <button onClick={prevStep}>Previous Step</button>
-            <button onClick={nextStep}>Next Step</button>
+            {/* <button onClick={prevStep}>Previous Step</button>
+            <button onClick={nextStep}>Next Step</button> */}
         </div>
 
     );
