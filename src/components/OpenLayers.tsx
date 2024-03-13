@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, memo, useRef, useContext } from "react";
 import { fromLonLat, toLonLat } from "ol/proj";
 import { Geometry, Point, LineString } from "ol/geom";
+import Circle from 'ol/geom/Circle';
 import { Geolocation as OLGeoLoc } from "ol";
 import {
     RMap,
@@ -22,8 +23,8 @@ import './layers.css'
 import { useAudioContext } from "../contexts/AudioContextProvider";
 
 import scaledPoints from "../js/scaledParks";
-import locationIcon from "../assets/geolocation_marker_heading.png";
 import marker from '../assets/trees.png'
+import locationIcon from "../assets/geolocation_marker_heading.png";
 import { ErrorBoundary } from "react-error-boundary";
 
 // modulo for negative values
@@ -174,12 +175,28 @@ function GeolocComp(): JSX.Element {
 
 
     function createParkFeature(scaledCoords: [number, number], name: string, key: number) {
+        const pointGeometry = new Point(fromLonLat(scaledCoords));
         return (
-            <RFeature
-                geometry={new Point(fromLonLat(scaledCoords))} key={key}>
+            <RFeature geometry={pointGeometry} key={key}>
+                <RStyle.RStyle>
+
+                    <RStyle.RIcon src={marker} anchor={[0.5, 0.8]} />
+                </RStyle.RStyle>
                 <RPopup trigger={"click"} className="example-overlay">
                     {name}
                 </RPopup>
+            </RFeature>
+        );
+    }
+
+    function createMaxDistanceFeature(scaledCoords: [number, number], name: string, key: number) {
+        const circleGeometry = new Circle(fromLonLat(scaledCoords), 10);
+        return (
+            <RFeature geometry={circleGeometry} key={key}>
+                <RStyle.RStyle>
+                    <RStyle.RFill color={"rgba(76, 175, 80, 0.2)"} />
+                    <RStyle.RStroke color={"green"} width={2} />
+                </RStyle.RStyle>
             </RFeature>
         );
     }
@@ -215,6 +232,7 @@ function GeolocComp(): JSX.Element {
                     [positions, map] // Dependency array updated
                 )}
             />
+
             <RLayerVector zIndex={10}>
                 <RStyle.RStyle>
                     <RStyle.RIcon src={locationIcon} anchor={[0.5, 0.8]} />
@@ -225,14 +243,11 @@ function GeolocComp(): JSX.Element {
             </RLayerVector>
 
             <RLayerVector zIndex={9}>
-                <RStyle.RStyle>
-                    <RStyle.RCircle radius={5} />
-                    <RStyle.RStroke color={"#000"} width={10} />
-                    <RStyle.RIcon src={marker} anchor={[0.5, 0.8]} />
-
-                </RStyle.RStyle>
-
                 {scaledPoints.map((park, i) => createParkFeature(park.scaledCoords, park.name, i))}
+            </RLayerVector>
+
+            <RLayerVector zIndex={10}>
+                {scaledPoints.map((park, i) => createMaxDistanceFeature(park.scaledCoords, park.name, i))}
             </RLayerVector>
             <ErrorBoundary fallback={<div>Error</div>}>
                 {isOpen && <ParkModal isOpen={isOpen} setIsOpen={setIsOpen} parkName={parkName} parkDistance={parkDistance} userOrientation={enableUserOrientation} />}
