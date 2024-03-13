@@ -1,6 +1,6 @@
 [
     { "name": "Sica Hollow State Park", "cords": [-97.24267, 45.7421], 
-        "recordingsCount": 0, "sectionsCount": 0 },
+        "recordingsCount": 3, "sectionsCount": 2 },
     { "name": "Roy Lake State Park", "cords": [-97.44881, 45.70969], 
         "recordingsCount": 3, "sectionsCount": 2 },
     { "name": "Fort Sisseton Historic State Park", "cords": [-97.52827, 45.6594], 
@@ -8,13 +8,13 @@
     { "name": "Hartford Beach State Park", "cords": [-96.67307, 45.40219], 
         "recordingsCount": 8, "sectionsCount": 2 },
     { "name": "Fisher Grove State Park", "cords": [-98.35471, 44.88346], 
-        "recordingsCount": 0, "sectionsCount": 0 },
+        "recordingsCount": 1, "sectionsCount": 2 },
     { "name": "Oakwood Lakes State Park", "cords": [-96.98198, 44.44975], 
         "recordingsCount": 1, "sectionsCount": 4  },
     { "name": "Lake Herman State Park", "cords": [-97.16042, 43.99288],
         "recordingsCount": 2, "sectionsCount": 5 },
     { "name": "Palisades State Park", "cords": [-96.51717, 43.68764], 
-        "recordingsCount": 0, "sectionsCount": 0 },
+        "recordingsCount": 3, "sectionsCount": 0 },
     { "name": "Good Earth State Park", "cords": [-96.61351, 43.47997], 
         "recordingsCount": 2, "sectionsCount": 2 },
     { "name": "Newton Hills State Park", "cords": [-96.57019, 43.21904], 
@@ -24,5 +24,5 @@
     { "name": "Custer State Park", "cords": [-103.689, 43.61433], 
         "recordingsCount": 9, "sectionsCount": 2 },
     { "name": "Bear Butte State Park", "cords": [-103.4509, 44.45989], 
-        "recordingsCount": 0, "sectionsCount": 0 }
+        "recordingsCount": 4, "sectionsCount": 3 }
 ]
