@@ -5,8 +5,10 @@ import stateParks from '../data/stateParks.json'
 console.log(stateParks)
 
 // Placeholder for your scale factors
-const scaleLat = 0.00065;
-const scaleLong = 0.0004;
+// const scaleLat = 0.00065;
+// const scaleLong = 0.0004;
+const scaleLat = 0.00066;
+const scaleLong = 0.00045;
 
 // Assuming a reference point (for example, the center of DSU campus)
 const referencePoint = turf.point([-97.110789, 44.012222]);
