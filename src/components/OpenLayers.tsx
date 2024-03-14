@@ -118,6 +118,13 @@ function GeolocComp(): JSX.Element {
                     setIsOpen(true);
                     console.count('isOpen set to true');
                     setParkName(park.name);
+                }
+
+                // moved to here so that the listener position would update 
+                // when the modal is open 
+                // TODO: need to test this outside because chrome rerenders when you change
+                // geolocation 
+                if (distance < 10 && isOpen) {
                     setParkDistance(distance);
 
                     if (resonanceAudioScene) {
