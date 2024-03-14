@@ -80,9 +80,7 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
         }
     }, [buffers, isPlaying, playSound, stopSound]);
 
-    // const toggleGimbalArrowVisibility = () => {
-    //     setShowGimbalArrow(prevState => !prevState);
-    // };
+
 
     const retryLoading = useCallback(() => {
         setLoadError(false); // Reset error state before retrying

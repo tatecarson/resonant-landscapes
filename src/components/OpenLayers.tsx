@@ -47,6 +47,7 @@ function GeolocComp(): JSX.Element {
     const [isOpen, setIsOpen] = useState(false)
     const [parkName, setParkName] = useState<string>('');
     const [parkDistance, setParkDistance] = useState<number>(0);
+    const [currentParkLocation, setCurrentParkLocation] = useState([]);
     const [enableUserOrientation, setEanbleUserOrientation] = useState(false);
 
     const { resonanceAudioScene, stopSound } = useAudioContext();
@@ -118,34 +119,32 @@ function GeolocComp(): JSX.Element {
                     setIsOpen(true);
                     console.count('isOpen set to true');
                     setParkName(park.name);
-                }
-
-                // moved to here so that the listener position would update 
-                // when the modal is open 
-                // TODO: need to test this outside because chrome rerenders when you change
-                // geolocation 
-                if (distance < 10 && isOpen) {
-                    setParkDistance(distance);
-
-                    if (resonanceAudioScene) {
-                        console.log("Setting listener position to ", distance, distance, 0)
-                        resonanceAudioScene.setListenerPosition(distance, distance, 0);
-                    }
-
-                    if (distance < 2) {
-                        console.log("User is close to ", park.name)
-                        setEanbleUserOrientation(true);
-                    } else {
-                        setEanbleUserOrientation(false);
-                    }
-                }
-
-                // reset if the user walks away from the park center
-                if (distance > 10 && isOpen) {
-                    setIsOpen(false);
-                    stopSound();
+                    setCurrentParkLocation(parkLocation);
                 }
             });
+
+            const currentParkDistance = turf.distance(currentParkLocation, userLocation, { units: 'meters' });
+
+            if (currentParkDistance < 10) {
+                setParkDistance(currentParkDistance);
+
+                if (resonanceAudioScene) {
+                    console.log("Setting listener position to ", currentParkDistance, currentParkDistance, 0)
+                    resonanceAudioScene.setListenerPosition(currentParkDistance, currentParkDistance, 0);
+                }
+
+                if (currentParkDistance < 2) {
+                    console.log("User is close to ", parkName)
+                    setEanbleUserOrientation(true);
+                } else {
+                    setEanbleUserOrientation(false);
+                }
+            }
+            // reset if the user walks away from the park center
+            if (currentParkDistance > 10 && isOpen) {
+                setIsOpen(false);
+                stopSound();
+            }
         }
     }
 
