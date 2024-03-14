@@ -27,10 +27,10 @@ function soundPath(parkName: string, parksJSON) {
 
 const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
     const { playSound,
-        stopSound, loadBuffers, bufferSourceRef, isLoading, setIsLoading, isPlaying, buffers, setBuffers } = useAudioContext();
+        stopSound, loadBuffers, bufferSourceRef, isLoading, setIsLoading,
+        isPlaying, setIsPlaying, buffers, setBuffers } = useAudioContext();
     const [loadError, setLoadError] = useState(false); // State to track loading errors
     const [showGimbalArrow, setShowGimbalArrow] = useState(false);
-    const [enabled, setEnabled] = useState(false)
 
     // TODO: load other sound files 
 
@@ -51,9 +51,8 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
         return () => {
             console.log('Cleanup on unmount');
             // Cleanup logic here, if any
-            if (isPlaying) {
-                stopSound();
-            }
+            stopSound();
+            setIsPlaying(false);
 
             setIsLoading(false); // Reset loading state
             setBuffers([]); // Clear the buffers

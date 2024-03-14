@@ -11,6 +11,7 @@ const AudioContextState = createContext({
     isLoading: false,
     setIsLoading: (boolean) => { },
     isPlaying: false,
+    setIsPlaying: (boolean) => { },
     buffers: [],
     loadBuffers: (urls) => { },
     setBuffers: (buffers) => { },
@@ -122,7 +123,7 @@ const AudioContextProvider = ({ children }) => {
     return (
         <AudioContextState.Provider value={{
             audioContext, resonanceAudioScene, bufferSourceRef,
-            playSound, stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, buffers, setBuffers
+            playSound, stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, setIsPlaying, buffers, setBuffers
         }}>
             {children}
         </AudioContextState.Provider>

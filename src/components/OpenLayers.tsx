@@ -42,16 +42,14 @@ function GeolocComp(): JSX.Element {
     const [accuracy, setAccuracy] = useState<LineString | null>(null);
     const [deltaMean, setDeltaMean] = useState<number>(500);
     const [previousM, setPreviousM] = useState<number>(0);
-    const [simulationData, setSimulationData] = useState(null);
-    const [currentIndex, setCurrentIndex] = useState(0); // New state for tracking current index
+
 
     const [isOpen, setIsOpen] = useState(false)
     const [parkName, setParkName] = useState<string>('');
     const [parkDistance, setParkDistance] = useState<number>(0);
     const [enableUserOrientation, setEanbleUserOrientation] = useState(false);
-    const lastParkNameRef = useRef<string | null>(null);
 
-    const { resonanceAudioScene } = useAudioContext();
+    const { resonanceAudioScene, stopSound } = useAudioContext();
 
     const positions = new LineString([], 'XYZM');
 
@@ -59,41 +57,6 @@ function GeolocComp(): JSX.Element {
     const { map } = useOL();
 
     const view = map?.getView();
-
-    // useEffect(() => {
-    //     fetch('data/geolocation-orientation.json') // Adjust path if necessary
-    //         .then((response) => response.json())
-    //         .then((data) => setSimulationData(data.data));
-    // }, []);
-
-
-    // Function to move to the next simulation step
-    // const nextStep = useCallback(() => {
-    //     if (!simulationData || currentIndex >= simulationData.length - 1) return;
-
-    //     const newIndex = currentIndex + 1;
-    //     simulateStep(newIndex);
-    //     setCurrentIndex(newIndex);
-    // }, [currentIndex, simulationData]);
-
-    // Function to move to the previous simulation step
-    // const prevStep = useCallback(() => {
-    //     if (!simulationData || currentIndex <= 0) return;
-
-    //     const newIndex = currentIndex - 1;
-    //     simulateStep(newIndex);
-    //     setCurrentIndex(newIndex);
-    // }, [currentIndex, simulationData]);
-
-    // Function to simulate a specific step based on index
-    // const simulateStep = (index: number) => {
-    //     const { coords, timestamp } = simulationData[index];
-    //     const projectedPosition = fromLonLat([coords.longitude, coords.latitude]);
-    //     // Your logic to update position and view based on the new step...
-    //     addPosition([projectedPosition[0], projectedPosition[1]], degToRad(coords.heading), Date.now(), coords.speed);
-
-    //     updateView(); // Ensure this function updates the view correctly based on the new index
-    // };
 
     function addPosition(position: [number, number], heading: number, m: number, speed: number) {
         if (!position) return; // Guard clause if position is not provided
@@ -169,12 +132,19 @@ function GeolocComp(): JSX.Element {
                         setEanbleUserOrientation(false);
                     }
                 }
+
+                // reset if the user walks away from the park center
+                if (distance > 10 && isOpen) {
+                    setIsOpen(false);
+                    stopSound();
+                }
             });
         }
     }
 
 
     function createParkFeature(scaledCoords: [number, number], name: string, key: number) {
+        // console.log("scaledCoords", scaledCoords, name)
         const pointGeometry = new Point(fromLonLat(scaledCoords));
         return (
             <RFeature geometry={pointGeometry} key={key}>
