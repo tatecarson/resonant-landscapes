@@ -2,7 +2,7 @@
   "name": "sandbox",
   "private": true,
   "version": "0.0.0",
-  "homepage": "https://tatecarson.github.io/js-ambisonics-react/",
+  "homepage": "https://tatecarson.github.io/resonant-landscapes/",
   "type": "module",
   "scripts": {
     "dev": "vite",
