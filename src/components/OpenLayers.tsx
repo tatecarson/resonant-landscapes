@@ -43,7 +43,6 @@ function GeolocComp(): JSX.Element {
     const [deltaMean, setDeltaMean] = useState<number>(500);
     const [previousM, setPreviousM] = useState<number>(0);
 
-
     const [isOpen, setIsOpen] = useState(false)
     const [parkName, setParkName] = useState<string>('');
     const [parkDistance, setParkDistance] = useState<number>(0);
@@ -58,6 +57,8 @@ function GeolocComp(): JSX.Element {
     const { map } = useOL();
 
     const view = map?.getView();
+
+    const maxDistance = 15; // meters
 
     function addPosition(position: [number, number], heading: number, m: number, speed: number) {
         if (!position) return; // Guard clause if position is not provided
@@ -113,9 +114,10 @@ function GeolocComp(): JSX.Element {
 
             const userLocation = turf.point(toLonLat([c[0], c[1]]));
             scaledPoints.forEach(park => {
+                console.log("park", park.name, park.scaledCoords)
                 const parkLocation = turf.point(park.scaledCoords);
                 const distance = turf.distance(userLocation, parkLocation, { units: 'meters' });
-                if (distance < 10 && !isOpen) {
+                if (distance < maxDistance && !isOpen) {
                     setIsOpen(true);
                     console.count('isOpen set to true');
                     setParkName(park.name);
@@ -125,7 +127,7 @@ function GeolocComp(): JSX.Element {
 
             const currentParkDistance = turf.distance(currentParkLocation, userLocation, { units: 'meters' });
 
-            if (currentParkDistance < 10) {
+            if (currentParkDistance < maxDistance) {
                 setParkDistance(currentParkDistance);
 
                 if (resonanceAudioScene) {
@@ -133,7 +135,8 @@ function GeolocComp(): JSX.Element {
                     resonanceAudioScene.setListenerPosition(currentParkDistance, currentParkDistance, 0);
                 }
 
-                if (currentParkDistance < 2) {
+                // minDistance
+                if (currentParkDistance < 5) {
                     console.log("User is close to ", parkName)
                     setEanbleUserOrientation(true);
                 } else {
@@ -141,7 +144,7 @@ function GeolocComp(): JSX.Element {
                 }
             }
             // reset if the user walks away from the park center
-            if (currentParkDistance > 10 && isOpen) {
+            if (currentParkDistance > maxDistance && isOpen) {
                 setIsOpen(false);
                 stopSound();
             }
@@ -166,7 +169,7 @@ function GeolocComp(): JSX.Element {
     }
 
     function createMaxDistanceFeature(scaledCoords: [number, number], name: string, key: number) {
-        const circleGeometry = new Circle(fromLonLat(scaledCoords), 10);
+        const circleGeometry = new Circle(fromLonLat(scaledCoords), maxDistance);
         return (
             <RFeature geometry={circleGeometry} key={key}>
                 <RStyle.RStyle>
@@ -228,8 +231,7 @@ function GeolocComp(): JSX.Element {
             <ErrorBoundary fallback={<div>Error</div>}>
                 {isOpen && <ParkModal isOpen={isOpen} setIsOpen={setIsOpen} parkName={parkName} parkDistance={parkDistance} userOrientation={enableUserOrientation} />}
             </ErrorBoundary>
-            {/* <button onClick={prevStep}>Previous Step</button>
-            <button onClick={nextStep}>Next Step</button> */}
+
         </div>
 
     );
