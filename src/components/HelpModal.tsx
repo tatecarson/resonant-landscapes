@@ -1,7 +1,7 @@
 import { useState, useRef, Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 
-function MyDialog({ isOpen, setIsOpen }) {
+function HelpModal({ isOpen, setIsOpen }) {
     const cancelButtonRef = useRef(null);
 
     return (
@@ -37,19 +37,14 @@ function MyDialog({ isOpen, setIsOpen }) {
                                     <div className="sm:flex sm:items-start">
                                         <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
                                             <Dialog.Title as="h3" className="text-base font-semibold leading-6 text-gray-900">
-                                                Welcome to Resonant Landscapes
+                                                Troubleshooting
                                             </Dialog.Title>
 
-                                            <p>Walk around DSU's campus to hear sounds recorded in each of South Dakota's 13 State Parks.</p>
-                                            <br />
-                                            <p> As you approach a park, a menu will pop up that will allow you to play the park. As you walk closer to the center icon, the recording volume will increase.</p>
-                                            <br />
-                                            <p>When you're in the center, you will have the option to reorient your listening position by turning with your phone to hear the sound from different directions.</p>
-                                            <br />
-                                            <p>To hear a different sound from same park, click close and another sound will load. If you walk away from the park that wound will stop playing.</p>
-                                            <br />
-                                            {/* <p></p>
-                                            <p>Troubleshooting: for best results turn WIFI off. If you don't hear a sound, refresh the page or reopen the browser.</p> */}
+
+                                            <p></p>
+                                            <p>For best results turn WIFI off. If you don't hear a sound, refresh the page or reopen the browser.</p>
+                                            <p>The app has been tested on iOS with Safari. It may not work with other devices or browsers.</p>
+                                            <p>Contact <a href='mailto:tate.carson@dsu.edu' className="text-blue-600 visited:text-purple-600 underline">Tate Carson</a> for questions and feedback.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -73,4 +68,4 @@ function MyDialog({ isOpen, setIsOpen }) {
     )
 }
 
-export default MyDialog; 
+export default HelpModal; 

@@ -13,6 +13,7 @@ import {
     ROverlay,
     useOL,
     RPopup,
+    RControl
 } from "rlayers";
 import * as turf from '@turf/turf';
 
@@ -21,6 +22,7 @@ import "ol/ol.css";
 import './layers.css'
 
 import { useAudioContext } from "../contexts/AudioContextProvider";
+import HelpMenu from "./HelpModal";
 
 import scaledPoints from "../js/scaledParks";
 import marker from '../assets/trees.png'
@@ -114,7 +116,7 @@ function GeolocComp(): JSX.Element {
 
             const userLocation = turf.point(toLonLat([c[0], c[1]]));
             scaledPoints.forEach(park => {
-                console.log("park", park.name, park.scaledCoords)
+                // console.log("park", park.name, park.scaledCoords)
                 const parkLocation = turf.point(park.scaledCoords);
                 const distance = turf.distance(userLocation, parkLocation, { units: 'meters' });
                 if (distance < maxDistance && !isOpen) {
@@ -239,6 +241,8 @@ function GeolocComp(): JSX.Element {
 
 
 export default function Geolocation(): JSX.Element {
+    const [helpIsOpen, setHelpIsOpen] = useState(false)
+
     return (
         <>
 
@@ -246,8 +250,15 @@ export default function Geolocation(): JSX.Element {
                 className="map"
                 initial={{ center: fromLonLat([0, 0]), zoom: 19 }}
             >
+                <RControl.RCustom className="example-control">
+                    <button onClick={() => setHelpIsOpen(true)}>
+                        ?
+                    </button>
+                </RControl.RCustom>
+                {helpIsOpen && <HelpMenu isOpen={helpIsOpen} setIsOpen={setHelpIsOpen} />}
                 <ROSM />
                 <GeolocComp />
+
             </RMap>
 
         </>
