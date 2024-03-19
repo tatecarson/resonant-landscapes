@@ -36,20 +36,18 @@ function MyDialog({ isOpen, setIsOpen }) {
                                 <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                                     <div className="sm:flex sm:items-start">
                                         <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                                            <Dialog.Title as="h3" className="text-base font-semibold leading-6 text-gray-900">
+                                            <Dialog.Title as="h1" className="text-base font-semibold leading-6 text-gray-900">
                                                 Welcome to Resonant Landscapes
                                             </Dialog.Title>
 
                                             <p>Walk around DSU's campus to hear sounds recorded in each of South Dakota's 13 State Parks.</p>
                                             <br />
-                                            <p> As you approach a park, a menu will pop up that will allow you to play the park. As you walk closer to the center icon, the recording volume will increase.</p>
+                                            <p> As you approach a park, a menu will pop up that will allow you to play a recording. As you walk closer to the center icon, the recording volume will increase.</p>
                                             <br />
-                                            <p>When you're in the center, you will have the option to reorient your listening position by turning with your phone to hear the sound from different directions.</p>
+                                            <p>When you're in the center of the listening spot, you'll have the option to reorient your listening direction by turning with your phone. This will allow you to hear the recording in 360 degrees.</p>
                                             <br />
-                                            <p>To hear a different sound from same park, click close and another sound will load. If you walk away from the park that wound will stop playing.</p>
+                                            <p>To hear a different recording from the same park, close the menu and another recording will load. To stop a recording, click the stop button or walk away from the park.</p>
                                             <br />
-                                            {/* <p></p>
-                                            <p>Troubleshooting: for best results turn WIFI off. If you don't hear a sound, refresh the page or reopen the browser.</p> */}
                                         </div>
                                     </div>
                                 </div>

@@ -40,11 +40,11 @@ function HelpModal({ isOpen, setIsOpen }) {
                                                 Troubleshooting
                                             </Dialog.Title>
 
-
-                                            <p></p>
-                                            <p>For best results turn WIFI off. If you don't hear a sound, refresh the page or reopen the browser.</p>
+                                            <p>For best results, turn WiFi off. If you don't hear sound, refresh the page or reopen the browser. Also, make sure geolocation is enabled in your phone/browser settings.</p>
+                                            <br />
                                             <p>The app has been tested on iOS with Safari. It may not work with other devices or browsers.</p>
-                                            <p>Contact <a href='mailto:tate.carson@dsu.edu' className="text-blue-600 visited:text-purple-600 underline">Tate Carson</a> for questions and feedback.</p>
+                                            <br />
+                                            <p>Contact <a href='mailto:tate.carson@dsu.edu' className="text-blue-600 visited:text-purple-600 underline">Tate Carson</a> with questions and feedback.</p>
                                         </div>
                                     </div>
                                 </div>
