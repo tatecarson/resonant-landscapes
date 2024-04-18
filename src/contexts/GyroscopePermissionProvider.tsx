@@ -1,5 +1,4 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import useGimbalPermissionStore from '../stores/gimbalPermissionStore';
 
 // Create a context with a default value
 export const GyroscopePermissionContext = createContext({

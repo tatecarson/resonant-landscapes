@@ -1,11 +1,8 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { Flex, Box } from '@react-three/flex';
-import * as THREE from 'three';
+
 import Gimbal from '../js/Gimbal';
 import { useAudioContext } from '../contexts/AudioContextProvider';
 import 'tailwindcss/tailwind.css';
-import { ErrorBoundary } from 'react-error-boundary';
 
 const GimbalArrow = () => {
     const [gimbal] = useState(new Gimbal());
