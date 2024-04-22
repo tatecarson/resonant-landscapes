@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
 
-// Define the colors as in the original example
 const colors = [
     { r: 200, g: 41, b: 66 },
     { r: 157, g: 206, b: 160 },
@@ -9,7 +8,6 @@ const colors = [
     { r: 155, g: 135, b: 140 },
 ];
 
-// Leaf class (converted to use plain JS syntax suitable for React)
 class Leaf {
     constructor(ctx, width, height) {
         this.ctx = ctx;
