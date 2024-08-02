@@ -109,7 +109,7 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
                         isPlaying && parkDistance < 2 &&
                         <Switch.Group>
                             <div className="flex items-center">
-                                <Switch.Label className="mr-4">Enable Head Turn</Switch.Label>
+                                <Switch.Label className="mr-4">Enable Body-Oriented Tracking</Switch.Label>
                                 <Switch
                                     checked={showGimbalArrow}
                                     onChange={setShowGimbalArrow}
