@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": [
       "DOM",
@@ -13,15 +13,22 @@
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "module": "ESNext",
-    "moduleResolution": "Node",
+    "module": "CommonJS",
+    "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "types": [
+      "jest",
+      "jest-puppeteer",
+      "node"
+    ]
   },
   "include": [
-    "src"
+    "tests/**/*.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx"
   ],
   "references": [
     {
