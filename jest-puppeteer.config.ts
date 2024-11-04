@@ -1,4 +1,4 @@
-import type { Config } from 'jest-puppeteer';
+import { Config } from 'jest-puppeteer';
 
 const config: Config = {
   launch: {
