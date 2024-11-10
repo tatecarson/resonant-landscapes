@@ -102,45 +102,44 @@ export function GeolocComp(): JSX.Element {
             view.setRotation(-c[2]);
             setPos(c);
 
-            // Convert coordinates and update userLocation state
+            // Create user location point
             const coordinates = toLonLat([c[0], c[1]]);
-            setUserLocation(turf.point([coordinates[0], coordinates[1]]));
+            const newUserLocation = turf.point([coordinates[0], coordinates[1]]);
+            setUserLocation(newUserLocation);
 
-            // Convert OpenLayers coordinates to [longitude, latitude] format for turf
-            const userLocation = coordinates ? turf.point([coordinates[0], coordinates[1]]) : null;
-
+            // Use newUserLocation instead of userLocation state
             scaledPoints.forEach(park => {
-                // Create a turf point from park coordinates
-                const parkLocation = turf.point(park.scaledCoords);
-
                 try {
-                    const distance = turf.distance(userLocation, parkLocation, { units: 'meters' });
+                    // Park interface already defines scaledCoords as [number, number]
+                    const parkLocation = turf.point(park.scaledCoords);
+                    const distance = turf.distance(newUserLocation, parkLocation, { units: 'meters' });
+
                     if (distance < maxDistance && !isOpen) {
                         setIsOpen(true);
                         setParkName(park.name);
-                        // Store just the coordinates instead of the whole point feature
-                        setCurrentParkLocation(park.scaledCoords);
+                        setCurrentParkLocation(park.scaledCoords as [number, number]);
                     }
                 } catch (error) {
                     console.error('Error calculating distance:', error);
-                    console.log('User coordinates:', coordinates);
                     console.log('Park coordinates:', park.scaledCoords);
                 }
             });
 
             if (currentParkLocation) {
-                const currentParkDistance = turf.distance(userLocation, turf.point(currentParkLocation), { units: 'meters' });
-                if (currentParkDistance < maxDistance) {
-                    setParkDistance(currentParkDistance);
-                    if (resonanceAudioScene) {
-                        resonanceAudioScene.setListenerPosition(currentParkDistance, currentParkDistance, 0);
+                try {
+                    const currentParkDistance = turf.distance(newUserLocation, turf.point(currentParkLocation), { units: 'meters' });
+                    if (currentParkDistance < maxDistance) {
+                        setParkDistance(currentParkDistance);
+                        if (resonanceAudioScene) {
+                            resonanceAudioScene.setListenerPosition(currentParkDistance, currentParkDistance, 0);
+                        }
+                        setEanbleUserOrientation(currentParkDistance < 5);
+                    } else if (isOpen) {
+                        setIsOpen(false);
+                        stopSound();
                     }
-                    setEanbleUserOrientation(currentParkDistance < 5);
-                }
-                // Reset if user walks away from park center
-                if (currentParkDistance > maxDistance && isOpen) {
-                    setIsOpen(false);
-                    stopSound();
+                } catch (error) {
+                    console.error('Error calculating current park distance:', error);
                 }
             }
         }
