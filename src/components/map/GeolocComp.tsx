@@ -11,6 +11,7 @@ import { GeolocLayer } from "./GeolocLayer";
 import { ParkFeatures } from "./ParkFeatures";
 import { mod } from "../../utils/geolocation";
 import scaledPoints from "../../js/scaledParks";
+import { Park } from "../../types/park";
 
 export function GeolocComp(): JSX.Element {
     const [pos, setPos] = useState(new Point(fromLonLat([0, 0]), 'XYZM'));
@@ -32,6 +33,18 @@ export function GeolocComp(): JSX.Element {
     const maxDistance = 15; // meters
     const positions = new LineString([], 'XYZM');
 
+    /**
+     * Adds a new position to the tracking history with heading calculations.
+     * This function:
+     * 1. Maintains a history of recent positions (max 20 points)
+     * 2. Calculates smooth heading transitions between points
+     * 3. Stores coordinates in format: [x, y, heading, timestamp]
+     * 
+     * @param position - [x, y] coordinates in current projection
+     * @param heading - Current heading in radians
+     * @param m - Timestamp in milliseconds
+     * @param speed - Current speed (not used currently)
+     */
     function addPosition(position: [number, number], heading: number, m: number, speed: number) {
         if (!position) return; // Guard clause if position is not provided
 
@@ -41,17 +54,23 @@ export function GeolocComp(): JSX.Element {
         const previous = fCoords[fCoords.length - 1];
         const prevHeading = previous && previous[2];
         let newHeading = heading;
+
+        // Calculate smooth heading transition if we have a previous heading
         if (prevHeading !== undefined) {
             let headingDiff = newHeading - mod(prevHeading);
 
+            // Ensure we take the shortest path around the circle
             if (Math.abs(headingDiff) > Math.PI) {
                 const sign = headingDiff >= 0 ? 1 : -1;
                 headingDiff = -sign * (2 * Math.PI - Math.abs(headingDiff));
             }
             newHeading = prevHeading + headingDiff;
         }
+
+        // Add new position to history: [x, y, heading, timestamp]
         positions.appendCoordinate([x, y, newHeading, m]);
 
+        // Keep only last 20 positions
         positions.setCoordinates(positions.getCoordinates().slice(-20));
     }
 
@@ -160,7 +179,7 @@ export function GeolocComp(): JSX.Element {
 
             <GeolocLayer pos={pos} accuracy={accuracy} />
             <ParkFeatures
-                scaledPoints={scaledPoints}
+                scaledPoints={scaledPoints as Park[]}
                 maxDistance={maxDistance}
                 userLocation={userLocation}
                 onParkSelect={(name, coords) => {
