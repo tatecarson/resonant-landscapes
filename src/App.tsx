@@ -3,7 +3,7 @@ import AudioContextProvider from "./contexts/AudioContextProvider";
 import { MapContainer } from "./components/map/MapContainer";
 import { ErrorBoundary } from "react-error-boundary";
 import WelcomeDialog from "./components/dialogs/WelcomeDialog";
-import GeolocationCheck from './components/GeolocationCheck';
+import GeolocationCheck from './contexts/GeolocationCheck';
 // import './App.css'
 
 const App: React.FC = () => {
