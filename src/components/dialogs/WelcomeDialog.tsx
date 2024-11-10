@@ -1,20 +1,9 @@
-import { Fragment, useRef, memo, lazy } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
-import { useAudioContext } from "../contexts/AudioContextProvider";
+import { useState, useRef, Fragment } from 'react';
+import { Dialog, Transition } from '@headlessui/react';
 
-const HOARenderer = lazy(() => import('./HoaRenderer'));
-
-function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation }) {
-    const { stopSound } = useAudioContext();
-
+function WelcomeDialog({ isOpen, setIsOpen }) {
     const cancelButtonRef = useRef(null);
 
-
-    function cancel() {
-        console.log('Cancelling...');
-        stopSound();
-        setIsOpen(false);
-    }
     return (
         <Transition.Root show={isOpen} as={Fragment}>
             <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} onClose={setIsOpen}>
@@ -27,10 +16,12 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation 
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <div className="fixed inset-0 bg-gray-500 bg-opacity-10 transition-opacity" />
+                    {/* Background */}
+                    <div className="fixed inset-0 bg-green-200 bg-opacity-75 transition-opacity" />
                 </Transition.Child>
 
-                <div className="relative inset-0 z-10 w-screen overflow-y-auto">
+                <div className="fixed inset-0 w-screen overflow-y-auto">
+                    {/* Container to center the panel */}
                     <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
                         <Transition.Child
                             as={Fragment}
@@ -45,27 +36,30 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation 
                                 <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                                     <div className="sm:flex sm:items-start">
                                         <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                                            <Dialog.Title as="h3" className="text-base font-semibold leading-6 text-gray-900">
-                                                {parkName}
+                                            <Dialog.Title as="h1" className="text-base font-semibold leading-6 text-gray-900">
+                                                Welcome to Resonant Landscapes
                                             </Dialog.Title>
-                                            <p className="text-sm text-gray-500">
-                                                {Math.floor(parkDistance)} meters away
-                                            </p>
-                                            <div className="mt-2">
-                                                <HOARenderer parkName={parkName} parkDistance={parkDistance} userOrientation={userOrientation} />
-                                            </div>
+
+                                            <p>Walk around DSU's campus to hear sounds recorded in each of South Dakota's 13 State Parks.</p>
+                                            <br />
+                                            <p> As you approach a park, a menu will pop up that will allow you to play a recording. As you walk closer to the center icon, the recording volume will increase.</p>
+                                            <br />
+                                            <p>When you're in the center of the listening spot, you'll have the option to reorient your listening direction by turning with your phone. This will allow you to hear the recording in 360 degrees.</p>
+                                            <br />
+                                            <p>To hear a different recording from the same park, close the menu and another recording will load. To stop a recording, click the stop button or walk away from the park.</p>
+                                            <br />
                                         </div>
                                     </div>
                                 </div>
                                 <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-
                                     <button
                                         type="button"
+                                        id="welcome-button"
                                         className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
-                                        onClick={cancel}
+                                        onClick={() => setIsOpen(false)}
                                         ref={cancelButtonRef}
                                     >
-                                        Close
+                                        Continue
                                     </button>
                                 </div>
                             </Dialog.Panel>
@@ -74,7 +68,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation 
                 </div>
             </Dialog>
         </Transition.Root>
-    )
+    );
 }
 
-export default memo(ParkModal)
+export default WelcomeDialog;

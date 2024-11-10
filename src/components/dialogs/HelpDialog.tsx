@@ -1,7 +1,7 @@
-import { useState, useRef, Fragment } from 'react'
+import { useRef, Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 
-function HelpModal({ isOpen, setIsOpen }) {
+function HelpDialog({ isOpen, setIsOpen }) {
     const cancelButtonRef = useRef(null);
 
     return (
@@ -68,4 +68,4 @@ function HelpModal({ isOpen, setIsOpen }) {
     )
 }
 
-export default HelpModal; 
+export default HelpDialog; 

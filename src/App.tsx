@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import AudioContextProvider from "./contexts/AudioContextProvider";
-import { OpenLayers } from "./components/map/OpenLayers";
+import { MapContainer } from "./components/map/MapContainer";
 import { ErrorBoundary } from "react-error-boundary";
-import WelcomeModal from "./components/WelcomeModal";
+import WelcomeDialog from "./components/dialogs/WelcomeDialog";
 import GeolocationCheck from './components/GeolocationCheck';
 // import './App.css'
 
@@ -13,8 +13,8 @@ const App: React.FC = () => {
     <ErrorBoundary fallback={<div>Error</div>}>
       <AudioContextProvider>
         <GeolocationCheck>
-          <WelcomeModal isOpen={isOpen} setIsOpen={setIsOpen} />
-          {!isOpen && <OpenLayers />}
+          <WelcomeDialog isOpen={isOpen} setIsOpen={setIsOpen} />
+          {!isOpen && <MapContainer />}
         </GeolocationCheck>
       </AudioContextProvider>
     </ErrorBoundary>

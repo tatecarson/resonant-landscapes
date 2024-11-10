@@ -4,14 +4,14 @@ import { RGeolocation, useOL } from "rlayers";
 import * as turf from '@turf/turf';
 import { useAudioContext } from "../../contexts/AudioContextProvider";
 import { Feature } from '@turf/helpers';
-import { GeolocLayer } from "./GeolocLayer";
+import { GeolocationMarkerLayer } from "./GeolocationMarkerLayer";
 import scaledPoints from "../../js/scaledParks";
 import { Park } from "../../types/park";
 import { useGeolocation } from "../../hooks/useGeolocation";
 import { addPosition } from "../../utils/mapUtils";
-import { ParkContainer } from "./ParkContainer";
+import { ParkLayer } from "./ParkLayer";
 
-export function GeolocComp(): JSX.Element {
+export function GeolocationLayer(): JSX.Element {
     const [deltaMean, setDeltaMean] = useState<number>(500);
     const [previousM, setPreviousM] = useState<number>(0);
     const [userLocation, setUserLocation] = useState<Feature<turf.Point> | null>(null);
@@ -26,7 +26,6 @@ export function GeolocComp(): JSX.Element {
         scaledPoints, false, () => { }, () => { }, null, () => { }, () => { }, resonanceAudioScene, stopSound
     );
 
-    console.log("scaledPoints", scaledPoints);
     return (
         <>
             <RGeolocation
@@ -57,8 +56,8 @@ export function GeolocComp(): JSX.Element {
                 )}
             />
 
-            <GeolocLayer pos={pos} accuracy={accuracy} />
-            <ParkContainer
+            <GeolocationMarkerLayer pos={pos} accuracy={accuracy} />
+            <ParkLayer
                 scaledPoints={scaledPoints as Park[]}
                 userLocation={userLocation}
             />

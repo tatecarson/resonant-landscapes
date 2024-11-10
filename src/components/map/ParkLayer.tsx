@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Feature, Point } from '@turf/helpers';
 import { ErrorBoundary } from "react-error-boundary";
-import ParkModal from "../ParkModal";
-import { ParkFeatures } from "./ParkFeatures";
+import ParkDialog from '../dialogs/ParkDialog';
+import { ParkFeaturesLayer } from "./ParkFeaturesLayer";
 import { Park } from "../../types/park";
 
 interface ParkContainerProps {
@@ -10,7 +10,7 @@ interface ParkContainerProps {
     userLocation: Feature<Point> | null;
 }
 
-export function ParkContainer({ scaledPoints, userLocation }: ParkContainerProps): JSX.Element {
+export function ParkLayer({ scaledPoints, userLocation }: ParkContainerProps): JSX.Element {
     const [isOpen, setIsOpen] = useState(false);
     const [parkName, setParkName] = useState<string>('');
     const [parkDistance, setParkDistance] = useState<number>(0);
@@ -18,7 +18,7 @@ export function ParkContainer({ scaledPoints, userLocation }: ParkContainerProps
 
     return (
         <>
-            <ParkFeatures
+            <ParkFeaturesLayer
                 scaledPoints={scaledPoints}
                 maxDistance={15}
                 userLocation={userLocation}
@@ -32,7 +32,7 @@ export function ParkContainer({ scaledPoints, userLocation }: ParkContainerProps
 
             <ErrorBoundary fallback={<div>Error</div>}>
                 {isOpen && (
-                    <ParkModal
+                    <ParkDialog
                         isOpen={isOpen}
                         setIsOpen={setIsOpen}
                         parkName={parkName}

@@ -1,20 +1,20 @@
 import { fromLonLat } from "ol/proj";
 import { RMap, ROSM } from "rlayers";
 import { INITIAL_CENTER, INITIAL_ZOOM } from '../../constants/map';
-import { MapControls } from './MapControls';
-import { GeolocComp } from './GeolocComp';
+import { MapControlButtons } from './MapControlButtons';
+import { GeolocationLayer } from './GeolocationLayer';
 import './layers.css';
 
-export function OpenLayers(): JSX.Element {
+export function MapContainer(): JSX.Element {
     return (
         <>
             <RMap
                 className="map"
                 initial={{ center: fromLonLat(INITIAL_CENTER), zoom: INITIAL_ZOOM }}
             >
-                <MapControls />
+                <MapControlButtons />
                 <ROSM />
-                <GeolocComp />
+                <GeolocationLayer />
             </RMap>
         </>
     );

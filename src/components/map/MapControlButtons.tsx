@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { RControl } from 'rlayers';
-import HelpMenu from '../HelpModal';
+import HelpDialog from '../dialogs/HelpDialog';
 
-export function MapControls(): JSX.Element {
+export function MapControlButtons(): JSX.Element {
     const [helpIsOpen, setHelpIsOpen] = useState(false);
 
     return (
@@ -10,7 +10,7 @@ export function MapControls(): JSX.Element {
             <RControl.RCustom className="example-control">
                 <button onClick={() => setHelpIsOpen(true)}>?</button>
             </RControl.RCustom>
-            {helpIsOpen && <HelpMenu isOpen={helpIsOpen} setIsOpen={setHelpIsOpen} />}
+            {helpIsOpen && <HelpDialog isOpen={helpIsOpen} setIsOpen={setHelpIsOpen} />}
         </>
     );
 }

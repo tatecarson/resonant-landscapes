@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useCallback, Suspense } from 'react';
 import { PlayCircleIcon, StopCircleIcon } from '@heroicons/react/24/solid'
 import { Switch } from '@headlessui/react'
-import { useAudioContext } from '../contexts/AudioContextProvider';
-import GimbalArrow from './GimbalArrow';
+import { useAudioContext } from '../../contexts/AudioContextProvider';
+import GimbalArrow from '../ui/GimbalArrow';
 
-import stateParks from '../data/stateParks.json';
-import LeavesCanvas from './LeavesCanvas';
+import stateParks from '../../data/stateParks.json';
+import LeavesCanvas from '../ui/LeavesCanvas';
 
 function soundPath(parkName: string, parksJSON) {
 

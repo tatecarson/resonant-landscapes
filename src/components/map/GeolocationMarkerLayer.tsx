@@ -7,7 +7,7 @@ interface GeolocLayerProps {
     accuracy: LineString | null;
 }
 
-export function GeolocLayer({ pos, accuracy }: GeolocLayerProps): JSX.Element {
+export function GeolocationMarkerLayer({ pos, accuracy }: GeolocLayerProps): JSX.Element {
     return (
         <RLayerVector zIndex={10}>
             <RStyle.RStyle>

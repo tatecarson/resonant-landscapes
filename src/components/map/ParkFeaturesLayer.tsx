@@ -16,7 +16,7 @@ interface ParkFeaturesProps {
     isOpen: boolean;
 }
 
-export function ParkFeatures({
+export function ParkFeaturesLayer({
     scaledPoints,
     maxDistance,
     userLocation,
