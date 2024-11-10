@@ -8,12 +8,12 @@ import { Park } from "../../types/park";
 interface ParkContainerProps {
     scaledPoints: Park[];
     userLocation: Feature<Point> | null;
+    parkDistance: number;
+    parkName: string;
 }
 
-export function ParkLayer({ scaledPoints, userLocation }: ParkContainerProps): JSX.Element {
+export function ParkLayer({ scaledPoints, userLocation, parkName, parkDistance }: ParkContainerProps): JSX.Element {
     const [isOpen, setIsOpen] = useState(false);
-    const [parkName, setParkName] = useState<string>('');
-    const [parkDistance, setParkDistance] = useState<number>(0);
     const [currentParkLocation, setCurrentParkLocation] = useState<[number, number] | null>(null);
 
     return (
@@ -24,7 +24,6 @@ export function ParkLayer({ scaledPoints, userLocation }: ParkContainerProps): J
                 userLocation={userLocation}
                 onParkSelect={(name, coords) => {
                     setIsOpen(true);
-                    setParkName(name);
                     setCurrentParkLocation(coords);
                 }}
                 isOpen={isOpen}

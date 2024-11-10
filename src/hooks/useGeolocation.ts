@@ -2,8 +2,7 @@ import { useState, useCallback } from 'react';
 import { LineString, Point } from 'ol/geom';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import * as turf from '@turf/turf';
-import { Feature } from '@turf/helpers';
-import { getCenterWithHeading, addPosition } from '../utils/mapUtils';
+import { getCenterWithHeading } from '../utils/mapUtils';
 
 export const useGeolocation = (
     map: any, view: any, positions: any, deltaMean: number, previousM: number, setPreviousM: any,
