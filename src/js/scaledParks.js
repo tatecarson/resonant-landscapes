@@ -1,8 +1,6 @@
 import * as turf from "@turf/turf";
 import stateParks from '../data/stateParks.json'
 
-// lon, lat 
-console.log(stateParks)
 
 // Placeholder for your scale factors
 // const scaleLat = 0.00065;

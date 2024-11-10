@@ -4,22 +4,16 @@ import { RGeolocation, useOL } from "rlayers";
 import * as turf from '@turf/turf';
 import { useAudioContext } from "../../contexts/AudioContextProvider";
 import { Feature } from '@turf/helpers';
-import { ErrorBoundary } from "react-error-boundary";
-import ParkModal from "../ParkModal";
 import { GeolocLayer } from "./GeolocLayer";
-import { ParkFeatures } from "./ParkFeatures";
 import scaledPoints from "../../js/scaledParks";
 import { Park } from "../../types/park";
 import { useGeolocation } from "../../hooks/useGeolocation";
 import { addPosition } from "../../utils/mapUtils";
+import { ParkContainer } from "./ParkContainer";
 
 export function GeolocComp(): JSX.Element {
     const [deltaMean, setDeltaMean] = useState<number>(500);
     const [previousM, setPreviousM] = useState<number>(0);
-    const [isOpen, setIsOpen] = useState(false);
-    const [parkName, setParkName] = useState<string>('');
-    const [parkDistance, setParkDistance] = useState<number>(0);
-    const [currentParkLocation, setCurrentParkLocation] = useState<[number, number] | null>(null);
     const [userLocation, setUserLocation] = useState<Feature<turf.Point> | null>(null);
 
     const { resonanceAudioScene, stopSound } = useAudioContext();
@@ -29,10 +23,10 @@ export function GeolocComp(): JSX.Element {
 
     const { pos, accuracy, setAccuracy, updateView } = useGeolocation(
         map, view, positions, deltaMean, previousM, setPreviousM, setUserLocation,
-        scaledPoints, isOpen, setIsOpen, setParkName, currentParkLocation, setCurrentParkLocation,
-        setParkDistance, resonanceAudioScene, stopSound
+        scaledPoints, false, () => { }, () => { }, null, () => { }, () => { }, resonanceAudioScene, stopSound
     );
 
+    console.log("scaledPoints", scaledPoints);
     return (
         <>
             <RGeolocation
@@ -64,29 +58,10 @@ export function GeolocComp(): JSX.Element {
             />
 
             <GeolocLayer pos={pos} accuracy={accuracy} />
-            <ParkFeatures
+            <ParkContainer
                 scaledPoints={scaledPoints as Park[]}
-                maxDistance={15}
                 userLocation={userLocation}
-                onParkSelect={(name, coords) => {
-                    setIsOpen(true);
-                    setParkName(name);
-                    setCurrentParkLocation(coords);
-                }}
-                isOpen={isOpen}
             />
-
-            <ErrorBoundary fallback={<div>Error</div>}>
-                {isOpen && (
-                    <ParkModal
-                        isOpen={isOpen}
-                        setIsOpen={setIsOpen}
-                        parkName={parkName}
-                        parkDistance={parkDistance}
-                        userOrientation={false}
-                    />
-                )}
-            </ErrorBoundary>
         </>
     );
 }
