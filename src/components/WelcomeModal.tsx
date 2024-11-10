@@ -17,7 +17,7 @@ function WelcomeModal({ isOpen, setIsOpen }) {
                     leaveTo="opacity-0"
                 >
                     {/* Background */}
-                    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+                    <div className="fixed inset-0 bg-green-200 bg-opacity-75 transition-opacity" />
                 </Transition.Child>
 
                 <div className="fixed inset-0 w-screen overflow-y-auto">
