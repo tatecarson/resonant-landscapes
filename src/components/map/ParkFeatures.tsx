@@ -3,6 +3,7 @@ import Circle from 'ol/geom/Circle';
 import { Point } from "ol/geom";
 import { fromLonLat } from "ol/proj";
 import * as turf from '@turf/turf';
+import { Feature, Point as TurfPoint } from '@turf/helpers';
 
 import { Park } from '../../types/park';
 import marker from '../../assets/trees.png';
@@ -10,7 +11,7 @@ import marker from '../../assets/trees.png';
 interface ParkFeaturesProps {
     scaledPoints: Park[];
     maxDistance: number;
-    userLocation: turf.Point | null;
+    userLocation: Feature<TurfPoint> | null;
     onParkSelect: (name: string, coords: [number, number]) => void;
     isOpen: boolean;
 }

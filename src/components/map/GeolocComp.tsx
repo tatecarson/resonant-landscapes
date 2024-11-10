@@ -5,6 +5,7 @@ import { Geolocation as OLGeoLoc } from "ol";
 import { RGeolocation, useOL } from "rlayers";
 import * as turf from '@turf/turf';
 import { useAudioContext } from "../../contexts/AudioContextProvider";
+import { Feature } from '@turf/helpers';
 import { ErrorBoundary } from "react-error-boundary";
 import ParkModal from "../ParkModal";
 import { GeolocLayer } from "./GeolocLayer";
@@ -24,7 +25,7 @@ export function GeolocComp(): JSX.Element {
     const [parkDistance, setParkDistance] = useState<number>(0);
     const [currentParkLocation, setCurrentParkLocation] = useState<[number, number] | null>(null);
     const [enableUserOrientation, setEanbleUserOrientation] = useState(false);
-    const [userLocation, setUserLocation] = useState<turf.Feature<turf.Point> | null>(null);
+    const [userLocation, setUserLocation] = useState<Feature<turf.Point> | null>(null);
 
     const { resonanceAudioScene, stopSound } = useAudioContext();
     const { map } = useOL();
