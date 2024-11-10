@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import AudioContextProvider from "./contexts/AudioContextProvider";
-import OpenLayers from "./components/OpenLayers";
+import { OpenLayers } from "./components/map/OpenLayers";
 import { ErrorBoundary } from "react-error-boundary";
 import WelcomeModal from "./components/WelcomeModal";
 import GeolocationCheck from './components/GeolocationCheck';
