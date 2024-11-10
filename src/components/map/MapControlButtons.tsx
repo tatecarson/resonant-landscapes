@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { RControl } from 'rlayers';
 import HelpDialog from '../dialogs/HelpDialog';
+import "ol/ol.css";
+import './layers.css';
 
 export function MapControlButtons(): JSX.Element {
     const [helpIsOpen, setHelpIsOpen] = useState(false);

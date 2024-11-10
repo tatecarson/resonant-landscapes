@@ -12,9 +12,9 @@ export function MapContainer(): JSX.Element {
                 className="map"
                 initial={{ center: fromLonLat(INITIAL_CENTER), zoom: INITIAL_ZOOM }}
             >
-                <MapControlButtons />
                 <ROSM />
                 <GeolocationLayer />
+                <MapControlButtons />
             </RMap>
         </>
     );
