@@ -2,11 +2,12 @@ import { useState, useCallback } from 'react';
 import { LineString, Point } from 'ol/geom';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import * as turf from '@turf/turf';
-import { getCenterWithHeading } from '../utils/mapUtils';
+import { Feature } from '@turf/helpers';
+import { getCenterWithHeading, addPosition } from '../utils/mapUtils';
 
 export const useGeolocation = (
     map: any, view: any, positions: any, deltaMean: number, previousM: number, setPreviousM: any,
-    setUserLocation: any, scaledPoints: any, setIsOpen: any, setParkName: any,
+    setUserLocation: any, scaledPoints: any, isOpen: boolean, setIsOpen: any, setParkName: any,
     currentParkLocation: [number, number] | null, setCurrentParkLocation: any, setParkDistance: any,
     resonanceAudioScene: any, stopSound: any
 ) => {
@@ -64,7 +65,7 @@ export const useGeolocation = (
                 }
             }
         }
-    }, [view, deltaMean, previousM, positions, map, setPreviousM, setPos, setUserLocation, scaledPoints, setIsOpen, setParkName, currentParkLocation, setCurrentParkLocation, setParkDistance, resonanceAudioScene, stopSound]);
+    }, [view, deltaMean, previousM, positions, map, setPreviousM, setPos, setUserLocation, scaledPoints, isOpen, setIsOpen, setParkName, currentParkLocation, setCurrentParkLocation, setParkDistance, resonanceAudioScene, stopSound]);
 
     return { pos, accuracy, setAccuracy, updateView };
 };

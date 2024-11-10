@@ -29,7 +29,7 @@ export function GeolocComp(): JSX.Element {
 
     const { pos, accuracy, setAccuracy, updateView } = useGeolocation(
         map, view, positions, deltaMean, previousM, setPreviousM, setUserLocation,
-        scaledPoints, setIsOpen, setParkName, currentParkLocation, setCurrentParkLocation,
+        scaledPoints, isOpen, setIsOpen, setParkName, currentParkLocation, setCurrentParkLocation,
         setParkDistance, resonanceAudioScene, stopSound
     );
 
