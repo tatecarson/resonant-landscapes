@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, memo, useRef, useContext } from "react";
+import { useState, useCallback } from "react";
 import { fromLonLat, toLonLat } from "ol/proj";
-import { Geometry, Point, LineString } from "ol/geom";
+import { Point, LineString } from "ol/geom";
 import Circle from 'ol/geom/Circle';
 import { Geolocation as OLGeoLoc } from "ol";
 import {
@@ -10,7 +10,6 @@ import {
     RFeature,
     RGeolocation,
     RStyle,
-    ROverlay,
     useOL,
     RPopup,
     RControl
@@ -32,10 +31,6 @@ import { ErrorBoundary } from "react-error-boundary";
 // modulo for negative values
 function mod(n: number) {
     return ((n % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-}
-
-function degToRad(deg: number) {
-    return (deg * Math.PI) / 180;
 }
 
 function GeolocComp(): JSX.Element {
