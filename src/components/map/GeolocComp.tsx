@@ -25,6 +25,9 @@ import marker from '../../assets/trees.png'
 import locationIcon from "../../assets/geolocation_marker_heading.png";
 import { ErrorBoundary } from "react-error-boundary";
 
+
+import { LocationLayer } from "./layers/LocationLayer";
+
 // modulo for negative values
 function mod(n: number) {
     return ((n % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
@@ -210,14 +213,7 @@ export function GeolocComp(): JSX.Element {
                 )}
             />
 
-            <RLayerVector zIndex={10}>
-                <RStyle.RStyle>
-                    <RStyle.RIcon src={locationIcon} anchor={[0.5, 0.8]} />
-                    <RStyle.RStroke color={"#007bff"} width={3} />
-                </RStyle.RStyle>
-                {pos && <RFeature geometry={new Point(pos)}></RFeature>}
-                {accuracy && <RFeature geometry={accuracy}></RFeature>}
-            </RLayerVector>
+            <LocationLayer pos={pos} accuracy={accuracy} />
 
             <RLayerVector zIndex={9}>
                 {scaledPoints.map((park, i) => createParkFeature(park.scaledCoords, park.name, i))}
