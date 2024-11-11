@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import AudioContextProvider from "./contexts/AudioContextProvider";
 import OpenLayers from "./components/OpenLayers";
 import { ErrorBoundary } from "react-error-boundary";
-import WelcomeModal from "./components/WelcomeModal";
+import WelcomeModal from "./components/modals/WelcomeModal";
 // import './App.css'
 
 function App() {
-  let [isOpen, setIsOpen] = useState(true)
+  const [isOpen, setIsOpen] = useState(true)
 
   return (
 
