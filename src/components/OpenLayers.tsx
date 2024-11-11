@@ -17,12 +17,13 @@ import {
 } from "rlayers";
 import * as turf from '@turf/turf';
 
+
 import ParkModal from "./ParkModal";
 import "ol/ol.css";
 import './layers.css'
 
 import { useAudioContext } from "../contexts/AudioContextProvider";
-import HelpMenu from "./HelpModal";
+import { MapControls } from "./map/MapControls";
 
 import scaledPoints from "../js/scaledParks";
 import marker from '../assets/trees.png'
@@ -38,7 +39,7 @@ function degToRad(deg: number) {
     return (deg * Math.PI) / 180;
 }
 
-function GeolocComp(): JSX.Element {
+export function GeolocComp(): JSX.Element {
 
     const [pos, setPos] = useState(new Point(fromLonLat([0, 0]), 'XYZM'));
     const [accuracy, setAccuracy] = useState<LineString | null>(null);
@@ -240,27 +241,23 @@ function GeolocComp(): JSX.Element {
 }
 
 
+
 export default function Geolocation(): JSX.Element {
-    const [helpIsOpen, setHelpIsOpen] = useState(false)
+    const [helpIsOpen, setHelpIsOpen] = useState(false);
 
     return (
         <>
-
             <RMap
                 className="map"
                 initial={{ center: fromLonLat([0, 0]), zoom: 19 }}
             >
-                <RControl.RCustom className="example-control">
-                    <button onClick={() => setHelpIsOpen(true)}>
-                        ?
-                    </button>
-                </RControl.RCustom>
-                {helpIsOpen && <HelpMenu isOpen={helpIsOpen} setIsOpen={setHelpIsOpen} />}
+                <MapControls
+                    helpIsOpen={helpIsOpen}
+                    setHelpIsOpen={setHelpIsOpen}
+                />
                 <ROSM />
                 <GeolocComp />
-
             </RMap>
-
         </>
     );
 }
