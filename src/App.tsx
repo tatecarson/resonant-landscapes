@@ -9,8 +9,6 @@ function App() {
   const [isOpen, setIsOpen] = useState(true)
 
   return (
-
-    // TODO: add welcome screen 
     <ErrorBoundary fallback={<div>Error</div>}>
       <AudioContextProvider>
         <WelcomeModal isOpen={isOpen} setIsOpen={setIsOpen} />

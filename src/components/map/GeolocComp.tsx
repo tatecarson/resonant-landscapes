@@ -1,19 +1,15 @@
-import React, { useState, useEffect, useCallback, memo, useRef, useContext } from "react";
+import React, { useState, useCallback, } from "react";
 import { fromLonLat, toLonLat } from "ol/proj";
-import { Geometry, Point, LineString } from "ol/geom";
+import { Point, LineString } from "ol/geom";
 import Circle from 'ol/geom/Circle';
 import { Geolocation as OLGeoLoc } from "ol";
 import {
-    RMap,
-    ROSM,
     RLayerVector,
     RFeature,
     RGeolocation,
     RStyle,
-    ROverlay,
     useOL,
     RPopup,
-    RControl
 } from "rlayers";
 import * as turf from '@turf/turf';
 
