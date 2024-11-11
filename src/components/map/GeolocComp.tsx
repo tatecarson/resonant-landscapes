@@ -48,22 +48,22 @@ function degToRad(deg: number) {
     return (deg * Math.PI) / 180;
 }
 
-export function GeolocComp(): JSX.Element {
+const GeolocComp: React.FC = () => {
 
     const [pos, setPos] = useState(new Point(fromLonLat([0, 0]), 'XYZM'));
     const [accuracy, setAccuracy] = useState<LineString | null>(null);
     const [deltaMean, setDeltaMean] = useState<number>(500);
     const [previousM, setPreviousM] = useState<number>(0);
 
-    const [isOpen, setIsOpen] = useState(false)
+    const [isOpen, setIsOpen] = useState(false);
     const [parkName, setParkName] = useState<string>('');
     const [parkDistance, setParkDistance] = useState<number>(0);
     const [currentParkLocation, setCurrentParkLocation] = useState([]);
-    const [enableUserOrientation, setEanbleUserOrientation] = useState(false);
+    const [enableUserOrientation, setEnableUserOrientation] = useState(false);
 
     const { resonanceAudioScene, stopSound } = useAudioContext();
 
-    const positions = new LineString([], 'XYZM');
+    const [positions, setPositions] = useState(new LineString([], 'XYZM'));
 
     // Low-level access to the OpenLayers API
     const { map } = useOL();
@@ -90,9 +90,14 @@ export function GeolocComp(): JSX.Element {
             }
             newHeading = prevHeading + headingDiff;
         }
-        positions.appendCoordinate([x, y, newHeading, m]);
 
-        positions.setCoordinates(positions.getCoordinates().slice(-20));
+        // Update positions state
+        setPositions(prevPositions => {
+            const newPositions = prevPositions.clone();
+            newPositions.appendCoordinate([x, y, newHeading, m]);
+            newPositions.setCoordinates(newPositions.getCoordinates().slice(-20));
+            return newPositions;
+        });
     }
 
     // recenters the view by putting the given coordinates at 3/4 from the top or
@@ -150,9 +155,9 @@ export function GeolocComp(): JSX.Element {
                 // minDistance
                 if (currentParkDistance < 5) {
                     console.log("User is close to ", parkName)
-                    setEanbleUserOrientation(true);
+                    setEnableUserOrientation(true);
                 } else {
-                    setEanbleUserOrientation(false);
+                    setEnableUserOrientation(false);
                 }
             }
             // reset if the user walks away from the park center
@@ -240,4 +245,6 @@ export function GeolocComp(): JSX.Element {
         </div>
 
     );
-}
+};
+
+export default GeolocComp;
