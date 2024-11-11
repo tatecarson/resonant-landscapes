@@ -22,12 +22,11 @@ import ParkModal from "../modals/ParkModal";
 import "ol/ol.css";
 import './layers.css'
 
-import { useAudioContext } from "../contexts/AudioContextProvider";
-import { MapControls } from "./map/MapControls";
+import { useAudioContext } from "../../contexts/AudioContextProvider";
 
-import scaledPoints from "../js/scaledParks";
-import marker from '../assets/trees.png'
-import locationIcon from "../assets/geolocation_marker_heading.png";
+import scaledPoints from "../../js/scaledParks";
+import marker from '../../assets/trees.png'
+import locationIcon from "../../assets/geolocation_marker_heading.png";
 import { ErrorBoundary } from "react-error-boundary";
 
 // modulo for negative values

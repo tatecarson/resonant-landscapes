@@ -1,8 +1,8 @@
 import { Fragment, useRef, memo, lazy } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { useAudioContext } from "../contexts/AudioContextProvider";
+import { useAudioContext } from "../../contexts/AudioContextProvider";
 
-const HOARenderer = lazy(() => import('./HoaRenderer'));
+const HOARenderer = lazy(() => import('../HoaRenderer'));
 
 function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation }) {
     const { stopSound } = useAudioContext();
