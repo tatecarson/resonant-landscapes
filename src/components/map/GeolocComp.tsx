@@ -1,8 +1,16 @@
-import React, { useState, useCallback, } from "react";
+// React and Hooks
+import React, { useState, useCallback } from "react";
+import { ErrorBoundary } from "react-error-boundary"; // Adjust the import path as necessary
+
+
+// OpenLayers
 import { fromLonLat, toLonLat } from "ol/proj";
 import { Point, LineString } from "ol/geom";
 import Circle from 'ol/geom/Circle';
 import { Geolocation as OLGeoLoc } from "ol";
+import "ol/ol.css";
+
+// RLayers
 import {
     RLayerVector,
     RFeature,
@@ -11,22 +19,25 @@ import {
     useOL,
     RPopup,
 } from "rlayers";
+
+// Turf.js
 import * as turf from '@turf/turf';
 
-
-import ParkModal from "../modals/ParkModal";
-import "ol/ol.css";
-import './layers.css'
-
+// Contexts
 import { useAudioContext } from "../../contexts/AudioContextProvider";
 
-import scaledPoints from "../../js/scaledParks";
-import marker from '../../assets/trees.png'
-import locationIcon from "../../assets/geolocation_marker_heading.png";
-import { ErrorBoundary } from "react-error-boundary";
+// Assets
+import marker from '../../assets/trees.png';
 
+// Styles
+import './layers.css';
 
+// Components
+import ParkModal from "../modals/ParkModal";
 import { LocationLayer } from "./layers/LocationLayer";
+
+// Data
+import scaledPoints from "../../js/scaledParks";
 
 // modulo for negative values
 function mod(n: number) {
