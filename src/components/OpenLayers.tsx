@@ -24,13 +24,13 @@ import './layers.css'
 import { useAudioContext } from "../contexts/AudioContextProvider";
 import HelpMenu from "./HelpModal";
 
-import scaledPoints from "../js/scaledParks";
+import scaledParkCoordinates from "../js/scaledParks";
 import marker from '../assets/trees.png'
 import locationIcon from "../assets/geolocation_marker_heading.png";
 import { ErrorBoundary } from "react-error-boundary";
 
 // modulo for negative values
-function mod(n: number) {
+function normalizeAngle(n: number) {
     return ((n % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 }
 
@@ -40,97 +40,105 @@ function degToRad(deg: number) {
 
 function GeolocComp(): JSX.Element {
 
-    const [pos, setPos] = useState(new Point(fromLonLat([0, 0]), 'XYZM'));
-    const [accuracy, setAccuracy] = useState<LineString | null>(null);
-    const [deltaMean, setDeltaMean] = useState<number>(500);
-    const [previousM, setPreviousM] = useState<number>(0);
+    const [userLocation, setUserLocation] = useState(new Point(fromLonLat([0, 0]), 'XYZM'));
+    const [locationAccuracy, setLocationAccuracy] = useState<LineString | null>(null);
+    const [positionUpdateInterval, setPositionUpdateInterval] = useState<number>(500);
+    const [lastUpdateTimestamp, setLastUpdateTimestamp] = useState<number>(0);
 
-    const [isOpen, setIsOpen] = useState(false)
-    const [parkName, setParkName] = useState<string>('');
-    const [parkDistance, setParkDistance] = useState<number>(0);
-    const [currentParkLocation, setCurrentParkLocation] = useState([]);
-    const [enableUserOrientation, setEanbleUserOrientation] = useState(false);
+    const [isParkModalOpen, setParkModalOpen] = useState(false)
+    const [selectedParkName, setSelectedParkName] = useState<string>('');
+    const [distanceToPark, setDistanceToPark] = useState<number>(0);
+    const [selectedParkCoordinates, setSelectedParkCoordinates] = useState([]);
+    const [isUserOrientationEnabled, setUserOrientationEnabled] = useState(false);
 
     const { resonanceAudioScene, stopSound } = useAudioContext();
 
-    const positions = new LineString([], 'XYZM');
+    const userTrajectory = new LineString([], 'XYZM');
 
     // Low-level access to the OpenLayers API
     const { map } = useOL();
 
-    const view = map?.getView();
+    const mapView = map?.getView();
 
-    const maxDistance = 15; // meters
+    const MAX_PARK_INTERACTION_DISTANCE = 15; // meters
 
-    function addPosition(position: [number, number], heading: number, m: number, speed: number) {
-        if (!position) return; // Guard clause if position is not provided
+    function updateUserTrajectory(
+        geoPosition: [number, number],
+        compassHeading: number,
+        timestamp: number,
+        movementSpeed: number
+    ) {
+        if (!geoPosition) return;
 
-        const x = position[0];
-        const y = position[1];
-        const fCoords = positions.getCoordinates();
-        const previous = fCoords[fCoords.length - 1];
-        const prevHeading = previous && previous[2];
-        let newHeading = heading;
-        if (prevHeading !== undefined) {
-            let headingDiff = newHeading - mod(prevHeading);
+        const longitude = geoPosition[0];
+        const latitude = geoPosition[1];
 
-            if (Math.abs(headingDiff) > Math.PI) {
-                const sign = headingDiff >= 0 ? 1 : -1;
-                headingDiff = -sign * (2 * Math.PI - Math.abs(headingDiff));
+        const trajectoryCoordinates = userTrajectory.getCoordinates();
+        const lastPosition = trajectoryCoordinates[trajectoryCoordinates.length - 1];
+        const previousHeading = lastPosition && lastPosition[2];
+
+        let calculatedHeading = compassHeading;
+
+        if (previousHeading !== undefined) {
+            let headingAngleDifference = calculatedHeading - normalizeAngle(previousHeading);
+
+            if (Math.abs(headingAngleDifference) > Math.PI) {
+                const rotationDirection = headingAngleDifference >= 0 ? 1 : -1;
+                headingAngleDifference = -rotationDirection * (2 * Math.PI - Math.abs(headingAngleDifference));
             }
-            newHeading = prevHeading + headingDiff;
+            calculatedHeading = previousHeading + headingAngleDifference;
         }
-        positions.appendCoordinate([x, y, newHeading, m]);
 
-        positions.setCoordinates(positions.getCoordinates().slice(-20));
+        userTrajectory.appendCoordinate([longitude, latitude, calculatedHeading, timestamp]);
+
+        // Keep only last 20 positions
+        userTrajectory.setCoordinates(userTrajectory.getCoordinates().slice(-20));
     }
 
     // recenters the view by putting the given coordinates at 3/4 from the top or
     // the screen
-    function getCenterWithHeading(position: [number, number], rotation: number, resolution: number) {
-        const size = map?.getSize();
-        if (!size) return position; // Return early if map size is not available
+    function getRecenteredPosition(position: [number, number], rotation: number, resolution: number) {
+        const mapSize = map?.getSize();
+        if (!mapSize) return position; // Return early if map size is not available
 
-        const height = size[1];
+        const mapHeight = mapSize[1];
 
         return [
-            position[0] - (Math.sin(rotation) * height * resolution * 1) / 4,
-            position[1] + (Math.cos(rotation) * height * resolution * 1) / 4,
+            position[0] - (Math.sin(rotation) * mapHeight * resolution * 1) / 4,
+            position[1] + (Math.cos(rotation) * mapHeight * resolution * 1) / 4,
         ];
     }
 
-    function updateView() {
-        if (!view) return;
+    function refreshUserView() {
+        if (!mapView) return;
 
         // console.count('updateView() called');
-        let m = Date.now() - deltaMean * 1.5;
-        m = Math.max(m, previousM);
-        setPreviousM(m);
+        let timestampThreshold = Date.now() - positionUpdateInterval * 1.5;
+        timestampThreshold = Math.max(timestampThreshold, lastUpdateTimestamp);
+        setLastUpdateTimestamp(timestampThreshold);
 
-        const c = positions.getCoordinateAtM(m, true);
+        const coordinateAtTimestamp = userTrajectory.getCoordinateAtM(timestampThreshold, true);
 
-        if (c) {
-            view.setCenter(getCenterWithHeading([c[0], c[1]], -c[2], view.getResolution() ?? 0));
-            view.setRotation(-c[2]);
-            setPos(c);
+        if (coordinateAtTimestamp) {
+            mapView.setCenter(getRecenteredPosition([coordinateAtTimestamp[0], coordinateAtTimestamp[1]], -coordinateAtTimestamp[2], mapView.getResolution() ?? 0));
+            mapView.setRotation(-coordinateAtTimestamp[2]);
+            setUserLocation(coordinateAtTimestamp);
 
-            const userLocation = turf.point(toLonLat([c[0], c[1]]));
-            scaledPoints.forEach(park => {
-                // console.log("park", park.name, park.scaledCoords)
-                const parkLocation = turf.point(park.scaledCoords);
-                const distance = turf.distance(userLocation, parkLocation, { units: 'meters' });
-                if (distance < maxDistance && !isOpen) {
-                    setIsOpen(true);
-                    console.count('isOpen set to true');
-                    setParkName(park.name);
-                    setCurrentParkLocation(parkLocation);
+            const userLocation = turf.point(toLonLat([coordinateAtTimestamp[0], coordinateAtTimestamp[1]]));
+            scaledParkCoordinates.forEach(park => {
+                const parkCoordinates = turf.point(park.scaledCoords);
+                const userToParkDistance = turf.distance(userLocation, parkCoordinates, { units: 'meters' });
+                if (userToParkDistance < MAX_PARK_INTERACTION_DISTANCE && !isParkModalOpen) {
+                    setParkModalOpen(true);
+                    setSelectedParkName(park.name);
+                    setSelectedParkCoordinates(parkCoordinates);
                 }
             });
 
-            const currentParkDistance = turf.distance(currentParkLocation, userLocation, { units: 'meters' });
+            const currentParkDistance = turf.distance(selectedParkCoordinates, userLocation, { units: 'meters' });
 
-            if (currentParkDistance < maxDistance) {
-                setParkDistance(currentParkDistance);
+            if (currentParkDistance < MAX_PARK_INTERACTION_DISTANCE) {
+                setDistanceToPark(currentParkDistance);
 
                 if (resonanceAudioScene) {
                     console.log("Setting listener position to ", currentParkDistance, currentParkDistance, 0)
@@ -139,39 +147,39 @@ function GeolocComp(): JSX.Element {
 
                 // minDistance
                 if (currentParkDistance < 5) {
-                    console.log("User is close to ", parkName)
-                    setEanbleUserOrientation(true);
+                    console.log("User is close to ", selectedParkName)
+                    setUserOrientationEnabled(true);
                 } else {
-                    setEanbleUserOrientation(false);
+                    setUserOrientationEnabled(false);
                 }
             }
             // reset if the user walks away from the park center
-            if (currentParkDistance > maxDistance && isOpen) {
-                setIsOpen(false);
+            if (currentParkDistance > MAX_PARK_INTERACTION_DISTANCE && isParkModalOpen) {
+                setParkModalOpen(false);
                 stopSound();
             }
         }
     }
 
 
-    function createParkFeature(scaledCoords: [number, number], name: string, key: number) {
+    function createParkIconFeature(scaledCoords: [number, number], parkName: string, uniqueId: number) {
         // console.log("scaledCoords", scaledCoords, name)
-        const pointGeometry = new Point(fromLonLat(scaledCoords));
+        const locationPoint = new Point(fromLonLat(scaledCoords));
         return (
-            <RFeature geometry={pointGeometry} key={key}>
+            <RFeature geometry={locationPoint} key={uniqueId}>
                 <RStyle.RStyle>
 
                     <RStyle.RIcon src={marker} anchor={[0.5, 0.8]} />
                 </RStyle.RStyle>
                 <RPopup trigger={"click"} className="example-overlay">
-                    {name}
+                    {parkName}
                 </RPopup>
             </RFeature>
         );
     }
 
     function createMaxDistanceFeature(scaledCoords: [number, number], name: string, key: number) {
-        const circleGeometry = new Circle(fromLonLat(scaledCoords), maxDistance);
+        const circleGeometry = new Circle(fromLonLat(scaledCoords), MAX_PARK_INTERACTION_DISTANCE);
         return (
             <RFeature geometry={circleGeometry} key={key}>
                 <RStyle.RStyle>
@@ -195,22 +203,22 @@ function GeolocComp(): JSX.Element {
                         const position = geoloc.getPosition();
                         if (position) {
                             const [x, y] = position; // Destructure the position into x and y coordinates
-                            setAccuracy(new LineString([position]));
+                            setLocationAccuracy(new LineString([position]));
                             const m = Date.now();
                             // this line enables the geolocation feature 
-                            addPosition([x, y], geoloc.getHeading() ?? 0, m, geoloc.getSpeed() ?? 0); // Pass [x, y] as the position
+                            updateUserTrajectory([x, y], geoloc.getHeading() ?? 0, m, geoloc.getSpeed() ?? 0); // Pass [x, y] as the position
 
-                            const coords = positions.getCoordinates();
+                            const coords = userTrajectory.getCoordinates();
                             const len = coords.length;
                             if (len >= 2) {
-                                setDeltaMean((coords[len - 1][3] - coords[0][3]) / (len - 1));
+                                setPositionUpdateInterval((coords[len - 1][3] - coords[0][3]) / (len - 1));
                             }
 
-                            updateView();
+                            refreshUserView();
 
                         }
                     },
-                    [positions, map] // Dependency array updated
+                    [userTrajectory, map] // Dependency array updated
                 )}
             />
 
@@ -219,19 +227,19 @@ function GeolocComp(): JSX.Element {
                     <RStyle.RIcon src={locationIcon} anchor={[0.5, 0.8]} />
                     <RStyle.RStroke color={"#007bff"} width={3} />
                 </RStyle.RStyle>
-                {pos && <RFeature geometry={new Point(pos)}></RFeature>}
-                {accuracy && <RFeature geometry={accuracy}></RFeature>}
+                {userLocation && <RFeature geometry={new Point(userLocation)}></RFeature>}
+                {locationAccuracy && <RFeature geometry={locationAccuracy}></RFeature>}
             </RLayerVector>
 
             <RLayerVector zIndex={9}>
-                {scaledPoints.map((park, i) => createParkFeature(park.scaledCoords, park.name, i))}
+                {scaledParkCoordinates.map((park, i) => createParkIconFeature(park.scaledCoords, park.name, i))}
             </RLayerVector>
 
             <RLayerVector zIndex={10}>
-                {scaledPoints.map((park, i) => createMaxDistanceFeature(park.scaledCoords, park.name, i))}
+                {scaledParkCoordinates.map((park, i) => createMaxDistanceFeature(park.scaledCoords, park.name, i))}
             </RLayerVector>
             <ErrorBoundary fallback={<div>Error</div>}>
-                {isOpen && <ParkModal isOpen={isOpen} setIsOpen={setIsOpen} parkName={parkName} parkDistance={parkDistance} userOrientation={enableUserOrientation} />}
+                {isParkModalOpen && <ParkModal isOpen={isParkModalOpen} setIsOpen={setParkModalOpen} parkName={selectedParkName} parkDistance={distanceToPark} userOrientation={isUserOrientationEnabled} />}
             </ErrorBoundary>
 
         </div>
