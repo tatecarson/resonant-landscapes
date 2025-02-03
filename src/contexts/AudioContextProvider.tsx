@@ -54,9 +54,37 @@ const AudioContextProvider = ({ children }) => {
 
 
     // Function to play sound
+    // const playSound = () => {
+    //     if (!audioContext || !resonanceAudioScene || isPlaying) return;
+
+    //     console.log('Playing sound...', buffers);
+    //     const source = resonanceAudioScene.createSource();
+    //     const bufferSource = audioContext.createBufferSource();
+    //     bufferSourceRef.current = bufferSource;
+    //     bufferSource.buffer = buffers;
+    //     bufferSource.loop = true;
+    //     bufferSource.connect(source.input);
+    //     bufferSource.start();
+    //     setIsPlaying(true);
+    // };
+
+
     const playSound = () => {
         if (!audioContext || !resonanceAudioScene || isPlaying) return;
 
+        if (audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+                console.log('Audio context resumed.');
+                proceedWithPlayback();
+            }).catch((error) => {
+                console.error('Error resuming AudioContext:', error);
+            });
+        } else {
+            proceedWithPlayback();
+        }
+    };
+
+    const proceedWithPlayback = () => {
         console.log('Playing sound...', buffers);
         const source = resonanceAudioScene.createSource();
         const bufferSource = audioContext.createBufferSource();
