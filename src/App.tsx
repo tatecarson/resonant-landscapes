@@ -6,7 +6,7 @@ import WelcomeModal from "./components/WelcomeModal";
 // import './App.css'
 
 function App() {
-  let [isOpen, setIsOpen] = useState(true)
+  const [isOpen, setIsOpen] = useState(true)
 
   return (
 
