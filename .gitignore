@@ -25,3 +25,7 @@ dist-ssr
 
 # Audio files served from CDN
 public/sounds/
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db
