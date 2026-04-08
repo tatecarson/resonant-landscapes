@@ -8,10 +8,12 @@ import stateParks from '../data/stateParks.json';
 import LeavesCanvas from './LeavesCanvas';
 
 function soundPath(parkName: string, parksJSON) {
+    const cdn = 'https://resonant-landscapes.b-cdn.net/sounds/';
+
     if (parkName === 'Custer Test') {
         return [
-            './sounds/Custer-Test-1-001_8ch.wav',
-            './sounds/Custer-Test-1-001_mono.wav'
+            `${cdn}Custer-Test-1-001_8ch.wav`,
+            `${cdn}Custer-Test-1-001_mono.wav`
         ];
     }
 
@@ -24,9 +26,8 @@ function soundPath(parkName: string, parksJSON) {
     const recordingPicker = Math.floor(Math.random() * recordingsCount) + 1;
     const sectionPicker = Math.floor(Math.random() * sectionsCount) + 1;
 
-    // const s3 = "https://sd-state-parks.s3.us-east-2.amazonaws.com/parks/"
-    const url = [`./sounds/${cleanParkName}-${recordingPicker}-00${sectionPicker}_8ch.${extension}`,
-    `./sounds/${cleanParkName}-${recordingPicker}-00${sectionPicker}_mono.${extension}`]
+    const url = [`${cdn}${cleanParkName}-${recordingPicker}-00${sectionPicker}_8ch.${extension}`,
+    `${cdn}${cleanParkName}-${recordingPicker}-00${sectionPicker}_mono.${extension}`]
 
     return url;
 }
