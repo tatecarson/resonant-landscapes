@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { fromLonLat, toLonLat } from "ol/proj";
 import { Point, LineString } from "ol/geom";
 import Circle from 'ol/geom/Circle';
@@ -22,7 +22,7 @@ import './layers.css'
 import { useAudioContext } from "../contexts/AudioContextProvider";
 import HelpMenu from "./HelpModal";
 
-import scaledPoints from "../js/scaledParks";
+import scaledPoints, { testPark } from "../js/scaledParks";
 import { distanceInMeters } from "../js/geo";
 import marker from '../assets/trees.png'
 import locationIcon from "../assets/geolocation_marker_heading.png";
@@ -37,9 +37,80 @@ function degToRad(deg: number) {
     return (deg * Math.PI) / 180;
 }
 
-function GeolocComp(): JSX.Element {
+function DebugPanel({
+    position,
+    parkName,
+    debugPermission,
+    audioState,
+    isLoading,
+    isPlaying,
+    hasSourceNode,
+    hasBuffers,
+    bufferDuration,
+    bufferChannels,
+    loadError,
+}: {
+    position: [number, number] | null;
+    parkName: string;
+    debugPermission: string;
+    audioState: string;
+    isLoading: boolean;
+    isPlaying: boolean;
+    hasSourceNode: boolean;
+    hasBuffers: boolean;
+    bufferDuration: number | null;
+    bufferChannels: number | null;
+    loadError: string | null;
+}) {
+    const [isCollapsed, setIsCollapsed] = useState(true);
 
-    const [pos, setPos] = useState(new Point(fromLonLat([0, 0]), 'XYZM'));
+    return (
+        <div className="pointer-events-auto fixed bottom-3 left-3 z-20 w-[min(18rem,calc(100vw-1.5rem))] rounded-2xl border border-black/10 bg-white/92 p-3 text-[11px] leading-4 text-slate-700 shadow-xl backdrop-blur">
+            <div className="flex items-center justify-between gap-3">
+                <div>
+                    <p className="font-semibold uppercase tracking-[0.2em] text-slate-500">Audio Debug</p>
+                    <p className="text-xs text-slate-900">{window.location.pathname}</p>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => setIsCollapsed((current) => !current)}
+                    className="rounded-full border border-slate-200 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600"
+                >
+                    {isCollapsed ? "Open" : "Hide"}
+                </button>
+            </div>
+
+            {!isCollapsed && (
+                <div className="mt-3 space-y-2">
+                    <p><span className="font-semibold text-slate-900">Context:</span> {audioState}</p>
+                    <p><span className="font-semibold text-slate-900">Loading:</span> {isLoading ? "yes" : "no"}</p>
+                    <p><span className="font-semibold text-slate-900">Playing flag:</span> {isPlaying ? "yes" : "no"}</p>
+                    <p><span className="font-semibold text-slate-900">Source node:</span> {hasSourceNode ? "present" : "missing"}</p>
+                    <p><span className="font-semibold text-slate-900">Buffers:</span> {hasBuffers ? "loaded" : "empty"}</p>
+                    <p><span className="font-semibold text-slate-900">Duration:</span> {bufferDuration ? `${bufferDuration.toFixed(2)} s` : "n/a"}</p>
+                    <p><span className="font-semibold text-slate-900">Channels:</span> {bufferChannels ?? "n/a"}</p>
+                    <p><span className="font-semibold text-slate-900">Geo permission:</span> {debugPermission}</p>
+                    <p><span className="font-semibold text-slate-900">Coords:</span> {position ? `${position[1].toFixed(5)}, ${position[0].toFixed(5)}` : "waiting"}</p>
+                    <p><span className="font-semibold text-slate-900">Park:</span> {parkName || "none"}</p>
+                    {loadError && (
+                        <div className="rounded-xl bg-rose-50 px-2 py-2 text-[10px] text-rose-700">
+                            <span className="font-semibold">Load error:</span> {loadError}
+                        </div>
+                    )}
+                    {!loadError && (
+                        <div className="rounded-xl bg-slate-100 px-2 py-2 text-[10px] text-slate-600">
+                            If sound fails, check whether the context is `suspended`, buffers are empty, or the source node never appears after tapping play.
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function GeolocComp({ debug = false }): JSX.Element {
+
+    const [pos, setPos] = useState<number[] | null>(fromLonLat([0, 0]));
     const [accuracy, setAccuracy] = useState<LineString | null>(null);
     const [deltaMean, setDeltaMean] = useState<number>(500);
     const [previousM, setPreviousM] = useState<number>(0);
@@ -49,8 +120,23 @@ function GeolocComp(): JSX.Element {
     const [parkDistance, setParkDistance] = useState<number>(0);
     const [currentParkLocation, setCurrentParkLocation] = useState<[number, number] | null>(null);
     const [enableUserOrientation, setEanbleUserOrientation] = useState(false);
+    const [debugPermission, setDebugPermission] = useState("unknown");
 
-    const { resonanceAudioScene, stopSound } = useAudioContext();
+    const {
+        resonanceAudioScene,
+        stopSound,
+        isPlaying,
+        isLoading,
+        loadError,
+        audioContext,
+        buffers,
+        bufferSourceRef,
+    } = useAudioContext();
+
+    const parkFeatures = useMemo(
+        () => (debug ? [testPark, ...scaledPoints] : scaledPoints),
+        [debug]
+    );
 
     const positionsRef = useRef(new LineString([], 'XYZM'));
     const positions = positionsRef.current;
@@ -61,6 +147,36 @@ function GeolocComp(): JSX.Element {
     const view = map?.getView();
 
     const maxDistance = 15; // meters
+
+    useEffect(() => {
+        if (!debug || !navigator.permissions?.query) {
+            return;
+        }
+
+        let isMounted = true;
+        let permissionStatus: PermissionStatus | null = null;
+
+        navigator.permissions.query({ name: "geolocation" }).then((status) => {
+            permissionStatus = status;
+            if (!isMounted) {
+                return;
+            }
+
+            setDebugPermission(status.state);
+            status.onchange = () => {
+                setDebugPermission(status.state);
+            };
+        }).catch(() => {
+            setDebugPermission("unsupported");
+        });
+
+        return () => {
+            isMounted = false;
+            if (permissionStatus) {
+                permissionStatus.onchange = null;
+            }
+        };
+    }, [debug]);
 
     function addPosition(position: [number, number], heading: number, m: number, speed: number) {
         if (!position) return; // Guard clause if position is not provided
@@ -115,7 +231,7 @@ function GeolocComp(): JSX.Element {
             setPos(c);
 
             const userLocation = toLonLat([c[0], c[1]]) as [number, number];
-            scaledPoints.forEach(park => {
+            parkFeatures.forEach(park => {
                 const parkLocation = park.scaledCoords as [number, number];
                 const distance = distanceInMeters(userLocation, parkLocation);
                 if (distance < maxDistance && !isOpen) {
@@ -185,6 +301,9 @@ function GeolocComp(): JSX.Element {
         );
     }
 
+    const debugPosition = pos ? toLonLat(pos.slice(0, 2)) as [number, number] : null;
+    const audioBuffer = buffers && 'duration' in buffers ? buffers : null;
+
     return (
 
         <div>
@@ -227,15 +346,32 @@ function GeolocComp(): JSX.Element {
             </RLayerVector>
 
             <RLayerVector zIndex={9}>
-                {scaledPoints.map((park, i) => createParkFeature(park.scaledCoords, park.name, i))}
+                {parkFeatures.map((park, i) => createParkFeature(park.scaledCoords, park.name, i))}
             </RLayerVector>
 
             <RLayerVector zIndex={10}>
-                {scaledPoints.map((park, i) => createMaxDistanceFeature(park.scaledCoords, park.name, i))}
+                {parkFeatures.map((park, i) => createMaxDistanceFeature(park.scaledCoords, park.name, i))}
             </RLayerVector>
             <ErrorBoundary fallback={<div>Error</div>}>
                 {isOpen && <ParkModal isOpen={isOpen} setIsOpen={setIsOpen} parkName={parkName} parkDistance={parkDistance} userOrientation={enableUserOrientation} />}
             </ErrorBoundary>
+            {debug && (
+                <>
+                    <DebugPanel
+                        position={debugPosition}
+                        parkName={parkName}
+                        debugPermission={debugPermission}
+                        audioState={audioContext?.state ?? "unavailable"}
+                        isLoading={isLoading}
+                        isPlaying={isPlaying}
+                        hasSourceNode={Boolean(bufferSourceRef.current)}
+                        hasBuffers={Boolean(audioBuffer)}
+                        bufferDuration={audioBuffer?.duration ?? null}
+                        bufferChannels={audioBuffer?.numberOfChannels ?? null}
+                        loadError={loadError}
+                    />
+                </>
+            )}
 
         </div>
 
@@ -243,7 +379,7 @@ function GeolocComp(): JSX.Element {
 }
 
 
-export default function Geolocation(): JSX.Element {
+export default function Geolocation({ debug = false }: { debug?: boolean }): JSX.Element {
     const [helpIsOpen, setHelpIsOpen] = useState(false)
 
     return (
@@ -260,7 +396,7 @@ export default function Geolocation(): JSX.Element {
                 </RControl.RCustom>
                 {helpIsOpen && <HelpMenu isOpen={helpIsOpen} setIsOpen={setHelpIsOpen} />}
                 <ROSM />
-                <GeolocComp />
+                <GeolocComp debug={debug} />
 
             </RMap>
 

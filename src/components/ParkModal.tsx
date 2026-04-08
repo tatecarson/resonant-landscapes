@@ -1,10 +1,10 @@
-import { Fragment, useRef, memo, lazy } from 'react'
+import { Fragment, useRef, memo, lazy, Suspense } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAudioContext } from "../contexts/AudioContextProvider";
 
 const HOARenderer = lazy(() => import('./HoaRenderer'));
 
-function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation }) {
+function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation, compact = false }) {
     const { stopSound } = useAudioContext();
 
     const cancelButtonRef = useRef(null);
@@ -15,6 +15,23 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation 
         stopSound();
         setIsOpen(false);
     }
+
+    if (compact) {
+        return (
+            <div className="text-left">
+                <div>
+                    <h3 className="text-sm font-semibold leading-6 text-gray-900">{parkName}</h3>
+                    <p className="text-xs text-gray-500">{Math.floor(parkDistance)} meters away</p>
+                    <div className="mt-2">
+                        <Suspense fallback={<div>Loading audio controls...</div>}>
+                            <HOARenderer parkName={parkName} parkDistance={parkDistance} userOrientation={userOrientation} compact />
+                        </Suspense>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <Transition.Root show={isOpen} as={Fragment}>
             <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} onClose={setIsOpen}>
@@ -52,7 +69,9 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation 
                                                 {Math.floor(parkDistance)} meters away
                                             </p>
                                             <div className="mt-2">
-                                                <HOARenderer parkName={parkName} parkDistance={parkDistance} userOrientation={userOrientation} />
+                                                <Suspense fallback={<div>Loading audio controls...</div>}>
+                                                    <HOARenderer parkName={parkName} parkDistance={parkDistance} userOrientation={userOrientation} />
+                                                </Suspense>
                                             </div>
                                         </div>
                                     </div>

@@ -28,4 +28,6 @@ const scaledPoints = stateParks.map(park => {
     };
 });
 
-export default [testPark, ...scaledPoints];
+export { testPark, scaledPoints };
+
+export default scaledPoints;

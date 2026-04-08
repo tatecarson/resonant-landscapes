@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, Suspense } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { PlayCircleIcon, StopCircleIcon } from '@heroicons/react/24/solid'
 import { Switch } from '@headlessui/react'
 import { useAudioContext } from '../contexts/AudioContextProvider';
@@ -33,7 +33,7 @@ function soundPath(parkName: string, parksJSON) {
 }
 
 
-const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
+const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false }) => {
     const { playSound,
         stopSound, loadBuffers, bufferSourceRef, isLoading, setIsLoading,
         isPlaying, setIsPlaying, buffers, setBuffers, loadError, clearLoadError } = useAudioContext();
@@ -108,12 +108,14 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
             )}
             {!isLoading && !loadError && (
                 <>
-                    <button onClick={onTogglePlayback}>{isPlaying ?
+                    <button onClick={onTogglePlayback} className={compact ? "inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm" : undefined}>
+                        {isPlaying ?
                         <StopCircleIcon className="h-10 w-10 text-green-600" aria-hidden="true" /> :
                         <PlayCircleIcon className="h-10 w-10 text-green-600" aria-hidden="true" />}
+                        {compact && <span>{isPlaying ? 'Stop' : 'Play'}</span>}
                     </button>
                     {
-                        isPlaying && parkDistance < 2 &&
+                        !compact && isPlaying && parkDistance < 2 &&
                         <Switch.Group>
                             <div className="flex items-center">
                                 <Switch.Label className="mr-4">Enable Body-Oriented Tracking</Switch.Label>
@@ -133,8 +135,8 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
                     }
 
                     <br></br>
-                    {isPlaying && !showGimbalArrow && <LeavesCanvas parkDistance={parkDistance} />}
-                    {isPlaying && showGimbalArrow && <GimbalArrow />}
+                    {!compact && isPlaying && !showGimbalArrow && <LeavesCanvas parkDistance={parkDistance} />}
+                    {!compact && isPlaying && showGimbalArrow && <GimbalArrow />}
                 </>
             )}
         </div>

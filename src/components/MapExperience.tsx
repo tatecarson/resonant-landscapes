@@ -1,10 +1,10 @@
 import OpenLayers from "./OpenLayers";
 import AudioContextProvider from "../contexts/AudioContextProvider";
 
-export default function MapExperience() {
+export default function MapExperience({ debug = false }: { debug?: boolean }) {
   return (
     <AudioContextProvider>
-      <OpenLayers />
+      <OpenLayers debug={debug} />
     </AudioContextProvider>
   );
 }
