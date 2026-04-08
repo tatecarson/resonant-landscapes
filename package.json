@@ -12,7 +12,11 @@
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "sim:path": "playwright test tests/path-replay.spec.ts --project=chromium --headed",
-    "sim:path:install": "playwright install chromium"
+    "sim:path:iphone": "playwright test tests/path-replay.spec.ts --project=iphone-13 --headed",
+    "sim:path:pixel": "playwright test tests/path-replay.spec.ts --project=pixel-7 --headed",
+    "sim:path:https:iphone": "PLAYWRIGHT_EXTERNAL_SERVER=1 playwright test tests/path-replay.spec.ts --project=iphone-13 --headed",
+    "sim:path:https:pixel": "PLAYWRIGHT_EXTERNAL_SERVER=1 playwright test tests/path-replay.spec.ts --project=pixel-7 --headed",
+    "sim:path:install": "playwright install chromium webkit"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.18",
