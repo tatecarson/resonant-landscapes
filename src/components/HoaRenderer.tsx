@@ -108,7 +108,11 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
             )}
             {!isLoading && !loadError && (
                 <>
-                    <button onClick={onTogglePlayback} className={compact ? "inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm" : undefined}>
+                    <button
+                        onClick={onTogglePlayback}
+                        aria-label={isPlaying ? 'Stop playback' : 'Start playback'}
+                        className={compact ? "inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm" : undefined}
+                    >
                         {isPlaying ?
                         <StopCircleIcon className="h-10 w-10 text-green-600" aria-hidden="true" /> :
                         <PlayCircleIcon className="h-10 w-10 text-green-600" aria-hidden="true" />}

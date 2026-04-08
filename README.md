@@ -83,7 +83,35 @@ This command:
 - grants geolocation permission
 - replays points from `tests/paths/sica-hollow-approach.json`
 
-### 3. Use a custom path file (optional)
+### 3. Run the mobile-emulated replay
+
+Use the iPhone or Android Playwright device profiles:
+
+```bash
+npm run sim:path:iphone
+npm run sim:path:pixel
+```
+
+These use Playwright mobile emulation for layout, tap flow, and geolocation behavior. They do not replace real-phone testing for iOS sensor/audio quirks.
+
+### 4. Run against an HTTPS tunnel (optional)
+
+If you already have `cloudflared` running, point Playwright at the tunnel instead of the local HTTP server:
+
+```bash
+PLAYWRIGHT_BASE_URL=https://<your-tunnel-host> npm run sim:path:https:iphone
+PLAYWRIGHT_BASE_URL=https://<your-tunnel-host> npm run sim:path:https:pixel
+```
+
+Example:
+
+```bash
+PLAYWRIGHT_BASE_URL=https://far-sanyo-inn-premium.trycloudflare.com npm run sim:path:https:iphone
+```
+
+This skips Playwright's local `webServer` and navigates the mobile profile against the HTTPS origin directly.
+
+### 5. Use a custom path file (optional)
 
 Create a JSON file with points:
 
@@ -100,7 +128,7 @@ Then run:
 PATH_REPLAY_FILE=tests/paths/my-path.json npm run sim:path
 ```
 
-### 4. Adjust speed/hold time (optional)
+### 6. Adjust speed/hold time (optional)
 
 ```bash
 PATH_REPLAY_STEP_MS=1000 PATH_REPLAY_FINAL_HOLD_MS=12000 npm run sim:path
