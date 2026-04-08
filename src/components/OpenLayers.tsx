@@ -48,12 +48,13 @@ function GeolocComp(): JSX.Element {
     const [isOpen, setIsOpen] = useState(false)
     const [parkName, setParkName] = useState<string>('');
     const [parkDistance, setParkDistance] = useState<number>(0);
-    const [currentParkLocation, setCurrentParkLocation] = useState([]);
+    const [currentParkLocation, setCurrentParkLocation] = useState(null);
     const [enableUserOrientation, setEanbleUserOrientation] = useState(false);
 
     const { resonanceAudioScene, stopSound } = useAudioContext();
 
-    const positions = new LineString([], 'XYZM');
+    const positionsRef = useRef(new LineString([], 'XYZM'));
+    const positions = positionsRef.current;
 
     // Low-level access to the OpenLayers API
     const { map } = useOL();
@@ -126,6 +127,10 @@ function GeolocComp(): JSX.Element {
                     setCurrentParkLocation(parkLocation);
                 }
             });
+
+            if (!currentParkLocation) {
+                return;
+            }
 
             const currentParkDistance = turf.distance(currentParkLocation, userLocation, { units: 'meters' });
 

@@ -10,7 +10,9 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sim:path": "playwright test tests/path-replay.spec.ts --project=chromium --headed",
+    "sim:path:install": "playwright install chromium"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.18",
@@ -27,10 +29,12 @@
     "three": "^0.161.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@types/react": "^18.2.33",
     "@types/react-dom": "^18.2.14",
     "@typescript-eslint/eslint-plugin": "^6.9.1",
     "@typescript-eslint/parser": "^6.9.1",
+    "@playwright/test": "^1.56.0",
     "@vitejs/plugin-react": "^6.0.1",
     "@welldone-software/why-did-you-render": "^8.0.1",
     "autoprefixer": "^10.4.17",

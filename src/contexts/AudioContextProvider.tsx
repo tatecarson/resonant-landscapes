@@ -15,7 +15,9 @@ const AudioContextState = createContext({
     buffers: [],
     loadBuffers: (urls) => { },
     setBuffers: (buffers) => { },
-    bufferSourceRef: null
+    bufferSourceRef: null,
+    loadError: null,
+    clearLoadError: () => { }
 });
 
 
@@ -25,30 +27,33 @@ const AudioContextProvider = ({ children }) => {
     const [buffers, setBuffers] = useState([]);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [loadError, setLoadError] = useState(null);
     const bufferSourceRef = useRef(null);
 
     const loadBuffers = async (urls) => {
         if (!audioContext || !resonanceAudioScene || !urls.length) {
             console.error("Missing audio context, resonance scene, or URLs.");
-            return;
+            setLoadError("Missing audio context, resonance scene, or URLs.");
+            return false;
         }
 
         setIsLoading(true);
+        setLoadError(null);
 
-        Omnitone.createBufferList(audioContext, urls)
-            .then((results) => {
-
-                console.log("Results", results)
-                const contentBuffer = Omnitone.mergeBufferListByChannel(audioContext, results); // Adjust if needed
-
-                setBuffers(contentBuffer); // Ensure buffers is set with the correct format, wrapped in an array if necessary
-                setIsLoading(false); // Update loading state
-            })
-            .catch((error) => {
-                console.error("Error loading buffers with Omnitone:", error);
-                // setLoadError(error); // Update state to reflect loading error
-                setIsLoading(false); // Ensure loading state is updated even in case of error
-            });
+        try {
+            const results = await Omnitone.createBufferList(audioContext, urls);
+            console.log("Results", results);
+            const contentBuffer = Omnitone.mergeBufferListByChannel(audioContext, results);
+            setBuffers(contentBuffer);
+            return true;
+        } catch (error) {
+            console.error("Error loading buffers with Omnitone:", error);
+            setLoadError(error instanceof Error ? error.message : String(error));
+            setBuffers([]);
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
     };
 
 
@@ -71,6 +76,10 @@ const AudioContextProvider = ({ children }) => {
 
     const playSound = () => {
         if (!audioContext || !resonanceAudioScene || isPlaying) return;
+        if (!buffers) {
+            console.error("Cannot play: buffers are not loaded.");
+            return;
+        }
 
         if (audioContext.state === 'suspended') {
             audioContext.resume().then(() => {
@@ -151,7 +160,8 @@ const AudioContextProvider = ({ children }) => {
     return (
         <AudioContextState.Provider value={{
             audioContext, resonanceAudioScene, bufferSourceRef,
-            playSound, stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, setIsPlaying, buffers, setBuffers
+            playSound, stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, setIsPlaying, buffers, setBuffers,
+            loadError, clearLoadError: () => setLoadError(null)
         }}>
             {children}
         </AudioContextState.Provider>

@@ -8,18 +8,25 @@ import stateParks from '../data/stateParks.json';
 import LeavesCanvas from './LeavesCanvas';
 
 function soundPath(parkName: string, parksJSON) {
+    if (parkName === 'Custer Test') {
+        return [
+            './sounds/Custer-Test-1-001_8ch.wav',
+            './sounds/Custer-Test-1-001_mono.wav'
+        ];
+    }
 
     const foundPark = parksJSON.find(park => park.name === parkName);
     const recordingsCount = foundPark?.recordingsCount;
     const sectionsCount = foundPark?.sectionsCount;
     const cleanParkName = parkName.split(' ').slice(0, 2).join('-')
+    const extension = 'm4a';
 
     const recordingPicker = Math.floor(Math.random() * recordingsCount) + 1;
     const sectionPicker = Math.floor(Math.random() * sectionsCount) + 1;
 
     // const s3 = "https://sd-state-parks.s3.us-east-2.amazonaws.com/parks/"
-    const url = [`./sounds/${cleanParkName}-${recordingPicker}-00${sectionPicker}_8ch.m4a`,
-    `./sounds/${cleanParkName}-${recordingPicker}-00${sectionPicker}_mono.m4a`]
+    const url = [`./sounds/${cleanParkName}-${recordingPicker}-00${sectionPicker}_8ch.${extension}`,
+    `./sounds/${cleanParkName}-${recordingPicker}-00${sectionPicker}_mono.${extension}`]
 
     return url;
 }
@@ -28,8 +35,7 @@ function soundPath(parkName: string, parksJSON) {
 const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
     const { playSound,
         stopSound, loadBuffers, bufferSourceRef, isLoading, setIsLoading,
-        isPlaying, setIsPlaying, buffers, setBuffers } = useAudioContext();
-    const [loadError, setLoadError] = useState(false); // State to track loading errors
+        isPlaying, setIsPlaying, buffers, setBuffers, loadError, clearLoadError } = useAudioContext();
     const [showGimbalArrow, setShowGimbalArrow] = useState(false);
 
     // TODO: load other sound files 
@@ -39,8 +45,8 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
             const soundPathList = soundPath(parkName, stateParks);
 
             console.log(soundPathList)
+            clearLoadError();
             await loadBuffers(soundPathList);
-            setLoadError(false)
         }
         load()
 
@@ -83,9 +89,9 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
 
 
     const retryLoading = useCallback(() => {
-        setLoadError(false); // Reset error state before retrying
-        // Reattempt loading buffers here; this requires refactoring to avoid duplication
-    }, []); // Add dependencies if necessary
+        clearLoadError();
+        loadBuffers(soundPath(parkName, stateParks));
+    }, [clearLoadError, loadBuffers, parkName]);
 
 
     return (
@@ -95,7 +101,7 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation }) => {
             {loadError && (
                 <div>
                     <p>Failed to load buffers:</p>
-                    <pre>{loadError.message}</pre>
+                    <pre>{loadError}</pre>
                     <button onClick={retryLoading}>Retry</button>
                 </div>
             )}

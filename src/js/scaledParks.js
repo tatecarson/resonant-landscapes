@@ -12,6 +12,13 @@ const scaleLong = 0.00045;
 
 // Assuming a reference point (for example, the center of DSU campus)
 const referencePoint = turf.point([-97.110789, 44.012222]);
+const testPark = {
+    name: "Custer Test",
+    cords: [-97.112994, 44.012224],
+    recordingsCount: 1,
+    sectionsCount: 1,
+    scaledCoords: [-97.112994, 44.012224]
+};
 
 // Translate points to origin, apply scale, and translate back
 const scaledPoints = stateParks.map(park => {
@@ -38,4 +45,4 @@ const scaledPoints = stateParks.map(park => {
     };
 });
 
-export default scaledPoints;
+export default [testPark, ...scaledPoints];

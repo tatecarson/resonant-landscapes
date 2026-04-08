@@ -1,0 +1,9 @@
+[
+  { "latitude": 44.013000, "longitude": -97.110649, "waitMs": 1500 },
+  { "latitude": 44.013120, "longitude": -97.110649, "waitMs": 1500 },
+  { "latitude": 44.013220, "longitude": -97.110649, "waitMs": 1500 },
+  { "latitude": 44.013290, "longitude": -97.110649, "waitMs": 1500 },
+  { "latitude": 44.013330, "longitude": -97.110649, "waitMs": 2000 },
+  { "latitude": 44.013350, "longitude": -97.110649, "waitMs": 2500 },
+  { "latitude": 44.013364, "longitude": -97.110649, "waitMs": 3000 }
+]
