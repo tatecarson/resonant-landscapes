@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, memo, useRef, useContext } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { fromLonLat, toLonLat } from "ol/proj";
-import { Geometry, Point, LineString } from "ol/geom";
+import { Point, LineString } from "ol/geom";
 import Circle from 'ol/geom/Circle';
 import { Geolocation as OLGeoLoc } from "ol";
 import {
@@ -10,12 +10,10 @@ import {
     RFeature,
     RGeolocation,
     RStyle,
-    ROverlay,
     useOL,
     RPopup,
     RControl
 } from "rlayers";
-import * as turf from '@turf/turf';
 
 import ParkModal from "./ParkModal";
 import "ol/ol.css";
@@ -25,6 +23,7 @@ import { useAudioContext } from "../contexts/AudioContextProvider";
 import HelpMenu from "./HelpModal";
 
 import scaledPoints from "../js/scaledParks";
+import { distanceInMeters } from "../js/geo";
 import marker from '../assets/trees.png'
 import locationIcon from "../assets/geolocation_marker_heading.png";
 import { ErrorBoundary } from "react-error-boundary";
@@ -48,7 +47,7 @@ function GeolocComp(): JSX.Element {
     const [isOpen, setIsOpen] = useState(false)
     const [parkName, setParkName] = useState<string>('');
     const [parkDistance, setParkDistance] = useState<number>(0);
-    const [currentParkLocation, setCurrentParkLocation] = useState(null);
+    const [currentParkLocation, setCurrentParkLocation] = useState<[number, number] | null>(null);
     const [enableUserOrientation, setEanbleUserOrientation] = useState(false);
 
     const { resonanceAudioScene, stopSound } = useAudioContext();
@@ -115,11 +114,10 @@ function GeolocComp(): JSX.Element {
             view.setRotation(-c[2]);
             setPos(c);
 
-            const userLocation = turf.point(toLonLat([c[0], c[1]]));
+            const userLocation = toLonLat([c[0], c[1]]) as [number, number];
             scaledPoints.forEach(park => {
-                // console.log("park", park.name, park.scaledCoords)
-                const parkLocation = turf.point(park.scaledCoords);
-                const distance = turf.distance(userLocation, parkLocation, { units: 'meters' });
+                const parkLocation = park.scaledCoords as [number, number];
+                const distance = distanceInMeters(userLocation, parkLocation);
                 if (distance < maxDistance && !isOpen) {
                     setIsOpen(true);
                     console.count('isOpen set to true');
@@ -132,7 +130,7 @@ function GeolocComp(): JSX.Element {
                 return;
             }
 
-            const currentParkDistance = turf.distance(currentParkLocation, userLocation, { units: 'meters' });
+            const currentParkDistance = distanceInMeters(currentParkLocation, userLocation);
 
             if (currentParkDistance < maxDistance) {
                 setParkDistance(currentParkDistance);

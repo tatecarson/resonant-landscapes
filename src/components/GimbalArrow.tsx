@@ -2,7 +2,6 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 
 import Gimbal from '../js/Gimbal';
 import { useAudioContext } from '../contexts/AudioContextProvider';
-import 'tailwindcss/tailwind.css';
 
 const GimbalArrow = () => {
     const [gimbal] = useState(new Gimbal());
