@@ -4,7 +4,16 @@ import { useAudioContext } from "../contexts/AudioContextProvider";
 
 const HOARenderer = lazy(() => import('./HoaRenderer'));
 
-function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation, compact = false }) {
+interface ParkModalProps {
+    setIsOpen: (value: boolean) => void;
+    isOpen: boolean;
+    parkName: string;
+    parkDistance: number;
+    userOrientation: boolean;
+    compact?: boolean;
+}
+
+function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation, compact = false }: ParkModalProps) {
     const { stopSound } = useAudioContext();
 
     const cancelButtonRef = useRef(null);

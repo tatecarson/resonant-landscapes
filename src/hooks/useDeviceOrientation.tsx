@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
 
 const useDeviceOrientation = () => {
-    const [orientation, setOrientation] = useState({ alpha: null, beta: null, gamma: null });
+    const [orientation, setOrientation] = useState<{ alpha: number | null; beta: number | null; gamma: number | null }>({ alpha: null, beta: null, gamma: null });
     const [permissionGranted, setPermissionGranted] = useState(false);
 
-    const handleOrientation = (event) => {
+    const handleOrientation = (event: DeviceOrientationEvent) => {
         const { alpha, beta, gamma } = event;
         setOrientation({ alpha, beta, gamma });
     };
 
     const requestPermission = async () => {
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-            const permission = await DeviceOrientationEvent.requestPermission();
+        const DOE = DeviceOrientationEvent as IOSDeviceOrientationEvent;
+        if (typeof DOE.requestPermission === 'function') {
+            const permission = await DOE.requestPermission();
             if (permission === 'granted') {
                 setPermissionGranted(true);
                 window.addEventListener('deviceorientation', handleOrientation, true);
@@ -26,7 +27,8 @@ const useDeviceOrientation = () => {
     };
 
     useEffect(() => {
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        const DOE = DeviceOrientationEvent as IOSDeviceOrientationEvent;
+        if (typeof DOE.requestPermission === 'function') {
             if (localStorage.getItem('DeviceOrientationPermission') === 'granted') {
                 setPermissionGranted(true);
                 window.addEventListener('deviceorientation', handleOrientation, true);

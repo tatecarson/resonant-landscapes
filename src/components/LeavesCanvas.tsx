@@ -9,7 +9,23 @@ const colors = [
 ];
 
 class Leaf {
-    constructor(ctx, width, height) {
+    ctx: CanvasRenderingContext2D;
+    width: number;
+    height: number;
+    x1: number = 0;
+    y1: number = 0;
+    x2: number = 0;
+    y2: number = 0;
+    x3: number = 0;
+    y3: number = 0;
+    x4: number = 0;
+    y4: number = 0;
+    ty: number = 0;
+    tx: number = 0;
+    speed: number = 0;
+    randomColor: { r: number; g: number; b: number } = colors[0];
+
+    constructor(ctx: CanvasRenderingContext2D, width: number, height: number) {
         this.ctx = ctx;
         this.width = width;
         this.height = height;
@@ -31,7 +47,7 @@ class Leaf {
         this.randomColor = colors[Math.floor(Math.random() * colors.length)];
     }
 
-    update(leafSpeed) {
+    update(leafSpeed: number) {
         this.ty += this.speed * leafSpeed;
         if (this.ty > this.height + this.y4) {
             this.reset();
@@ -51,7 +67,7 @@ class Leaf {
     }
 }
 
-function map(value, start1, stop1, start2, stop2, withinBounds = false) {
+function map(value: number, start1: number, stop1: number, start2: number, stop2: number, withinBounds = false): number {
     const newValue = ((value - start1) / (stop1 - start1)) * (stop2 - start2) + start2;
     const invertedValue = stop2 + start2 - newValue;
     if (!withinBounds) {
@@ -65,14 +81,16 @@ function map(value, start1, stop1, start2, stop2, withinBounds = false) {
 }
 
 // The React component
-function LeavesCanvas({ parkDistance }) {
-    const canvasRef = useRef(null);
-    const leavesRef = useRef([]);
+function LeavesCanvas({ parkDistance }: { parkDistance: number }) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const leavesRef = useRef<Leaf[]>([]);
     const leafSpeedRef = useRef(0);
 
     useEffect(() => {
         const canvas = canvasRef.current;
+        if (!canvas) return;
         const ctx = canvas.getContext('2d');
+        if (!ctx) return;
         const width = canvas.width;
         const height = canvas.height;
 
@@ -90,20 +108,21 @@ function LeavesCanvas({ parkDistance }) {
 
         };
 
+        let frameId: number;
+
         const update = () => {
             ctx.fillStyle = 'rgba(140, 180, 255, 1)';
             ctx.fillRect(0, 0, width, height);
 
             updateLeaves();
 
-            requestAnimationFrame(update);
+            frameId = requestAnimationFrame(update);
         };
 
-        update();
+        frameId = requestAnimationFrame(update);
 
-        // Cleanup function to potentially clear the animation frame request
         return () => {
-            cancelAnimationFrame(update);
+            cancelAnimationFrame(frameId);
         };
     }, [parkDistance]); // Depend on parkDistance to recreate the effect when it changes
 

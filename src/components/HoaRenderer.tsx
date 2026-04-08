@@ -7,7 +7,13 @@ import GimbalArrow from './GimbalArrow';
 import stateParks from '../data/stateParks.json';
 import LeavesCanvas from './LeavesCanvas';
 
-function soundPath(parkName: string, parksJSON) {
+interface ParkEntry {
+    name: string;
+    recordingsCount: number;
+    sectionsCount: number;
+}
+
+function soundPath(parkName: string, parksJSON: ParkEntry[]): string[] {
     const cdn = 'https://resonant-landscapes.b-cdn.net/sounds/';
 
     if (parkName === 'Custer Test') {
@@ -17,9 +23,9 @@ function soundPath(parkName: string, parksJSON) {
         ];
     }
 
-    const foundPark = parksJSON.find(park => park.name === parkName);
-    const recordingsCount = foundPark?.recordingsCount;
-    const sectionsCount = foundPark?.sectionsCount;
+    const foundPark = parksJSON.find((park: ParkEntry) => park.name === parkName);
+    const recordingsCount = foundPark?.recordingsCount ?? 1;
+    const sectionsCount = foundPark?.sectionsCount ?? 1;
     const cleanParkName = parkName.split(' ').slice(0, 2).join('-')
     const extension = 'm4a';
 
@@ -33,7 +39,14 @@ function soundPath(parkName: string, parksJSON) {
 }
 
 
-const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false }) => {
+interface HOARendererProps {
+    parkName: string;
+    parkDistance: number;
+    userOrientation: boolean;
+    compact?: boolean;
+}
+
+const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false }: HOARendererProps) => {
     const { playSound,
         stopSound, loadBuffers, bufferSourceRef, isLoading, setIsLoading,
         isPlaying, setIsPlaying, buffers, setBuffers, loadError, clearLoadError } = useAudioContext();
@@ -62,10 +75,11 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
             setIsPlaying(false);
 
             setIsLoading(false); // Reset loading state
-            setBuffers([]); // Clear the buffers
+            setBuffers(null); // Clear the buffers
 
             if (bufferSourceRef.current) {
                 bufferSourceRef.current.stop();
+                bufferSourceRef.current.disconnect();
                 bufferSourceRef.current = null;
             }
         };
@@ -81,8 +95,8 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
             }
 
         } else {
-            if (buffers.length > 0) {
-                playSound(buffers);
+            if (buffers !== null) {
+                playSound();
             }
         }
     }, [buffers, isPlaying, playSound, stopSound]);

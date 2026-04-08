@@ -1,19 +1,24 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, createContext, useContext } from 'react';
 
-// Create a context with a default value
-export const GyroscopePermissionContext = createContext({
+interface GyroscopePermissionContextType {
+    hasGyroPermission: string;
+    requestPermission: (e: React.MouseEvent) => void;
+}
+
+export const GyroscopePermissionContext = createContext<GyroscopePermissionContextType>({
     hasGyroPermission: 'not-determined',
-    requestPermission: () => { },
+    requestPermission: () => {},
 });
 
-const GyroscopePermissionProvider = ({ children }) => {
+const GyroscopePermissionProvider = ({ children }: { children: React.ReactNode }) => {
     const [hasGyroPermission, setHasGyroPermission] = useState('not-determined');
 
-    const requestPermission = async (e) => {
+    const requestPermission = async (e: React.MouseEvent) => {
         try {
             e.preventDefault();
-            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                const permission = await DeviceOrientationEvent.requestPermission();
+            const DOE = DeviceOrientationEvent as IOSDeviceOrientationEvent;
+            if (typeof DOE.requestPermission === 'function') {
+                const permission = await DOE.requestPermission();
                 setHasGyroPermission(permission === 'granted' ? 'granted' : 'denied');
             } else {
                 console.log('Gyroscope not supported on this device.');
@@ -31,7 +36,5 @@ const GyroscopePermissionProvider = ({ children }) => {
         </GyroscopePermissionContext.Provider>
     );
 };
-
-
 
 export default GyroscopePermissionProvider;

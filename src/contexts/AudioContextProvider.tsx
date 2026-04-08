@@ -2,33 +2,49 @@ import React, { createContext, useState, useEffect, useContext, useRef } from 'r
 import { ResonanceAudio } from "resonance-audio";
 import Omnitone from 'omnitone/build/omnitone.min.esm.js';
 
-// Creating the context with an extended initial value
-const AudioContextState = createContext({
+interface AudioContextStateType {
+    audioContext: AudioContext | null;
+    resonanceAudioScene: ResonanceAudio | null;
+    playSound: () => void;
+    stopSound: () => void;
+    isLoading: boolean;
+    setIsLoading: (value: boolean) => void;
+    isPlaying: boolean;
+    setIsPlaying: (value: boolean) => void;
+    buffers: AudioBuffer | null;
+    loadBuffers: (urls: string[]) => Promise<boolean>;
+    setBuffers: (buffers: AudioBuffer | null) => void;
+    bufferSourceRef: React.MutableRefObject<AudioBufferSourceNode | null>;
+    loadError: string | null;
+    clearLoadError: () => void;
+}
+
+const AudioContextState = createContext<AudioContextStateType>({
     audioContext: null,
-    resonanceAudioScene: null, // Add the ResonanceAudio scene to the context
-    playSound: (buffer) => { },
-    stopSound: () => { },
+    resonanceAudioScene: null,
+    playSound: () => {},
+    stopSound: () => {},
     isLoading: false,
-    setIsLoading: (boolean) => { },
+    setIsLoading: () => {},
     isPlaying: false,
-    setIsPlaying: (boolean) => { },
-    buffers: [],
-    loadBuffers: (urls) => { },
-    setBuffers: (buffers) => { },
-    bufferSourceRef: null,
+    setIsPlaying: () => {},
+    buffers: null,
+    loadBuffers: async () => false,
+    setBuffers: () => {},
+    bufferSourceRef: { current: null },
     loadError: null,
-    clearLoadError: () => { }
+    clearLoadError: () => {}
 });
 
 
-const AudioContextProvider = ({ children }) => {
-    const [audioContext, setAudioContext] = useState(null);
-    const [resonanceAudioScene, setResonanceAudioScene] = useState(null);
-    const [buffers, setBuffers] = useState([]);
+const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
+    const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+    const [resonanceAudioScene, setResonanceAudioScene] = useState<ResonanceAudio | null>(null);
+    const [buffers, setBuffers] = useState<AudioBuffer | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [loadError, setLoadError] = useState(null);
-    const bufferSourceRef = useRef(null);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const bufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
     const lastAudioEventRef = useRef<string | null>(null);
 
     const syncAudioDebug = (nextEvent?: string | null) => {
@@ -36,22 +52,20 @@ const AudioContextProvider = ({ children }) => {
             lastAudioEventRef.current = nextEvent;
         }
 
-        const audioBuffer = buffers && typeof buffers === 'object' && 'duration' in buffers ? buffers : null;
-
         window.__audioDebug = {
             contextState: audioContext?.state ?? 'unavailable',
             isLoading,
             isPlaying,
-            hasBuffers: Boolean(audioBuffer),
-            bufferDuration: audioBuffer?.duration ?? null,
-            bufferChannels: audioBuffer?.numberOfChannels ?? null,
+            hasBuffers: Boolean(buffers),
+            bufferDuration: buffers?.duration ?? null,
+            bufferChannels: buffers?.numberOfChannels ?? null,
             hasSourceNode: Boolean(bufferSourceRef.current),
             loadError,
             lastEvent: lastAudioEventRef.current,
         };
     };
 
-    const loadBuffers = async (urls) => {
+    const loadBuffers = async (urls: string[]): Promise<boolean> => {
         if (!audioContext || !resonanceAudioScene || !urls.length) {
             console.error("Missing audio context, resonance scene, or URLs.");
             setLoadError("Missing audio context, resonance scene, or URLs.");
@@ -73,31 +87,13 @@ const AudioContextProvider = ({ children }) => {
         } catch (error) {
             console.error("Error loading buffers with Omnitone:", error);
             setLoadError(error instanceof Error ? error.message : String(error));
-            setBuffers([]);
+            setBuffers(null);
             lastAudioEventRef.current = "load-error";
             return false;
         } finally {
             setIsLoading(false);
         }
     };
-
-
-
-    // Function to play sound
-    // const playSound = () => {
-    //     if (!audioContext || !resonanceAudioScene || isPlaying) return;
-
-    //     console.log('Playing sound...', buffers);
-    //     const source = resonanceAudioScene.createSource();
-    //     const bufferSource = audioContext.createBufferSource();
-    //     bufferSourceRef.current = bufferSource;
-    //     bufferSource.buffer = buffers;
-    //     bufferSource.loop = true;
-    //     bufferSource.connect(source.input);
-    //     bufferSource.start();
-    //     setIsPlaying(true);
-    // };
-
 
     const playSound = () => {
         if (!audioContext || !resonanceAudioScene || isPlaying) {
@@ -126,6 +122,8 @@ const AudioContextProvider = ({ children }) => {
     };
 
     const proceedWithPlayback = () => {
+        if (!audioContext || !resonanceAudioScene || !buffers) return;
+
         console.log('Playing sound...', buffers);
         const source = resonanceAudioScene.createSource();
         const bufferSource = audioContext.createBufferSource();
@@ -143,41 +141,34 @@ const AudioContextProvider = ({ children }) => {
         syncAudioDebug("playback-started");
     };
 
-    // Function to stop sound
     const stopSound = () => {
         if (bufferSourceRef.current && isPlaying) {
             console.log('Stopping sound...');
             bufferSourceRef.current.stop();
-            // bufferSourceRef.current.buffer = null;
-            bufferSourceRef.current.disconnect()
+            bufferSourceRef.current.disconnect();
             bufferSourceRef.current = null;
             setIsPlaying(false);
             syncAudioDebug("playback-stopped");
         }
     };
 
-    // Cleanup method to free up buffer memory
     const cleanupBuffers = () => {
-        if (buffers.length > 0) {
-            // Assuming buffers is an array of AudioBuffer or similar
-            setBuffers([]); // Clearing the buffers array
+        if (buffers) {
+            setBuffers(null);
         }
-        // Additional cleanup logic if needed
     };
 
     useEffect(() => {
         const initAudio = async () => {
             try {
-                const context = new (window.AudioContext || window.webkitAudioContext)();
+                const context = new (window.AudioContext || (window as any).webkitAudioContext)();
                 setAudioContext(context);
                 const scene = new ResonanceAudio(context);
-                scene.setAmbisonicOrder(2)
+                scene.setAmbisonicOrder(2);
                 setResonanceAudioScene(scene);
                 scene.output.connect(context.destination);
                 lastAudioEventRef.current = "audio-initialized";
-
             } catch (error) {
-
                 console.error('Error initializing audio:', error);
                 lastAudioEventRef.current = "audio-init-error";
             }
@@ -189,7 +180,6 @@ const AudioContextProvider = ({ children }) => {
             if (audioContext) {
                 audioContext.close();
             }
-
             if (resonanceAudioScene) {
                 resonanceAudioScene.dispose();
             }

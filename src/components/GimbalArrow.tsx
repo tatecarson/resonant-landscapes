@@ -8,10 +8,11 @@ const GimbalArrow = () => {
     const [permissionGranted, setPermissionGranted] = useState(false);
     const { resonanceAudioScene } = useAudioContext();
 
-    const requestPermission = useCallback(async (event) => {
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    const requestPermission = useCallback(async () => {
+        const DOE = DeviceOrientationEvent as IOSDeviceOrientationEvent;
+        if (typeof DOE.requestPermission === 'function') {
             try {
-                const permission = await DeviceOrientationEvent.requestPermission();
+                const permission = await DOE.requestPermission();
                 if (permission === 'granted') {
                     gimbal.enable();
                     console.log("Permission granted");
@@ -49,7 +50,7 @@ const GimbalArrow = () => {
             return;
         }
 
-        let animationFrameId;
+        let animationFrameId: number;
         const renderLoop = () => {
             gimbal.update();
 

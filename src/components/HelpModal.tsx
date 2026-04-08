@@ -1,7 +1,12 @@
 import { useState, useRef, Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 
-function HelpModal({ isOpen, setIsOpen }) {
+interface HelpModalProps {
+    isOpen: boolean;
+    setIsOpen: (value: boolean) => void;
+}
+
+function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
     const cancelButtonRef = useRef(null);
 
     return (

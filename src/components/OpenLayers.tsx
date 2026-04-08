@@ -346,11 +346,11 @@ function GeolocComp({ debug = false }): JSX.Element {
             </RLayerVector>
 
             <RLayerVector zIndex={9}>
-                {parkFeatures.map((park, i) => createParkFeature(park.scaledCoords, park.name, i))}
+                {parkFeatures.map((park, i) => createParkFeature(park.scaledCoords as [number, number], park.name, i))}
             </RLayerVector>
 
             <RLayerVector zIndex={10}>
-                {parkFeatures.map((park, i) => createMaxDistanceFeature(park.scaledCoords, park.name, i))}
+                {parkFeatures.map((park, i) => createMaxDistanceFeature(park.scaledCoords as [number, number], park.name, i))}
             </RLayerVector>
             <ErrorBoundary fallback={<div>Error</div>}>
                 {isOpen && <ParkModal isOpen={isOpen} setIsOpen={setIsOpen} parkName={parkName} parkDistance={parkDistance} userOrientation={enableUserOrientation} />}
