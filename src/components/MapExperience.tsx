@@ -1,10 +1,10 @@
-import OpenLayers from "./OpenLayers";
+import GeolocationMap from "./GeolocationMap";
 import AudioContextProvider from "../contexts/AudioContextProvider";
 
 export default function MapExperience({ debug = false }: { debug?: boolean }) {
   return (
     <AudioContextProvider>
-      <OpenLayers debug={debug} />
+      <GeolocationMap debug={debug} />
     </AudioContextProvider>
   );
 }

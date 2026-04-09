@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 
-import Gimbal from '../js/Gimbal';
+import Gimbal from '../utils/Gimbal';
 import { useAudioContext } from '../contexts/AudioContextProvider';
 
 const GimbalArrow = () => {

@@ -20,10 +20,10 @@ import "ol/ol.css";
 import './layers.css'
 
 import { useAudioContext } from "../contexts/AudioContextProvider";
-import HelpMenu from "./HelpModal";
+import HelpModal from "./HelpModal";
 
-import scaledPoints, { testPark } from "../js/scaledParks";
-import { distanceInMeters } from "../js/geo";
+import scaledPoints, { testPark } from "../utils/scaledParks";
+import { distanceInMeters } from "../utils/geo";
 import marker from '../assets/trees.png'
 import locationIcon from "../assets/geolocation_marker_heading.png";
 import { ErrorBoundary } from "react-error-boundary";
@@ -108,7 +108,7 @@ function DebugPanel({
     );
 }
 
-function GeolocComp({ debug = false }): JSX.Element {
+function GeolocationOverlay({ debug = false }): JSX.Element {
 
     const [pos, setPos] = useState<number[] | null>(fromLonLat([0, 0]));
     const [accuracy, setAccuracy] = useState<LineString | null>(null);
@@ -379,7 +379,7 @@ function GeolocComp({ debug = false }): JSX.Element {
 }
 
 
-export default function Geolocation({ debug = false }: { debug?: boolean }): JSX.Element {
+export default function GeolocationMap({ debug = false }: { debug?: boolean }): JSX.Element {
     const [helpIsOpen, setHelpIsOpen] = useState(false)
 
     return (
@@ -394,9 +394,9 @@ export default function Geolocation({ debug = false }: { debug?: boolean }): JSX
                         ?
                     </button>
                 </RControl.RCustom>
-                {helpIsOpen && <HelpMenu isOpen={helpIsOpen} setIsOpen={setHelpIsOpen} />}
+                {helpIsOpen && <HelpModal isOpen={helpIsOpen} setIsOpen={setHelpIsOpen} />}
                 <ROSM />
-                <GeolocComp debug={debug} />
+                <GeolocationOverlay debug={debug} />
 
             </RMap>
 
