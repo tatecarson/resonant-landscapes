@@ -101,7 +101,7 @@ For iPhone Safari and Android verification, prefer headed Playwright runs agains
 If `cloudflared` is already running, point Playwright at that tunnel:
 
 ```bash
-PLAYWRIGHT_BASE_URL=https://<your-tunnel-host> npm run sim:path:https:iphone
+PLAYWRIGHT_BASE_URL=https://tatecarson.github.io/resonant-landscapes/#/debug npm run sim:path:https:iphone
 PLAYWRIGHT_BASE_URL=https://<your-tunnel-host> npm run sim:path:https:pixel
 ```
 
