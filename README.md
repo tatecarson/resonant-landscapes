@@ -94,9 +94,11 @@ npm run sim:path:pixel
 
 These use Playwright mobile emulation for layout, tap flow, and geolocation behavior. They do not replace real-phone testing for iOS sensor/audio quirks.
 
-### 4. Run against an HTTPS tunnel (optional)
+### 4. Run against the current HTTPS tunnel
 
-If you already have `cloudflared` running, point Playwright at the tunnel instead of the local HTTP server:
+For iPhone Safari and Android verification, prefer headed Playwright runs against the currently running `cloudflared` tunnel instead of Playwright's local HTTP server.
+
+If `cloudflared` is already running, point Playwright at that tunnel:
 
 ```bash
 PLAYWRIGHT_BASE_URL=https://<your-tunnel-host> npm run sim:path:https:iphone
@@ -106,10 +108,12 @@ PLAYWRIGHT_BASE_URL=https://<your-tunnel-host> npm run sim:path:https:pixel
 Example:
 
 ```bash
-PLAYWRIGHT_BASE_URL=https://far-sanyo-inn-premium.trycloudflare.com npm run sim:path:https:iphone
+PLAYWRIGHT_BASE_URL=https://contracting-differently-exempt-posted.trycloudflare.com/resonant-landscapes/ npm run sim:path:https:iphone
 ```
 
 This skips Playwright's local `webServer` and navigates the mobile profile against the HTTPS origin directly.
+
+These scripts already run in headed mode. Keep reusing the active tunnel URL for repeat runs instead of starting a new local Playwright server.
 
 ### 5. Use a custom path file (optional)
 
