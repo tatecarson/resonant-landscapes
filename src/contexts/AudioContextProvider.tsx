@@ -17,6 +17,7 @@ interface AudioContextStateType {
     bufferSourceRef: React.MutableRefObject<AudioBufferSourceNode | null>;
     loadError: string | null;
     clearLoadError: () => void;
+    cancelPendingLoad: () => void;
 }
 
 const AudioContextState = createContext<AudioContextStateType>({
@@ -33,7 +34,8 @@ const AudioContextState = createContext<AudioContextStateType>({
     setBuffers: () => {},
     bufferSourceRef: { current: null },
     loadError: null,
-    clearLoadError: () => {}
+    clearLoadError: () => {},
+    cancelPendingLoad: () => {}
 });
 
 
@@ -66,6 +68,14 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         };
     };
 
+    const cancelPendingLoad = () => {
+        activeLoadRequestIdRef.current += 1;
+        setIsLoading(false);
+        setBuffers(null);
+        lastAudioEventRef.current = "load-cancelled";
+        syncAudioDebug();
+    };
+
     const loadBuffers = async (urls: string[]): Promise<boolean> => {
         if (!audioContext || !resonanceAudioScene || !urls.length) {
             console.error("Missing audio context, resonance scene, or URLs.");
@@ -77,6 +87,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         const requestId = ++activeLoadRequestIdRef.current;
         setIsLoading(true);
         setLoadError(null);
+        setBuffers(null);
         syncAudioDebug("load-start");
 
         try {
@@ -214,7 +225,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         <AudioContextState.Provider value={{
             audioContext, resonanceAudioScene, bufferSourceRef,
             playSound, stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, setIsPlaying, buffers, setBuffers,
-            loadError, clearLoadError: () => setLoadError(null)
+            loadError, clearLoadError: () => setLoadError(null), cancelPendingLoad
         }}>
             {children}
         </AudioContextState.Provider>

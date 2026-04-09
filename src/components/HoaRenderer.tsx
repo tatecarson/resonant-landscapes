@@ -6,60 +6,7 @@ import GimbalArrow from './GimbalArrow';
 
 import stateParks from '../data/stateParks.json';
 import LeavesCanvas from './LeavesCanvas';
-
-interface ParkEntry {
-    name: string;
-    recordingsCount: number;
-    sectionsCount: number;
-}
-
-function formatParkSlug(parkName: string): string {
-    return parkName
-        .replace(/\b(State Park|Historic State Park)\b/g, '')
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .join('-');
-}
-
-function soundPath(parkName: string, parksJSON: ParkEntry[]): string[] | null {
-    const cdnBase = 'https://resonant-landscapes.b-cdn.net/';
-
-    if (parkName === 'Custer Test') {
-        return [
-            `${cdnBase}sounds/Custer-Test-1-001_8ch.wav`,
-            `${cdnBase}sounds/Custer-Test-1-001_mono.wav`
-        ];
-    }
-
-    const foundPark = parksJSON.find((park: ParkEntry) => park.name === parkName);
-    if (!foundPark) {
-        return null;
-    }
-
-    const recordingsCount = foundPark?.recordingsCount ?? 1;
-    const sectionsCount = foundPark?.sectionsCount ?? 1;
-    if (recordingsCount < 1 || sectionsCount < 1) {
-        return null;
-    }
-
-    const cleanParkName = formatParkSlug(foundPark.name);
-    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-    const extension = isSafari ? 'wav' : 'm4a';
-    const soundsFolder = isSafari ? 'sounds-wav' : 'sounds';
-
-    const recordingPicker = Math.floor(Math.random() * recordingsCount) + 1;
-    const sectionPicker = Math.floor(Math.random() * sectionsCount) + 1;
-
-    const paddedSection = String(sectionPicker).padStart(3, '0');
-    const url = [
-        `${cdnBase}${soundsFolder}/${cleanParkName}-${recordingPicker}-${paddedSection}_8ch.${extension}`,
-        `${cdnBase}${soundsFolder}/${cleanParkName}-${recordingPicker}-${paddedSection}_mono.${extension}`
-    ];
-
-    return url.every(Boolean) ? url : null;
-}
-
+import { pickSoundPath } from '../utils/audioPaths';
 
 interface HOARendererProps {
     parkName: string;
@@ -71,7 +18,7 @@ interface HOARendererProps {
 const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false }: HOARendererProps) => {
     const { playSound,
         stopSound, loadBuffers, isLoading,
-        isPlaying, buffers, loadError, clearLoadError } = useAudioContext();
+        isPlaying, buffers, loadError, clearLoadError, cancelPendingLoad } = useAudioContext();
     const [showGimbalArrow, setShowGimbalArrow] = useState(false);
     const [pathError, setPathError] = useState<string | null>(null);
 
@@ -81,7 +28,7 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
         let isCurrent = true;
 
         const load = async () => {
-            const soundPathList = soundPath(parkName, stateParks);
+            const soundPathList = pickSoundPath(parkName, stateParks, navigator.userAgent);
             if (!soundPathList) {
                 if (isCurrent) {
                     setPathError(`No valid sound path is configured for "${parkName}".`);
@@ -94,7 +41,6 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
                 clearLoadError();
             }
 
-            console.log(soundPathList)
             await loadBuffers(soundPathList);
         };
 
@@ -102,11 +48,12 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
 
         return () => {
             isCurrent = false;
+            cancelPendingLoad();
             clearLoadError();
             stopSound();
             setShowGimbalArrow(false);
         };
-    }, [clearLoadError, loadBuffers, parkName, stopSound]);
+    }, [cancelPendingLoad, clearLoadError, loadBuffers, parkName, stopSound]);
 
     const onTogglePlayback = useCallback(() => {
         if (isPlaying) {
@@ -127,7 +74,7 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
 
 
     const retryLoading = useCallback(() => {
-        const soundPathList = soundPath(parkName, stateParks);
+        const soundPathList = pickSoundPath(parkName, stateParks, navigator.userAgent);
         if (!soundPathList) {
             setPathError(`No valid sound path is configured for "${parkName}".`);
             return;
@@ -135,8 +82,9 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
 
         setPathError(null);
         clearLoadError();
+        cancelPendingLoad();
         void loadBuffers(soundPathList);
-    }, [clearLoadError, loadBuffers, parkName]);
+    }, [cancelPendingLoad, clearLoadError, loadBuffers, parkName]);
 
     const activeError = pathError ?? loadError;
 
