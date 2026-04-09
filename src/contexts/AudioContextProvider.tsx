@@ -17,6 +17,7 @@ interface AudioContextStateType {
     bufferSourceRef: React.MutableRefObject<AudioBufferSourceNode | null>;
     loadError: string | null;
     clearLoadError: () => void;
+    cancelPendingLoad: () => void;
 }
 
 const AudioContextState = createContext<AudioContextStateType>({
@@ -33,7 +34,8 @@ const AudioContextState = createContext<AudioContextStateType>({
     setBuffers: () => {},
     bufferSourceRef: { current: null },
     loadError: null,
-    clearLoadError: () => {}
+    clearLoadError: () => {},
+    cancelPendingLoad: () => {}
 });
 
 
@@ -46,6 +48,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const [loadError, setLoadError] = useState<string | null>(null);
     const bufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
     const lastAudioEventRef = useRef<string | null>(null);
+    const activeLoadRequestIdRef = useRef(0);
 
     const syncAudioDebug = (nextEvent?: string | null) => {
         if (nextEvent !== undefined) {
@@ -65,6 +68,14 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         };
     };
 
+    const cancelPendingLoad = () => {
+        activeLoadRequestIdRef.current += 1;
+        setIsLoading(false);
+        setBuffers(null);
+        lastAudioEventRef.current = "load-cancelled";
+        syncAudioDebug();
+    };
+
     const loadBuffers = async (urls: string[]): Promise<boolean> => {
         if (!audioContext || !resonanceAudioScene || !urls.length) {
             console.error("Missing audio context, resonance scene, or URLs.");
@@ -73,25 +84,37 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             return false;
         }
 
+        const requestId = ++activeLoadRequestIdRef.current;
         setIsLoading(true);
         setLoadError(null);
+        setBuffers(null);
         syncAudioDebug("load-start");
 
         try {
             const results = await Omnitone.createBufferList(audioContext, urls);
+            if (requestId !== activeLoadRequestIdRef.current) {
+                lastAudioEventRef.current = "load-stale-ignored";
+                return false;
+            }
             console.log("Results", results);
             const contentBuffer = Omnitone.mergeBufferListByChannel(audioContext, results);
             setBuffers(contentBuffer);
             lastAudioEventRef.current = "buffers-loaded";
             return true;
         } catch (error) {
+            if (requestId !== activeLoadRequestIdRef.current) {
+                lastAudioEventRef.current = "load-stale-ignored";
+                return false;
+            }
             console.error("Error loading buffers with Omnitone:", error);
             setLoadError(error instanceof Error ? error.message : String(error));
             setBuffers(null);
             lastAudioEventRef.current = "load-error";
             return false;
         } finally {
-            setIsLoading(false);
+            if (requestId === activeLoadRequestIdRef.current) {
+                setIsLoading(false);
+            }
         }
     };
 
@@ -161,7 +184,12 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         const initAudio = async () => {
             try {
-                const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const AudioContextCtor = window.AudioContext
+                    ?? (window as Window & typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+                if (!AudioContextCtor) {
+                    throw new Error('AudioContext is not supported in this browser.');
+                }
+                const context = new AudioContextCtor();
                 setAudioContext(context);
                 const scene = new ResonanceAudio(context);
                 scene.setAmbisonicOrder(2);
@@ -197,7 +225,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         <AudioContextState.Provider value={{
             audioContext, resonanceAudioScene, bufferSourceRef,
             playSound, stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, setIsPlaying, buffers, setBuffers,
-            loadError, clearLoadError: () => setLoadError(null)
+            loadError, clearLoadError: () => setLoadError(null), cancelPendingLoad
         }}>
             {children}
         </AudioContextState.Provider>
