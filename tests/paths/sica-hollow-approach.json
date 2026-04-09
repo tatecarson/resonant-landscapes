@@ -1,9 +1,10 @@
 [
-  { "latitude": 44.013000, "longitude": -97.110649, "waitMs": 1500 },
-  { "latitude": 44.013120, "longitude": -97.110649, "waitMs": 1500 },
-  { "latitude": 44.013220, "longitude": -97.110649, "waitMs": 1500 },
-  { "latitude": 44.013290, "longitude": -97.110649, "waitMs": 1500 },
-  { "latitude": 44.013330, "longitude": -97.110649, "waitMs": 2000 },
-  { "latitude": 44.013350, "longitude": -97.110649, "waitMs": 2500 },
-  { "latitude": 44.013364, "longitude": -97.110649, "waitMs": 3000 }
+  { "label": "Custer Test center", "latitude": 44.012224, "longitude": -97.112994, "waitMs": 2500 },
+  { "label": "Leave Custer Test radius", "latitude": 44.013000, "longitude": -97.110649, "waitMs": 1500 },
+  { "label": "Sica approach 1", "latitude": 44.013120, "longitude": -97.110649, "waitMs": 1500 },
+  { "label": "Sica approach 2", "latitude": 44.013220, "longitude": -97.110649, "waitMs": 1500 },
+  { "label": "Sica approach 3", "latitude": 44.013290, "longitude": -97.110649, "waitMs": 1500 },
+  { "label": "Sica approach 4", "latitude": 44.013330, "longitude": -97.110649, "waitMs": 2000 },
+  { "label": "Sica approach 5", "latitude": 44.013350, "longitude": -97.110649, "waitMs": 2500 },
+  { "label": "Sica approach center", "latitude": 44.013364, "longitude": -97.110649, "waitMs": 3000 }
 ]

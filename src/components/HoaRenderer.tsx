@@ -14,12 +14,12 @@ interface ParkEntry {
 }
 
 function soundPath(parkName: string, parksJSON: ParkEntry[]): string[] {
-    const cdn = 'https://resonant-landscapes.b-cdn.net/sounds/';
+    const cdnBase = 'https://resonant-landscapes.b-cdn.net/';
 
     if (parkName === 'Custer Test') {
         return [
-            `${cdn}Custer-Test-1-001_8ch.wav`,
-            `${cdn}Custer-Test-1-001_mono.wav`
+            `${cdnBase}sounds/Custer-Test-1-001_8ch.wav`,
+            `${cdnBase}sounds/Custer-Test-1-001_mono.wav`
         ];
     }
 
@@ -27,13 +27,15 @@ function soundPath(parkName: string, parksJSON: ParkEntry[]): string[] {
     const recordingsCount = foundPark?.recordingsCount ?? 1;
     const sectionsCount = foundPark?.sectionsCount ?? 1;
     const cleanParkName = parkName.split(' ').slice(0, 2).join('-')
-    const extension = 'm4a';
+    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+    const extension = isSafari ? 'wav' : 'm4a';
+    const soundsFolder = isSafari ? 'sounds-wav' : 'sounds';
 
     const recordingPicker = Math.floor(Math.random() * recordingsCount) + 1;
     const sectionPicker = Math.floor(Math.random() * sectionsCount) + 1;
 
-    const url = [`${cdn}${cleanParkName}-${recordingPicker}-00${sectionPicker}_8ch.${extension}`,
-    `${cdn}${cleanParkName}-${recordingPicker}-00${sectionPicker}_mono.${extension}`]
+    const url = [`${cdnBase}${soundsFolder}/${cleanParkName}-${recordingPicker}-00${sectionPicker}_8ch.${extension}`,
+    `${cdnBase}${soundsFolder}/${cleanParkName}-${recordingPicker}-00${sectionPicker}_mono.${extension}`]
 
     return url;
 }
