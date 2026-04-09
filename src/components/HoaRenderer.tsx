@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { PlayCircleIcon, StopCircleIcon } from '@heroicons/react/24/solid'
 import { Switch } from '@headlessui/react'
 import { useAudioContext } from '../contexts/AudioContextProvider';
@@ -21,6 +21,21 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
         isPlaying, buffers, loadError, clearLoadError, cancelPendingLoad } = useAudioContext();
     const [showGimbalArrow, setShowGimbalArrow] = useState(false);
     const [pathError, setPathError] = useState<string | null>(null);
+    const audioActionsRef = useRef({
+        loadBuffers,
+        stopSound,
+        clearLoadError,
+        cancelPendingLoad,
+    });
+
+    useEffect(() => {
+        audioActionsRef.current = {
+            loadBuffers,
+            stopSound,
+            clearLoadError,
+            cancelPendingLoad,
+        };
+    }, [cancelPendingLoad, clearLoadError, loadBuffers, stopSound]);
 
     // TODO: load other sound files 
 
@@ -38,22 +53,22 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
 
             if (isCurrent) {
                 setPathError(null);
-                clearLoadError();
+                audioActionsRef.current.clearLoadError();
             }
 
-            await loadBuffers(soundPathList);
+            await audioActionsRef.current.loadBuffers(soundPathList);
         };
 
         void load();
 
         return () => {
             isCurrent = false;
-            cancelPendingLoad();
-            clearLoadError();
-            stopSound();
+            audioActionsRef.current.cancelPendingLoad();
+            audioActionsRef.current.clearLoadError();
+            audioActionsRef.current.stopSound();
             setShowGimbalArrow(false);
         };
-    }, [cancelPendingLoad, clearLoadError, loadBuffers, parkName, stopSound]);
+    }, [parkName]);
 
     const onTogglePlayback = useCallback(() => {
         if (isPlaying) {
