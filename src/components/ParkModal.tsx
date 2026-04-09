@@ -18,7 +18,6 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
 
     const cancelButtonRef = useRef(null);
 
-
     function cancel() {
         console.log('Cancelling...');
         stopSound();

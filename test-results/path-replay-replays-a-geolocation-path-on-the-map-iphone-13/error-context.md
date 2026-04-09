@@ -14,70 +14,22 @@
 ```
 Error: expect(locator).toBeVisible() failed
 
-Locator: getByRole('button', { name: 'Start playback' })
+Locator: getByRole('heading', { name: 'Sica Hollow State Park' })
 Expected: visible
-Timeout: 15000ms
 Error: element(s) not found
 
 Call log:
   - Expect "toBeVisible" with timeout 15000ms
-  - waiting for getByRole('button', { name: 'Start playback' })
+  - waiting for getByRole('heading', { name: 'Sica Hollow State Park' })
 
-```
-
-# Page snapshot
-
-```yaml
-- generic [active] [ref=e1]:
-  - generic [ref=e2]:
-    - generic [ref=e3]:
-      - generic [ref=e4]:
-        - generic [ref=e5]:
-          - paragraph [ref=e6]: Audio Debug
-          - paragraph [ref=e7]: /resonant-landscapes/
-        - button [ref=e8] [cursor=pointer]: Hide
-      - generic [ref=e9]:
-        - paragraph [ref=e10]: "Context: running"
-        - paragraph [ref=e11]: "Loading: no"
-        - paragraph [ref=e12]: "Playing flag: yes"
-        - paragraph [ref=e13]: "Source node: present"
-        - paragraph [ref=e14]: "Buffers: loaded"
-        - paragraph [ref=e15]: "Duration: 60.00 s"
-        - paragraph [ref=e16]: "Channels: 9"
-        - paragraph [ref=e17]: "Geo permission: granted"
-        - paragraph [ref=e18]: "Coords: 44.01336, -97.11065"
-        - paragraph [ref=e19]: "Park: Sica Hollow State Park"
-        - generic [ref=e20]: "If sound fails, check whether the context is `suspended`, buffers are empty, or the source node never appears after tapping play."
-    - generic [ref=e21]:
-      - generic:
-        - generic [ref=e25]:
-          - button [ref=e26] [cursor=pointer]: +
-          - button [ref=e27] [cursor=pointer]: –
-        - list [ref=e29]:
-          - listitem [ref=e30]:
-            - text: ©
-            - link [ref=e31]:
-              - /url: https://www.openstreetmap.org/copyright
-              - text: OpenStreetMap
-            - text: contributors.
-        - button [ref=e33] [cursor=pointer]: "?"
-  - dialog "Sica Hollow State Park" [ref=e37]:
-    - generic [ref=e41]:
-      - generic [ref=e44]:
-        - heading "Sica Hollow State Park" [level=3] [ref=e45]
-        - paragraph [ref=e46]: 0 meters away
-        - generic [ref=e48]:
-          - button "Stop playback" [ref=e49] [cursor=pointer]:
-            - img [ref=e50]
-          - generic [ref=e52]:
-            - generic [ref=e53]: Enable Body-Oriented Tracking
-            - switch "Enable Body-Oriented Tracking" [ref=e54] [cursor=pointer]
-      - button "Close" [ref=e58] [cursor=pointer]
 ```
 
 # Test source
 
 ```ts
+  39  |         }
+  40  |       })
+  41  |     );
   42  | 
   43  |     console.log(`[browser:${msg.type()}]`, ...args);
   44  |   });
@@ -175,11 +127,11 @@ Call log:
   136 |   }
   137 | 
   138 |   const sicaLabel = page.getByRole("heading", { name: "Sica Hollow State Park" });
-  139 |   await expect(sicaLabel).toBeVisible({ timeout: 15_000 });
+> 139 |   await expect(sicaLabel).toBeVisible({ timeout: 15_000 });
+      |                           ^ Error: expect(locator).toBeVisible() failed
   140 |   console.log("[test] detected park label: Sica Hollow State Park");
   141 | 
-> 142 |   await expect(playButton).toBeVisible({ timeout: 15_000 });
-      |                            ^ Error: expect(locator).toBeVisible() failed
+  142 |   await expect(playButton).toBeVisible({ timeout: 15_000 });
   143 | 
   144 |   if (pauseAtPark) {
   145 |     await page.pause();
