@@ -1,8 +1,7 @@
 import stateParks from '../data/stateParks.json'
 import { scaleCoordinates } from './geo';
 
-// lon, lat 
-console.log(stateParks)
+// lon, lat
 
 // Placeholder for your scale factors
 // const scaleLat = 0.00065;
