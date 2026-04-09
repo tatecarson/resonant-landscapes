@@ -13,7 +13,16 @@ interface ParkEntry {
     sectionsCount: number;
 }
 
-function soundPath(parkName: string, parksJSON: ParkEntry[]): string[] {
+function formatParkSlug(parkName: string): string {
+    return parkName
+        .replace(/\b(State Park|Historic State Park)\b/g, '')
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .join('-');
+}
+
+function soundPath(parkName: string, parksJSON: ParkEntry[]): string[] | null {
     const cdnBase = 'https://resonant-landscapes.b-cdn.net/';
 
     if (parkName === 'Custer Test') {
@@ -24,9 +33,17 @@ function soundPath(parkName: string, parksJSON: ParkEntry[]): string[] {
     }
 
     const foundPark = parksJSON.find((park: ParkEntry) => park.name === parkName);
+    if (!foundPark) {
+        return null;
+    }
+
     const recordingsCount = foundPark?.recordingsCount ?? 1;
     const sectionsCount = foundPark?.sectionsCount ?? 1;
-    const cleanParkName = parkName.split(' ').slice(0, 2).join('-')
+    if (recordingsCount < 1 || sectionsCount < 1) {
+        return null;
+    }
+
+    const cleanParkName = formatParkSlug(foundPark.name);
     const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
     const extension = isSafari ? 'wav' : 'm4a';
     const soundsFolder = isSafari ? 'sounds-wav' : 'sounds';
@@ -34,10 +51,13 @@ function soundPath(parkName: string, parksJSON: ParkEntry[]): string[] {
     const recordingPicker = Math.floor(Math.random() * recordingsCount) + 1;
     const sectionPicker = Math.floor(Math.random() * sectionsCount) + 1;
 
-    const url = [`${cdnBase}${soundsFolder}/${cleanParkName}-${recordingPicker}-00${sectionPicker}_8ch.${extension}`,
-    `${cdnBase}${soundsFolder}/${cleanParkName}-${recordingPicker}-00${sectionPicker}_mono.${extension}`]
+    const paddedSection = String(sectionPicker).padStart(3, '0');
+    const url = [
+        `${cdnBase}${soundsFolder}/${cleanParkName}-${recordingPicker}-${paddedSection}_8ch.${extension}`,
+        `${cdnBase}${soundsFolder}/${cleanParkName}-${recordingPicker}-${paddedSection}_mono.${extension}`
+    ];
 
-    return url;
+    return url.every(Boolean) ? url : null;
 }
 
 
@@ -50,42 +70,43 @@ interface HOARendererProps {
 
 const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false }: HOARendererProps) => {
     const { playSound,
-        stopSound, loadBuffers, bufferSourceRef, isLoading, setIsLoading,
-        isPlaying, setIsPlaying, buffers, setBuffers, loadError, clearLoadError } = useAudioContext();
+        stopSound, loadBuffers, isLoading,
+        isPlaying, buffers, loadError, clearLoadError } = useAudioContext();
     const [showGimbalArrow, setShowGimbalArrow] = useState(false);
+    const [pathError, setPathError] = useState<string | null>(null);
 
     // TODO: load other sound files 
 
     useEffect(() => {
+        let isCurrent = true;
+
         const load = async () => {
             const soundPathList = soundPath(parkName, stateParks);
+            if (!soundPathList) {
+                if (isCurrent) {
+                    setPathError(`No valid sound path is configured for "${parkName}".`);
+                }
+                return;
+            }
+
+            if (isCurrent) {
+                setPathError(null);
+                clearLoadError();
+            }
 
             console.log(soundPathList)
-            clearLoadError();
             await loadBuffers(soundPathList);
-        }
-        load()
-
-    }, [parkName]);
-
-    // Cleanup effect
-    useEffect(() => {
-        return () => {
-            console.log('Cleanup on unmount');
-            // Cleanup logic here, if any
-            stopSound();
-            setIsPlaying(false);
-
-            setIsLoading(false); // Reset loading state
-            setBuffers(null); // Clear the buffers
-
-            if (bufferSourceRef.current) {
-                bufferSourceRef.current.stop();
-                bufferSourceRef.current.disconnect();
-                bufferSourceRef.current = null;
-            }
         };
-    }, []);
+
+        void load();
+
+        return () => {
+            isCurrent = false;
+            clearLoadError();
+            stopSound();
+            setShowGimbalArrow(false);
+        };
+    }, [clearLoadError, loadBuffers, parkName, stopSound]);
 
     const onTogglePlayback = useCallback(() => {
         if (isPlaying) {
@@ -106,23 +127,37 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
 
 
     const retryLoading = useCallback(() => {
+        const soundPathList = soundPath(parkName, stateParks);
+        if (!soundPathList) {
+            setPathError(`No valid sound path is configured for "${parkName}".`);
+            return;
+        }
+
+        setPathError(null);
         clearLoadError();
-        loadBuffers(soundPath(parkName, stateParks));
+        void loadBuffers(soundPathList);
     }, [clearLoadError, loadBuffers, parkName]);
 
+    const activeError = pathError ?? loadError;
 
     return (
         <div id="secSource">
             {isLoading && <div>Loading...</div>}
 
-            {loadError && (
-                <div>
-                    <p>Failed to load buffers:</p>
-                    <pre>{loadError}</pre>
-                    <button onClick={retryLoading}>Retry</button>
+            {activeError && (
+                <div className="max-w-sm rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900 shadow-sm">
+                    <p className="font-semibold">Audio unavailable</p>
+                    <p className="mt-1">Failed to load the selected park audio.</p>
+                    <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-lg bg-white/70 p-2 text-xs text-rose-800">{activeError}</pre>
+                    <button
+                        onClick={retryLoading}
+                        className="mt-3 inline-flex items-center rounded-full border border-rose-300 bg-white px-3 py-2 text-sm font-medium text-rose-900 shadow-sm"
+                    >
+                        Retry audio load
+                    </button>
                 </div>
             )}
-            {!isLoading && !loadError && (
+            {!isLoading && !activeError && (
                 <>
                     <button
                         onClick={onTogglePlayback}
