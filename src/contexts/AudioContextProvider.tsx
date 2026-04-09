@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
+import React, { createContext, useState, useEffect, useContext, useRef, useCallback } from 'react';
 import { ResonanceAudio } from "resonance-audio";
 import Omnitone from 'omnitone/build/omnitone.min.esm.js';
 
@@ -49,34 +49,46 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const bufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
     const lastAudioEventRef = useRef<string | null>(null);
     const activeLoadRequestIdRef = useRef(0);
+    const audioDebugStateRef = useRef({
+        audioContextState: 'unavailable',
+        isLoading: false,
+        isPlaying: false,
+        buffers: null as AudioBuffer | null,
+        loadError: null as string | null,
+    });
 
-    const syncAudioDebug = (nextEvent?: string | null) => {
+    const syncAudioDebug = useCallback((nextEvent?: string | null) => {
         if (nextEvent !== undefined) {
             lastAudioEventRef.current = nextEvent;
         }
 
+        const { audioContextState, isLoading: loading, isPlaying: playing, buffers: activeBuffers, loadError: activeLoadError } = audioDebugStateRef.current;
         window.__audioDebug = {
-            contextState: audioContext?.state ?? 'unavailable',
-            isLoading,
-            isPlaying,
-            hasBuffers: Boolean(buffers),
-            bufferDuration: buffers?.duration ?? null,
-            bufferChannels: buffers?.numberOfChannels ?? null,
+            contextState: audioContextState,
+            isLoading: loading,
+            isPlaying: playing,
+            hasBuffers: Boolean(activeBuffers),
+            bufferDuration: activeBuffers?.duration ?? null,
+            bufferChannels: activeBuffers?.numberOfChannels ?? null,
             hasSourceNode: Boolean(bufferSourceRef.current),
-            loadError,
+            loadError: activeLoadError,
             lastEvent: lastAudioEventRef.current,
         };
-    };
+    }, []);
 
-    const cancelPendingLoad = () => {
+    const clearLoadError = useCallback(() => {
+        setLoadError(null);
+    }, []);
+
+    const cancelPendingLoad = useCallback(() => {
         activeLoadRequestIdRef.current += 1;
         setIsLoading(false);
         setBuffers(null);
         lastAudioEventRef.current = "load-cancelled";
         syncAudioDebug();
-    };
+    }, [syncAudioDebug]);
 
-    const loadBuffers = async (urls: string[]): Promise<boolean> => {
+    const loadBuffers = useCallback(async (urls: string[]): Promise<boolean> => {
         if (!audioContext || !resonanceAudioScene || !urls.length) {
             console.error("Missing audio context, resonance scene, or URLs.");
             setLoadError("Missing audio context, resonance scene, or URLs.");
@@ -116,9 +128,29 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
                 setIsLoading(false);
             }
         }
-    };
+    }, [audioContext, resonanceAudioScene, syncAudioDebug]);
 
-    const playSound = () => {
+    const proceedWithPlayback = useCallback(() => {
+        if (!audioContext || !resonanceAudioScene || !buffers) return;
+
+        console.log('Playing sound...', buffers);
+        const source = resonanceAudioScene.createSource();
+        const bufferSource = audioContext.createBufferSource();
+        bufferSourceRef.current = bufferSource;
+        bufferSource.buffer = buffers;
+        bufferSource.loop = true;
+        bufferSource.connect(source.input);
+        bufferSource.onended = () => {
+            bufferSourceRef.current = null;
+            setIsPlaying(false);
+            syncAudioDebug("playback-ended");
+        };
+        bufferSource.start();
+        setIsPlaying(true);
+        syncAudioDebug("playback-started");
+    }, [audioContext, buffers, resonanceAudioScene, syncAudioDebug]);
+
+    const playSound = useCallback(() => {
         if (!audioContext || !resonanceAudioScene || isPlaying) {
             syncAudioDebug("play-ignored");
             return;
@@ -142,29 +174,9 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         } else {
             proceedWithPlayback();
         }
-    };
+    }, [audioContext, buffers, isPlaying, proceedWithPlayback, resonanceAudioScene, syncAudioDebug]);
 
-    const proceedWithPlayback = () => {
-        if (!audioContext || !resonanceAudioScene || !buffers) return;
-
-        console.log('Playing sound...', buffers);
-        const source = resonanceAudioScene.createSource();
-        const bufferSource = audioContext.createBufferSource();
-        bufferSourceRef.current = bufferSource;
-        bufferSource.buffer = buffers;
-        bufferSource.loop = true;
-        bufferSource.connect(source.input);
-        bufferSource.onended = () => {
-            bufferSourceRef.current = null;
-            setIsPlaying(false);
-            syncAudioDebug("playback-ended");
-        };
-        bufferSource.start();
-        setIsPlaying(true);
-        syncAudioDebug("playback-started");
-    };
-
-    const stopSound = () => {
+    const stopSound = useCallback(() => {
         if (bufferSourceRef.current && isPlaying) {
             console.log('Stopping sound...');
             bufferSourceRef.current.stop();
@@ -173,7 +185,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             setIsPlaying(false);
             syncAudioDebug("playback-stopped");
         }
-    };
+    }, [isPlaying, syncAudioDebug]);
 
     const cleanupBuffers = () => {
         if (buffers) {
@@ -217,15 +229,22 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     useEffect(() => {
+        audioDebugStateRef.current = {
+            audioContextState: audioContext?.state ?? 'unavailable',
+            isLoading,
+            isPlaying,
+            buffers,
+            loadError,
+        };
         syncAudioDebug();
-    }, [audioContext, buffers, isLoading, isPlaying, loadError]);
+    }, [audioContext, buffers, isLoading, isPlaying, loadError, syncAudioDebug]);
 
 
     return (
         <AudioContextState.Provider value={{
             audioContext, resonanceAudioScene, bufferSourceRef,
             playSound, stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, setIsPlaying, buffers, setBuffers,
-            loadError, clearLoadError: () => setLoadError(null), cancelPendingLoad
+            loadError, clearLoadError, cancelPendingLoad
         }}>
             {children}
         </AudioContextState.Provider>
