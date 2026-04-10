@@ -31,7 +31,20 @@ test('safari variants use wav assets', () => {
   }
 });
 
+test('Custer State Park uses the CDN slug override for both browser families', () => {
+  const safariVariants = getParkAudioVariants('Custer State Park', stateParks, 'Safari');
+  const chromeVariants = getParkAudioVariants('Custer State Park', stateParks, 'Chrome');
+
+  assert.ok(safariVariants);
+  assert.ok(chromeVariants);
+  assert.match(safariVariants[12][0], /\/sounds-wav\/Custer-State-7-001_8ch\.wav$/);
+  assert.match(safariVariants[12][1], /\/sounds-wav\/Custer-State-7-001_mono\.wav$/);
+  assert.match(chromeVariants[12][0], /\/sounds\/Custer-State-7-001_8ch\.m4a$/);
+  assert.match(chromeVariants[12][1], /\/sounds\/Custer-State-7-001_mono\.m4a$/);
+});
+
 test('slug formatting matches current CDN naming convention', () => {
+  assert.equal(formatParkSlug('Custer State Park'), 'Custer-State');
   assert.equal(formatParkSlug('Fort Sisseton Historic State Park'), 'Fort-Sisseton');
   assert.equal(formatParkSlug('Good Earth State Park'), 'Good-Earth');
   assert.equal(formatParkSlug('Bear Butte State Park'), 'Bear-Butte');
