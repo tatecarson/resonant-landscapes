@@ -3,7 +3,7 @@ import stateParks from "../src/data/stateParks.json" with { type: "json" };
 import { scaleCoordinates } from "../src/utils/geo.js";
 import { formatParkSlug, getParkAudioVariants } from "../src/utils/audioPaths.js";
 
-const replayPath = "/resonant-landscapes/#/debug";
+const replayPath = "/#/debug";
 const neutralPoint = {
   latitude: 44.0142,
   longitude: -97.1098,

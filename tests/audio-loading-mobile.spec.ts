@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const replayPath = "/resonant-landscapes/#/debug";
+const replayPath = "/#/debug";
 const firstPoint = {
   latitude: 44.012224,
   longitude: -97.112994,

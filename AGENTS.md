@@ -59,14 +59,14 @@ For iPhone Safari and Android verification:
 - Always run Playwright in headed mode
 - Always reuse the currently running `cloudflared` tunnel for HTTPS
 - Set `PLAYWRIGHT_EXTERNAL_SERVER=1`
-- Set `PLAYWRIGHT_BASE_URL=https://<active-tunnel-host>/resonant-landscapes/`
+- Set `PLAYWRIGHT_BASE_URL=https://<active-tunnel-host>/`
 - Do not start a separate Playwright-managed local server when an active tunnel already exists
 
 Examples:
 
 ```bash
-PLAYWRIGHT_BASE_URL=https://<active-tunnel-host>/resonant-landscapes/ npm run sim:path:https:iphone
-PLAYWRIGHT_BASE_URL=https://<active-tunnel-host>/resonant-landscapes/ npm run sim:path:https:pixel
+PLAYWRIGHT_BASE_URL=https://<active-tunnel-host>/ npm run sim:path:https:iphone
+PLAYWRIGHT_BASE_URL=https://<active-tunnel-host>/ npm run sim:path:https:pixel
 ```
 
 ## Non-Interactive Shell Commands

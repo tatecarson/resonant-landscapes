@@ -49,7 +49,7 @@ test("replays a geolocation path on the map", async ({ context, page, baseURL })
 
   const replayPoints = await readReplayPoints();
   const firstPoint = replayPoints[0];
-  const replayPath = "/resonant-landscapes/#/debug";
+  const replayPath = "/#/debug";
 
   if (!baseURL) {
     throw new Error("Missing Playwright baseURL.");
