@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Geolocation as OLGeoLoc } from "ol";
 import { LineString, Point } from "ol/geom";
 import { fromLonLat, toLonLat } from "ol/proj";
@@ -23,6 +23,8 @@ import ParkFeatureLayers from "./ParkFeatureLayers";
 import GeolocationDebugPanel from "./GeolocationDebugPanel";
 import { useAudioContext } from "../contexts/AudioContextProvider";
 import { useGeolocationTracking } from "../hooks/useGeolocationTracking";
+import stateParks from "../data/stateParks.json";
+import { pickSoundPath } from "../utils/audioPaths";
 import locationIcon from "../assets/geolocation_marker_heading.png";
 
 function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element {
@@ -32,6 +34,7 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
         isPlaying,
         isLoading,
         loadError,
+        preloadBuffers,
         audioContext,
         buffers,
         bufferSourceRef,
@@ -46,6 +49,7 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
         parkFeatures,
         parkModalOpen,
         parkName,
+        prefetchParkName,
         position,
         setParkModalOpen,
         userOrientationEnabled,
@@ -58,6 +62,21 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
 
     const debugPosition = position ? toLonLat(position.slice(0, 2)) as [number, number] : null;
     const audioBuffer = buffers && "duration" in buffers ? buffers : null;
+    const prefetchUrls = useMemo(() => {
+        if (!prefetchParkName) {
+            return null;
+        }
+
+        return pickSoundPath(prefetchParkName, stateParks, navigator.userAgent);
+    }, [prefetchParkName]);
+
+    useEffect(() => {
+        if (!audioContext || !prefetchUrls?.length) {
+            return;
+        }
+
+        void preloadBuffers(prefetchUrls);
+    }, [audioContext, prefetchUrls, preloadBuffers]);
 
     return (
         <div>

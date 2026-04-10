@@ -60,6 +60,7 @@ export function useGeolocationTracking({
     const [parkModalOpen, setParkModalOpen] = useState(false);
     const [parkName, setParkName] = useState("");
     const [parkDistance, setParkDistance] = useState(0);
+    const [prefetchParkName, setPrefetchParkName] = useState("");
     const [currentParkLocation, setCurrentParkLocation] = useState<Coordinate | null>(null);
     const [userOrientationEnabled, setUserOrientationEnabled] = useState(false);
     const [debugPermission, setDebugPermission] = useState("unknown");
@@ -70,6 +71,7 @@ export function useGeolocationTracking({
 
     const view = map?.getView();
     const maxDistance = 15;
+    const prefetchDistance = 40;
     const parkFeatures = useMemo<ParkFeature[]>(
         () => (debug ? [testPark, ...scaledPoints] : scaledPoints).map(toParkFeature),
         [debug]
@@ -124,6 +126,19 @@ export function useGeolocationTracking({
         setPosition(coordinates);
 
         const userLocation = toLonLat([coordinates[0], coordinates[1]]) as Coordinate;
+        let closestPark: ParkFeature | null = null;
+        let closestParkDistance = Number.POSITIVE_INFINITY;
+
+        for (const park of parkFeatures) {
+            const distance = distanceInMeters(userLocation, park.scaledCoords);
+            if (distance < closestParkDistance) {
+                closestPark = park;
+                closestParkDistance = distance;
+            }
+        }
+
+        setPrefetchParkName(closestPark && closestParkDistance < prefetchDistance ? closestPark.name : "");
+
         const nearbyPark = parkFeatures.find((park) => distanceInMeters(userLocation, park.scaledCoords) < maxDistance);
 
         if (nearbyPark && !parkModalOpen) {
@@ -195,6 +210,7 @@ export function useGeolocationTracking({
         parkFeatures,
         parkModalOpen,
         parkName,
+        prefetchParkName,
         position,
         setParkModalOpen,
         userOrientationEnabled,
