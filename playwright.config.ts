@@ -18,7 +18,7 @@ export default defineConfig({
     ? undefined
     : {
         command: "npm run dev -- --host 127.0.0.1 --port 4173",
-        url: `${localBaseURL}/resonant-landscapes/`,
+        url: `${localBaseURL}/`,
         reuseExistingServer: true,
         timeout: 120_000,
       },

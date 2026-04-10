@@ -37,16 +37,16 @@ Copy the generated `https://...trycloudflare.com` URL.
 
 ### 4. Open app on phone
 
-Open this path in your phone browser:
+Open this URL in your phone browser:
 
 ```text
-https://<your-tunnel-host>/resonant-landscapes/
+https://<your-tunnel-host>/
 ```
 
 Example:
 
 ```text
-https://far-sanyo-inn-premium.trycloudflare.com/resonant-landscapes/
+https://far-sanyo-inn-premium.trycloudflare.com/
 ```
 
 ### 5. If host is blocked in Vite
@@ -101,14 +101,14 @@ For iPhone Safari and Android verification, prefer headed Playwright runs agains
 If `cloudflared` is already running, point Playwright at that tunnel:
 
 ```bash
-PLAYWRIGHT_BASE_URL=https://students-examines-mold-include.trycloudflare.com/resonant-landscapes/#/debug npm run sim:path:https:iphone
+PLAYWRIGHT_BASE_URL=https://students-examines-mold-include.trycloudflare.com npm run sim:path:https:iphone
 PLAYWRIGHT_BASE_URL=https://<your-tunnel-host> npm run sim:path:https:pixel
 ```
 
 Example:
 
 ```bash
-PLAYWRIGHT_BASE_URL=https://contracting-differently-exempt-posted.trycloudflare.com/resonant-landscapes/ npm run sim:path:https:iphone
+PLAYWRIGHT_BASE_URL=https://contracting-differently-exempt-posted.trycloudflare.com npm run sim:path:https:iphone
 ```
 
 This skips Playwright's local `webServer` and navigates the mobile profile against the HTTPS origin directly.
@@ -136,4 +136,16 @@ PATH_REPLAY_FILE=tests/paths/my-path.json npm run sim:path
 
 ```bash
 PATH_REPLAY_STEP_MS=1000 PATH_REPLAY_FINAL_HOLD_MS=12000 npm run sim:path
+```
+
+## Netlify Deployment
+
+This project is configured for Netlify with `netlify.toml`.
+
+Use these settings if you connect the repo in Netlify:
+
+```text
+Build command: npm run build
+Publish directory: dist
+Node version: 22
 ```

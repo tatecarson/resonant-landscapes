@@ -54,7 +54,7 @@ type ParkRunResult = {
   failureReason: string | null;
 };
 
-const replayPath = "/resonant-landscapes/#/debug";
+const replayPath = "/#/debug";
 const neutralPoint: Coordinate = [-97.1098, 44.0142];
 const scaleLat = 0.00066;
 const scaleLong = 0.00045;
