@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import stateParks from '../src/data/stateParks.json' with { type: 'json' };
-import { formatParkSlug, getParkAudioVariants } from '../src/utils/audioPaths.js';
+import { formatParkSlug, getParkAudioVariants, pickSoundPath } from '../src/utils/audioPaths.js';
 
 test('every park in stateParks.json expands into valid audio URL pairs', () => {
   for (const park of stateParks) {
@@ -61,4 +61,11 @@ test('slug formatting matches current CDN naming convention', () => {
   assert.equal(formatParkSlug('Fort Sisseton Historic State Park'), 'Fort-Sisseton');
   assert.equal(formatParkSlug('Good Earth State Park'), 'Good-Earth');
   assert.equal(formatParkSlug('Bear Butte State Park'), 'Bear-Butte');
+});
+
+test('park audio selection stays stable within a single app session', () => {
+  const firstSelection = pickSoundPath('Sica Hollow State Park', stateParks, 'Safari');
+  const secondSelection = pickSoundPath('Sica Hollow State Park', stateParks, 'Safari');
+
+  assert.deepEqual(secondSelection, firstSelection);
 });

@@ -1,8 +1,7 @@
-import { Fragment, useRef, memo, lazy, Suspense } from 'react'
+import { Fragment, useRef, memo } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAudioContext } from "../contexts/AudioContextProvider";
-
-const HOARenderer = lazy(() => import('./HoaRenderer'));
+import HOARenderer from './HoaRenderer';
 
 interface ParkModalProps {
     setIsOpen: (value: boolean) => void;
@@ -31,9 +30,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
                     <h3 className="text-sm font-semibold leading-6 text-gray-900">{parkName}</h3>
                     <p className="text-xs text-gray-500">{Math.floor(parkDistance)} meters away</p>
                     <div className="mt-2">
-                        <Suspense fallback={<div>Loading audio controls...</div>}>
-                            <HOARenderer parkName={parkName} parkDistance={parkDistance} userOrientation={userOrientation} compact />
-                        </Suspense>
+                        <HOARenderer parkName={parkName} parkDistance={parkDistance} userOrientation={userOrientation} compact />
                     </div>
                 </div>
             </div>
@@ -77,9 +74,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
                                                 {Math.floor(parkDistance)} meters away
                                             </p>
                                             <div className="mt-2">
-                                                <Suspense fallback={<div>Loading audio controls...</div>}>
-                                                    <HOARenderer parkName={parkName} parkDistance={parkDistance} userOrientation={userOrientation} />
-                                                </Suspense>
+                                                <HOARenderer parkName={parkName} parkDistance={parkDistance} userOrientation={userOrientation} />
                                             </div>
                                         </div>
                                     </div>

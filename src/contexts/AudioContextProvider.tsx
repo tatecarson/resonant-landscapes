@@ -18,7 +18,17 @@ interface AudioContextStateType {
     loadError: string | null;
     clearLoadError: () => void;
     cancelPendingLoad: () => void;
+    preloadBuffers: (urls: string[]) => Promise<boolean>;
 }
+
+type AudioLoadDebug = {
+    urls: string[];
+    reason: "active-load" | "prefetch";
+    startedAt: number;
+    completedAt: number | null;
+    durationMs: number | null;
+    cacheHit: boolean;
+};
 
 const AudioContextState = createContext<AudioContextStateType>({
     audioContext: null,
@@ -35,7 +45,8 @@ const AudioContextState = createContext<AudioContextStateType>({
     bufferSourceRef: { current: null },
     loadError: null,
     clearLoadError: () => {},
-    cancelPendingLoad: () => {}
+    cancelPendingLoad: () => {},
+    preloadBuffers: async () => false,
 });
 
 
@@ -49,20 +60,34 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const bufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
     const lastAudioEventRef = useRef<string | null>(null);
     const activeLoadRequestIdRef = useRef(0);
+    const bufferCacheRef = useRef(new Map<string, AudioBuffer>());
+    const pendingBufferLoadsRef = useRef(new Map<string, Promise<AudioBuffer>>());
     const audioDebugStateRef = useRef({
         audioContextState: 'unavailable',
         isLoading: false,
         isPlaying: false,
         buffers: null as AudioBuffer | null,
         loadError: null as string | null,
+        activeUrls: [] as string[],
+        lastLoad: null as AudioLoadDebug | null,
     });
+
+    const getCacheKey = useCallback((urls: string[]) => urls.join("::"), []);
 
     const syncAudioDebug = useCallback((nextEvent?: string | null) => {
         if (nextEvent !== undefined) {
             lastAudioEventRef.current = nextEvent;
         }
 
-        const { audioContextState, isLoading: loading, isPlaying: playing, buffers: activeBuffers, loadError: activeLoadError } = audioDebugStateRef.current;
+        const {
+            audioContextState,
+            isLoading: loading,
+            isPlaying: playing,
+            buffers: activeBuffers,
+            loadError: activeLoadError,
+            activeUrls,
+            lastLoad,
+        } = audioDebugStateRef.current;
         window.__audioDebug = {
             contextState: audioContextState,
             isLoading: loading,
@@ -73,6 +98,19 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             hasSourceNode: Boolean(bufferSourceRef.current),
             loadError: activeLoadError,
             lastEvent: lastAudioEventRef.current,
+            activeUrls,
+            cacheEntries: bufferCacheRef.current.size,
+            lastLoadReason: lastLoad?.reason ?? null,
+            lastLoadDurationMs: lastLoad?.durationMs ?? null,
+            lastLoadCacheHit: lastLoad?.cacheHit ?? null,
+        };
+    }, []);
+
+    const recordLoadDebug = useCallback((load: AudioLoadDebug) => {
+        audioDebugStateRef.current = {
+            ...audioDebugStateRef.current,
+            activeUrls: load.urls,
+            lastLoad: load,
         };
     }, []);
 
@@ -84,18 +122,79 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         activeLoadRequestIdRef.current += 1;
         setIsLoading(false);
         setBuffers(null);
+        audioDebugStateRef.current = {
+            ...audioDebugStateRef.current,
+            activeUrls: [],
+        };
         lastAudioEventRef.current = "load-cancelled";
         syncAudioDebug();
     }, [syncAudioDebug]);
 
-    const loadBuffers = useCallback(async (urls: string[]): Promise<boolean> => {
+    const ensureBuffers = useCallback(async (
+        urls: string[],
+        reason: "active-load" | "prefetch"
+    ): Promise<AudioBuffer> => {
         if (!audioContext || !resonanceAudioScene || !urls.length) {
-            console.error("Missing audio context, resonance scene, or URLs.");
-            setLoadError("Missing audio context, resonance scene, or URLs.");
-            syncAudioDebug("load-missing-prereqs");
-            return false;
+            throw new Error("Missing audio context, resonance scene, or URLs.");
         }
 
+        const cacheKey = getCacheKey(urls);
+        const cachedBuffer = bufferCacheRef.current.get(cacheKey);
+        const startedAt = Date.now();
+
+        if (cachedBuffer) {
+            const load = {
+                urls,
+                reason,
+                startedAt,
+                completedAt: startedAt,
+                durationMs: 0,
+                cacheHit: true,
+            } satisfies AudioLoadDebug;
+            recordLoadDebug(load);
+            return cachedBuffer;
+        }
+
+        const pendingLoad = pendingBufferLoadsRef.current.get(cacheKey);
+        if (pendingLoad) {
+            const buffer = await pendingLoad;
+            const completedAt = Date.now();
+            recordLoadDebug({
+                urls,
+                reason,
+                startedAt,
+                completedAt,
+                durationMs: completedAt - startedAt,
+                cacheHit: true,
+            });
+            return buffer;
+        }
+
+        const request = Omnitone.createBufferList(audioContext, urls)
+            .then((results) => {
+                const contentBuffer = Omnitone.mergeBufferListByChannel(audioContext, results);
+                bufferCacheRef.current.set(cacheKey, contentBuffer);
+                return contentBuffer;
+            })
+            .finally(() => {
+                pendingBufferLoadsRef.current.delete(cacheKey);
+            });
+
+        pendingBufferLoadsRef.current.set(cacheKey, request);
+        const buffer = await request;
+        const completedAt = Date.now();
+        recordLoadDebug({
+            urls,
+            reason,
+            startedAt,
+            completedAt,
+            durationMs: completedAt - startedAt,
+            cacheHit: false,
+        });
+        return buffer;
+    }, [audioContext, getCacheKey, recordLoadDebug, resonanceAudioScene]);
+
+    const loadBuffers = useCallback(async (urls: string[]): Promise<boolean> => {
         const requestId = ++activeLoadRequestIdRef.current;
         setIsLoading(true);
         setLoadError(null);
@@ -103,13 +202,12 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         syncAudioDebug("load-start");
 
         try {
-            const results = await Omnitone.createBufferList(audioContext, urls);
+            const contentBuffer = await ensureBuffers(urls, "active-load");
             if (requestId !== activeLoadRequestIdRef.current) {
                 lastAudioEventRef.current = "load-stale-ignored";
                 return false;
             }
-            console.log("Results", results);
-            const contentBuffer = Omnitone.mergeBufferListByChannel(audioContext, results);
+
             setBuffers(contentBuffer);
             lastAudioEventRef.current = "buffers-loaded";
             return true;
@@ -128,7 +226,19 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
                 setIsLoading(false);
             }
         }
-    }, [audioContext, resonanceAudioScene, syncAudioDebug]);
+    }, [ensureBuffers, syncAudioDebug]);
+
+    const preloadBuffers = useCallback(async (urls: string[]): Promise<boolean> => {
+        try {
+            await ensureBuffers(urls, "prefetch");
+            syncAudioDebug("prefetch-complete");
+            return true;
+        } catch (error) {
+            console.error("Error preloading buffers with Omnitone:", error);
+            syncAudioDebug("prefetch-error");
+            return false;
+        }
+    }, [ensureBuffers, syncAudioDebug]);
 
     const proceedWithPlayback = useCallback(() => {
         if (!audioContext || !resonanceAudioScene || !buffers) return;
@@ -235,6 +345,8 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             isPlaying,
             buffers,
             loadError,
+            activeUrls: audioDebugStateRef.current.activeUrls,
+            lastLoad: audioDebugStateRef.current.lastLoad,
         };
         syncAudioDebug();
     }, [audioContext, buffers, isLoading, isPlaying, loadError, syncAudioDebug]);
@@ -244,7 +356,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         <AudioContextState.Provider value={{
             audioContext, resonanceAudioScene, bufferSourceRef,
             playSound, stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, setIsPlaying, buffers, setBuffers,
-            loadError, clearLoadError, cancelPendingLoad
+            loadError, clearLoadError, cancelPendingLoad, preloadBuffers
         }}>
             {children}
         </AudioContextState.Provider>

@@ -25,5 +25,10 @@ interface Window {
     hasSourceNode: boolean;
     loadError: string | null;
     lastEvent: string | null;
+    activeUrls: string[];
+    cacheEntries: number;
+    lastLoadReason: "active-load" | "prefetch" | null;
+    lastLoadDurationMs: number | null;
+    lastLoadCacheHit: boolean | null;
   };
 }

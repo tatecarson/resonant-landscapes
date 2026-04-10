@@ -1,8 +1,19 @@
 const CDN_BASE = 'https://resonant-landscapes.b-cdn.net/';
+const SESSION_AUDIO_VARIANT_SEED = Math.floor(Math.random() * 0x7fffffff);
 const PARK_SLUG_OVERRIDES = {
   'Custer State Park': 'Custer-State',
   'Palisades State Park': 'Palisades-State',
 };
+
+function hashString(value) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = ((hash << 5) - hash + value.charCodeAt(index)) | 0;
+  }
+
+  return Math.abs(hash);
+}
 
 export function formatParkSlug(parkName) {
   if (PARK_SLUG_OVERRIDES[parkName]) {
@@ -65,6 +76,7 @@ export function pickSoundPath(parkName, parksJSON, userAgent = '') {
     return null;
   }
 
-  const selected = variants[Math.floor(Math.random() * variants.length)];
+  const selectedIndex = hashString(`${parkName}:${SESSION_AUDIO_VARIANT_SEED}`) % variants.length;
+  const selected = variants[selectedIndex];
   return selected.every(Boolean) ? selected : null;
 }
