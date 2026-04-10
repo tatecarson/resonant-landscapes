@@ -16,6 +16,10 @@
     "sim:path:pixel": "playwright test tests/path-replay.spec.ts --project=pixel-7 --headed",
     "sim:path:https:iphone": "PLAYWRIGHT_EXTERNAL_SERVER=1 playwright test tests/path-replay.spec.ts --project=iphone-13 --headed",
     "sim:path:https:pixel": "PLAYWRIGHT_EXTERNAL_SERVER=1 playwright test tests/path-replay.spec.ts --project=pixel-7 --headed",
+    "sim:audio:all:iphone": "playwright test tests/audio-all-parks-mobile.spec.ts --project=iphone-13 --headed",
+    "sim:audio:all:pixel": "playwright test tests/audio-all-parks-mobile.spec.ts --project=pixel-7 --headed",
+    "sim:audio:all:https:iphone": "PLAYWRIGHT_EXTERNAL_SERVER=1 playwright test tests/audio-all-parks-mobile.spec.ts --project=iphone-13 --headed",
+    "sim:audio:all:https:pixel": "PLAYWRIGHT_EXTERNAL_SERVER=1 playwright test tests/audio-all-parks-mobile.spec.ts --project=pixel-7 --headed",
     "sim:path:install": "playwright install chromium webkit"
   },
   "dependencies": {
