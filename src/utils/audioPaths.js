@@ -1,6 +1,14 @@
 const CDN_BASE = 'https://resonant-landscapes.b-cdn.net/';
+const PARK_SLUG_OVERRIDES = {
+  'Custer State Park': 'Custer-State',
+  'Palisades State Park': 'Palisades-State',
+};
 
 export function formatParkSlug(parkName) {
+  if (PARK_SLUG_OVERRIDES[parkName]) {
+    return PARK_SLUG_OVERRIDES[parkName];
+  }
+
   return parkName
     .replace(/\b(State Park|Historic State Park)\b/g, '')
     .trim()
