@@ -1,24 +1,24 @@
-import React, { createContext, useState, useEffect, useContext, useRef, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useContext, useRef, useCallback, useMemo } from 'react';
 import { ResonanceAudio } from "resonance-audio";
 import Omnitone from 'omnitone/build/omnitone.min.esm.js';
 
-interface AudioContextStateType {
+interface AudioEngineContextType {
     audioContext: AudioContext | null;
     resonanceAudioScene: ResonanceAudio | null;
     playSound: () => void;
     stopSound: () => void;
-    isLoading: boolean;
-    setIsLoading: (value: boolean) => void;
-    isPlaying: boolean;
-    setIsPlaying: (value: boolean) => void;
-    buffers: AudioBuffer | null;
     loadBuffers: (urls: string[]) => Promise<boolean>;
-    setBuffers: (buffers: AudioBuffer | null) => void;
     bufferSourceRef: React.MutableRefObject<AudioBufferSourceNode | null>;
-    loadError: string | null;
     clearLoadError: () => void;
     cancelPendingLoad: () => void;
     preloadBuffers: (urls: string[]) => Promise<boolean>;
+}
+
+interface AudioPlaybackStateContextType {
+    isLoading: boolean;
+    isPlaying: boolean;
+    buffers: AudioBuffer | null;
+    loadError: string | null;
 }
 
 type AudioLoadDebug = {
@@ -30,23 +30,23 @@ type AudioLoadDebug = {
     cacheHit: boolean;
 };
 
-const AudioContextState = createContext<AudioContextStateType>({
+const AudioEngineContext = createContext<AudioEngineContextType>({
     audioContext: null,
     resonanceAudioScene: null,
     playSound: () => {},
     stopSound: () => {},
-    isLoading: false,
-    setIsLoading: () => {},
-    isPlaying: false,
-    setIsPlaying: () => {},
-    buffers: null,
     loadBuffers: async () => false,
-    setBuffers: () => {},
     bufferSourceRef: { current: null },
-    loadError: null,
     clearLoadError: () => {},
     cancelPendingLoad: () => {},
     preloadBuffers: async () => false,
+});
+
+const AudioPlaybackStateContext = createContext<AudioPlaybackStateContextType>({
+    isLoading: false,
+    isPlaying: false,
+    buffers: null,
+    loadError: null,
 });
 
 
@@ -297,11 +297,11 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [isPlaying, syncAudioDebug]);
 
-    const cleanupBuffers = () => {
+    const cleanupBuffers = useCallback(() => {
         if (buffers) {
             setBuffers(null);
         }
-    };
+    }, [buffers]);
 
     useEffect(() => {
         const initAudio = async () => {
@@ -352,17 +352,50 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     }, [audioContext, buffers, isLoading, isPlaying, loadError, syncAudioDebug]);
 
 
+    const engineValue = useMemo(() => ({
+        audioContext,
+        resonanceAudioScene,
+        playSound,
+        stopSound,
+        loadBuffers,
+        bufferSourceRef,
+        clearLoadError,
+        cancelPendingLoad,
+        preloadBuffers,
+    }), [
+        audioContext,
+        resonanceAudioScene,
+        playSound,
+        stopSound,
+        loadBuffers,
+        clearLoadError,
+        cancelPendingLoad,
+        preloadBuffers,
+    ]);
+
+    const playbackStateValue = useMemo(() => ({
+        isLoading,
+        isPlaying,
+        buffers,
+        loadError,
+    }), [isLoading, isPlaying, buffers, loadError]);
+
     return (
-        <AudioContextState.Provider value={{
-            audioContext, resonanceAudioScene, bufferSourceRef,
-            playSound, stopSound, loadBuffers, isLoading, setIsLoading, isPlaying, setIsPlaying, buffers, setBuffers,
-            loadError, clearLoadError, cancelPendingLoad, preloadBuffers
-        }}>
-            {children}
-        </AudioContextState.Provider>
+        <AudioEngineContext.Provider value={engineValue}>
+            <AudioPlaybackStateContext.Provider value={playbackStateValue}>
+                {children}
+            </AudioPlaybackStateContext.Provider>
+        </AudioEngineContext.Provider>
     );
 };
 
 export default AudioContextProvider;
 
-export const useAudioContext = () => useContext(AudioContextState);
+export const useAudioEngine = () => useContext(AudioEngineContext);
+
+export const useAudioPlaybackState = () => useContext(AudioPlaybackStateContext);
+
+export const useAudioContext = () => ({
+    ...useAudioEngine(),
+    ...useAudioPlaybackState(),
+});
