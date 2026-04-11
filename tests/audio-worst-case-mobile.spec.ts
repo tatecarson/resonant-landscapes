@@ -1,3 +1,4 @@
+/// <reference path="../src/vite-env.d.ts" />
 /**
  * Worst-case mobile audio regression under throttled network conditions.
  * Picks the heaviest park payload, exercises the prefetch/load path, and
@@ -305,6 +306,8 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   );
   const relevantRequests = observedAudioRequests.filter((request) => request.url.includes(worstCasePark.slug));
   const audioDebug = await page.evaluate(() => window.__audioDebug ?? null);
+  const renderDebug = await page.evaluate(() => window.__renderDebug ?? null);
+  console.log("[worst-case] render counts:", JSON.stringify(renderDebug, null, 2));
 
   await testInfo.attach("worst-case-audio-metrics", {
     body: JSON.stringify({

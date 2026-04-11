@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Geolocation as OLGeoLoc } from "ol";
 import { LineString, Point } from "ol/geom";
 import { fromLonLat, toLonLat } from "ol/proj";
@@ -26,23 +26,60 @@ import { useGeolocationTracking } from "../hooks/useGeolocationTracking";
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
+import scaledPoints, { testPark } from "../utils/scaledParks";
 import locationIcon from "../assets/geolocation_marker_heading.png";
 
-function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element {
-    const {
-        resonanceAudioScene,
-        stopSound,
-        preloadBuffers,
-        audioContext,
-    } = useAudioEngine();
-    const { map } = useOL();
+function toParkFeature(park: { name: string; scaledCoords: number[] }) {
+    return {
+        name: park.name,
+        scaledCoords: [park.scaledCoords[0], park.scaledCoords[1]] as [number, number],
+    };
+}
+
+const GeolocationPositionLayer = memo(function GeolocationPositionLayer({
+    position,
+    accuracy,
+}: {
+    position: number[] | null;
+    accuracy: LineString | null;
+}): JSX.Element {
+    useRenderDebug("GeolocationPositionLayer", {
+        hasPosition: Boolean(position),
+        hasAccuracy: Boolean(accuracy),
+    });
+
+    return (
+        <RLayerVector zIndex={10}>
+            <RStyle.RStyle>
+                <RStyle.RIcon src={locationIcon} anchor={[0.5, 0.8]} />
+                <RStyle.RStroke color={"#007bff"} width={3} />
+            </RStyle.RStyle>
+            {position && <RFeature geometry={new Point(position)}></RFeature>}
+            {accuracy && <RFeature geometry={accuracy as LineString}></RFeature>}
+        </RLayerVector>
+    );
+});
+
+const GeolocationTrackingController = memo(function GeolocationTrackingController({
+    debug,
+    map,
+    resonanceAudioScene,
+    stopSound,
+    preloadBuffers,
+    audioContext,
+}: {
+    debug: boolean;
+    map: ReturnType<typeof useOL>["map"];
+    resonanceAudioScene: ReturnType<typeof useAudioEngine>["resonanceAudioScene"];
+    stopSound: ReturnType<typeof useAudioEngine>["stopSound"];
+    preloadBuffers: ReturnType<typeof useAudioEngine>["preloadBuffers"];
+    audioContext: ReturnType<typeof useAudioEngine>["audioContext"];
+}): JSX.Element {
     const {
         accuracy,
         debugPermission,
-        maxDistance,
         onGeolocationChange,
         parkDistance,
-        parkFeatures,
         parkModalOpen,
         parkName,
         prefetchParkName,
@@ -69,7 +106,7 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
         onGeolocationChange(event);
     }, [onGeolocationChange]);
 
-    useRenderDebug("GeolocationOverlay", {
+    useRenderDebug("GeolocationTrackingController", {
         debug,
         parkModalOpen,
         parkName,
@@ -88,23 +125,14 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
     }, [audioContext, prefetchUrls, preloadBuffers]);
 
     return (
-        <div>
+        <>
             <RGeolocation
                 tracking={true}
                 trackingOptions={{ enableHighAccuracy: true }}
                 onChange={handleGeolocationChange}
             />
 
-            <RLayerVector zIndex={10}>
-                <RStyle.RStyle>
-                    <RStyle.RIcon src={locationIcon} anchor={[0.5, 0.8]} />
-                    <RStyle.RStroke color={"#007bff"} width={3} />
-                </RStyle.RStyle>
-                {position && <RFeature geometry={new Point(position)}></RFeature>}
-                {accuracy && <RFeature geometry={accuracy as LineString}></RFeature>}
-            </RLayerVector>
-
-            <ParkFeatureLayers parkFeatures={parkFeatures} maxDistance={maxDistance} />
+            <GeolocationPositionLayer position={position} accuracy={accuracy} />
 
             <ErrorBoundary fallback={<div>Error</div>}>
                 {parkModalOpen && (
@@ -125,6 +153,39 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
                     debugPermission={debugPermission}
                 />
             )}
+        </>
+    );
+});
+
+function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element {
+    const {
+        resonanceAudioScene,
+        stopSound,
+        preloadBuffers,
+        audioContext,
+    } = useAudioEngine();
+    const { map } = useOL();
+    const parkFeatures = useMemo(
+        () => (debug ? [testPark, ...scaledPoints] : scaledPoints).map(toParkFeature),
+        [debug]
+    );
+
+    useRenderDebug("GeolocationOverlay", {
+        debug,
+        hasMap: Boolean(map),
+    });
+
+    return (
+        <div>
+            <ParkFeatureLayers parkFeatures={parkFeatures} maxDistance={15} />
+            <GeolocationTrackingController
+                debug={debug}
+                map={map}
+                resonanceAudioScene={resonanceAudioScene}
+                stopSound={stopSound}
+                preloadBuffers={preloadBuffers}
+                audioContext={audioContext}
+            />
         </div>
     );
 }
