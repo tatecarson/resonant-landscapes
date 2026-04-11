@@ -1,26 +1,7 @@
 /**
- * All-parks audio regression test for mobile (iPhone 13 / Pixel 7).
- *
- * Simulates a user physically walking up to every state park on the debug map
- * by spoofing GPS coordinates. For each park:
- *
- *   1. Rapidly pulses setGeolocation at the park's scaled coordinates to flush
- *      the app's 20-entry time-interpolated position history, forcing the
- *      smoothed location to converge immediately instead of lagging behind.
- *   2. Waits for the park modal heading to become visible (modal auto-opens
- *      when the smoothed position is within 15 m of the park's scaled coords).
- *   3. Waits for audio buffers to finish loading.
- *   4. Clicks the play button and confirms playback starts.
- *   5. Holds for ALL_PARKS_PLAYBACK_HOLD_MS (default 3 s) so audio is audible.
- *   6. Stops playback and moves on — the app's own auto-close logic dismisses
- *      the modal as the position transitions to the next park.
- *
- * Parks use real GPS coordinates from stateParks.json that are scaled down to
- * a small area around the DSU campus reference point so they fit on the debug
- * map. The same scaling constants are used by the app (src/utils/scaledParks.js).
- *
- * A JSON report is written to the Playwright output directory and attached to
- * the test result for later inspection.
+ * Broad mobile regression that walks the debug map through every park.
+ * This is the suite's breadth check: each park should open, load buffers,
+ * and start playback at least once on the supported mobile profiles.
  */
 import fs from "node:fs/promises";
 import stateParks from "../src/data/stateParks.json" with { type: "json" };

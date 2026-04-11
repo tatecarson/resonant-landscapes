@@ -1,3 +1,8 @@
+/**
+ * Worst-case mobile audio regression under throttled network conditions.
+ * Picks the heaviest park payload, exercises the prefetch/load path, and
+ * asserts playback still starts within reasonable timing bounds.
+ */
 import { expect, test } from "@playwright/test";
 import stateParks from "../src/data/stateParks.json" with { type: "json" };
 import { scaleCoordinates } from "../src/utils/geo.js";

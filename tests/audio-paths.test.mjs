@@ -1,3 +1,8 @@
+/**
+ * Unit coverage for audio CDN path generation.
+ * Keeps slug formatting, browser-specific asset families, and stable path
+ * selection logic from drifting without needing a browser run.
+ */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import stateParks from '../src/data/stateParks.json' with { type: 'json' };

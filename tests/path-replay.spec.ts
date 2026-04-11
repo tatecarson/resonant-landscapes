@@ -1,3 +1,8 @@
+/**
+ * Geolocation replay regression for map and park-transition behavior.
+ * This test owns the Custer-to-Sica path flow and intentionally avoids
+ * audio-specific assertions so audio regressions stay in the dedicated specs.
+ */
 import fs from "node:fs/promises";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
@@ -28,7 +33,7 @@ async function readReplayPoints(): Promise<ReplayPoint[]> {
   return parsed;
 }
 
-test("replays a geolocation path on the map", async ({ context, page, baseURL }) => {
+test("replays a geolocation path and updates the active park on the map", async ({ context, page, baseURL }) => {
   page.on("console", async (msg) => {
     const args = await Promise.all(
       msg.args().map(async (arg) => {
@@ -98,31 +103,8 @@ test("replays a geolocation path on the map", async ({ context, page, baseURL })
   await expect(parkLabel).toBeVisible({ timeout: 15_000 });
   console.log("[test] detected modal heading: Custer Test");
 
-  const playButton = page.getByRole("button", { name: "Start playback" });
-  await expect(playButton).toBeVisible({ timeout: 15_000 });
-  console.log("[test] clicking play at Custer Test");
-  await playButton.click();
-
-  await page.waitForFunction(() => {
-    const audioDebug = window.__audioDebug;
-    return Boolean(
-      audioDebug &&
-      audioDebug.lastEvent === "playback-started" &&
-      audioDebug.isPlaying &&
-      audioDebug.hasSourceNode &&
-      audioDebug.hasBuffers &&
-      !audioDebug.loadError
-    );
-  }, null, { timeout: 15_000 });
-
   console.log(`[test] holding at Custer Test for ${custerHoldMs}ms`);
   await page.waitForTimeout(custerHoldMs);
-
-  const stopButton = page.getByRole("button", { name: "Stop playback" });
-  if (await stopButton.count()) {
-    console.log("[test] stopping playback before leaving Custer Test");
-    await stopButton.click();
-  }
 
   for (const [index, point] of replayPoints.slice(1).entries()) {
     console.log(
@@ -139,38 +121,15 @@ test("replays a geolocation path on the map", async ({ context, page, baseURL })
   await expect(sicaLabel).toBeVisible({ timeout: 15_000 });
   console.log("[test] detected park label: Sica Hollow State Park");
 
-  await expect(playButton).toBeVisible({ timeout: 15_000 });
+  await expect(parkDebug).toContainText("Sica Hollow State Park", { timeout: 15_000 });
+  console.log("[test] debug panel reports park: Sica Hollow State Park");
 
   if (pauseAtPark) {
     await page.pause();
   }
 
-  await playButton.click();
-
-  await page.waitForFunction(() => {
-    const audioDebug = window.__audioDebug;
-    return Boolean(
-      audioDebug &&
-      audioDebug.lastEvent === "playback-started" &&
-      audioDebug.isPlaying &&
-      audioDebug.hasSourceNode &&
-      audioDebug.hasBuffers &&
-      !audioDebug.loadError
-    );
-  }, null, { timeout: 15_000 });
-
-  await expect.poll(async () => {
-    return page.evaluate(() => window.__audioDebug ?? null);
-  }).toMatchObject({
-    lastEvent: "playback-started",
-    isPlaying: true,
-    hasSourceNode: true,
-    hasBuffers: true,
-    loadError: null,
-  });
-
   await page.screenshot({
-    path: "test-results/path-replay-playing-audio.png",
+    path: "test-results/path-replay-arrived-at-sica.png",
     fullPage: true,
   });
 
