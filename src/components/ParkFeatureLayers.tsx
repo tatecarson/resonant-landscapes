@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Point } from "ol/geom";
 import Circle from "ol/geom/Circle";
 import { fromLonLat } from "ol/proj";
@@ -43,7 +44,7 @@ function renderMaxDistanceFeature(scaledCoords: [number, number], key: number, m
     );
 }
 
-export default function ParkFeatureLayers({ parkFeatures, maxDistance }: ParkFeatureLayersProps) {
+function ParkFeatureLayers({ parkFeatures, maxDistance }: ParkFeatureLayersProps) {
     return (
         <>
             <RLayerVector zIndex={9}>
@@ -56,3 +57,5 @@ export default function ParkFeatureLayers({ parkFeatures, maxDistance }: ParkFea
         </>
     );
 }
+
+export default memo(ParkFeatureLayers);
