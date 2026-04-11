@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Geolocation as OLGeoLoc } from "ol";
 import { LineString, Point } from "ol/geom";
 import { fromLonLat, toLonLat } from "ol/proj";
@@ -21,7 +21,7 @@ import HelpModal from "./HelpModal";
 import ParkModal from "./ParkModal";
 import ParkFeatureLayers from "./ParkFeatureLayers";
 import GeolocationDebugPanel from "./GeolocationDebugPanel";
-import { useAudioContext } from "../contexts/AudioContextProvider";
+import { useAudioEngine, useAudioPlaybackState } from "../contexts/AudioContextProvider";
 import { useGeolocationTracking } from "../hooks/useGeolocationTracking";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
@@ -31,14 +31,16 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
     const {
         resonanceAudioScene,
         stopSound,
+        preloadBuffers,
+        audioContext,
+        bufferSourceRef,
+    } = useAudioEngine();
+    const {
         isPlaying,
         isLoading,
         loadError,
-        preloadBuffers,
-        audioContext,
         buffers,
-        bufferSourceRef,
-    } = useAudioContext();
+    } = useAudioPlaybackState();
     const { map } = useOL();
     const {
         accuracy,
@@ -70,6 +72,10 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
         return pickSoundPath(prefetchParkName, stateParks, navigator.userAgent);
     }, [prefetchParkName]);
 
+    const handleGeolocationChange = useCallback((event: { target: OLGeoLoc }) => {
+        onGeolocationChange(event);
+    }, [onGeolocationChange]);
+
     useEffect(() => {
         if (!audioContext || !prefetchUrls?.length) {
             return;
@@ -83,7 +89,7 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
             <RGeolocation
                 tracking={true}
                 trackingOptions={{ enableHighAccuracy: true }}
-                onChange={(event: { target: OLGeoLoc }) => onGeolocationChange(event)}
+                onChange={handleGeolocationChange}
             />
 
             <RLayerVector zIndex={10}>
@@ -130,6 +136,9 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
 
 export default function GeolocationMap({ debug = false }: { debug?: boolean }): JSX.Element {
     const [helpIsOpen, setHelpIsOpen] = useState(false);
+    const openHelp = useCallback(() => {
+        setHelpIsOpen(true);
+    }, []);
 
     return (
         <RMap
@@ -137,7 +146,7 @@ export default function GeolocationMap({ debug = false }: { debug?: boolean }): 
             initial={{ center: fromLonLat([0, 0]), zoom: 19 }}
         >
             <RControl.RCustom className="example-control">
-                <button onClick={() => setHelpIsOpen(true)}>
+                <button onClick={openHelp}>
                     ?
                 </button>
             </RControl.RCustom>
