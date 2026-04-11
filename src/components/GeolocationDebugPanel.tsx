@@ -28,6 +28,9 @@ export default function GeolocationDebugPanel({
     loadError,
 }: GeolocationDebugPanelProps) {
     const [isCollapsed, setIsCollapsed] = useState(true);
+    const renderDebugEntries = Object.entries(window.__renderDebug ?? {}).sort((a, b) => {
+        return b[1].lastRenderedAt - a[1].lastRenderedAt;
+    });
 
     return (
         <div className="pointer-events-auto fixed bottom-3 left-3 z-20 w-[min(18rem,calc(100vw-1.5rem))] rounded-2xl border border-black/10 bg-white/92 p-3 text-[11px] leading-4 text-slate-700 shadow-xl backdrop-blur">
@@ -57,6 +60,20 @@ export default function GeolocationDebugPanel({
                     <p><span className="font-semibold text-slate-900">Geo permission:</span> {debugPermission}</p>
                     <p><span className="font-semibold text-slate-900">Coords:</span> {position ? `${position[1].toFixed(5)}, ${position[0].toFixed(5)}` : "waiting"}</p>
                     <p><span className="font-semibold text-slate-900">Park:</span> {parkName || "none"}</p>
+                    {renderDebugEntries.length > 0 && (
+                        <div className="rounded-xl bg-slate-100 px-2 py-2 text-[10px] text-slate-600">
+                            <p className="font-semibold text-slate-900">Render counts</p>
+                            <div className="mt-1 space-y-1">
+                                {renderDebugEntries.map(([name, entry]) => (
+                                    <p key={name}>
+                                        <span className="font-semibold text-slate-900">{name}:</span>{" "}
+                                        {entry.renderCount}
+                                        {entry.changedKeys.length > 0 ? ` (${entry.changedKeys.join(", ")})` : ""}
+                                    </p>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     {loadError && (
                         <div className="rounded-xl bg-rose-50 px-2 py-2 text-[10px] text-rose-700">
                             <span className="font-semibold">Load error:</span> {loadError}

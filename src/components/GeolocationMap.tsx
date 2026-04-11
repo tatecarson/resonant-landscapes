@@ -23,6 +23,7 @@ import ParkFeatureLayers from "./ParkFeatureLayers";
 import GeolocationDebugPanel from "./GeolocationDebugPanel";
 import { useAudioEngine, useAudioPlaybackState } from "../contexts/AudioContextProvider";
 import { useGeolocationTracking } from "../hooks/useGeolocationTracking";
+import { useRenderDebug } from "../hooks/useRenderDebug";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
 import locationIcon from "../assets/geolocation_marker_heading.png";
@@ -75,6 +76,18 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
     const handleGeolocationChange = useCallback((event: { target: OLGeoLoc }) => {
         onGeolocationChange(event);
     }, [onGeolocationChange]);
+
+    useRenderDebug("GeolocationOverlay", {
+        debug,
+        parkModalOpen,
+        parkName,
+        prefetchParkName,
+        hasPosition: Boolean(position),
+        isLoading,
+        isPlaying,
+        hasBuffers: Boolean(buffers),
+        loadError,
+    });
 
     useEffect(() => {
         if (!audioContext || !prefetchUrls?.length) {
@@ -139,6 +152,11 @@ export default function GeolocationMap({ debug = false }: { debug?: boolean }): 
     const openHelp = useCallback(() => {
         setHelpIsOpen(true);
     }, []);
+
+    useRenderDebug("GeolocationMap", {
+        debug,
+        helpIsOpen,
+    });
 
     return (
         <RMap

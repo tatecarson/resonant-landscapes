@@ -117,3 +117,4 @@ Rules:
 - Work is not complete until changes are pushed successfully
 - Do not leave completed work stranded locally
 - If push fails, resolve it and retry
+- Do not create a pull request until the user explicitly says testing is done

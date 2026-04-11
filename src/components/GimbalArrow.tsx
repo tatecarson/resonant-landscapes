@@ -2,11 +2,16 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 
 import Gimbal from '../utils/Gimbal';
 import { useAudioEngine } from '../contexts/AudioContextProvider';
+import { useRenderDebug } from "../hooks/useRenderDebug";
 
 const GimbalArrow = () => {
     const [gimbal] = useState(new Gimbal());
     const [permissionGranted, setPermissionGranted] = useState(false);
     const { resonanceAudioScene } = useAudioEngine();
+    useRenderDebug("GimbalArrow", {
+        permissionGranted,
+        hasResonanceScene: Boolean(resonanceAudioScene),
+    });
 
     const requestPermission = useCallback(async () => {
         const DOE = DeviceOrientationEvent as IOSDeviceOrientationEvent;

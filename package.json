@@ -17,7 +17,9 @@
     "sim:audio:all:pixel": "playwright test tests/audio-all-parks-mobile.spec.ts --project=pixel-7 --headed",
     "sim:audio:all:https:iphone": "PLAYWRIGHT_EXTERNAL_SERVER=1 playwright test tests/audio-all-parks-mobile.spec.ts --project=iphone-13 --headed",
     "sim:audio:all:https:pixel": "PLAYWRIGHT_EXTERNAL_SERVER=1 playwright test tests/audio-all-parks-mobile.spec.ts --project=pixel-7 --headed",
+    "sim:audio:worst:iphone": "playwright test tests/audio-worst-case-mobile.spec.ts --project=iphone-13 --headed",
     "sim:audio:worst:pixel": "playwright test tests/audio-worst-case-mobile.spec.ts --project=pixel-7 --headed",
+    "sim:audio:worst:https:iphone": "PLAYWRIGHT_EXTERNAL_SERVER=1 playwright test tests/audio-worst-case-mobile.spec.ts --project=iphone-13 --headed",
     "sim:audio:worst:https:pixel": "PLAYWRIGHT_EXTERNAL_SERVER=1 playwright test tests/audio-worst-case-mobile.spec.ts --project=pixel-7 --headed",
     "sim:path:install": "playwright install chromium webkit"
   },
