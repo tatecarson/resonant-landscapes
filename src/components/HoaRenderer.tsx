@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { PlayCircleIcon, StopCircleIcon } from '@heroicons/react/24/solid'
 import { Switch } from '@headlessui/react'
 import { useAudioEngine, useAudioPlaybackState } from '../contexts/AudioContextProvider';
+import { useRenderDebug } from "../hooks/useRenderDebug";
 import GimbalArrow from './GimbalArrow';
 
 import stateParks from '../data/stateParks.json';
@@ -20,6 +21,18 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
     const { isLoading, isPlaying, buffers, loadError } = useAudioPlaybackState();
     const [showGimbalArrow, setShowGimbalArrow] = useState(false);
     const [pathError, setPathError] = useState<string | null>(null);
+    useRenderDebug("HOARenderer", {
+        parkName,
+        parkDistance: Math.floor(parkDistance),
+        userOrientation,
+        compact,
+        isLoading,
+        isPlaying,
+        hasBuffers: Boolean(buffers),
+        loadError,
+        showGimbalArrow,
+        pathError,
+    });
     const audioActionsRef = useRef({
         loadBuffers,
         stopSound,

@@ -24,6 +24,7 @@ const networkProfile = {
   uploadThroughput: 750_000 / 8,
   connectionType: "cellular4g" as const,
 };
+const webkitRequestDelayMs = Number(process.env.WORST_CASE_WEBKIT_REQUEST_DELAY_MS ?? 1_500);
 
 async function dismissWelcomeIfPresent(page: import("@playwright/test").Page) {
   const continueButton = page.getByRole("button", { name: "Continue" });
@@ -175,24 +176,30 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   browserName,
   request,
 }, testInfo) => {
+  console.log(`[worst-case] starting test for project=${testInfo.project.name} browser=${browserName}`);
   test.skip(
-    testInfo.project.name !== "pixel-7",
-    "Network throttling is only reliable on Chromium-backed mobile emulation."
+    !["pixel-7", "iphone-13"].includes(testInfo.project.name),
+    "This regression is only meant for the mobile Pixel and iPhone projects."
   );
 
   if (!baseURL) {
     throw new Error("Missing Playwright baseURL.");
   }
 
-  if (browserName !== "chromium") {
-    throw new Error(`Expected chromium for throttled mobile test, got ${browserName}.`);
-  }
-
   const permissionOrigin = new URL(baseURL).origin;
   const observedAudioRequests: { url: string; start: number; end: number | null }[] = [];
-  const cdpSession = await context.newCDPSession(page);
-  await cdpSession.send("Network.enable");
-  await cdpSession.send("Network.emulateNetworkConditions", networkProfile);
+  const shouldUseChromiumThrottling = testInfo.project.name === "pixel-7" && browserName === "chromium";
+
+  if (shouldUseChromiumThrottling) {
+    const cdpSession = await context.newCDPSession(page);
+    console.log("[worst-case] enabling chromium network throttling");
+    await cdpSession.send("Network.enable");
+    await cdpSession.send("Network.emulateNetworkConditions", networkProfile);
+  } else {
+    console.log(
+      `[worst-case] using delayed audio responses for ${testInfo.project.name} (${webkitRequestDelayMs}ms/request)`
+    );
+  }
 
   await context.route("https://resonant-landscapes.b-cdn.net/**", async (route) => {
     observedAudioRequests.push({
@@ -200,6 +207,11 @@ test("worst-case park audio loads under throttled mobile network conditions", as
       start: Date.now(),
       end: null,
     });
+
+    if (!shouldUseChromiumThrottling) {
+      await page.waitForTimeout(webkitRequestDelayMs);
+    }
+
     await route.continue();
   });
 
@@ -213,13 +225,20 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   await context.grantPermissions(["geolocation"], { origin: permissionOrigin });
   await context.setGeolocation(neutralPoint);
 
+  console.log(`[worst-case] navigating to ${replayPath}`);
   await page.goto(replayPath);
   await page.waitForLoadState("domcontentloaded");
+  console.log("[worst-case] page loaded");
   await dismissWelcomeIfPresent(page);
   await expect.poll(() => page.url(), { timeout: 15_000 }).toContain("#/debug");
+  console.log("[worst-case] confirmed debug route");
 
   const userAgent = await page.evaluate(() => navigator.userAgent);
+  console.log("[worst-case] resolving largest audio payload park");
   const worstCasePark = await resolveWorstCasePark(request, userAgent);
+  console.log(
+    `[worst-case] selected park=${worstCasePark.name} totalBytes=${worstCasePark.totalBytes}`
+  );
   const prefetchPoint = offsetPointByMeters(worstCasePark.scaledCoords, 22, 0);
   const outerApproachPoint = offsetPointByMeters(worstCasePark.scaledCoords, 65, 0);
 
@@ -227,21 +246,29 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   if (await debugToggle.count()) {
     await expect(debugToggle).toBeVisible({ timeout: 10_000 });
     await debugToggle.click();
+    console.log("[worst-case] opened debug panel");
   }
 
+  console.log("[worst-case] moving to outer approach point");
   await moveToPoint(context, page, outerApproachPoint, 250);
 
   const prefetchStartedAt = Date.now();
+  console.log("[worst-case] moving to prefetch point");
   await moveToPoint(context, page, prefetchPoint, 800);
   const prefetchResult = await waitForSuccessfulPrefetch(page, 30_000);
   const prefetchDebug = prefetchResult.audioDebug;
   const prefetchCompletedAt = Date.now();
+  console.log(
+    `[worst-case] prefetch complete didPrefetch=${prefetchResult.didPrefetch} waitedMs=${prefetchResult.waitedMs}`
+  );
 
   const loadStartedAt = Date.now();
+  console.log("[worst-case] moving into park");
   await moveToPoint(context, page, worstCasePark.scaledCoords, 300);
 
   const heading = page.getByRole("heading", { name: worstCasePark.name });
   await expect(heading).toBeVisible({ timeout: 15_000 });
+  console.log("[worst-case] park modal visible");
 
   await expect.poll(async () => page.evaluate(() => window.__audioDebug ?? null), {
     timeout: 45_000,
@@ -249,6 +276,7 @@ test("worst-case park audio loads under throttled mobile network conditions", as
     hasBuffers: true,
     loadError: null,
   });
+  console.log("[worst-case] buffers loaded");
 
   const loadCompletedAt = Date.now();
 
@@ -256,6 +284,7 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   await expect(playButton).toBeVisible({ timeout: 15_000 });
 
   const playStartedAt = Date.now();
+  console.log("[worst-case] clicking play");
   await playButton.click({ force: true });
 
   await page.waitForFunction(() => {
@@ -271,6 +300,9 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   }, null, { timeout: 20_000 });
 
   const playbackStartedAt = Date.now();
+  console.log(
+    `[worst-case] playback started loadMs=${loadCompletedAt - loadStartedAt} playStartMs=${playbackStartedAt - playStartedAt}`
+  );
   const relevantRequests = observedAudioRequests.filter((request) => request.url.includes(worstCasePark.slug));
   const audioDebug = await page.evaluate(() => window.__audioDebug ?? null);
 

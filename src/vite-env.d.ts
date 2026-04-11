@@ -31,4 +31,9 @@ interface Window {
     lastLoadDurationMs: number | null;
     lastLoadCacheHit: boolean | null;
   };
+  __renderDebug?: Record<string, {
+    renderCount: number;
+    changedKeys: string[];
+    lastRenderedAt: number;
+  }>;
 }

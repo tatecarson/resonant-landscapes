@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, useRef, useCallback, useMemo } from 'react';
 import { ResonanceAudio } from "resonance-audio";
 import Omnitone from 'omnitone/build/omnitone.min.esm.js';
+import { useRenderDebug } from "../hooks/useRenderDebug";
 
 interface AudioEngineContextType {
     audioContext: AudioContext | null;
@@ -379,6 +380,16 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         buffers,
         loadError,
     }), [isLoading, isPlaying, buffers, loadError]);
+
+    useRenderDebug("AudioContextProvider", {
+        audioContextState: audioContext?.state ?? "unavailable",
+        hasResonanceScene: Boolean(resonanceAudioScene),
+        isLoading,
+        isPlaying,
+        hasBuffers: Boolean(buffers),
+        loadError,
+        cacheEntries: bufferCacheRef.current.size,
+    });
 
     return (
         <AudioEngineContext.Provider value={engineValue}>

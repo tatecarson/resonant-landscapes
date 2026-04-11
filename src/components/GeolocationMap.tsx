@@ -21,8 +21,9 @@ import HelpModal from "./HelpModal";
 import ParkModal from "./ParkModal";
 import ParkFeatureLayers from "./ParkFeatureLayers";
 import GeolocationDebugPanel from "./GeolocationDebugPanel";
-import { useAudioEngine, useAudioPlaybackState } from "../contexts/AudioContextProvider";
+import { useAudioEngine } from "../contexts/AudioContextProvider";
 import { useGeolocationTracking } from "../hooks/useGeolocationTracking";
+import { useRenderDebug } from "../hooks/useRenderDebug";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
 import locationIcon from "../assets/geolocation_marker_heading.png";
@@ -33,14 +34,7 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
         stopSound,
         preloadBuffers,
         audioContext,
-        bufferSourceRef,
     } = useAudioEngine();
-    const {
-        isPlaying,
-        isLoading,
-        loadError,
-        buffers,
-    } = useAudioPlaybackState();
     const { map } = useOL();
     const {
         accuracy,
@@ -63,7 +57,6 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
     });
 
     const debugPosition = position ? toLonLat(position.slice(0, 2)) as [number, number] : null;
-    const audioBuffer = buffers && "duration" in buffers ? buffers : null;
     const prefetchUrls = useMemo(() => {
         if (!prefetchParkName) {
             return null;
@@ -75,6 +68,16 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
     const handleGeolocationChange = useCallback((event: { target: OLGeoLoc }) => {
         onGeolocationChange(event);
     }, [onGeolocationChange]);
+
+    useRenderDebug("GeolocationOverlay", {
+        debug,
+        parkModalOpen,
+        parkName,
+        prefetchParkName,
+        hasPosition: Boolean(position),
+        debugPermission,
+        parkDistanceBucket: Math.floor(parkDistance),
+    });
 
     useEffect(() => {
         if (!audioContext || !prefetchUrls?.length) {
@@ -120,14 +123,6 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
                     position={debugPosition}
                     parkName={parkName}
                     debugPermission={debugPermission}
-                    audioState={audioContext?.state ?? "unavailable"}
-                    isLoading={isLoading}
-                    isPlaying={isPlaying}
-                    hasSourceNode={Boolean(bufferSourceRef.current)}
-                    hasBuffers={Boolean(audioBuffer)}
-                    bufferDuration={audioBuffer?.duration ?? null}
-                    bufferChannels={audioBuffer?.numberOfChannels ?? null}
-                    loadError={loadError}
                 />
             )}
         </div>
@@ -139,6 +134,11 @@ export default function GeolocationMap({ debug = false }: { debug?: boolean }): 
     const openHelp = useCallback(() => {
         setHelpIsOpen(true);
     }, []);
+
+    useRenderDebug("GeolocationMap", {
+        debug,
+        helpIsOpen,
+    });
 
     return (
         <RMap

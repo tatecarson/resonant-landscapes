@@ -1,6 +1,7 @@
 import { Fragment, useRef, memo } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAudioEngine } from "../contexts/AudioContextProvider";
+import { useRenderDebug } from "../hooks/useRenderDebug";
 import HOARenderer from './HoaRenderer';
 
 interface ParkModalProps {
@@ -14,6 +15,13 @@ interface ParkModalProps {
 
 function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation, compact = false }: ParkModalProps) {
     const { stopSound } = useAudioEngine();
+    useRenderDebug("ParkModal", {
+        isOpen,
+        parkName,
+        parkDistance: Math.floor(parkDistance),
+        userOrientation,
+        compact,
+    });
 
     const cancelButtonRef = useRef(null);
 
