@@ -58,6 +58,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
+    const audioInitializedRef = useRef(false);
     const bufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
     const lastAudioEventRef = useRef<string | null>(null);
     const activeLoadRequestIdRef = useRef(0);
@@ -298,13 +299,10 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [isPlaying, syncAudioDebug]);
 
-    const cleanupBuffers = useCallback(() => {
-        if (buffers) {
-            setBuffers(null);
-        }
-    }, [buffers]);
-
     useEffect(() => {
+        if (audioInitializedRef.current) return;
+        audioInitializedRef.current = true;
+
         const initAudio = async () => {
             try {
                 const AudioContextCtor = window.AudioContext
@@ -326,17 +324,6 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         };
 
         initAudio();
-
-        return () => {
-            if (audioContext) {
-                audioContext.close();
-            }
-            if (resonanceAudioScene) {
-                resonanceAudioScene.dispose();
-            }
-            cleanupBuffers();
-        };
-
     }, []);
 
     useEffect(() => {
