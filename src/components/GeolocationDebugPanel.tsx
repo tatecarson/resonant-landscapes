@@ -1,33 +1,26 @@
 import { useState } from "react";
+import { useAudioEngine, useAudioPlaybackState } from "../contexts/AudioContextProvider";
 
 interface GeolocationDebugPanelProps {
     position: [number, number] | null;
     parkName: string;
     debugPermission: string;
-    audioState: string;
-    isLoading: boolean;
-    isPlaying: boolean;
-    hasSourceNode: boolean;
-    hasBuffers: boolean;
-    bufferDuration: number | null;
-    bufferChannels: number | null;
-    loadError: string | null;
 }
 
 export default function GeolocationDebugPanel({
     position,
     parkName,
     debugPermission,
-    audioState,
-    isLoading,
-    isPlaying,
-    hasSourceNode,
-    hasBuffers,
-    bufferDuration,
-    bufferChannels,
-    loadError,
 }: GeolocationDebugPanelProps) {
     const [isCollapsed, setIsCollapsed] = useState(true);
+    const { audioContext, bufferSourceRef } = useAudioEngine();
+    const { isLoading, isPlaying, buffers, loadError } = useAudioPlaybackState();
+    const audioBuffer = buffers && "duration" in buffers ? buffers : null;
+    const audioState = audioContext?.state ?? "unavailable";
+    const hasSourceNode = Boolean(bufferSourceRef.current);
+    const hasBuffers = Boolean(audioBuffer);
+    const bufferDuration = audioBuffer?.duration ?? null;
+    const bufferChannels = audioBuffer?.numberOfChannels ?? null;
     const renderDebugEntries = Object.entries(window.__renderDebug ?? {}).sort((a, b) => {
         return b[1].lastRenderedAt - a[1].lastRenderedAt;
     });

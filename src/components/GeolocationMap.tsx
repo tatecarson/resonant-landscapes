@@ -21,7 +21,7 @@ import HelpModal from "./HelpModal";
 import ParkModal from "./ParkModal";
 import ParkFeatureLayers from "./ParkFeatureLayers";
 import GeolocationDebugPanel from "./GeolocationDebugPanel";
-import { useAudioEngine, useAudioPlaybackState } from "../contexts/AudioContextProvider";
+import { useAudioEngine } from "../contexts/AudioContextProvider";
 import { useGeolocationTracking } from "../hooks/useGeolocationTracking";
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import stateParks from "../data/stateParks.json";
@@ -34,14 +34,7 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
         stopSound,
         preloadBuffers,
         audioContext,
-        bufferSourceRef,
     } = useAudioEngine();
-    const {
-        isPlaying,
-        isLoading,
-        loadError,
-        buffers,
-    } = useAudioPlaybackState();
     const { map } = useOL();
     const {
         accuracy,
@@ -64,7 +57,6 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
     });
 
     const debugPosition = position ? toLonLat(position.slice(0, 2)) as [number, number] : null;
-    const audioBuffer = buffers && "duration" in buffers ? buffers : null;
     const prefetchUrls = useMemo(() => {
         if (!prefetchParkName) {
             return null;
@@ -83,10 +75,8 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
         parkName,
         prefetchParkName,
         hasPosition: Boolean(position),
-        isLoading,
-        isPlaying,
-        hasBuffers: Boolean(buffers),
-        loadError,
+        debugPermission,
+        parkDistanceBucket: Math.floor(parkDistance),
     });
 
     useEffect(() => {
@@ -133,14 +123,6 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
                     position={debugPosition}
                     parkName={parkName}
                     debugPermission={debugPermission}
-                    audioState={audioContext?.state ?? "unavailable"}
-                    isLoading={isLoading}
-                    isPlaying={isPlaying}
-                    hasSourceNode={Boolean(bufferSourceRef.current)}
-                    hasBuffers={Boolean(audioBuffer)}
-                    bufferDuration={audioBuffer?.duration ?? null}
-                    bufferChannels={audioBuffer?.numberOfChannels ?? null}
-                    loadError={loadError}
                 />
             )}
         </div>
