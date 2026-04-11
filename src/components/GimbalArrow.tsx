@@ -5,7 +5,8 @@ import { useAudioEngine } from '../contexts/AudioContextProvider';
 import { useRenderDebug } from "../hooks/useRenderDebug";
 
 const GimbalArrow = () => {
-    const [gimbal] = useState(new Gimbal());
+    const gimbalRef = useRef(new Gimbal());
+    const yawDisplayRef = useRef<HTMLSpanElement>(null);
     const [permissionGranted, setPermissionGranted] = useState(false);
     const { resonanceAudioScene } = useAudioEngine();
     useRenderDebug("GimbalArrow", {
@@ -19,7 +20,7 @@ const GimbalArrow = () => {
             try {
                 const permission = await DOE.requestPermission();
                 if (permission === 'granted') {
-                    gimbal.enable();
+                    gimbalRef.current.enable();
                     console.log("Permission granted");
                     setPermissionGranted(true);
                     localStorage.setItem('deviceOrientationPermission', 'granted'); // Store permission state
@@ -41,13 +42,13 @@ const GimbalArrow = () => {
     }, [])
 
     useEffect(() => {
-        gimbal.enable();
-        gimbal.recalibrate();
+        gimbalRef.current.enable();
+        gimbalRef.current.recalibrate();
 
         return () => {
-            gimbal.disable();
+            gimbalRef.current.disable();
         };
-    }, [gimbal]);
+    }, []);
 
     useEffect(() => {
         console.log("Permission granted:", permissionGranted);
@@ -57,10 +58,23 @@ const GimbalArrow = () => {
 
         let animationFrameId: number;
         const renderLoop = () => {
-            gimbal.update();
+            gimbalRef.current.update();
+
+            const { vectorFwd, vectorUp } = gimbalRef.current;
 
             if (resonanceAudioScene) {
-                resonanceAudioScene.setListenerOrientation(gimbal.vectorFwd.x, gimbal.vectorFwd.y, gimbal.vectorFwd.z, gimbal.vectorUp.x, gimbal.vectorUp.y, gimbal.vectorUp.z);
+                resonanceAudioScene.setListenerOrientation(vectorFwd.x, vectorFwd.y, vectorFwd.z, vectorUp.x, vectorUp.y, vectorUp.z);
+            }
+
+            window.__gimbalOrientation = {
+                fwdX: vectorFwd.x, fwdY: vectorFwd.y, fwdZ: vectorFwd.z,
+                upX: vectorUp.x, upY: vectorUp.y, upZ: vectorUp.z,
+                updatedAt: Date.now(),
+            };
+
+            if (yawDisplayRef.current) {
+                const deg = Math.round((gimbalRef.current.yaw ?? 0) * (180 / Math.PI));
+                yawDisplayRef.current.textContent = `${deg}°`;
             }
 
             animationFrameId = requestAnimationFrame(renderLoop);
@@ -71,7 +85,7 @@ const GimbalArrow = () => {
         return () => {
             cancelAnimationFrame(animationFrameId);
         }
-    }, [permissionGranted, gimbal]);
+    }, [permissionGranted, resonanceAudioScene]);
 
     if (!permissionGranted) {
         return (
@@ -83,6 +97,11 @@ const GimbalArrow = () => {
         );
     }
 
+    return (
+        <p className="text-xs text-slate-400 tabular-nums">
+            heading <span ref={yawDisplayRef}>—</span>
+        </p>
+    );
 };
 
 export default GimbalArrow;
