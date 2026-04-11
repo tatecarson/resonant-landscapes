@@ -1,3 +1,8 @@
+/**
+ * Regression for the "latest park wins" audio-loading race on mobile.
+ * Starts at Custer Test, moves quickly to Sica Hollow, and verifies the app
+ * ends up loading and playing the final park's audio instead of the stale one.
+ */
 import { expect, test } from "@playwright/test";
 
 const replayPath = "/#/debug";

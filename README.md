@@ -2,6 +2,18 @@
 
 This project is tested with BrowserStack
 
+## Testing
+
+The automated tests are split by intent so each file proves a different behavior:
+
+- `tests/path-replay.spec.ts`: verifies geolocation replay moves the active park from Custer Test to Sica Hollow.
+- `tests/audio-loading-mobile.spec.ts`: regression for "latest park wins" when an older park is still loading audio.
+- `tests/audio-all-parks-mobile.spec.ts`: broad mobile sweep that checks every debug-map park can load and start playback.
+- `tests/audio-worst-case-mobile.spec.ts`: throttled-network regression for the heaviest park and its prefetch/load path.
+- `tests/audio-paths.test.mjs`: unit coverage for CDN slug and audio URL generation logic.
+
+See `docs/testing.md` for the longer explanation of what each test is supposed to catch and when to run it.
+
 ## Phone Field Testing (HTTPS)
 
 iOS sensor/audio permissions require a secure context, so use an HTTPS tunnel for phone testing.
