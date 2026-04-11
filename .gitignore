@@ -32,3 +32,8 @@ public/sounds/
 
 # Git worktrees
 .worktrees/
+
+# Playwright output artifacts
+test-results/
+playwright-report/
+blob-report/
