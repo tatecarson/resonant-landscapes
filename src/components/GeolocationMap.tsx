@@ -140,7 +140,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                         isOpen={parkModalOpen}
                         setIsOpen={setParkModalOpen}
                         parkName={parkName}
-                        parkDistance={parkDistance}
+                        parkDistance={Math.floor(parkDistance)}
                         userOrientation={userOrientationEnabled}
                     />
                 )}
