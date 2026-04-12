@@ -6,6 +6,7 @@ import type { ResonanceAudio } from "resonance-audio";
 
 import scaledPoints, { testPark } from "../utils/scaledParks";
 import { distanceInMeters } from "../utils/geo";
+import { selectNearestInRangePark } from "../utils/parkSelection";
 
 type Coordinate = [number, number];
 
@@ -114,7 +115,7 @@ export function useGeolocationTracking({
 
         setPrefetchParkName(closestPark && closestParkDistance < prefetchDistance ? closestPark.name : "");
 
-        const nearbyPark = parkFeatures.find((park) => distanceInMeters(userLocation, park.scaledCoords) < maxDistance);
+        const nearbyPark = selectNearestInRangePark(userLocation, parkFeatures, maxDistance);
 
         if (nearbyPark && nearbyPark.name !== parkName) {
             setParkName(nearbyPark.name);
