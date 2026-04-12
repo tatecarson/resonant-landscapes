@@ -35,7 +35,7 @@ type ParkRunResult = {
   failureReason: string | null;
 };
 
-const replayPath = "/#/debug";
+const replayPath = "/";
 const neutralPoint: Coordinate = [-97.1098, 44.0142];
 const scaleLat = 0.00066;
 const scaleLong = 0.00045;
@@ -75,10 +75,10 @@ function getExpectedSlug(parkName: string) {
 }
 
 async function dismissWelcomeIfPresent(page: Page) {
-  const continueButton = page.getByRole("button", { name: "Continue" });
-  if (await continueButton.count()) {
-    await continueButton.click();
-    await expect(page.getByRole("heading", { name: "Welcome to Resonant Landscapes" })).toHaveCount(0);
+  const beginButton = page.getByRole("button", { name: "Begin" });
+  if (await beginButton.count()) {
+    await beginButton.click();
+    await expect(page.getByRole("heading", { name: "Resonant Landscapes" })).toHaveCount(0);
   }
 }
 
@@ -134,10 +134,6 @@ test("mobile audio loads and plays for every debug map park", async ({ context, 
   await page.goto(replayPath);
   await page.waitForLoadState("domcontentloaded");
   await dismissWelcomeIfPresent(page);
-
-  const debugToggle = page.getByRole("button", { name: "Open" });
-  await expect(debugToggle).toBeVisible({ timeout: 10_000 });
-  await debugToggle.click();
 
   for (const park of debugParks) {
     const parkStartRequestIndex = observedAudioRequests.length;
