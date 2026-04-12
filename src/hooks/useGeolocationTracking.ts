@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type Map from "ol/Map";
 import { Geolocation as OLGeoLoc } from "ol";
 import { LineString } from "ol/geom";
 import { fromLonLat, toLonLat } from "ol/proj";
@@ -26,7 +25,6 @@ function toParkFeature(park: { name: string; scaledCoords: number[] }): ParkFeat
 
 interface UseGeolocationTrackingOptions {
     debug: boolean;
-    map: Map | undefined;
     resonanceAudioScene: ResonanceAudio | null;
     stopSound: () => void;
 }
@@ -35,23 +33,8 @@ function mod(n: number) {
     return ((n % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 }
 
-function getCenterWithHeading(map: Map | undefined, position: Coordinate, rotation: number, resolution: number) {
-    const size = map?.getSize();
-    if (!size) {
-        return position;
-    }
-
-    const height = size[1];
-
-    return [
-        position[0] - (Math.sin(rotation) * height * resolution) / 4,
-        position[1] + (Math.cos(rotation) * height * resolution) / 4,
-    ] as Coordinate;
-}
-
 export function useGeolocationTracking({
     debug,
-    map,
     resonanceAudioScene,
     stopSound,
 }: UseGeolocationTrackingOptions) {
@@ -68,7 +51,6 @@ export function useGeolocationTracking({
     const previousMRef = useRef(0);
     const positionsRef = useRef(new LineString([], "XYZM"));
 
-    const view = map?.getView();
     const maxDistance = 15;
     const prefetchDistance = 40;
     const parkFeatures = useMemo<ParkFeature[]>(
@@ -107,10 +89,6 @@ export function useGeolocationTracking({
     }, [debug]);
 
     const updateView = useCallback(() => {
-        if (!view) {
-            return;
-        }
-
         let m = Date.now() - deltaMeanRef.current * 1.5;
         m = Math.max(m, previousMRef.current);
         previousMRef.current = m;
@@ -120,8 +98,6 @@ export function useGeolocationTracking({
             return;
         }
 
-        view.setCenter(getCenterWithHeading(map, [coordinates[0], coordinates[1]], -coordinates[2], view.getResolution() ?? 0));
-        view.setRotation(-coordinates[2]);
         setPosition(coordinates);
 
         const userLocation = toLonLat([coordinates[0], coordinates[1]]) as Coordinate;
@@ -163,7 +139,7 @@ export function useGeolocationTracking({
             setUserOrientationEnabled(false);
             stopSound();
         }
-    }, [currentParkLocation, map, parkFeatures, parkName, resonanceAudioScene, stopSound, view]);
+    }, [currentParkLocation, parkFeatures, parkName, resonanceAudioScene, stopSound]);
 
     const onGeolocationChange = useCallback((event: { target: OLGeoLoc }) => {
         const geoloc = event.target as OLGeoLoc;
