@@ -75,16 +75,15 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     preloadBuffers: ReturnType<typeof useAudioEngine>["preloadBuffers"];
     audioContext: ReturnType<typeof useAudioEngine>["audioContext"];
 }): JSX.Element {
+    const [parkModalOpen, setParkModalOpen] = useState(false);
     const {
         accuracy,
         debugPermission,
         onGeolocationChange,
         parkDistance,
-        parkModalOpen,
         parkName,
         prefetchParkName,
         position,
-        setParkModalOpen,
         userOrientationEnabled,
     } = useGeolocationTracking({
         debug,
@@ -123,6 +122,10 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
 
         void preloadBuffers(prefetchUrls);
     }, [audioContext, prefetchUrls, preloadBuffers]);
+
+    useEffect(() => {
+        setParkModalOpen(Boolean(parkName));
+    }, [parkName]);
 
     return (
         <>
