@@ -6,9 +6,9 @@ import {
     RControl,
     RFeature,
     RGeolocation,
+    RLayerTile,
     RLayerVector,
     RMap,
-    ROSM,
     RStyle,
     useOL,
 } from "rlayers";
@@ -53,6 +53,53 @@ function toParkFeature(park: { name: string; scaledCoords: number[] }) {
         name: park.name,
         scaledCoords: [park.scaledCoords[0], park.scaledCoords[1]] as [number, number],
     };
+}
+
+function ZoomLogger({
+    minZoom = 16.72582728647343,
+    maxZoom = 19.9999999,
+}: {
+    minZoom?: number;
+    maxZoom?: number;
+}): JSX.Element | null {
+    const { map } = useOL();
+
+    useEffect(() => {
+        if (!map) {
+            return;
+        }
+
+        const view = map.getView();
+        view.setMinZoom(minZoom);
+        view.setMaxZoom(maxZoom);
+
+        const enforceZoomBounds = () => {
+            const zoom = view.getZoom();
+
+            if (zoom !== undefined && zoom < minZoom) {
+                view.setZoom(minZoom);
+                console.log("[map zoom]", minZoom, "(clamped)");
+                return;
+            }
+
+            if (zoom !== undefined && zoom > maxZoom) {
+                view.setZoom(maxZoom);
+                console.log("[map zoom]", maxZoom, "(clamped)");
+                return;
+            }
+
+            console.log("[map zoom]", zoom);
+        };
+
+        enforceZoomBounds();
+        view.on("change:resolution", enforceZoomBounds);
+
+        return () => {
+            view.un("change:resolution", enforceZoomBounds);
+        };
+    }, [map, minZoom, maxZoom]);
+
+    return null;
 }
 
 const GeolocationPositionLayer = memo(function GeolocationPositionLayer({
@@ -221,15 +268,20 @@ export default function GeolocationMap({ debug = false }: { debug?: boolean }): 
     return (
         <RMap
             className="map"
-            initial={{ center: fromLonLat([0, 0]), zoom: 19 }}
+            initial={{ center: fromLonLat([0, 0]), zoom: 16.72582728647343 }}
         >
+            {debug && <ZoomLogger minZoom={16.72582728647343} maxZoom={19.9999999} />}
             <RControl.RCustom className="example-control">
                 <button onClick={openHelp}>
                     ?
                 </button>
             </RControl.RCustom>
             {helpIsOpen && <HelpModal isOpen={helpIsOpen} setIsOpen={setHelpIsOpen} />}
-            <ROSM />
+            <RLayerTile
+                url="https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}.png"
+                maxZoom={20}
+                attributions='Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
+            />
             <GeolocationOverlay debug={debug} />
         </RMap>
     );
