@@ -21,7 +21,7 @@ import HelpModal from "./HelpModal";
 import ParkModal from "./ParkModal";
 import ParkFeatureLayers from "./ParkFeatureLayers";
 import GeolocationDebugPanel from "./GeolocationDebugPanel";
-import { useAudioEngine } from "../contexts/AudioContextProvider";
+import { useAudioContext, useAudioEngine } from "../contexts/AudioContextProvider";
 import { useGeolocationTracking } from "../hooks/useGeolocationTracking";
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import stateParks from "../data/stateParks.json";
@@ -82,28 +82,21 @@ const GeolocationPositionLayer = memo(function GeolocationPositionLayer({
 const GeolocationTrackingController = memo(function GeolocationTrackingController({
     debug,
     map,
-    resonanceAudioScene,
-    stopSound,
-    preloadBuffers,
-    audioContext,
 }: {
     debug: boolean;
     map: ReturnType<typeof useOL>["map"];
-    resonanceAudioScene: ReturnType<typeof useAudioEngine>["resonanceAudioScene"];
-    stopSound: ReturnType<typeof useAudioEngine>["stopSound"];
-    preloadBuffers: ReturnType<typeof useAudioEngine>["preloadBuffers"];
-    audioContext: ReturnType<typeof useAudioEngine>["audioContext"];
 }): JSX.Element {
+    const [parkModalOpen, setParkModalOpen] = useState(false);
+    const { preloadBuffers, resonanceAudioScene, stopSound } = useAudioEngine();
+    const { audioContext } = useAudioContext();
     const {
         accuracy,
         debugPermission,
         onGeolocationChange,
         parkDistance,
-        parkModalOpen,
         parkName,
         prefetchParkName,
         position,
-        setParkModalOpen,
         userOrientationEnabled,
     } = useGeolocationTracking({
         debug,
@@ -143,6 +136,10 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     }, [audioContext, prefetchUrls, preloadBuffers]);
 
     useEffect(() => {
+        setParkModalOpen(Boolean(parkName));
+    }, [parkName]);
+
+    useEffect(() => {
         const view = map?.getView();
         if (!view || !position) {
             return;
@@ -152,6 +149,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         view.setCenter(getCenterWithHeading(map, [position[0], position[1]], rotation, view.getResolution() ?? 0));
         view.setRotation(rotation);
     }, [map, position]);
+
 
     return (
         <>
@@ -187,12 +185,6 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
 });
 
 function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element {
-    const {
-        resonanceAudioScene,
-        stopSound,
-        preloadBuffers,
-        audioContext,
-    } = useAudioEngine();
     const { map } = useOL();
     const parkFeatures = useMemo(
         () => (debug ? [testPark, ...scaledPoints] : scaledPoints).map(toParkFeature),
@@ -210,10 +202,6 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
             <GeolocationTrackingController
                 debug={debug}
                 map={map}
-                resonanceAudioScene={resonanceAudioScene}
-                stopSound={stopSound}
-                preloadBuffers={preloadBuffers}
-                audioContext={audioContext}
             />
         </div>
     );

@@ -40,7 +40,6 @@ export function useGeolocationTracking({
 }: UseGeolocationTrackingOptions) {
     const [position, setPosition] = useState<number[] | null>(fromLonLat([0, 0]));
     const [accuracy, setAccuracy] = useState<LineString | null>(null);
-    const [parkModalOpen, setParkModalOpen] = useState(false);
     const [parkName, setParkName] = useState("");
     const [parkDistance, setParkDistance] = useState(0);
     const [prefetchParkName, setPrefetchParkName] = useState("");
@@ -117,8 +116,7 @@ export function useGeolocationTracking({
 
         const nearbyPark = parkFeatures.find((park) => distanceInMeters(userLocation, park.scaledCoords) < maxDistance);
 
-        if (nearbyPark && !parkModalOpen) {
-            setParkModalOpen(true);
+        if (nearbyPark && nearbyPark.name !== parkName) {
             setParkName(nearbyPark.name);
             setCurrentParkLocation(nearbyPark.scaledCoords);
         }
@@ -134,11 +132,14 @@ export function useGeolocationTracking({
             setUserOrientationEnabled(currentDistance < 5);
         }
 
-        if (currentDistance > maxDistance && parkModalOpen) {
-            setParkModalOpen(false);
+        if (currentDistance > maxDistance) {
+            setParkName("");
+            setParkDistance(0);
+            setCurrentParkLocation(null);
+            setUserOrientationEnabled(false);
             stopSound();
         }
-    }, [currentParkLocation, parkFeatures, parkModalOpen, resonanceAudioScene, stopSound]);
+    }, [currentParkLocation, parkFeatures, parkName, resonanceAudioScene, stopSound]);
 
     const onGeolocationChange = useCallback((event: { target: OLGeoLoc }) => {
         const geoloc = event.target as OLGeoLoc;
@@ -184,11 +185,9 @@ export function useGeolocationTracking({
         onGeolocationChange,
         parkDistance,
         parkFeatures,
-        parkModalOpen,
         parkName,
         prefetchParkName,
         position,
-        setParkModalOpen,
         userOrientationEnabled,
     };
 }
