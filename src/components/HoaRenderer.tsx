@@ -20,6 +20,7 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
     const { playSound, stopSound, loadBuffers, clearLoadError, cancelPendingLoad } = useAudioEngine();
     const { isLoading, isPlaying, buffers, loadError } = useAudioPlaybackState();
     const [showGimbalArrow, setShowGimbalArrow] = useState(false);
+    const [permissionGranted, setPermissionGranted] = useState(false);
     const [pathError, setPathError] = useState<string | null>(null);
     useRenderDebug("HOARenderer", {
         parkName,
@@ -31,6 +32,7 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
         hasBuffers: Boolean(buffers),
         loadError,
         showGimbalArrow,
+        permissionGranted,
         pathError,
     });
     const audioActionsRef = useRef({
@@ -79,6 +81,7 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
             audioActionsRef.current.clearLoadError();
             audioActionsRef.current.stopSound();
             setShowGimbalArrow(false);
+            setPermissionGranted(false);
         };
     }, [parkName]);
 
@@ -166,7 +169,12 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
 
                     <br></br>
                     {!compact && isPlaying && !showGimbalArrow && <LeavesCanvas parkDistance={parkDistance} />}
-                    {!compact && isPlaying && showGimbalArrow && <GimbalArrow />}
+                    {!compact && isPlaying && showGimbalArrow && (
+                        <GimbalArrow
+                            permissionGranted={permissionGranted}
+                            onPermissionGranted={() => setPermissionGranted(true)}
+                        />
+                    )}
                 </>
             )}
         </div>

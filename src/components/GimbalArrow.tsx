@@ -1,13 +1,17 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 
 import Gimbal from '../utils/Gimbal';
 import { useAudioEngine } from '../contexts/AudioContextProvider';
 import { useRenderDebug } from "../hooks/useRenderDebug";
 
-const GimbalArrow = () => {
+interface GimbalArrowProps {
+    permissionGranted: boolean;
+    onPermissionGranted: () => void;
+}
+
+const GimbalArrow = ({ permissionGranted, onPermissionGranted }: GimbalArrowProps) => {
     const gimbalRef = useRef(new Gimbal());
     const yawDisplayRef = useRef<HTMLSpanElement>(null);
-    const [permissionGranted, setPermissionGranted] = useState(false);
     const { resonanceAudioScene } = useAudioEngine();
     useRenderDebug("GimbalArrow", {
         permissionGranted,
@@ -22,24 +26,23 @@ const GimbalArrow = () => {
                 if (permission === 'granted') {
                     gimbalRef.current.enable();
                     console.log("Permission granted");
-                    setPermissionGranted(true);
-                    localStorage.setItem('deviceOrientationPermission', 'granted'); // Store permission state
+                    onPermissionGranted();
+                    localStorage.setItem('deviceOrientationPermission', 'granted');
                 }
             } catch (error) {
                 console.error("DeviceOrientationEvent.requestPermission error:", error);
             }
         } else {
             // Automatically grant permission if the browser does not support requestPermission
-            setPermissionGranted(true);
+            onPermissionGranted();
         }
-    }, []);
-
+    }, [onPermissionGranted]);
 
     useEffect(() => {
         if (!permissionGranted) {
             requestPermission();
         }
-    }, [])
+    }, []);
 
     useEffect(() => {
         gimbalRef.current.enable();
@@ -96,6 +99,7 @@ const GimbalArrow = () => {
             </div>
         );
     }
+
 
     return (
         <p className="text-xs text-slate-400 tabular-nums">
