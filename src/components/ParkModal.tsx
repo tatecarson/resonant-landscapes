@@ -33,13 +33,18 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
 
     if (compact) {
         return (
-            <div className="text-left">
-                <div>
-                    <h3 className="text-sm font-semibold leading-6 text-gray-900">{parkName}</h3>
-                    <p className="text-xs text-gray-500">{Math.floor(parkDistance)} meters away</p>
-                    <div className="mt-2">
-                        <HOARenderer parkName={parkName} parkDistance={parkDistance} userOrientation={userOrientation} compact />
+            <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-neutral-900/20 bg-[#8ecdc0] px-5 py-3 shadow-lg">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                        <p className="font-cormorant italic truncate text-xl font-light text-neutral-900">{parkName}</p>
+                        <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/50">{Math.floor(parkDistance)} m away</p>
                     </div>
+                    <HOARenderer
+                        parkName={parkName}
+                        parkDistance={parkDistance}
+                        userOrientation={userOrientation}
+                        compact
+                    />
                 </div>
             </div>
         );
@@ -57,11 +62,11 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <div className="fixed inset-0 bg-gray-500 bg-opacity-10 transition-opacity" />
+                    <div className="fixed inset-0 bg-neutral-900/20 transition-opacity" />
                 </Transition.Child>
 
-                <div className="relative inset-0 z-10 w-screen overflow-y-auto">
-                    <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
+                    <div className="flex min-h-full items-end justify-center p-4 sm:items-center sm:p-0">
                         <Transition.Child
                             as={Fragment}
                             enter="ease-out duration-300"
@@ -71,27 +76,36 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
                             leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                             leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                         >
-                            <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-                                <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                                    <div className="sm:flex sm:items-start">
-                                        <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                                            <Dialog.Title as="h3" className="text-base font-semibold leading-6 text-gray-900">
-                                                {parkName}
-                                            </Dialog.Title>
-                                            <p className="text-sm text-gray-500">
-                                                {Math.floor(parkDistance)} meters away
-                                            </p>
-                                            <div className="mt-2">
-                                                <HOARenderer parkName={parkName} parkDistance={parkDistance} userOrientation={userOrientation} />
-                                            </div>
-                                        </div>
-                                    </div>
+                            <Dialog.Panel className="relative w-full rounded-2xl bg-[#8ecdc0] p-8 shadow-2xl sm:my-8 sm:max-w-md">
+                                {/* decorative top rule */}
+                                <div className="mb-6 flex items-center gap-3">
+                                    <div className="h-px flex-1 bg-neutral-900/25" />
+                                    <span className="font-space-mono text-xs tracking-widest text-neutral-900/40">✦</span>
+                                    <div className="h-px flex-1 bg-neutral-900/25" />
                                 </div>
-                                <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
 
+                                <Dialog.Title
+                                    as="h2"
+                                    className="font-cormorant text-5xl italic font-light tracking-tight text-neutral-900"
+                                >
+                                    {parkName}
+                                </Dialog.Title>
+                                <p className="font-space-mono mt-1 text-[10px] uppercase tracking-widest text-neutral-900/50">
+                                    {Math.floor(parkDistance)} meters away
+                                </p>
+
+                                <div className="mt-6">
+                                    <HOARenderer
+                                        parkName={parkName}
+                                        parkDistance={parkDistance}
+                                        userOrientation={userOrientation}
+                                    />
+                                </div>
+
+                                <div className="mt-8">
                                     <button
                                         type="button"
-                                        className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+                                        className="w-full rounded-full bg-neutral-900 px-6 py-3 font-space-mono text-xs tracking-widest uppercase text-white transition-colors hover:bg-neutral-700"
                                         onClick={cancel}
                                         ref={cancelButtonRef}
                                     >

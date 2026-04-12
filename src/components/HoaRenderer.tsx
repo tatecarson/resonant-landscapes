@@ -140,23 +140,26 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
                     <button
                         onClick={onTogglePlayback}
                         aria-label={isPlaying ? 'Stop playback' : 'Start playback'}
-                        className={compact ? "inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm" : undefined}
+                        className={compact
+                            ? "inline-flex min-h-[44px] items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-neutral-700"
+                            : "inline-flex min-h-[44px] min-w-[44px] items-center justify-center"
+                        }
                     >
                         {isPlaying ?
-                        <StopCircleIcon className="h-10 w-10 text-green-600" aria-hidden="true" /> :
-                        <PlayCircleIcon className="h-10 w-10 text-green-600" aria-hidden="true" />}
+                        <StopCircleIcon className={compact ? "h-4 w-4" : "h-12 w-12 text-neutral-900"} aria-hidden="true" /> :
+                        <PlayCircleIcon className={compact ? "h-4 w-4" : "h-12 w-12 text-neutral-900"} aria-hidden="true" />}
                         {compact && <span>{isPlaying ? 'Stop' : 'Play'}</span>}
                     </button>
                     {
                         !compact && isPlaying && parkDistance < 2 &&
                         <Switch.Group>
                             <div className="flex items-center">
-                                <Switch.Label className="mr-4">Enable Body-Oriented Tracking</Switch.Label>
+                                <Switch.Label className="mr-4 font-space-mono text-[11px] uppercase tracking-widest text-neutral-900/70">Body-Oriented Tracking</Switch.Label>
                                 <Switch
                                     checked={showGimbalArrow}
                                     onChange={setShowGimbalArrow}
-                                    className={`${showGimbalArrow ? 'bg-blue-600' : 'bg-gray-200'
-                                        } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
+                                    className={`${showGimbalArrow ? 'bg-neutral-900' : 'bg-neutral-200'
+                                        } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2`}
                                 >
                                     <span
                                         className={`${showGimbalArrow ? 'translate-x-6' : 'translate-x-1'
