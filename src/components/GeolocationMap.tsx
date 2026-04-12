@@ -29,6 +29,25 @@ import { pickSoundPath } from "../utils/audioPaths";
 import scaledPoints, { testPark } from "../utils/scaledParks";
 import locationIcon from "../assets/geolocation_marker_heading.png";
 
+function getCenterWithHeading(
+    map: ReturnType<typeof useOL>["map"],
+    position: [number, number],
+    rotation: number,
+    resolution: number
+) {
+    const size = map?.getSize();
+    if (!size) {
+        return position;
+    }
+
+    const height = size[1];
+
+    return [
+        position[0] - (Math.sin(rotation) * height * resolution) / 4,
+        position[1] + (Math.cos(rotation) * height * resolution) / 4,
+    ] as [number, number];
+}
+
 function toParkFeature(park: { name: string; scaledCoords: number[] }) {
     return {
         name: park.name,
@@ -88,7 +107,6 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         userOrientationEnabled,
     } = useGeolocationTracking({
         debug,
-        map,
         resonanceAudioScene,
         stopSound,
     });
@@ -123,6 +141,17 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
 
         void preloadBuffers(prefetchUrls);
     }, [audioContext, prefetchUrls, preloadBuffers]);
+
+    useEffect(() => {
+        const view = map?.getView();
+        if (!view || !position) {
+            return;
+        }
+
+        const rotation = -position[2];
+        view.setCenter(getCenterWithHeading(map, [position[0], position[1]], rotation, view.getResolution() ?? 0));
+        view.setRotation(rotation);
+    }, [map, position]);
 
     return (
         <>
