@@ -15,6 +15,11 @@ declare module 'omnitone/build/omnitone.min.esm.js' {
 }
 
 interface Window {
+  __gimbalOrientation?: {
+    fwdX: number; fwdY: number; fwdZ: number;
+    upX: number; upY: number; upZ: number;
+    updatedAt: number;
+  };
   __audioDebug?: {
     contextState: string;
     isLoading: boolean;

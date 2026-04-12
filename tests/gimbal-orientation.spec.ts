@@ -1,0 +1,146 @@
+/**
+ * Verifies that GimbalArrow's render loop responds to DeviceOrientationEvents
+ * and calls setListenerOrientation on the ResonanceAudio scene.
+ *
+ * Uses CDP to inject synthetic device orientation events at the browser level,
+ * bypassing the iOS permission prompt (Chromium doesn't implement
+ * DeviceOrientationEvent.requestPermission, so GimbalArrow auto-grants).
+ *
+ * Run with:
+ *   npx playwright test gimbal-orientation --project=iphone-13
+ *
+ * To pause and interact manually (hear the audio pan):
+ *   GIMBAL_PAUSE=1 npx playwright test gimbal-orientation --project=iphone-13 --headed
+ */
+import { expect, test } from "@playwright/test";
+
+const CUSTER_TEST_CENTER = { latitude: 44.012224, longitude: -97.112994 };
+
+test("GimbalArrow updates listener orientation when device rotates", async ({
+  context,
+  page,
+  baseURL,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "iphone-13",
+    "Gimbal orientation test is only meaningful on the iphone-13 project."
+  );
+
+  if (!baseURL) throw new Error("Missing Playwright baseURL.");
+
+  page.on("console", async (msg) => {
+    const args = await Promise.all(
+      msg.args().map(async (arg) => {
+        try { return await arg.jsonValue(); }
+        catch { return String(arg); }
+      })
+    );
+    console.log(`[browser:${msg.type()}]`, ...args);
+  });
+
+  page.on("pageerror", (err) => console.error("[pageerror]", err));
+
+  // Position user exactly at Custer Test center (0 m → satisfies < 2 m for gimbal toggle)
+  const permissionOrigin = new URL(baseURL).origin;
+  await context.grantPermissions(["geolocation"], { origin: permissionOrigin });
+  await context.setGeolocation(CUSTER_TEST_CENTER);
+
+  // Patch addEventListener to intercept deviceorientation handlers, then expose
+  // window.__dispatchDeviceOrientation() to call them directly — avoids constructing
+  // DeviceOrientationEvent, which is an "Illegal constructor" in WebKit/Safari.
+  await page.addInitScript(() => {
+    const handlers: EventListenerOrEventListenerObject[] = [];
+    const orig = window.addEventListener.bind(window);
+    window.addEventListener = function (
+      type: string,
+      handler: EventListenerOrEventListenerObject,
+      options?: boolean | AddEventListenerOptions
+    ) {
+      if (type === "deviceorientation") handlers.push(handler);
+      return orig(type, handler, options);
+    };
+    (window as unknown as Record<string, unknown>).__dispatchDeviceOrientation = (
+      alpha: number, beta: number, gamma: number
+    ) => {
+      const event = { alpha, beta, gamma, absolute: false } as DeviceOrientationEvent;
+      handlers.forEach((h) => (typeof h === "function" ? h(event) : h.handleEvent(event)));
+    };
+  });
+
+  await page.goto("/#/debug");
+  await page.waitForLoadState("domcontentloaded");
+
+  // Dismiss welcome modal if present
+  const continueBtn = page.getByRole("button", { name: "Continue" });
+  if (await continueBtn.count()) {
+    await continueBtn.click();
+    await expect(page.getByRole("heading", { name: "Welcome to Resonant Landscapes" })).toHaveCount(0);
+  }
+
+  // Wait for the map to be interactive before re-applying position
+  const mapCanvas = page.locator("canvas").first();
+  await expect(mapCanvas).toBeVisible({ timeout: 15_000 });
+
+  // Re-apply position to ensure the geolocation watcher picks it up
+  await context.setGeolocation(CUSTER_TEST_CENTER);
+
+  // Wait for Custer Test modal
+  const parkHeading = page.getByRole("heading", { name: "Custer Test" });
+  await expect(parkHeading).toBeVisible({ timeout: 20_000 });
+  console.log("[test] Custer Test modal open");
+
+  // Wait for audio to load then play
+  await expect.poll(() => page.evaluate(() => window.__audioDebug?.hasBuffers ?? false), {
+    timeout: 15_000,
+  }).toBe(true);
+
+  const playBtn = page.getByRole("button", { name: "Start playback" });
+  await expect(playBtn).toBeVisible({ timeout: 5_000 });
+  await playBtn.click();
+  console.log("[test] audio playing");
+
+  // Enable Body-Oriented Tracking toggle (only visible when playing and distance < 2 m)
+  const gimbalToggle = page.getByRole("switch");
+  await expect(gimbalToggle).toBeVisible({ timeout: 10_000 });
+  await gimbalToggle.click();
+  console.log("[test] body-oriented tracking enabled");
+
+  // GimbalArrow should now be mounted and writing to (window as any).__gimbalOrientation
+  await expect.poll(
+    () => page.evaluate(() => (window as any).__gimbalOrientation?.updatedAt ?? null),
+    { timeout: 5_000 }
+  ).not.toBeNull();
+  console.log("[test] gimbal render loop is running");
+
+  // Quick two-point check: verify forward vector differs at alpha=0 vs alpha=90
+  // (phone upright, beta=-90, so alpha rotation is meaningful)
+  await page.evaluate(() => { (window as any).__dispatchDeviceOrientation(0, -90, 0); });
+  await page.waitForTimeout(200);
+  const o0 = await page.evaluate(() => (window as any).__gimbalOrientation!);
+
+  await page.evaluate(() => { (window as any).__dispatchDeviceOrientation(90, -90, 0); });
+  await page.waitForTimeout(200);
+  const o90 = await page.evaluate(() => (window as any).__gimbalOrientation!);
+
+  console.log(`[test] alpha=  0° → fwd=(${o0.fwdX.toFixed(3)}, ${o0.fwdY.toFixed(3)}, ${o0.fwdZ.toFixed(3)})`);
+  console.log(`[test] alpha= 90° → fwd=(${o90.fwdX.toFixed(3)}, ${o90.fwdY.toFixed(3)}, ${o90.fwdZ.toFixed(3)})`);
+  expect(o0.fwdX.toFixed(2)).not.toBe(o90.fwdX.toFixed(2));
+  console.log("[test] forward vector changes with rotation ✓");
+
+  // Inject a continuous 360° rotation loop into the browser (1°/frame at ~16ms).
+  // The heading indicator in the modal will visibly spin and you can hear the pan.
+  await page.evaluate(() => {
+    let alpha = 0;
+    const tick = () => {
+      (window as any).__dispatchDeviceOrientation(alpha, -90, 0);
+      alpha = (alpha + 1) % 360;
+      setTimeout(tick, 16);
+    };
+    tick();
+  });
+  console.log("[test] continuous rotation loop running — watch 'heading' in modal");
+
+  if (process.env.GIMBAL_PAUSE === "1") {
+    await page.pause();
+  }
+});

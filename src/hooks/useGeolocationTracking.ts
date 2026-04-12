@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type Map from "ol/Map";
 import { Geolocation as OLGeoLoc } from "ol";
 import { LineString } from "ol/geom";
 import { fromLonLat, toLonLat } from "ol/proj";
@@ -26,7 +25,6 @@ function toParkFeature(park: { name: string; scaledCoords: number[] }): ParkFeat
 
 interface UseGeolocationTrackingOptions {
     debug: boolean;
-    map: Map | undefined;
     resonanceAudioScene: ResonanceAudio | null;
     stopSound: () => void;
 }
@@ -35,29 +33,13 @@ function mod(n: number) {
     return ((n % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 }
 
-function getCenterWithHeading(map: Map | undefined, position: Coordinate, rotation: number, resolution: number) {
-    const size = map?.getSize();
-    if (!size) {
-        return position;
-    }
-
-    const height = size[1];
-
-    return [
-        position[0] - (Math.sin(rotation) * height * resolution) / 4,
-        position[1] + (Math.cos(rotation) * height * resolution) / 4,
-    ] as Coordinate;
-}
-
 export function useGeolocationTracking({
     debug,
-    map,
     resonanceAudioScene,
     stopSound,
 }: UseGeolocationTrackingOptions) {
     const [position, setPosition] = useState<number[] | null>(fromLonLat([0, 0]));
     const [accuracy, setAccuracy] = useState<LineString | null>(null);
-    const [parkModalOpen, setParkModalOpen] = useState(false);
     const [parkName, setParkName] = useState("");
     const [parkDistance, setParkDistance] = useState(0);
     const [prefetchParkName, setPrefetchParkName] = useState("");
@@ -69,7 +51,6 @@ export function useGeolocationTracking({
     const previousMRef = useRef(0);
     const positionsRef = useRef(new LineString([], "XYZM"));
 
-    const view = map?.getView();
     const maxDistance = 15;
     const prefetchDistance = 40;
     const parkFeatures = useMemo<ParkFeature[]>(
@@ -108,10 +89,6 @@ export function useGeolocationTracking({
     }, [debug]);
 
     const updateView = useCallback(() => {
-        if (!view) {
-            return;
-        }
-
         let m = Date.now() - deltaMeanRef.current * 1.5;
         m = Math.max(m, previousMRef.current);
         previousMRef.current = m;
@@ -121,8 +98,6 @@ export function useGeolocationTracking({
             return;
         }
 
-        view.setCenter(getCenterWithHeading(map, [coordinates[0], coordinates[1]], -coordinates[2], view.getResolution() ?? 0));
-        view.setRotation(-coordinates[2]);
         setPosition(coordinates);
 
         const userLocation = toLonLat([coordinates[0], coordinates[1]]) as Coordinate;
@@ -141,8 +116,7 @@ export function useGeolocationTracking({
 
         const nearbyPark = parkFeatures.find((park) => distanceInMeters(userLocation, park.scaledCoords) < maxDistance);
 
-        if (nearbyPark && !parkModalOpen) {
-            setParkModalOpen(true);
+        if (nearbyPark && nearbyPark.name !== parkName) {
             setParkName(nearbyPark.name);
             setCurrentParkLocation(nearbyPark.scaledCoords);
         }
@@ -158,11 +132,14 @@ export function useGeolocationTracking({
             setUserOrientationEnabled(currentDistance < 5);
         }
 
-        if (currentDistance > maxDistance && parkModalOpen) {
-            setParkModalOpen(false);
+        if (currentDistance > maxDistance) {
+            setParkName("");
+            setParkDistance(0);
+            setCurrentParkLocation(null);
+            setUserOrientationEnabled(false);
             stopSound();
         }
-    }, [currentParkLocation, map, parkFeatures, parkModalOpen, resonanceAudioScene, stopSound, view]);
+    }, [currentParkLocation, parkFeatures, parkName, resonanceAudioScene, stopSound]);
 
     const onGeolocationChange = useCallback((event: { target: OLGeoLoc }) => {
         const geoloc = event.target as OLGeoLoc;
@@ -208,11 +185,9 @@ export function useGeolocationTracking({
         onGeolocationChange,
         parkDistance,
         parkFeatures,
-        parkModalOpen,
         parkName,
         prefetchParkName,
         position,
-        setParkModalOpen,
         userOrientationEnabled,
     };
 }
