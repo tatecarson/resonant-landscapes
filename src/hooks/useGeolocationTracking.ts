@@ -29,10 +29,35 @@ interface UseGeolocationTrackingOptions {
     stopSound: () => void;
 }
 
+/**
+ * Normalizes an angle in radians to the range [0, 2π).
+ *
+ * @param n - Angle in radians to normalize
+ * @returns The equivalent angle in radians between 0 (inclusive) and 2π (exclusive)
+ */
 function mod(n: number) {
     return ((n % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 }
 
+/**
+ * Tracks the user's geolocation over time, detects proximity to known parks, and exposes state and handlers for audio listener positioning and orientation.
+ *
+ * @param debug - If true, includes a test park and queries geolocation permission status for debugging.
+ * @param resonanceAudioScene - Optional ResonanceAudio instance used to update the audio listener position.
+ * @param stopSound - Callback invoked when the user leaves an active park to stop playback.
+ *
+ * @returns An object with the following properties:
+ * - `accuracy`: a LineString representing the latest geolocation accuracy circle, or `null`.
+ * - `debugPermission`: the current geolocation permission state string for debug purposes.
+ * - `maxDistance`: the maximum distance in meters considered "inside" a park.
+ * - `onGeolocationChange`: handler to consume OpenLayers geolocation events and update internal tracking.
+ * - `parkDistance`: distance in meters from the user to the active park (0 when none).
+ * - `parkFeatures`: array of available parks with scaled coordinates and names.
+ * - `parkName`: name of the currently active park, or empty string when none.
+ * - `prefetchParkName`: name of a nearby park within the prefetch threshold, or empty string when none.
+ * - `position`: the most recent sampled coordinate from the internal `"XYZM"` path (projected `[x, y, heading, m]`), or `null`.
+ * - `userOrientationEnabled`: `true` when orientation-based behavior is enabled (user very close to active park), otherwise `false`.
+ */
 export function useGeolocationTracking({
     debug,
     resonanceAudioScene,

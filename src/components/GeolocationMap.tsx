@@ -29,6 +29,15 @@ import { pickSoundPath } from "../utils/audioPaths";
 import scaledPoints, { testPark } from "../utils/scaledParks";
 import locationIcon from "../assets/geolocation_marker_heading.png";
 
+/**
+ * Compute an adjusted map center that offsets the given position based on heading, viewport height, and map resolution.
+ *
+ * @param map - The OpenLayers map instance (used to obtain the viewport size). If the map or its size is unavailable, `position` is returned unchanged.
+ * @param position - The base center coordinate as [x, y].
+ * @param rotation - Heading/rotation in radians used to determine the offset direction.
+ * @param resolution - Current map resolution (map units per pixel) used to scale the offset.
+ * @returns The adjusted center coordinate as `[x, y]`, or the original `position` when the map size cannot be determined.
+ */
 function getCenterWithHeading(
     map: ReturnType<typeof useOL>["map"],
     position: [number, number],
@@ -48,6 +57,12 @@ function getCenterWithHeading(
     ] as [number, number];
 }
 
+/**
+ * Convert a park object into a feature descriptor with a two-element coordinate tuple.
+ *
+ * @param park - Park object with `name` and `scaledCoords` (array containing `[x, y]`)
+ * @returns An object containing `name` and `scaledCoords` as a `[number, number]` tuple
+ */
 function toParkFeature(park: { name: string; scaledCoords: number[] }) {
     return {
         name: park.name,
@@ -184,6 +199,12 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     );
 });
 
+/**
+ * Renders geolocation overlays for the map, including park feature layers and the tracking controller.
+ *
+ * @param debug - If `true`, includes additional debug park features and enables debug behavior
+ * @returns A React element containing park feature layers and the geolocation tracking controller
+ */
 function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element {
     const { map } = useOL();
     const parkFeatures = useMemo(
