@@ -55,10 +55,12 @@ function toParkFeature(park: { name: string; scaledCoords: number[] }) {
     };
 }
 
-function ZoomLogger({
+function ZoomBoundsController({
+    debug = false,
     minZoom = 16.72582728647343,
     maxZoom = 19.9999999,
 }: {
+    debug?: boolean;
     minZoom?: number;
     maxZoom?: number;
 }): JSX.Element | null {
@@ -78,17 +80,23 @@ function ZoomLogger({
 
             if (zoom !== undefined && zoom < minZoom) {
                 view.setZoom(minZoom);
-                console.log("[map zoom]", minZoom, "(clamped)");
+                if (debug) {
+                    console.log("[map zoom]", minZoom, "(clamped)");
+                }
                 return;
             }
 
             if (zoom !== undefined && zoom > maxZoom) {
                 view.setZoom(maxZoom);
-                console.log("[map zoom]", maxZoom, "(clamped)");
+                if (debug) {
+                    console.log("[map zoom]", maxZoom, "(clamped)");
+                }
                 return;
             }
 
-            console.log("[map zoom]", zoom);
+            if (debug) {
+                console.log("[map zoom]", zoom);
+            }
         };
 
         enforceZoomBounds();
@@ -97,7 +105,7 @@ function ZoomLogger({
         return () => {
             view.un("change:resolution", enforceZoomBounds);
         };
-    }, [map, minZoom, maxZoom]);
+    }, [debug, map, minZoom, maxZoom]);
 
     return null;
 }
@@ -275,7 +283,11 @@ export default function GeolocationMap({ debug = false }: { debug?: boolean }): 
             className="map"
             initial={{ center: fromLonLat([0, 0]), zoom: 16.72582728647343 }}
         >
-            {debug && <ZoomLogger minZoom={16.72582728647343} maxZoom={19.9999999} />}
+            <ZoomBoundsController
+                debug={debug}
+                minZoom={16.72582728647343}
+                maxZoom={19.9999999}
+            />
             <RControl.RCustom className="example-control">
                 <button onClick={openHelp}>
                     ?
