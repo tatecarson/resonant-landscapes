@@ -15,12 +15,14 @@ type AudioDebugState = {
   contextState: string;
   isLoading: boolean;
   isPlaying: boolean;
+  isAudioUnlocked: boolean;
   hasBuffers: boolean;
   bufferDuration: number | null;
   bufferChannels: number | null;
   hasSourceNode: boolean;
   loadError: string | null;
   lastEvent: string | null;
+  lastUnlockError: string | null;
 };
 
 type ParkRunResult = {
@@ -159,26 +161,18 @@ test("mobile audio loads and plays for every debug map park", async ({ context, 
         `[all-parks] loaded ${park.name} in ${Date.now() - loadStartedAt - centerSettleMs}ms`
       );
 
-      const playButton = page.locator('#secSource button[aria-label="Start playback"]').last();
-      await expect(playButton).toBeVisible({ timeout: 15_000 });
-      await playButton.scrollIntoViewIfNeeded();
-
       playStartedAt = Date.now();
-      await playButton.click({ force: true });
-
-      await page.waitForFunction(() => {
-        const audioDebug = window.__audioDebug;
-        return Boolean(
-          audioDebug &&
-            audioDebug.lastEvent === "playback-started" &&
-            audioDebug.isPlaying &&
-            audioDebug.hasSourceNode &&
-            audioDebug.hasBuffers &&
-            !audioDebug.loadError
-        );
-      }, null, { timeout: playTimeoutMs });
+      await expect
+        .poll(async () => page.evaluate(() => window.__audioDebug ?? null), { timeout: playTimeoutMs })
+        .toMatchObject({
+          isAudioUnlocked: true,
+          isPlaying: true,
+          hasSourceNode: true,
+          hasBuffers: true,
+          loadError: null,
+        });
       console.log(
-        `[all-parks] playback started ${park.name} in ${Date.now() - playStartedAt}ms`
+        `[all-parks] autoplay started ${park.name} in ${Date.now() - playStartedAt}ms`
       );
 
       await page.waitForTimeout(playbackHoldMs);
