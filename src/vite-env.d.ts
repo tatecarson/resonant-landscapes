@@ -24,11 +24,13 @@ interface Window {
     contextState: string;
     isLoading: boolean;
     isPlaying: boolean;
+    isAudioUnlocked: boolean;
     hasBuffers: boolean;
     bufferDuration: number | null;
     bufferChannels: number | null;
     hasSourceNode: boolean;
     loadError: string | null;
+    lastUnlockError: string | null;
     lastEvent: string | null;
     activeUrls: string[];
     cacheEntries: number;

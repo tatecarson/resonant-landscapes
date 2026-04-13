@@ -1,5 +1,6 @@
-import { useRef, Fragment } from 'react'
+import { useRef, Fragment, useCallback } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
+import { useAudioContext } from "../contexts/AudioContextProvider";
 
 interface WelcomeModalProps {
     isOpen: boolean;
@@ -8,6 +9,12 @@ interface WelcomeModalProps {
 
 function WelcomeModal({ isOpen, setIsOpen }: WelcomeModalProps) {
     const cancelButtonRef = useRef(null);
+    const { unlockAudio, lastUnlockError } = useAudioContext();
+
+    const handleBegin = useCallback(async () => {
+        await unlockAudio();
+        setIsOpen(false);
+    }, [setIsOpen, unlockAudio]);
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
@@ -64,12 +71,20 @@ function WelcomeModal({ isOpen, setIsOpen }: WelcomeModalProps) {
                                     <button
                                         type="button"
                                         className="w-full rounded-full bg-neutral-900 px-6 py-3 font-space-mono text-xs tracking-widest uppercase text-white transition-colors hover:bg-neutral-700"
-                                        onClick={() => setIsOpen(false)}
+                                        onClick={() => {
+                                            void handleBegin();
+                                        }}
                                         ref={cancelButtonRef}
                                     >
                                         Begin
                                     </button>
                                 </div>
+
+                                {lastUnlockError && (
+                                    <p className="mt-3 font-space-mono text-[10px] uppercase tracking-widest text-rose-700">
+                                        Audio unlock failed: {lastUnlockError}
+                                    </p>
+                                )}
                             </Dialog.Panel>
                         </Transition.Child>
                     </div>

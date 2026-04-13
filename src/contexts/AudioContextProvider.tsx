@@ -6,6 +6,7 @@ import { useRenderDebug } from "../hooks/useRenderDebug";
 interface AudioEngineContextType {
     audioContext: AudioContext | null;
     resonanceAudioScene: ResonanceAudio | null;
+    unlockAudio: () => Promise<boolean>;
     playSound: () => void;
     stopSound: () => void;
     loadBuffers: (urls: string[]) => Promise<boolean>;
@@ -18,8 +19,10 @@ interface AudioEngineContextType {
 interface AudioPlaybackStateContextType {
     isLoading: boolean;
     isPlaying: boolean;
+    isAudioUnlocked: boolean;
     buffers: AudioBuffer | null;
     loadError: string | null;
+    lastUnlockError: string | null;
 }
 
 type AudioLoadDebug = {
@@ -34,6 +37,7 @@ type AudioLoadDebug = {
 const AudioEngineContext = createContext<AudioEngineContextType>({
     audioContext: null,
     resonanceAudioScene: null,
+    unlockAudio: async () => false,
     playSound: () => {},
     stopSound: () => {},
     loadBuffers: async () => false,
@@ -46,8 +50,10 @@ const AudioEngineContext = createContext<AudioEngineContextType>({
 const AudioPlaybackStateContext = createContext<AudioPlaybackStateContextType>({
     isLoading: false,
     isPlaying: false,
+    isAudioUnlocked: false,
     buffers: null,
     loadError: null,
+    lastUnlockError: null,
 });
 
 
@@ -57,8 +63,12 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const [buffers, setBuffers] = useState<AudioBuffer | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
+    const [lastUnlockError, setLastUnlockError] = useState<string | null>(null);
     const audioInitializedRef = useRef(false);
+    const initAudioPromiseRef = useRef<Promise<void> | null>(null);
+    const audioContextRef = useRef<AudioContext | null>(null);
     const bufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
     const lastAudioEventRef = useRef<string | null>(null);
     const activeLoadRequestIdRef = useRef(0);
@@ -68,8 +78,10 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         audioContextState: 'unavailable',
         isLoading: false,
         isPlaying: false,
+        isAudioUnlocked: false,
         buffers: null as AudioBuffer | null,
         loadError: null as string | null,
+        lastUnlockError: null as string | null,
         activeUrls: [] as string[],
         lastLoad: null as AudioLoadDebug | null,
     });
@@ -85,8 +97,10 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             audioContextState,
             isLoading: loading,
             isPlaying: playing,
+            isAudioUnlocked: unlocked,
             buffers: activeBuffers,
             loadError: activeLoadError,
+            lastUnlockError: activeUnlockError,
             activeUrls,
             lastLoad,
         } = audioDebugStateRef.current;
@@ -94,11 +108,13 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             contextState: audioContextState,
             isLoading: loading,
             isPlaying: playing,
+            isAudioUnlocked: unlocked,
             hasBuffers: Boolean(activeBuffers),
             bufferDuration: activeBuffers?.duration ?? null,
             bufferChannels: activeBuffers?.numberOfChannels ?? null,
             hasSourceNode: Boolean(bufferSourceRef.current),
             loadError: activeLoadError,
+            lastUnlockError: activeUnlockError,
             lastEvent: lastAudioEventRef.current,
             activeUrls,
             cacheEntries: bufferCacheRef.current.size,
@@ -262,6 +278,36 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         syncAudioDebug("playback-started");
     }, [audioContext, buffers, resonanceAudioScene, syncAudioDebug]);
 
+    const unlockAudio = useCallback(async (): Promise<boolean> => {
+        try {
+            if (initAudioPromiseRef.current) {
+                await initAudioPromiseRef.current;
+            }
+
+            const context = audioContextRef.current;
+            if (!context) {
+                throw new Error("Audio context is not ready yet.");
+            }
+
+            setLastUnlockError(null);
+            if (context.state === 'suspended') {
+                syncAudioDebug("resume-requested");
+                await context.resume();
+            }
+
+            setIsAudioUnlocked(true);
+            syncAudioDebug("audio-unlocked");
+            return true;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.error('Error unlocking audio:', error);
+            setIsAudioUnlocked(false);
+            setLastUnlockError(message);
+            syncAudioDebug("unlock-error");
+            return false;
+        }
+    }, [syncAudioDebug]);
+
     const playSound = useCallback(() => {
         if (!audioContext || !resonanceAudioScene || isPlaying) {
             syncAudioDebug("play-ignored");
@@ -277,13 +323,18 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             syncAudioDebug("resume-requested");
             audioContext.resume().then(() => {
                 console.log('Audio context resumed.');
+                setIsAudioUnlocked(true);
+                setLastUnlockError(null);
                 syncAudioDebug("context-resumed");
                 proceedWithPlayback();
             }).catch((error) => {
                 console.error('Error resuming AudioContext:', error);
+                setLastUnlockError(error instanceof Error ? error.message : String(error));
                 syncAudioDebug("resume-error");
             });
         } else {
+            setIsAudioUnlocked(true);
+            setLastUnlockError(null);
             proceedWithPlayback();
         }
     }, [audioContext, buffers, isPlaying, proceedWithPlayback, resonanceAudioScene, syncAudioDebug]);
@@ -303,7 +354,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         if (audioInitializedRef.current) return;
         audioInitializedRef.current = true;
 
-        const initAudio = async () => {
+        initAudioPromiseRef.current = (async () => {
             try {
                 const AudioContextCtor = window.AudioContext
                     ?? (window as Window & typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -311,6 +362,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
                     throw new Error('AudioContext is not supported in this browser.');
                 }
                 const context = new AudioContextCtor();
+                audioContextRef.current = context;
                 setAudioContext(context);
                 const scene = new ResonanceAudio(context);
                 scene.setAmbisonicOrder(2);
@@ -321,28 +373,33 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
                 console.error('Error initializing audio:', error);
                 lastAudioEventRef.current = "audio-init-error";
             }
-        };
-
-        initAudio();
+        })();
     }, []);
+
+    useEffect(() => {
+        audioContextRef.current = audioContext;
+    }, [audioContext]);
 
     useEffect(() => {
         audioDebugStateRef.current = {
             audioContextState: audioContext?.state ?? 'unavailable',
             isLoading,
             isPlaying,
+            isAudioUnlocked,
             buffers,
             loadError,
+            lastUnlockError,
             activeUrls: audioDebugStateRef.current.activeUrls,
             lastLoad: audioDebugStateRef.current.lastLoad,
         };
         syncAudioDebug();
-    }, [audioContext, buffers, isLoading, isPlaying, loadError, syncAudioDebug]);
+    }, [audioContext, buffers, isLoading, isPlaying, isAudioUnlocked, loadError, lastUnlockError, syncAudioDebug]);
 
 
     const engineValue = useMemo(() => ({
         audioContext,
         resonanceAudioScene,
+        unlockAudio,
         playSound,
         stopSound,
         loadBuffers,
@@ -353,6 +410,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     }), [
         audioContext,
         resonanceAudioScene,
+        unlockAudio,
         playSound,
         stopSound,
         loadBuffers,
@@ -364,17 +422,21 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const playbackStateValue = useMemo(() => ({
         isLoading,
         isPlaying,
+        isAudioUnlocked,
         buffers,
         loadError,
-    }), [isLoading, isPlaying, buffers, loadError]);
+        lastUnlockError,
+    }), [isLoading, isPlaying, isAudioUnlocked, buffers, loadError, lastUnlockError]);
 
     useRenderDebug("AudioContextProvider", {
         audioContextState: audioContext?.state ?? "unavailable",
         hasResonanceScene: Boolean(resonanceAudioScene),
         isLoading,
         isPlaying,
+        isAudioUnlocked,
         hasBuffers: Boolean(buffers),
         loadError,
+        lastUnlockError,
         cacheEntries: bufferCacheRef.current.size,
     });
 
