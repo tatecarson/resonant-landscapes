@@ -285,7 +285,7 @@ export default function GeolocationMap({ debug = false }: { debug?: boolean }): 
     return (
         <RMap
             className="map"
-            initial={{ center: fromLonLat([0, 0]), zoom: 16.72582728647343 }}
+            initial={{ center: fromLonLat([0, 0]), zoom: 19.9999999 }}
         >
             <ZoomBoundsController
                 debug={debug}
