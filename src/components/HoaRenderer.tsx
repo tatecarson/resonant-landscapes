@@ -152,6 +152,15 @@ const HOARenderer = ({
                         ? "Playback stopped"
                         : "Autoplay unavailable"
                     : "Waiting for playback";
+    const statusMessage = activeError
+        ? "Fix the audio error below to retry this park."
+        : isPlaying
+            ? "Audio started when you entered the listening area."
+            : allowManualRestart
+                ? "Tap start audio to resume this park."
+                : showFallbackStart
+                    ? "Use the fallback start if autoplay was blocked."
+                    : "Audio will start as soon as this park is ready.";
 
     const retryLoading = useCallback(() => {
         const soundPathList = pickSoundPath(parkName, stateParks, navigator.userAgent);
@@ -176,13 +185,7 @@ const HOARenderer = ({
                     </p>
                     {!activeError && (
                         <p className="font-space-mono text-[11px] text-neutral-900/70">
-                            {isPlaying
-                                ? "Audio started when you entered the listening area."
-                                : allowManualRestart
-                                    ? "Tap start audio to resume this park."
-                                    : showFallbackStart
-                                    ? "Use the fallback start if autoplay was blocked."
-                                    : "Audio will start as soon as this park is ready."}
+                            {statusMessage}
                         </p>
                     )}
                 </div>
@@ -207,10 +210,7 @@ const HOARenderer = ({
                             <button
                                 onClick={onTogglePlayback}
                                 aria-label="Stop playback"
-                                className={compact
-                                    ? "inline-flex min-h-[44px] items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-neutral-700"
-                                    : "inline-flex min-h-[44px] items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-neutral-700"
-                                }
+                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-neutral-700"
                             >
                                 <StopCircleIcon className={compact ? "h-4 w-4" : "h-5 w-5"} aria-hidden="true" />
                                 <span>Stop</span>

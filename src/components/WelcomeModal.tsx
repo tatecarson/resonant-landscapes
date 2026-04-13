@@ -12,8 +12,14 @@ function WelcomeModal({ isOpen, setIsOpen }: WelcomeModalProps) {
     const { unlockAudio, lastUnlockError } = useAudioContext();
 
     const handleBegin = useCallback(async () => {
-        await unlockAudio();
-        setIsOpen(false);
+        try {
+            const didUnlock = await unlockAudio();
+            if (didUnlock) {
+                setIsOpen(false);
+            }
+        } catch (error) {
+            console.error("Error unlocking audio from welcome modal:", error);
+        }
     }, [setIsOpen, unlockAudio]);
 
     return (

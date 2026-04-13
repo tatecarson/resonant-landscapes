@@ -377,10 +377,6 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     useEffect(() => {
-        audioContextRef.current = audioContext;
-    }, [audioContext]);
-
-    useEffect(() => {
         audioDebugStateRef.current = {
             audioContextState: audioContext?.state ?? 'unavailable',
             isLoading,
