@@ -30,8 +30,10 @@ const HOARenderer = ({
     onPermissionGranted,
 }: HOARendererProps) => {
     const { playSound, stopSound, loadBuffers, clearLoadError, cancelPendingLoad } = useAudioEngine();
-    const { isLoading, isPlaying, buffers, loadError } = useAudioPlaybackState();
+    const { isLoading, isPlaying, isAudioUnlocked, buffers, loadError } = useAudioPlaybackState();
     const [pathError, setPathError] = useState<string | null>(null);
+    const [shouldAutoPlay, setShouldAutoPlay] = useState(true);
+    const activeError = pathError ?? loadError;
     useRenderDebug("HOARenderer", {
         parkName,
         parkDistance: Math.floor(parkDistance),
@@ -39,11 +41,13 @@ const HOARenderer = ({
         compact,
         isLoading,
         isPlaying,
+        isAudioUnlocked,
         hasBuffers: Boolean(buffers),
         loadError,
         rotationActive,
         permissionGranted,
         pathError,
+        shouldAutoPlay,
     });
     // Track whether this instance is still mounted so cleanup can distinguish
     // a parkName change (still mounted → stop old park's sound) from an unmount
@@ -71,6 +75,7 @@ const HOARenderer = ({
 
     useEffect(() => {
         let isCurrent = true;
+        setShouldAutoPlay(true);
 
         const load = async () => {
             const soundPathList = pickSoundPath(parkName, stateParks, navigator.userAgent);
@@ -103,14 +108,25 @@ const HOARenderer = ({
         };
     }, [parkName]);
 
+    useEffect(() => {
+        if (!shouldAutoPlay || !isAudioUnlocked || isLoading || isPlaying || activeError || buffers === null) {
+            return;
+        }
+
+        playSound();
+        setShouldAutoPlay(false);
+    }, [activeError, buffers, isAudioUnlocked, isLoading, isPlaying, playSound, shouldAutoPlay]);
+
     const onTogglePlayback = useCallback(() => {
         if (isPlaying) {
+            setShouldAutoPlay(false);
             stopSound();
             if (rotationActive) {
                 onRotationActiveChange(false);
             }
         } else {
             if (buffers !== null) {
+                setShouldAutoPlay(false);
                 playSound();
             }
         }
@@ -124,12 +140,11 @@ const HOARenderer = ({
         }
 
         setPathError(null);
+        setShouldAutoPlay(true);
         clearLoadError();
         cancelPendingLoad();
         void loadBuffers(soundPathList);
     }, [cancelPendingLoad, clearLoadError, loadBuffers, parkName]);
-
-    const activeError = pathError ?? loadError;
 
     return (
         <div id="secSource">
