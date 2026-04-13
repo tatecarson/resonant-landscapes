@@ -147,6 +147,8 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     const {
         accuracy,
         debugPermission,
+        enterDistance,
+        exitDistance,
         onGeolocationChange,
         parkDistance,
         parkName,
@@ -179,6 +181,8 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         prefetchParkName,
         hasPosition: Boolean(position),
         debugPermission,
+        enterDistance,
+        exitDistance,
         parkDistanceBucket: Math.floor(parkDistance),
     });
 

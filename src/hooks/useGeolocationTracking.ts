@@ -52,7 +52,8 @@ export function useGeolocationTracking({
     const previousMRef = useRef(0);
     const positionsRef = useRef(new LineString([], "XYZM"));
 
-    const maxDistance = 15;
+    const enterDistance = 15;
+    const exitDistance = 18;
     const prefetchDistance = 40;
     const parkFeatures = useMemo<ParkFeature[]>(
         () => (debug ? [testPark, ...scaledPoints] : scaledPoints).map(toParkFeature),
@@ -115,7 +116,7 @@ export function useGeolocationTracking({
 
         setPrefetchParkName(closestPark && closestParkDistance < prefetchDistance ? closestPark.name : "");
 
-        const nearbyPark = selectNearestInRangePark(userLocation, parkFeatures, maxDistance);
+        const nearbyPark = selectNearestInRangePark(userLocation, parkFeatures, enterDistance);
 
         if (nearbyPark && nearbyPark.name !== parkName) {
             setParkName(nearbyPark.name);
@@ -127,13 +128,13 @@ export function useGeolocationTracking({
         }
 
         const currentDistance = distanceInMeters(currentParkLocation, userLocation);
-        if (currentDistance < maxDistance) {
+        if (currentDistance < exitDistance) {
             setParkDistance(currentDistance);
             resonanceAudioScene?.setListenerPosition(currentDistance, currentDistance, 0);
             setUserOrientationEnabled(currentDistance < 5);
         }
 
-        if (currentDistance > maxDistance) {
+        if (currentDistance > exitDistance) {
             setParkName("");
             setParkDistance(0);
             setCurrentParkLocation(null);
@@ -182,7 +183,8 @@ export function useGeolocationTracking({
     return {
         accuracy,
         debugPermission,
-        maxDistance,
+        enterDistance,
+        exitDistance,
         onGeolocationChange,
         parkDistance,
         parkFeatures,

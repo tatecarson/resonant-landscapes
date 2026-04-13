@@ -28,10 +28,10 @@ const networkProfile = {
 const webkitRequestDelayMs = Number(process.env.WORST_CASE_WEBKIT_REQUEST_DELAY_MS ?? 1_500);
 
 async function dismissWelcomeIfPresent(page: import("@playwright/test").Page) {
-  const continueButton = page.getByRole("button", { name: "Continue" });
-  if (await continueButton.count()) {
-    await continueButton.click();
-    await expect(page.getByRole("heading", { name: "Welcome to Resonant Landscapes" })).toHaveCount(0);
+  const beginButton = page.getByRole("button", { name: "Begin" });
+  if (await beginButton.count()) {
+    await beginButton.click();
+    await expect(page.getByRole("heading", { name: "Resonant Landscapes" })).toHaveCount(0);
   }
 }
 
@@ -250,6 +250,12 @@ test("worst-case park audio loads under throttled mobile network conditions", as
     console.log("[worst-case] opened debug panel");
   }
 
+  const unlockAudioButton = page.getByRole("button", { name: "Unlock Audio" });
+  if (await unlockAudioButton.count()) {
+    await unlockAudioButton.click();
+    console.log("[worst-case] unlocked audio");
+  }
+
   console.log("[worst-case] moving to outer approach point");
   await moveToPoint(context, page, outerApproachPoint, 250);
 
@@ -281,17 +287,14 @@ test("worst-case park audio loads under throttled mobile network conditions", as
 
   const loadCompletedAt = Date.now();
 
-  const playButton = page.locator('#secSource button[aria-label="Start playback"]').last();
-  await expect(playButton).toBeVisible({ timeout: 15_000 });
-
   const playStartedAt = Date.now();
-  console.log("[worst-case] clicking play");
-  await playButton.click({ force: true });
+  console.log("[worst-case] waiting for autoplay");
 
   await page.waitForFunction(() => {
     const audioDebug = window.__audioDebug;
     return Boolean(
       audioDebug &&
+        audioDebug.isAudioUnlocked &&
         audioDebug.lastEvent === "playback-started" &&
         audioDebug.isPlaying &&
         audioDebug.hasSourceNode &&
@@ -302,7 +305,7 @@ test("worst-case park audio loads under throttled mobile network conditions", as
 
   const playbackStartedAt = Date.now();
   console.log(
-    `[worst-case] playback started loadMs=${loadCompletedAt - loadStartedAt} playStartMs=${playbackStartedAt - playStartedAt}`
+    `[worst-case] playback started loadMs=${loadCompletedAt - loadStartedAt} autoplayStartMs=${playbackStartedAt - playStartedAt}`
   );
   const relevantRequests = observedAudioRequests.filter((request) => request.url.includes(worstCasePark.slug));
   const audioDebug = await page.evaluate(() => window.__audioDebug ?? null);
