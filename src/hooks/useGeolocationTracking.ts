@@ -53,6 +53,7 @@ export function useGeolocationTracking({
     const positionsRef = useRef(new LineString([], "XYZM"));
 
     const maxDistance = 15;
+    const exitDistance = 18;
     const prefetchDistance = 40;
     const parkFeatures = useMemo<ParkFeature[]>(
         () => (debug ? [testPark, ...scaledPoints] : scaledPoints).map(toParkFeature),
@@ -127,13 +128,13 @@ export function useGeolocationTracking({
         }
 
         const currentDistance = distanceInMeters(currentParkLocation, userLocation);
-        if (currentDistance < maxDistance) {
+        if (currentDistance < exitDistance) {
             setParkDistance(currentDistance);
             resonanceAudioScene?.setListenerPosition(currentDistance, currentDistance, 0);
             setUserOrientationEnabled(currentDistance < 5);
         }
 
-        if (currentDistance > maxDistance) {
+        if (currentDistance > exitDistance) {
             setParkName("");
             setParkDistance(0);
             setCurrentParkLocation(null);
