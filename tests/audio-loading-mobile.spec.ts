@@ -56,15 +56,14 @@ test("mobile audio loading stays on the latest park for Safari and Android", asy
   await page.goto(replayPath);
   await page.waitForLoadState("domcontentloaded");
 
-  const continueButton = page.getByRole("button", { name: "Continue" });
-  if (await continueButton.count()) {
-    await continueButton.click();
-    await expect(page.getByRole("heading", { name: "Welcome to Resonant Landscapes" })).toHaveCount(0);
-  }
-
   const debugToggle = page.getByRole("button", { name: "Open" });
   await expect(debugToggle).toBeVisible({ timeout: 10_000 });
   await debugToggle.click();
+
+  const unlockAudioButton = page.getByRole("button", { name: "Unlock Audio" });
+  if (await unlockAudioButton.count()) {
+    await unlockAudioButton.click();
+  }
 
   const custerHeading = page.getByRole("heading", { name: "Custer Test" });
   await expect(custerHeading).toBeVisible({ timeout: 15_000 });
@@ -83,13 +82,11 @@ test("mobile audio loading stays on the latest park for Safari and Android", asy
   await expect.poll(async () => {
     return page.evaluate(() => window.__audioDebug ?? null);
   }, { timeout: 15_000 }).toMatchObject({
+    isAudioUnlocked: true,
     hasBuffers: true,
+    isPlaying: true,
     loadError: null,
   });
-
-  const playButton = page.getByRole("button", { name: "Start playback" });
-  await expect(playButton).toBeVisible({ timeout: 15_000 });
-  await playButton.click();
 
   await page.waitForFunction(() => {
     const audioDebug = window.__audioDebug;
