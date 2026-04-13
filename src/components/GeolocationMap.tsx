@@ -183,8 +183,13 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     }, [audioContext, prefetchUrls, preloadBuffers]);
 
     useEffect(() => {
+        // Stop sound when user walks out of range — HOARenderer no longer stops
+        // on unmount so we need to handle the "left the park" case here.
+        if (!parkName) {
+            stopSound();
+        }
         setParkModalOpen(Boolean(parkName));
-    }, [parkName]);
+    }, [parkName, stopSound]);
 
     useEffect(() => {
         const view = map?.getView();

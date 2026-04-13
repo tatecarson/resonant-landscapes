@@ -7,9 +7,10 @@ import { useRenderDebug } from "../hooks/useRenderDebug";
 interface GimbalArrowProps {
     permissionGranted: boolean;
     onPermissionGranted: () => void;
+    hideUI?: boolean;
 }
 
-const GimbalArrow = ({ permissionGranted, onPermissionGranted }: GimbalArrowProps) => {
+const GimbalArrow = ({ permissionGranted, onPermissionGranted, hideUI = false }: GimbalArrowProps) => {
     const gimbalRef = useRef(new Gimbal());
     const yawDisplayRef = useRef<HTMLSpanElement>(null);
     const { resonanceAudioScene } = useAudioEngine();
@@ -91,6 +92,7 @@ const GimbalArrow = ({ permissionGranted, onPermissionGranted }: GimbalArrowProp
     }, [permissionGranted, resonanceAudioScene]);
 
     if (!permissionGranted) {
+        if (hideUI) return null;
         return (
             <div className="flex justify-center items-center h-screen">
                 <button className="p-4 bg-blue-500 text-white rounded" onClick={requestPermission}>
@@ -100,6 +102,7 @@ const GimbalArrow = ({ permissionGranted, onPermissionGranted }: GimbalArrowProp
         );
     }
 
+    if (hideUI) return null;
 
     return (
         <p className="text-xs text-slate-400 tabular-nums">

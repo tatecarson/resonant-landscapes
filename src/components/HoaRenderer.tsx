@@ -1,6 +1,5 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { PlayCircleIcon, StopCircleIcon } from '@heroicons/react/24/solid'
-import { Switch } from '@headlessui/react'
 import { useAudioEngine, useAudioPlaybackState } from '../contexts/AudioContextProvider';
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import GimbalArrow from './GimbalArrow';
@@ -14,13 +13,24 @@ interface HOARendererProps {
     parkDistance: number;
     userOrientation: boolean;
     compact?: boolean;
+    rotationActive: boolean;
+    onRotationActiveChange: (next: boolean) => void;
+    permissionGranted: boolean;
+    onPermissionGranted: () => void;
 }
 
-const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false }: HOARendererProps) => {
+const HOARenderer = ({
+    parkName,
+    parkDistance,
+    userOrientation,
+    compact = false,
+    rotationActive,
+    onRotationActiveChange,
+    permissionGranted,
+    onPermissionGranted,
+}: HOARendererProps) => {
     const { playSound, stopSound, loadBuffers, clearLoadError, cancelPendingLoad } = useAudioEngine();
     const { isLoading, isPlaying, buffers, loadError } = useAudioPlaybackState();
-    const [showGimbalArrow, setShowGimbalArrow] = useState(false);
-    const [permissionGranted, setPermissionGranted] = useState(false);
     const [pathError, setPathError] = useState<string | null>(null);
     useRenderDebug("HOARenderer", {
         parkName,
@@ -31,10 +41,18 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
         isPlaying,
         hasBuffers: Boolean(buffers),
         loadError,
-        showGimbalArrow,
+        rotationActive,
         permissionGranted,
         pathError,
     });
+    // Track whether this instance is still mounted so cleanup can distinguish
+    // a parkName change (still mounted → stop old park's sound) from an unmount
+    // caused by layout switching (Dialog ↔ strip) where sound should keep playing.
+    const isMountedRef = useRef(true);
+    useEffect(() => {
+        return () => { isMountedRef.current = false; };
+    }, []);
+
     const audioActionsRef = useRef({
         loadBuffers,
         stopSound,
@@ -50,8 +68,6 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
             cancelPendingLoad,
         };
     }, [cancelPendingLoad, clearLoadError, loadBuffers, stopSound]);
-
-    // TODO: load other sound files 
 
     useEffect(() => {
         let isCurrent = true;
@@ -79,29 +95,26 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
             isCurrent = false;
             audioActionsRef.current.cancelPendingLoad();
             audioActionsRef.current.clearLoadError();
-            audioActionsRef.current.stopSound();
-            setShowGimbalArrow(false);
-            setPermissionGranted(false);
+            // Only stop sound when the park actually changed — not when the component
+            // unmounts for layout reasons (Dialog ↔ strip switch on rotationActive).
+            if (isMountedRef.current) {
+                audioActionsRef.current.stopSound();
+            }
         };
     }, [parkName]);
 
     const onTogglePlayback = useCallback(() => {
         if (isPlaying) {
             stopSound();
-
-            if (showGimbalArrow) {
-                // toggleGimbalArrowVisibility();
-                setShowGimbalArrow(false);
+            if (rotationActive) {
+                onRotationActiveChange(false);
             }
-
         } else {
             if (buffers !== null) {
                 playSound();
             }
         }
-    }, [buffers, isPlaying, playSound, stopSound]);
-
-
+    }, [buffers, isPlaying, playSound, stopSound, rotationActive, onRotationActiveChange]);
 
     const retryLoading = useCallback(() => {
         const soundPathList = pickSoundPath(parkName, stateParks, navigator.userAgent);
@@ -150,32 +163,15 @@ const HOARenderer = ({ parkName, parkDistance, userOrientation, compact = false 
                         <PlayCircleIcon className={compact ? "h-4 w-4" : "h-12 w-12 text-neutral-900"} aria-hidden="true" />}
                         {compact && <span>{isPlaying ? 'Stop' : 'Play'}</span>}
                     </button>
-                    {
-                        !compact && isPlaying && parkDistance < 2 &&
-                        <Switch.Group>
-                            <div className="flex items-center">
-                                <Switch.Label className="mr-4 font-space-mono text-[11px] uppercase tracking-widest text-neutral-900/70">Body-Oriented Tracking</Switch.Label>
-                                <Switch
-                                    checked={showGimbalArrow}
-                                    onChange={setShowGimbalArrow}
-                                    className={`${showGimbalArrow ? 'bg-neutral-900' : 'bg-neutral-200'
-                                        } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2`}
-                                >
-                                    <span
-                                        className={`${showGimbalArrow ? 'translate-x-6' : 'translate-x-1'
-                                            } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
-                                    />
-                                </Switch>
-                            </div>
-                        </Switch.Group>
-                    }
 
-                    <br></br>
-                    {!compact && isPlaying && !showGimbalArrow && <LeavesCanvas parkDistance={parkDistance} />}
-                    {!compact && isPlaying && showGimbalArrow && (
+                    {!compact && isPlaying && !rotationActive && <LeavesCanvas parkDistance={parkDistance} />}
+
+                    {/* GimbalArrow runs whenever rotation is active — no !compact guard so audio tracking survives modal collapse */}
+                    {isPlaying && rotationActive && (
                         <GimbalArrow
                             permissionGranted={permissionGranted}
-                            onPermissionGranted={() => setPermissionGranted(true)}
+                            onPermissionGranted={onPermissionGranted}
+                            hideUI={compact}
                         />
                     )}
                 </>
