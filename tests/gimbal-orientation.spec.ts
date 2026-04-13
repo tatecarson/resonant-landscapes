@@ -71,10 +71,10 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   await page.waitForLoadState("domcontentloaded");
 
   // Dismiss welcome modal if present
-  const continueBtn = page.getByRole("button", { name: "Continue" });
-  if (await continueBtn.count()) {
-    await continueBtn.click();
-    await expect(page.getByRole("heading", { name: "Welcome to Resonant Landscapes" })).toHaveCount(0);
+  const beginBtn = page.getByRole("button", { name: "Begin" });
+  if (await beginBtn.count()) {
+    await beginBtn.click();
+    await expect(page.getByRole("heading", { name: "Resonant Landscapes" })).toHaveCount(0);
   }
 
   // Wait for the map to be interactive before re-applying position
@@ -99,10 +99,10 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   await playBtn.click();
   console.log("[test] audio playing");
 
-  // Enable Body-Oriented Tracking toggle (only visible when playing and distance < 2 m)
-  const gimbalToggle = page.getByRole("switch");
-  await expect(gimbalToggle).toBeVisible({ timeout: 10_000 });
-  await gimbalToggle.click();
+  // Enable rotation (only visible when playing and distance < 2 m)
+  const enableRotationBtn = page.getByRole("button", { name: "Enable Rotation" });
+  await expect(enableRotationBtn).toBeVisible({ timeout: 10_000 });
+  await enableRotationBtn.click();
   console.log("[test] body-oriented tracking enabled");
 
   // GimbalArrow should now be mounted and writing to (window as any).__gimbalOrientation
