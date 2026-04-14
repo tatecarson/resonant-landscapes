@@ -107,7 +107,7 @@ export function useGeolocationTracking({
         setPosition(coordinates);
 
         const userLocation = toLonLat([coordinates[0], coordinates[1]]) as Coordinate;
-        const closest = findClosestPark(userLocation, parkFeatures);
+        const closest = findClosestPark(userLocation, parkFeatures) as { park: ParkFeature; distance: number } | null;
         const inPrefetchRange = Boolean(closest && closest.distance < prefetchDistance);
         setPrefetchParkName(inPrefetchRange ? closest!.park.name : "");
         setPrefetchParkCoords(inPrefetchRange ? closest!.park.scaledCoords : null);

@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { fromLonLat } from "ol/proj";
+import type RenderEvent from "ol/render/Event";
 import { RLayerVector } from "rlayers";
 import { useOL } from "rlayers";
 
@@ -26,13 +27,17 @@ function mapRange(value: number, inMin: number, inMax: number, outMin: number, o
 export default function ProximityRingLayer({ parks, active, enterDistance }: ProximityRingLayerProps) {
     const { map } = useOL();
 
-    const handlePostrender = useCallback((event: any) => {
+    const handlePostrender = useCallback((event: RenderEvent) => {
         if (!active || !parks.length || !map) {
             return;
         }
 
-        const ctx = event.context as CanvasRenderingContext2D;
-        const dpr = (event.frameState?.pixelRatio as number | undefined) ?? window.devicePixelRatio ?? 1;
+        if (!(event.context instanceof CanvasRenderingContext2D)) {
+            return;
+        }
+
+        const ctx = event.context;
+        const dpr = event.frameState?.pixelRatio ?? window.devicePixelRatio ?? 1;
         const resolution = map.getView().getResolution() ?? 1;
         const boundaryRadius = enterDistance / resolution;
         const t = Date.now() / 1000;
@@ -62,13 +67,13 @@ export default function ProximityRingLayer({ parks, active, enterDistance }: Pro
         }
         ctx.restore();
 
-        (event.target as any).changed();
+        event.target?.changed();
     }, [active, parks, enterDistance, map]);
 
     return (
         <RLayerVector
             zIndex={11}
-            onPostrender={handlePostrender}
+            onPostRender={handlePostrender}
         />
     );
 }
