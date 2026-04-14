@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { fromLonLat } from "ol/proj";
+import { fromLonLat, getPointResolution } from "ol/proj";
 import type RenderEvent from "ol/render/Event";
 import { RLayerVector } from "rlayers";
 import { useOL } from "rlayers";
@@ -38,17 +38,21 @@ export default function ProximityRingLayer({ parks, active, enterDistance }: Pro
 
         const ctx = event.context;
         const dpr = event.frameState?.pixelRatio ?? window.devicePixelRatio ?? 1;
-        const resolution = map.getView().getResolution() ?? 1;
-        const boundaryRadius = enterDistance / resolution;
+        const view = map.getView();
+        const projection = view.getProjection();
+        const viewResolution = view.getResolution() ?? 1;
         const t = Date.now() / 1000;
 
         ctx.save();
         for (const { coords, distance } of parks) {
-            const pixel = map.getPixelFromCoordinate(fromLonLat(coords));
+            const projectedCoords = fromLonLat(coords);
+            const pixel = map.getPixelFromCoordinate(projectedCoords);
             if (!pixel) continue;
 
             const cx = pixel[0] * dpr;
             const cy = pixel[1] * dpr;
+            const pointResolution = getPointResolution(projection, viewResolution, projectedCoords);
+            const boundaryRadius = enterDistance / pointResolution;
 
             const speed = mapRange(distance, PREFETCH_DISTANCE, 5, 0.18, 1.4);
             const maxAlpha = mapRange(distance, PREFETCH_DISTANCE, 5, 0.12, 0.65);
