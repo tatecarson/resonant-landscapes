@@ -20,6 +20,7 @@ import "./layers.css";
 import HelpModal from "./HelpModal";
 import ParkModal from "./ParkModal";
 import ParkFeatureLayers from "./ParkFeatureLayers";
+import ProximityRingLayer from "./ProximityRingLayer";
 import GeolocationDebugPanel from "./GeolocationDebugPanel";
 import { useAudioContext, useAudioEngine } from "../contexts/AudioContextProvider";
 import { useGeolocationTracking } from "../hooks/useGeolocationTracking";
@@ -153,6 +154,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         parkDistance,
         parkName,
         prefetchParkName,
+        prefetchParks,
         position,
         userOrientationEnabled,
     } = useGeolocationTracking({
@@ -224,6 +226,12 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
             />
 
             <GeolocationPositionLayer position={position} accuracy={accuracy} />
+
+            <ProximityRingLayer
+                parks={prefetchParks}
+                active={prefetchParks.length > 0 && !parkName}
+                enterDistance={enterDistance}
+            />
 
             <ErrorBoundary fallback={<div>Error</div>}>
                 {parkModalOpen && (
