@@ -33,6 +33,28 @@ export function findClosestPark(userLocation, parks) {
   return closest ? { park: closest, distance: closestDistance } : null;
 }
 
+/**
+ * Returns all parks within maxDistance of userLocation, each with its distance.
+ * Used for the visual proximity ring — does not affect audio prefetch logic.
+ *
+ * @param {[number, number]} userLocation - [longitude, latitude]
+ * @param {{ name: string; scaledCoords: [number, number] }[]} parks
+ * @param {number} maxDistance - meters
+ * @returns {{ coords: [number, number], distance: number }[]}
+ */
+export function findParksInRange(userLocation, parks, maxDistance) {
+  const result = [];
+
+  for (const park of parks) {
+    const distance = distanceInMeters(userLocation, park.scaledCoords);
+    if (distance < maxDistance) {
+      result.push({ coords: park.scaledCoords, distance });
+    }
+  }
+
+  return result;
+}
+
 export function selectNearestInRangePark(userLocation, parks, maxDistance) {
   let nearest = null;
   let nearestDistance = Number.POSITIVE_INFINITY;

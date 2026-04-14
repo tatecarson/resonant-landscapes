@@ -6,7 +6,7 @@ import type { ResonanceAudio } from "resonance-audio";
 
 import scaledPoints, { testPark } from "../utils/scaledParks";
 import { distanceInMeters } from "../utils/geo";
-import { findClosestPark, PREFETCH_DISTANCE, selectNearestInRangePark } from "../utils/parkSelection";
+import { findClosestPark, findParksInRange, PREFETCH_DISTANCE, selectNearestInRangePark } from "../utils/parkSelection";
 
 type Coordinate = [number, number];
 
@@ -47,6 +47,7 @@ export function useGeolocationTracking({
     const [prefetchParkName, setPrefetchParkName] = useState("");
     const [prefetchParkCoords, setPrefetchParkCoords] = useState<Coordinate | null>(null);
     const [prefetchParkDistance, setPrefetchParkDistance] = useState(0);
+    const [prefetchParks, setPrefetchParks] = useState<{ coords: Coordinate; distance: number }[]>([]);
     const [currentParkLocation, setCurrentParkLocation] = useState<Coordinate | null>(null);
     const [userOrientationEnabled, setUserOrientationEnabled] = useState(false);
     const [debugPermission, setDebugPermission] = useState("unknown");
@@ -111,6 +112,7 @@ export function useGeolocationTracking({
         setPrefetchParkName(inPrefetchRange ? closest!.park.name : "");
         setPrefetchParkCoords(inPrefetchRange ? closest!.park.scaledCoords : null);
         setPrefetchParkDistance(inPrefetchRange ? closest!.distance : 0);
+        setPrefetchParks(findParksInRange(userLocation, parkFeatures, prefetchDistance));
 
         const nearbyPark = selectNearestInRangePark(userLocation, parkFeatures, enterDistance);
 
@@ -188,6 +190,7 @@ export function useGeolocationTracking({
         prefetchParkName,
         prefetchParkCoords,
         prefetchParkDistance,
+        prefetchParks,
         position,
         userOrientationEnabled,
     };
