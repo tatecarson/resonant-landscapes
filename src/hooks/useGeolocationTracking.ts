@@ -6,9 +6,10 @@ import type { ResonanceAudio } from "resonance-audio";
 
 import scaledPoints, { testPark } from "../utils/scaledParks";
 import { distanceInMeters } from "../utils/geo";
-import { selectNearestInRangePark } from "../utils/parkSelection";
+import { findClosestPark, PREFETCH_DISTANCE, selectNearestInRangePark } from "../utils/parkSelection";
 
 type Coordinate = [number, number];
+
 
 interface ParkFeature {
     name: string;
@@ -44,6 +45,8 @@ export function useGeolocationTracking({
     const [parkName, setParkName] = useState("");
     const [parkDistance, setParkDistance] = useState(0);
     const [prefetchParkName, setPrefetchParkName] = useState("");
+    const [prefetchParkCoords, setPrefetchParkCoords] = useState<Coordinate | null>(null);
+    const [prefetchParkDistance, setPrefetchParkDistance] = useState(0);
     const [currentParkLocation, setCurrentParkLocation] = useState<Coordinate | null>(null);
     const [userOrientationEnabled, setUserOrientationEnabled] = useState(false);
     const [debugPermission, setDebugPermission] = useState("unknown");
@@ -54,7 +57,7 @@ export function useGeolocationTracking({
 
     const enterDistance = 15;
     const exitDistance = 18;
-    const prefetchDistance = 40;
+    const prefetchDistance = PREFETCH_DISTANCE;
     const parkFeatures = useMemo<ParkFeature[]>(
         () => (debug ? [testPark, ...scaledPoints] : scaledPoints).map(toParkFeature),
         [debug]
@@ -103,18 +106,11 @@ export function useGeolocationTracking({
         setPosition(coordinates);
 
         const userLocation = toLonLat([coordinates[0], coordinates[1]]) as Coordinate;
-        let closestPark: ParkFeature | null = null;
-        let closestParkDistance = Number.POSITIVE_INFINITY;
-
-        for (const park of parkFeatures) {
-            const distance = distanceInMeters(userLocation, park.scaledCoords);
-            if (distance < closestParkDistance) {
-                closestPark = park;
-                closestParkDistance = distance;
-            }
-        }
-
-        setPrefetchParkName(closestPark && closestParkDistance < prefetchDistance ? closestPark.name : "");
+        const closest = findClosestPark(userLocation, parkFeatures);
+        const inPrefetchRange = Boolean(closest && closest.distance < prefetchDistance);
+        setPrefetchParkName(inPrefetchRange ? closest!.park.name : "");
+        setPrefetchParkCoords(inPrefetchRange ? closest!.park.scaledCoords : null);
+        setPrefetchParkDistance(inPrefetchRange ? closest!.distance : 0);
 
         const nearbyPark = selectNearestInRangePark(userLocation, parkFeatures, enterDistance);
 
@@ -190,6 +186,8 @@ export function useGeolocationTracking({
         parkFeatures,
         parkName,
         prefetchParkName,
+        prefetchParkCoords,
+        prefetchParkDistance,
         position,
         userOrientationEnabled,
     };
