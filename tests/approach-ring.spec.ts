@@ -40,6 +40,17 @@ async function dismissWelcomeModal(page: Page) {
     }
 }
 
+/** Polls parkStripIsVisible every 100ms for durationMs and fails immediately if it ever becomes true. */
+async function pollNeverTrue(page: Page, durationMs: number): Promise<void> {
+    const deadline = Date.now() + durationMs;
+    while (Date.now() < deadline) {
+        if (await parkStripIsVisible(page)) {
+            throw new Error("compact strip became visible inside prefetch range");
+        }
+        await page.waitForTimeout(100);
+    }
+}
+
 async function parkStripIsVisible(page: Page): Promise<boolean> {
     // The compact strip shows the park name in a font-cormorant paragraph
     // inside a fixed bottom-0 container. Check for the park name text.
@@ -71,15 +82,13 @@ test("compact strip is absent in prefetch range and appears on park entry", asyn
 
     // ── Step 2: just inside prefetch range — slow pulse ─────────────────────
     await context.setGeolocation(POSITIONS.prefetchFar);
-    await page.waitForTimeout(holdInPrefetchMs);
-    expect(await parkStripIsVisible(page)).toBe(false);
-    console.log("[test] ✓ compact strip absent at prefetch far (36m — slow pulse)");
+    await pollNeverTrue(page, holdInPrefetchMs);
+    console.log("[test] ✓ compact strip absent throughout prefetch far dwell (36m — slow pulse)");
 
     // ── Step 3: deeper in prefetch range — faster pulse ──────────────────────
     await context.setGeolocation(POSITIONS.prefetchNear);
-    await page.waitForTimeout(holdInPrefetchMs);
-    expect(await parkStripIsVisible(page)).toBe(false);
-    console.log("[test] ✓ compact strip absent at prefetch near (26m — faster pulse)");
+    await pollNeverTrue(page, holdInPrefetchMs);
+    console.log("[test] ✓ compact strip absent throughout prefetch near dwell (26m — faster pulse)");
 
     // ── Step 3: inside enter range — strip should appear ────────────────────
     await context.setGeolocation(POSITIONS.insidePark);
