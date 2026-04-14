@@ -8,7 +8,7 @@ type Coordinate = [number, number];
 interface ProximityMarkersProps {
     parkCoords: Coordinate;   // [lon, lat] of the active park center
     parkDistance: number;     // meters from user to park center
-    active: boolean;          // true when inside park AND parkDistance >= 2
+    active: boolean;          // true when user is inside the park (≤15m) AND parkDistance > 2 (AmbientGradient not yet active)
 }
 
 function mapRange(value: number, inMin: number, inMax: number, outMin: number, outMax: number): number {
