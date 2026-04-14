@@ -180,6 +180,7 @@ export function useGeolocationTracking({
 
     return {
         accuracy,
+        currentParkLocation,
         debugPermission,
         enterDistance,
         exitDistance,
