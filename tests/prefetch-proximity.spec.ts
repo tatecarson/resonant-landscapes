@@ -6,14 +6,12 @@
  * returns the correct park coordinates and distance for the proximity animations.
  */
 import { test, expect } from "@playwright/test";
-import { findClosestPark } from "../src/utils/parkSelection";
+import { findClosestPark, PREFETCH_DISTANCE } from "../src/utils/parkSelection";
 
 type Park = {
     name: string;
     scaledCoords: [number, number];
 };
-
-const PREFETCH_DISTANCE = 40; // meters — matches useGeolocationTracking
 
 // Real scaled coordinates used in path-replay tests
 const SICA_HOLLOW: Park = {

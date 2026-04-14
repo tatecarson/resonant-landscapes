@@ -1,5 +1,7 @@
 import { distanceInMeters } from "./geo";
 
+export const PREFETCH_DISTANCE = 40; // meters — park enters approach-ring animation range
+
 /**
  * Returns the nearest park within maxDistance of userLocation,
  * or null if no parks qualify. Ignores array order.

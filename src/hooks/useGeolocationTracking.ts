@@ -6,9 +6,10 @@ import type { ResonanceAudio } from "resonance-audio";
 
 import scaledPoints, { testPark } from "../utils/scaledParks";
 import { distanceInMeters } from "../utils/geo";
-import { findClosestPark, selectNearestInRangePark } from "../utils/parkSelection";
+import { findClosestPark, PREFETCH_DISTANCE, selectNearestInRangePark } from "../utils/parkSelection";
 
 type Coordinate = [number, number];
+
 
 interface ParkFeature {
     name: string;
@@ -56,7 +57,7 @@ export function useGeolocationTracking({
 
     const enterDistance = 15;
     const exitDistance = 18;
-    const prefetchDistance = 40;
+    const prefetchDistance = PREFETCH_DISTANCE;
     const parkFeatures = useMemo<ParkFeature[]>(
         () => (debug ? [testPark, ...scaledPoints] : scaledPoints).map(toParkFeature),
         [debug]
