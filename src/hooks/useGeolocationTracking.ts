@@ -121,11 +121,12 @@ export function useGeolocationTracking({
             setCurrentParkLocation(nearbyPark.scaledCoords);
         }
 
-        if (!currentParkLocation) {
+        const activeParkLocation = currentParkLocation ?? nearbyPark?.scaledCoords ?? null;
+        if (!activeParkLocation) {
             return;
         }
 
-        const currentDistance = distanceInMeters(currentParkLocation, userLocation);
+        const currentDistance = distanceInMeters(activeParkLocation, userLocation);
         if (currentDistance < exitDistance) {
             setParkDistance(currentDistance);
             resonanceAudioScene?.setListenerPosition(currentDistance, currentDistance, 0);
