@@ -5,7 +5,6 @@ import { useRenderDebug } from "../hooks/useRenderDebug";
 import GimbalArrow from './GimbalArrow';
 
 import stateParks from '../data/stateParks.json';
-import LeavesCanvas from './LeavesCanvas';
 import { pickSoundPath } from '../utils/audioPaths';
 
 interface HOARendererProps {
@@ -228,8 +227,6 @@ const HOARenderer = ({
                         )}
                     </div>
                 )}
-
-                {!compact && isPlaying && !rotationActive && <LeavesCanvas parkDistance={parkDistance} />}
 
                 {/* GimbalArrow runs whenever rotation is active — no !compact guard so audio tracking survives modal collapse */}
                 {isPlaying && rotationActive && (
