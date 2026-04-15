@@ -14,11 +14,11 @@ function WelcomeModal({ isOpen, setIsOpen }: WelcomeModalProps) {
 
     const handleBegin = useCallback(async () => {
         try {
-            const [didUnlock] = await Promise.all([
+            const [didUnlockAudio, didUnlockMotion] = await Promise.all([
                 unlockAudio(),
                 requestDeviceOrientationPermission(),
             ]);
-            if (didUnlock) {
+            if (didUnlockAudio && didUnlockMotion) {
                 setIsOpen(false);
             }
         } catch (error) {

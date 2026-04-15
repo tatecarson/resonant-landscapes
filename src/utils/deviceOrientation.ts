@@ -1,24 +1,52 @@
 const ORIENTATION_PERMISSION_KEY = "deviceOrientationPermission";
 
-export function hasStoredOrientationPermission(): boolean {
+function readStoredOrientationPermission(): string | null {
   if (typeof window === "undefined") {
-    return false;
+    return null;
   }
 
-  return window.localStorage.getItem(ORIENTATION_PERMISSION_KEY) === "granted";
+  try {
+    return window.localStorage.getItem(ORIENTATION_PERMISSION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredOrientationPermission(value: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(ORIENTATION_PERMISSION_KEY, value);
+  } catch {
+    // Ignore storage failures and fail closed on later reads.
+  }
+}
+
+function clearStoredOrientationPermission(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(ORIENTATION_PERMISSION_KEY);
+  } catch {
+    // Ignore storage failures and keep runtime permission handling non-fatal.
+  }
+}
+
+export function hasStoredOrientationPermission(): boolean {
+  return readStoredOrientationPermission() === "granted";
 }
 
 export function persistOrientationPermission(granted: boolean): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-
   if (granted) {
-    window.localStorage.setItem(ORIENTATION_PERMISSION_KEY, "granted");
+    writeStoredOrientationPermission("granted");
     return;
   }
 
-  window.localStorage.removeItem(ORIENTATION_PERMISSION_KEY);
+  clearStoredOrientationPermission();
 }
 
 export async function requestDeviceOrientationPermission(): Promise<boolean> {
