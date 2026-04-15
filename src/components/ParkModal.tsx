@@ -20,6 +20,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
     const { isPlaying } = useAudioPlaybackState();
     const [rotationActive, setRotationActive] = useState(false);
     const [permissionGranted, setPermissionGranted] = useState(() => hasStoredOrientationPermission());
+    const showRotationButton = isPlaying && Math.floor(parkDistance) < 2 && userOrientation;
 
     useRenderDebug("ParkModal", {
         isOpen,
@@ -83,6 +84,16 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
                             <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/50">{Math.floor(parkDistance)} m away</p>
                         </div>
                         <div className="flex items-center gap-3">
+                            {!rotationActive && showRotationButton && (
+                                <button
+                                    onClick={() => {
+                                        void enableRotation();
+                                    }}
+                                    className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70 transition-colors hover:text-neutral-900"
+                                >
+                                    Enable Rotation
+                                </button>
+                            )}
                             {rotationActive && (
                                 <button
                                     onClick={() => setRotationActive(false)}
@@ -149,7 +160,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
                                         <HOARenderer {...hoaRendererProps} />
                                     </div>
 
-                                    {isPlaying && Math.floor(parkDistance) < 2 && userOrientation && (
+                                    {showRotationButton && (
                                         <button
                                             type="button"
                                             onClick={() => {

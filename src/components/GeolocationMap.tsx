@@ -269,6 +269,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                         parkName={parkName}
                         parkDistance={Math.floor(parkDistance)}
                         userOrientation={userOrientationEnabled}
+                        compact={true}
                     />
                 )}
             </ErrorBoundary>
