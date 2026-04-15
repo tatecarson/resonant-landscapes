@@ -115,17 +115,19 @@ export function useGeolocationTracking({
         setPrefetchParks(findParksInRange(userLocation, parkFeatures, prefetchDistance));
 
         const nearbyPark = selectNearestInRangePark(userLocation, parkFeatures, enterDistance);
+        const nextParkLocation = nearbyPark?.scaledCoords ?? null;
 
         if (nearbyPark && nearbyPark.name !== parkName) {
             setParkName(nearbyPark.name);
-            setCurrentParkLocation(nearbyPark.scaledCoords);
+            setCurrentParkLocation(nextParkLocation);
         }
 
-        if (!currentParkLocation) {
+        const activeParkLocation = nextParkLocation ?? currentParkLocation;
+        if (!activeParkLocation) {
             return;
         }
 
-        const currentDistance = distanceInMeters(currentParkLocation, userLocation);
+        const currentDistance = distanceInMeters(activeParkLocation, userLocation);
         if (currentDistance < exitDistance) {
             setParkDistance(currentDistance);
             resonanceAudioScene?.setListenerPosition(currentDistance, currentDistance, 0);
@@ -180,6 +182,7 @@ export function useGeolocationTracking({
 
     return {
         accuracy,
+        currentParkLocation,
         debugPermission,
         enterDistance,
         exitDistance,
