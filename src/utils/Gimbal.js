@@ -32,6 +32,9 @@ class Gimbal {
         this.DEG = 180 / Math.PI;
 
         this.eulerOrigin = new THREE.Euler();
+        this.onSensorMoveBound = this.onSensorMove.bind(this);
+        this.onDeviceReorientationBound = this.onDeviceReorientation.bind(this);
+        this.enabled = false;
 
         if (typeof window.orientation !== "undefined") {
             this.eulerOrigin.set(
@@ -92,18 +95,28 @@ class Gimbal {
     ////////////////////////////////////// PUBLIC METHODS  //////////////////////////////////////
     // Enables gimbal
     enable() {
+        if (this.enabled) {
+            return;
+        }
+
         this.onDeviceReorientation();
 
-        window.addEventListener("deviceorientation", this.onSensorMove.bind(this), false);
-        window.addEventListener("orientationchange", this.onDeviceReorientation.bind(this), false);
+        window.addEventListener("deviceorientation", this.onSensorMoveBound, false);
+        window.addEventListener("orientationchange", this.onDeviceReorientationBound, false);
+        this.enabled = true;
 
         console.log("Gimbal enabled");
     }
 
     // Disables gimbal
     disable() {
-        window.removeEventListener("deviceorientation", this.onSensorMove.bind(this), false);
-        window.removeEventListener("orientationchange", this.onDeviceReorientation.bind(this), false);
+        if (!this.enabled) {
+            return;
+        }
+
+        window.removeEventListener("deviceorientation", this.onSensorMoveBound, false);
+        window.removeEventListener("orientationchange", this.onDeviceReorientationBound, false);
+        this.enabled = false;
     }
 
     // Will perform recalibration when this.data is available

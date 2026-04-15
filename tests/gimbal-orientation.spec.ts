@@ -15,6 +15,15 @@
 import { expect, test } from "@playwright/test";
 
 const CUSTER_TEST_CENTER = { latitude: 44.012224, longitude: -97.112994 };
+type GimbalOrientationSnapshot = {
+  fwdX: number;
+  fwdY: number;
+  fwdZ: number;
+  upX: number;
+  upY: number;
+  upZ: number;
+  updatedAt: number;
+};
 
 test("GimbalArrow updates listener orientation when device rotates", async ({
   context,
@@ -40,7 +49,7 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
 
   page.on("pageerror", (err) => console.error("[pageerror]", err));
 
-  // Position user exactly at Custer Test center (0 m → satisfies < 2 m for gimbal toggle)
+  // Position user exactly at Custer Test center (0 m → satisfies <= 3 m for rotation toggle)
   const permissionOrigin = new URL(baseURL).origin;
   await context.grantPermissions(["geolocation"], { origin: permissionOrigin });
   await context.setGeolocation(CUSTER_TEST_CENTER);
@@ -71,7 +80,7 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   await page.waitForLoadState("domcontentloaded");
 
   // Dismiss welcome modal if present
-  const beginBtn = page.getByRole("button", { name: "Begin" });
+  const beginBtn = page.getByRole("button", { name: /begin/i });
   if (await beginBtn.count()) {
     await beginBtn.click();
     await expect(page.getByRole("heading", { name: "Resonant Landscapes" })).toHaveCount(0);
@@ -84,22 +93,21 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   // Re-apply position to ensure the geolocation watcher picks it up
   await context.setGeolocation(CUSTER_TEST_CENTER);
 
-  // Wait for Custer Test modal
-  const parkHeading = page.getByRole("heading", { name: "Custer Test" });
-  await expect(parkHeading).toBeVisible({ timeout: 20_000 });
-  console.log("[test] Custer Test modal open");
+  // Wait for the compact park strip
+  const parkStrip = page.locator("p.font-cormorant", { hasText: "Custer Test" });
+  await expect(parkStrip).toBeVisible({ timeout: 20_000 });
+  console.log("[test] Custer Test strip open");
 
-  // Wait for audio to load then play
+  // Wait for audio to load and autoplay
   await expect.poll(() => page.evaluate(() => window.__audioDebug?.hasBuffers ?? false), {
     timeout: 15_000,
   }).toBe(true);
+  await expect.poll(() => page.evaluate(() => window.__audioDebug?.isPlaying ?? false), {
+    timeout: 10_000,
+  }).toBe(true);
+  console.log("[test] audio autoplay active");
 
-  const playBtn = page.getByRole("button", { name: "Start playback" });
-  await expect(playBtn).toBeVisible({ timeout: 5_000 });
-  await playBtn.click();
-  console.log("[test] audio playing");
-
-  // Enable rotation (only visible when playing and distance < 2 m)
+  // Enable rotation from the compact strip (visible when playing and distance <= 3 m)
   const enableRotationBtn = page.getByRole("button", { name: "Enable Rotation" });
   await expect(enableRotationBtn).toBeVisible({ timeout: 10_000 });
   await enableRotationBtn.click();
@@ -107,32 +115,46 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
 
   // GimbalArrow should now be mounted and writing to (window as any).__gimbalOrientation
   await expect.poll(
-    () => page.evaluate(() => (window as any).__gimbalOrientation?.updatedAt ?? null),
+    () => page.evaluate(() => (window as Window).__gimbalOrientation?.updatedAt ?? null),
     { timeout: 5_000 }
   ).not.toBeNull();
   console.log("[test] gimbal render loop is running");
 
   // Quick two-point check: verify forward vector differs at alpha=0 vs alpha=90
   // (phone upright, beta=-90, so alpha rotation is meaningful)
-  await page.evaluate(() => { (window as any).__dispatchDeviceOrientation(0, -90, 0); });
+  await page.evaluate(() => {
+    (window as Window & {
+      __dispatchDeviceOrientation: (alpha: number, beta: number, gamma: number) => void;
+    }).__dispatchDeviceOrientation(0, -90, 0);
+  });
   await page.waitForTimeout(200);
-  const o0 = await page.evaluate(() => (window as any).__gimbalOrientation!);
+  const o0 = await page.evaluate<GimbalOrientationSnapshot>(() => (window as Window).__gimbalOrientation!);
+  const bg0 = await page.getByTestId("ambient-gradient").evaluate((el) => getComputedStyle(el).backgroundImage);
 
-  await page.evaluate(() => { (window as any).__dispatchDeviceOrientation(90, -90, 0); });
+  await page.evaluate(() => {
+    (window as Window & {
+      __dispatchDeviceOrientation: (alpha: number, beta: number, gamma: number) => void;
+    }).__dispatchDeviceOrientation(90, -90, 0);
+  });
   await page.waitForTimeout(200);
-  const o90 = await page.evaluate(() => (window as any).__gimbalOrientation!);
+  const o90 = await page.evaluate<GimbalOrientationSnapshot>(() => (window as Window).__gimbalOrientation!);
+  const bg90 = await page.getByTestId("ambient-gradient").evaluate((el) => getComputedStyle(el).backgroundImage);
 
   console.log(`[test] alpha=  0° → fwd=(${o0.fwdX.toFixed(3)}, ${o0.fwdY.toFixed(3)}, ${o0.fwdZ.toFixed(3)})`);
   console.log(`[test] alpha= 90° → fwd=(${o90.fwdX.toFixed(3)}, ${o90.fwdY.toFixed(3)}, ${o90.fwdZ.toFixed(3)})`);
   expect(o0.fwdX.toFixed(2)).not.toBe(o90.fwdX.toFixed(2));
+  expect(bg0).not.toBe(bg90);
   console.log("[test] forward vector changes with rotation ✓");
+  console.log(`[test] ambient gradient updated ✓ ${bg0} -> ${bg90}`);
 
   // Inject a continuous 360° rotation loop into the browser (1°/frame at ~16ms).
   // The heading indicator in the modal will visibly spin and you can hear the pan.
   await page.evaluate(() => {
     let alpha = 0;
     const tick = () => {
-      (window as any).__dispatchDeviceOrientation(alpha, -90, 0);
+      (window as Window & {
+        __dispatchDeviceOrientation: (nextAlpha: number, beta: number, gamma: number) => void;
+      }).__dispatchDeviceOrientation(alpha, -90, 0);
       alpha = (alpha + 1) % 360;
       setTimeout(tick, 16);
     };
