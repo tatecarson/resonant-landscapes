@@ -34,6 +34,7 @@ export default function AmbientGradient({ active }: AmbientGradientProps) {
     return (
         <div
             ref={divRef}
+            data-testid="ambient-gradient"
             aria-hidden="true"
             className={`fixed inset-0 pointer-events-none transition-opacity duration-700 ${
                 active ? 'opacity-100' : 'opacity-0'

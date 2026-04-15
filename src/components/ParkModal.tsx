@@ -20,7 +20,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
     const { isPlaying } = useAudioPlaybackState();
     const [rotationActive, setRotationActive] = useState(false);
     const [permissionGranted, setPermissionGranted] = useState(() => hasStoredOrientationPermission());
-    const showRotationButton = isPlaying && Math.floor(parkDistance) < 2 && userOrientation;
+    const showRotationButton = isPlaying && parkDistance <= 3 && userOrientation;
 
     useRenderDebug("ParkModal", {
         isOpen,
