@@ -40,6 +40,16 @@ export default function ParkGlowLayer({
             const cy = pixel[1] * dpr;
             const pointResolution = getPointResolution(projection, viewResolution, projectedCoords);
             const radiusPx = (glowRadius / pointResolution) * dpr;
+            if (
+                !Number.isFinite(cx) ||
+                !Number.isFinite(cy) ||
+                !Number.isFinite(pointResolution) ||
+                pointResolution <= 0 ||
+                !Number.isFinite(radiusPx) ||
+                radiusPx <= 0
+            ) {
+                continue;
+            }
 
             // Fade from 0.5 → 0 as user walks from 15m to center
             const isActive = name === activeParkName && activeParkDistance !== undefined;

@@ -4,6 +4,7 @@ import { useAudioEngine, useAudioPlaybackState } from "../contexts/AudioContextP
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import HOARenderer from './HoaRenderer';
 import AmbientGradient from './AmbientGradient';
+import { hasStoredOrientationPermission, requestDeviceOrientationPermission } from "../utils/deviceOrientation";
 
 interface ParkModalProps {
     setIsOpen: (value: boolean) => void;
@@ -18,7 +19,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
     const { stopSound } = useAudioEngine();
     const { isPlaying } = useAudioPlaybackState();
     const [rotationActive, setRotationActive] = useState(false);
-    const [permissionGranted, setPermissionGranted] = useState(false);
+    const [permissionGranted, setPermissionGranted] = useState(() => hasStoredOrientationPermission());
 
     useRenderDebug("ParkModal", {
         isOpen,
@@ -35,7 +36,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
     // Reset rotation state when park changes
     useEffect(() => {
         setRotationActive(false);
-        setPermissionGranted(false);
+        setPermissionGranted(hasStoredOrientationPermission());
     }, [parkName]);
 
     // Deactivate rotation when playback stops
@@ -47,6 +48,18 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
         console.log('Cancelling...');
         stopSound();
         setIsOpen(false);
+    }
+
+    async function enableRotation() {
+        if (!permissionGranted) {
+            const granted = await requestDeviceOrientationPermission();
+            if (!granted) {
+                return;
+            }
+            setPermissionGranted(true);
+        }
+
+        setRotationActive(true);
     }
 
     const hoaRendererProps = {
@@ -139,7 +152,9 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
                                     {isPlaying && Math.floor(parkDistance) < 2 && userOrientation && (
                                         <button
                                             type="button"
-                                            onClick={() => setRotationActive(true)}
+                                            onClick={() => {
+                                                void enableRotation();
+                                            }}
                                             className="mt-4 w-full rounded-full border border-neutral-900/40 bg-transparent px-6 py-2 font-space-mono text-xs tracking-widest uppercase text-neutral-900/70 transition-colors hover:border-neutral-900 hover:text-neutral-900"
                                         >
                                             Enable Rotation

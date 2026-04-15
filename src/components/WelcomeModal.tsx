@@ -1,6 +1,7 @@
 import { useRef, Fragment, useCallback } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAudioContext } from "../contexts/AudioContextProvider";
+import { requestDeviceOrientationPermission } from "../utils/deviceOrientation";
 
 interface WelcomeModalProps {
     isOpen: boolean;
@@ -13,7 +14,10 @@ function WelcomeModal({ isOpen, setIsOpen }: WelcomeModalProps) {
 
     const handleBegin = useCallback(async () => {
         try {
-            const didUnlock = await unlockAudio();
+            const [didUnlock] = await Promise.all([
+                unlockAudio(),
+                requestDeviceOrientationPermission(),
+            ]);
             if (didUnlock) {
                 setIsOpen(false);
             }
@@ -73,6 +77,10 @@ function WelcomeModal({ isOpen, setIsOpen }: WelcomeModalProps) {
                                     <p>Close the menu to load a different recording. Walk away or press stop to end.</p>
                                 </div>
 
+                                <p className="mt-6 font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/55">
+                                    Begin will request audio and motion access.
+                                </p>
+
                                 <div className="mt-8">
                                     <button
                                         type="button"
@@ -82,7 +90,7 @@ function WelcomeModal({ isOpen, setIsOpen }: WelcomeModalProps) {
                                         }}
                                         ref={cancelButtonRef}
                                     >
-                                        Begin
+                                        Begin With Audio + Motion
                                     </button>
                                 </div>
 

@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 
 import Gimbal from '../utils/Gimbal';
+import { requestDeviceOrientationPermission } from '../utils/deviceOrientation';
 import { useAudioEngine } from '../contexts/AudioContextProvider';
 import { useRenderDebug } from "../hooks/useRenderDebug";
 
@@ -20,39 +21,25 @@ const GimbalArrow = ({ permissionGranted, onPermissionGranted, hideUI = false }:
     });
 
     const requestPermission = useCallback(async () => {
-        const DOE = DeviceOrientationEvent as IOSDeviceOrientationEvent;
-        if (typeof DOE.requestPermission === 'function') {
-            try {
-                const permission = await DOE.requestPermission();
-                if (permission === 'granted') {
-                    gimbalRef.current.enable();
-                    console.log("Permission granted");
-                    onPermissionGranted();
-                    localStorage.setItem('deviceOrientationPermission', 'granted');
-                }
-            } catch (error) {
-                console.error("DeviceOrientationEvent.requestPermission error:", error);
-            }
-        } else {
-            // Automatically grant permission if the browser does not support requestPermission
+        const granted = await requestDeviceOrientationPermission();
+        if (granted) {
+            console.log("Permission granted");
             onPermissionGranted();
         }
     }, [onPermissionGranted]);
 
     useEffect(() => {
         if (!permissionGranted) {
-            requestPermission();
+            return;
         }
-    }, []);
 
-    useEffect(() => {
         gimbalRef.current.enable();
         gimbalRef.current.recalibrate();
 
         return () => {
             gimbalRef.current.disable();
         };
-    }, []);
+    }, [permissionGranted]);
 
     useEffect(() => {
         console.log("Permission granted:", permissionGranted);
@@ -84,11 +71,11 @@ const GimbalArrow = ({ permissionGranted, onPermissionGranted, hideUI = false }:
             animationFrameId = requestAnimationFrame(renderLoop);
         };
 
-        renderLoop()
+        renderLoop();
 
         return () => {
             cancelAnimationFrame(animationFrameId);
-        }
+        };
     }, [permissionGranted, resonanceAudioScene]);
 
     if (!permissionGranted) {
