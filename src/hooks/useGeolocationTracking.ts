@@ -115,13 +115,14 @@ export function useGeolocationTracking({
         setPrefetchParks(findParksInRange(userLocation, parkFeatures, prefetchDistance));
 
         const nearbyPark = selectNearestInRangePark(userLocation, parkFeatures, enterDistance);
+        const nextParkLocation = nearbyPark?.scaledCoords ?? null;
 
         if (nearbyPark && nearbyPark.name !== parkName) {
             setParkName(nearbyPark.name);
-            setCurrentParkLocation(nearbyPark.scaledCoords);
+            setCurrentParkLocation(nextParkLocation);
         }
 
-        const activeParkLocation = currentParkLocation ?? nearbyPark?.scaledCoords ?? null;
+        const activeParkLocation = nextParkLocation ?? currentParkLocation;
         if (!activeParkLocation) {
             return;
         }

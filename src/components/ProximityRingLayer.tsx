@@ -4,6 +4,7 @@ import type RenderEvent from "ol/render/Event";
 import { RLayerVector } from "rlayers";
 import { useOL } from "rlayers";
 
+import { mapRange } from "../utils/math";
 import { PREFETCH_DISTANCE } from "../utils/parkSelection";
 
 type Coordinate = [number, number];
@@ -17,11 +18,6 @@ interface ProximityRingLayerProps {
     parks: PrefetchPark[];
     active: boolean; // true when any park is in prefetch range AND user hasn't entered yet
     enterDistance: number; // geographic radius (meters) of the boundary circle — rings pulse from its edge
-}
-
-function mapRange(value: number, inMin: number, inMax: number, outMin: number, outMax: number): number {
-    const t = Math.max(0, Math.min(1, (value - inMin) / (inMax - inMin)));
-    return outMin + t * (outMax - outMin);
 }
 
 export default function ProximityRingLayer({ parks, active, enterDistance }: ProximityRingLayerProps) {

@@ -3,6 +3,9 @@ import { fromLonLat } from "ol/proj";
 import type RenderEvent from "ol/render/Event";
 import { RLayerVector, useOL } from "rlayers";
 
+import { mapRange } from "../utils/math";
+import { PREFETCH_DISTANCE } from "../utils/parkSelection";
+
 type Coordinate = [number, number];
 
 interface PrefetchPark {
@@ -19,12 +22,6 @@ const RAY_COUNT = 12;
 const RAY_STAGGER_S = 0.23;       // seconds between each ray's phase start
 const BASE_CYCLE_S = 2.8;         // cycle duration at max distance
 const MIN_CYCLE_S = 0.7;          // cycle duration at closest approach
-const PREFETCH_DISTANCE = 40;     // meters — matches parkSelection constant
-
-function mapRange(value: number, inMin: number, inMax: number, outMin: number, outMax: number): number {
-    const t = Math.max(0, Math.min(1, (value - inMin) / (inMax - inMin)));
-    return outMin + t * (outMax - outMin);
-}
 
 export default function SunRayLayer({ parks, active }: SunRayLayerProps) {
     const { map } = useOL();

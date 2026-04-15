@@ -258,7 +258,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
 
             <SunRayLayer
                 parks={currentParkLocation ? [{ coords: currentParkLocation, distance: parkDistance }] : []}
-                active={Boolean(parkName) && parkDistance >= 2}
+                active={Boolean(parkName)}
             />
 
             <ErrorBoundary fallback={<div>Error</div>}>

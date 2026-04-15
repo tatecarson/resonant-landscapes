@@ -3,17 +3,14 @@ import { fromLonLat } from "ol/proj";
 import type RenderEvent from "ol/render/Event";
 import { RLayerVector, useOL } from "rlayers";
 
+import { mapRange } from "../utils/math";
+
 type Coordinate = [number, number];
 
 interface ProximityMarkersProps {
     parkCoords: Coordinate;   // [lon, lat] of the active park center
     parkDistance: number;     // meters from user to park center
     active: boolean;          // true when user is inside the park (≤15m) AND parkDistance > 2 (AmbientGradient not yet active)
-}
-
-function mapRange(value: number, inMin: number, inMax: number, outMin: number, outMax: number): number {
-    const t = Math.max(0, Math.min(1, (value - inMin) / (inMax - inMin)));
-    return outMin + t * (outMax - outMin);
 }
 
 export default function ProximityMarkers({ parkCoords, parkDistance, active }: ProximityMarkersProps) {
@@ -34,8 +31,9 @@ export default function ProximityMarkers({ parkCoords, parkDistance, active }: P
         const cx = pixel[0] * dpr;
         const cy = pixel[1] * dpr;
 
-        // Speed increases as user gets closer (15m → 2m maps to 1.5 → 6.0 rad/s)
-        // At 1.5 rad/s period ≈ 4.2s (one slow breath), at 6.0 rad/s period ≈ 1.0s (rapid pulse)
+        // mapRange clamps parkDistance outside the 2–15m speed band (parkDistance can be 0–18),
+        // so 15→2 meters maps to 1.5→6.0 rad/s, values >15 stay at the minimum 1.5,
+        // and values <2 stay at the maximum 6.0 for safe, predictable behavior.
         const speed = mapRange(parkDistance, 15, 2, 1.5, 6.0);
 
         const phase = Math.sin(t * speed);
