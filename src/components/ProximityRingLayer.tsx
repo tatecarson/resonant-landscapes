@@ -64,7 +64,7 @@ export default function ProximityRingLayer({ parks, active, enterDistance }: Pro
 
                 ctx.beginPath();
                 ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
-                ctx.strokeStyle = `rgba(76, 175, 80, ${alpha.toFixed(3)})`;
+                ctx.strokeStyle = `rgba(168, 8, 116, ${alpha.toFixed(3)})`;
                 ctx.lineWidth = 2 * dpr;
                 ctx.stroke();
             }

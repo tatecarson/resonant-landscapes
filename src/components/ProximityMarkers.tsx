@@ -34,20 +34,26 @@ export default function ProximityMarkers({ parkCoords, parkDistance, active }: P
         const cx = pixel[0] * dpr;
         const cy = pixel[1] * dpr;
 
-        // Speed increases as user gets closer (15m → 2m maps to 0.8 → 3.5 rad/s)
-        const speed = mapRange(parkDistance, 15, 2, 0.8, 3.5);
+        // Speed increases as user gets closer (15m → 2m maps to 1.5 → 6.0 rad/s)
+        // At 1.5 rad/s period ≈ 4.2s (one slow breath), at 6.0 rad/s period ≈ 1.0s (rapid pulse)
+        const speed = mapRange(parkDistance, 15, 2, 1.5, 6.0);
 
-        // Halo radius breathes: 8 ± 6 screen pixels (scaled by dpr)
-        const radius = (8 + Math.sin(t * speed) * 6) * dpr;
+        const phase = Math.sin(t * speed);
 
-        // Alpha breathes in sync: 0.4 → 0.7
-        const alpha = 0.4 + 0.25 * Math.sin(t * speed);
+        // Radius breathes: 10 ± 8 screen pixels (range 2–18px)
+        const radius = (10 + phase * 8) * dpr;
+
+        // Alpha pulses from near-invisible to 0.7 — heartbeat feel rather than hovering
+        const alpha = 0.15 + 0.275 * (phase + 1); // 0.15 at min, 0.70 at max
+
+        // Line grows thicker as user closes in
+        const lineWidth = mapRange(parkDistance, 15, 2, 2, 4) * dpr;
 
         ctx.save();
         ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
-        ctx.strokeStyle = `rgba(142, 205, 192, ${alpha.toFixed(3)})`;
-        ctx.lineWidth = 2.5 * dpr;
+        ctx.arc(cx, cy, Math.max(1, radius), 0, 2 * Math.PI);
+        ctx.strokeStyle = `rgba(209, 122, 34, ${alpha.toFixed(3)})`;
+        ctx.lineWidth = lineWidth;
         ctx.stroke();
         ctx.restore();
 

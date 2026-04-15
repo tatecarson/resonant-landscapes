@@ -12,20 +12,37 @@ import { expect, test, type Page, type BrowserContext } from "@playwright/test";
 
 // Hartford Beach State Park scaled coords: [-97.11059202645, 44.01320393348]
 // Distances from each test position (verified with Haversine):
-//   outside prefetch   : Hartford 45.2m — outside 40m ring, no animation
-//   prefetch far       : Hartford 36.3m — just inside 40m, slow pulse
-//   prefetch near      : Hartford 26.4m — deeper in, faster pulse
-//   inside park        : Hartford 11.4m — crosses 15m threshold, strip appears
+//   outside far        : Hartford 54.0m — well outside 40m ring, no animation
+//   outside near       : Hartford 45.2m — approaching but still outside
+//   just entering      : Hartford 39.0m — rings just appear, very slow pulse
+//   prefetch far       : Hartford 36.3m — slow pulse, map zoomed in
+//   prefetch mid       : Hartford 31.0m — medium pulse
+//   prefetch near      : Hartford 26.4m — faster pulse
+//   approaching enter  : Hartford 18.0m — fast pulse, nearly at boundary
+//   just inside        : Hartford 13.0m — crossed 15m, strip appears, halo starts
+//   inside park        : Hartford 11.4m — breathing halo, slow
+//   near center        : Hartford  5.0m — breathing halo fast
+//   halo threshold     : Hartford  2.0m — halo at max speed, about to stop
+//   at center          : Hartford  0.2m — halo gone (<2m), parkDistance shows 0
 const POSITIONS = {
-    outsidePrefetch: { latitude: 44.01280, longitude: -97.11065 },
-    prefetchFar:     { latitude: 44.01288, longitude: -97.11065 },
-    prefetchNear:    { latitude: 44.01297, longitude: -97.11065 },
-    insidePark:      { latitude: 44.01311, longitude: -97.11065 },
+    outsideFar:        { latitude: 44.01271,    longitude: -97.11065 },
+    outsideNear:       { latitude: 44.01280,    longitude: -97.11065 },
+    justEntering:      { latitude: 44.01284,    longitude: -97.11065 },
+    prefetchFar:       { latitude: 44.01288,    longitude: -97.11065 },
+    prefetchMid:       { latitude: 44.01292,    longitude: -97.11065 },
+    prefetchNear:      { latitude: 44.01297,    longitude: -97.11065 },
+    approachingEnter:  { latitude: 44.01304,    longitude: -97.11065 },
+    justInside:        { latitude: 44.01308,    longitude: -97.11062 },
+    insidePark:        { latitude: 44.01311,    longitude: -97.11065 },
+    nearCenter:        { latitude: 44.01316,    longitude: -97.11059 },
+    haloThreshold:     { latitude: 44.01319,    longitude: -97.11059202 }, // ~1.5m
+    atCenter:          { latitude: 44.01320393, longitude: -97.11059202 }, // ~0m
 };
+
+const DWELL_MS = 3_000; // time to pause at each step so animations are visible
 
 const PARK_NAME = "Hartford Beach State Park";
 const DEBUG_ROUTE = "/#/debug";
-const holdInPrefetchMs = Number(process.env.APPROACH_RING_HOLD_MS ?? 2_000);
 
 async function grantGeolocation(context: BrowserContext, baseURL: string) {
     const origin = new URL(baseURL).origin;
@@ -58,6 +75,25 @@ async function parkStripIsVisible(page: Page): Promise<boolean> {
     return (await strip.count()) > 0 && (await strip.isVisible());
 }
 
+async function screenshot(page: Page, name: string) {
+    await page.screenshot({ path: `test-results/approach-ring-${name}.png`, fullPage: true });
+}
+
+/** Re-pushes a geolocation position every 500ms for durationMs so it reliably registers. */
+async function dwellAt(
+    context: BrowserContext,
+    page: Page,
+    position: { latitude: number; longitude: number },
+    durationMs: number,
+): Promise<void> {
+    const deadline = Date.now() + durationMs;
+    await context.setGeolocation(position);
+    while (Date.now() < deadline) {
+        await page.waitForTimeout(500);
+        await context.setGeolocation(position);
+    }
+}
+
 test("compact strip is absent in prefetch range and appears on park entry", async ({
     context,
     page,
@@ -68,45 +104,89 @@ test("compact strip is absent in prefetch range and appears on park entry", asyn
     }
 
     await grantGeolocation(context, baseURL);
-    await context.setGeolocation(POSITIONS.outsidePrefetch);
+    await context.setGeolocation(POSITIONS.outsideFar);
 
     await page.goto(DEBUG_ROUTE);
     await page.waitForLoadState("domcontentloaded");
     await dismissWelcomeModal(page);
 
-    // ── Step 1: outside prefetch range ─────────────────────────────────────
-    // Allow time for geolocation to settle
+    // ── Step 1: well outside (54m) — no rings, no zoom ──────────────────────
     await page.waitForTimeout(1_500);
     expect(await parkStripIsVisible(page)).toBe(false);
-    console.log("[test] ✓ compact strip absent outside prefetch range");
+    await screenshot(page, "1-outside-far");
+    console.log("[test] step 1 — 54m: no rings, no zoom");
 
-    // ── Step 2: just inside prefetch range — slow pulse ─────────────────────
+    // ── Step 2: closer but still outside (45m) ──────────────────────────────
+    await context.setGeolocation(POSITIONS.outsideNear);
+    await page.waitForTimeout(DWELL_MS);
+    await screenshot(page, "2-outside-near");
+    console.log("[test] step 2 — 45m: still outside prefetch");
+
+    // ── Step 3: just entering prefetch (39m) — rings appear, map zooms in ───
+    await context.setGeolocation(POSITIONS.justEntering);
+    await pollNeverTrue(page, DWELL_MS);
+    await screenshot(page, "3-just-entering");
+    console.log("[test] step 3 — 39m: rings just appeared, map should zoom in");
+
+    // ── Step 4: prefetch far (36m) — slow pulse ──────────────────────────────
     await context.setGeolocation(POSITIONS.prefetchFar);
-    await pollNeverTrue(page, holdInPrefetchMs);
-    console.log("[test] ✓ compact strip absent throughout prefetch far dwell (36m — slow pulse)");
+    await pollNeverTrue(page, DWELL_MS);
+    await screenshot(page, "4-prefetch-far");
+    console.log("[test] step 4 — 36m: slow pulse");
 
-    // ── Step 3: deeper in prefetch range — faster pulse ──────────────────────
+    // ── Step 5: prefetch mid (31m) — medium pulse ────────────────────────────
+    await context.setGeolocation(POSITIONS.prefetchMid);
+    await pollNeverTrue(page, DWELL_MS);
+    await screenshot(page, "5-prefetch-mid");
+    console.log("[test] step 5 — 31m: medium pulse");
+
+    // ── Step 6: prefetch near (26m) — faster pulse ───────────────────────────
     await context.setGeolocation(POSITIONS.prefetchNear);
-    await pollNeverTrue(page, holdInPrefetchMs);
-    console.log("[test] ✓ compact strip absent throughout prefetch near dwell (26m — faster pulse)");
+    await pollNeverTrue(page, DWELL_MS);
+    await screenshot(page, "6-prefetch-near");
+    console.log("[test] step 6 — 26m: faster pulse");
 
-    // ── Step 3: inside enter range — strip should appear ────────────────────
-    await context.setGeolocation(POSITIONS.insidePark);
+    // ── Step 7: approaching enter boundary (18m) — fast pulse ────────────────
+    await context.setGeolocation(POSITIONS.approachingEnter);
+    await pollNeverTrue(page, DWELL_MS);
+    await screenshot(page, "7-approaching-enter");
+    console.log("[test] step 7 — 18m: fast pulse, approaching 15m boundary");
+
+    // ── Step 8: just inside (13m) — strip appears, halo starts ───────────────
+    await context.setGeolocation(POSITIONS.justInside);
 
     await expect
         .poll(
             async () => {
-                await context.setGeolocation(POSITIONS.insidePark);
+                await context.setGeolocation(POSITIONS.justInside);
                 return parkStripIsVisible(page);
             },
             { timeout: 12_000, intervals: [500] }
         )
         .toBe(true);
 
-    console.log(`[test] ✓ compact strip visible after crossing 15m threshold`);
+    await page.waitForTimeout(DWELL_MS);
+    await screenshot(page, "8-just-inside");
+    console.log("[test] step 8 — 13m: strip appeared, breathing halo starting");
 
-    await page.screenshot({
-        path: "test-results/approach-ring-entered-park.png",
-        fullPage: true,
-    });
+    // ── Step 9: inside park (11m) — halo slow ────────────────────────────────
+    await context.setGeolocation(POSITIONS.insidePark);
+    await page.waitForTimeout(DWELL_MS);
+    await screenshot(page, "9-inside-park");
+    console.log("[test] step 9 — 11m: breathing halo (slow)");
+
+    // ── Step 10: near center (5m) — halo fast ────────────────────────────────
+    await dwellAt(context, page, POSITIONS.nearCenter, DWELL_MS);
+    await screenshot(page, "10-near-center");
+    console.log("[test] step 10 — ~5m: breathing halo (fast)");
+
+    // ── Step 11: halo threshold (~1.5m) — halo at max speed, about to stop ──
+    await dwellAt(context, page, POSITIONS.haloThreshold, DWELL_MS);
+    await screenshot(page, "11-halo-threshold");
+    console.log("[test] step 11 — ~1.5m: halo at max speed");
+
+    // ── Step 12: at center (~0m) — halo stops (parkDistance < 2) ────────────
+    await dwellAt(context, page, POSITIONS.atCenter, DWELL_MS);
+    await screenshot(page, "12-at-center");
+    console.log("[test] step 12 — ~0m: halo gone, parkDistance < 2");
 });

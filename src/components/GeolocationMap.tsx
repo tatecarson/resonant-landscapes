@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Geolocation as OLGeoLoc } from "ol";
 import { LineString, Point } from "ol/geom";
 import { fromLonLat, toLonLat } from "ol/proj";
@@ -21,13 +21,14 @@ import HelpModal from "./HelpModal";
 import ParkModal from "./ParkModal";
 import ParkFeatureLayers from "./ParkFeatureLayers";
 import ProximityRingLayer from "./ProximityRingLayer";
+import SunRayLayer from "./SunRayLayer";
+import ParkGlowLayer from "./ParkGlowLayer";
 import GeolocationDebugPanel from "./GeolocationDebugPanel";
 import { useAudioContext, useAudioEngine } from "../contexts/AudioContextProvider";
 import { useGeolocationTracking } from "../hooks/useGeolocationTracking";
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
-import scaledPoints, { testPark } from "../utils/scaledParks";
 import locationIcon from "../assets/geolocation_marker_heading.png";
 
 function getCenterWithHeading(
@@ -47,13 +48,6 @@ function getCenterWithHeading(
         position[0] - (Math.sin(rotation) * height * resolution) / 4,
         position[1] + (Math.cos(rotation) * height * resolution) / 4,
     ] as [number, number];
-}
-
-function toParkFeature(park: { name: string; scaledCoords: number[] }) {
-    return {
-        name: park.name,
-        scaledCoords: [park.scaledCoords[0], park.scaledCoords[1]] as [number, number],
-    };
 }
 
 function ZoomBoundsController({
@@ -147,11 +141,13 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     const { audioContext } = useAudioContext();
     const {
         accuracy,
+        currentParkLocation,
         debugPermission,
         enterDistance,
         exitDistance,
         onGeolocationChange,
         parkDistance,
+        parkFeatures,
         parkName,
         prefetchParkName,
         prefetchParks,
@@ -216,6 +212,26 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         view.setRotation(rotation);
     }, [map, position]);
 
+    const savedZoomRef = useRef<number | null>(null);
+    const inProximityRef = useRef(false);
+    const inProximity = prefetchParks.length > 0;
+
+    useEffect(() => {
+        const view = map?.getView();
+        if (!view) return;
+
+        if (inProximity && !inProximityRef.current) {
+            savedZoomRef.current = view.getZoom() ?? null;
+            view.animate({ zoom: 19, duration: 800 });
+        } else if (!inProximity && inProximityRef.current) {
+            if (savedZoomRef.current !== null) {
+                view.animate({ zoom: savedZoomRef.current, duration: 800 });
+            }
+        }
+
+        inProximityRef.current = inProximity;
+    }, [map, inProximity]);
+
 
     return (
         <>
@@ -225,12 +241,24 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                 onChange={handleGeolocationChange}
             />
 
+            <ParkGlowLayer
+                parks={parkFeatures.map(p => ({ name: p.name, coords: p.scaledCoords }))}
+                activeParkName={parkName || undefined}
+                activeParkDistance={Math.floor(parkDistance)}
+            />
+            <ParkFeatureLayers parkFeatures={parkFeatures} />
+
             <GeolocationPositionLayer position={position} accuracy={accuracy} />
 
             <ProximityRingLayer
                 parks={prefetchParks}
                 active={prefetchParks.length > 0 && !parkName}
                 enterDistance={enterDistance}
+            />
+
+            <SunRayLayer
+                parks={currentParkLocation ? [{ coords: currentParkLocation, distance: parkDistance }] : []}
+                active={Boolean(parkName) && parkDistance >= 2}
             />
 
             <ErrorBoundary fallback={<div>Error</div>}>
@@ -259,10 +287,6 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
 
 function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element {
     const { map } = useOL();
-    const parkFeatures = useMemo(
-        () => (debug ? [testPark, ...scaledPoints] : scaledPoints).map(toParkFeature),
-        [debug]
-    );
 
     useRenderDebug("GeolocationOverlay", {
         debug,
@@ -271,7 +295,6 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
 
     return (
         <div>
-            <ParkFeatureLayers parkFeatures={parkFeatures} maxDistance={15} />
             <GeolocationTrackingController
                 debug={debug}
                 map={map}
