@@ -277,6 +277,11 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   await expect(heading).toBeVisible({ timeout: 15_000 });
   console.log("[worst-case] park modal visible");
 
+  await expect.poll(async () => page.evaluate(() => window.__audioDebug?.uiStatus ?? null), {
+    timeout: 15_000,
+  }).toBe("preparing");
+  console.log("[worst-case] preparing state visible");
+
   await expect.poll(async () => page.evaluate(() => window.__audioDebug ?? null), {
     timeout: 45_000,
   }).toMatchObject({
@@ -337,6 +342,7 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   expect(relevantRequests.length).toBeGreaterThanOrEqual(2);
   expect(audioDebug?.activeUrls?.every((url: string) => url.includes(worstCasePark.slug))).toBeTruthy();
   expect(audioDebug?.lastLoadReason).toBeTruthy();
+  expect(audioDebug?.uiStatus).toBe("playing");
   expect(showsSuccessfulPrefetch(audioDebug) || showsSuccessfulPrefetch(prefetchDebug)).toBeTruthy();
   expect(loadCompletedAt - loadStartedAt).toBeLessThan(30_000);
   expect(playbackStartedAt - playStartedAt).toBeLessThan(5_000);

@@ -23,6 +23,9 @@ interface AudioPlaybackStateContextType {
     buffers: AudioBuffer | null;
     loadError: string | null;
     lastUnlockError: string | null;
+    lastLoadReason: "active-load" | "prefetch" | null;
+    lastLoadCacheHit: boolean | null;
+    lastLoadDurationMs: number | null;
 }
 
 type AudioLoadDebug = {
@@ -54,6 +57,9 @@ const AudioPlaybackStateContext = createContext<AudioPlaybackStateContextType>({
     buffers: null,
     loadError: null,
     lastUnlockError: null,
+    lastLoadReason: null,
+    lastLoadCacheHit: null,
+    lastLoadDurationMs: null,
 });
 
 
@@ -422,6 +428,9 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         buffers,
         loadError,
         lastUnlockError,
+        lastLoadReason: audioDebugStateRef.current.lastLoad?.reason ?? null,
+        lastLoadCacheHit: audioDebugStateRef.current.lastLoad?.cacheHit ?? null,
+        lastLoadDurationMs: audioDebugStateRef.current.lastLoad?.durationMs ?? null,
     }), [isLoading, isPlaying, isAudioUnlocked, buffers, loadError, lastUnlockError]);
 
     useRenderDebug("AudioContextProvider", {

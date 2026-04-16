@@ -29,12 +29,37 @@ const HOARenderer = ({
     onPermissionGranted,
 }: HOARendererProps) => {
     const { playSound, stopSound, loadBuffers, clearLoadError, cancelPendingLoad } = useAudioEngine();
-    const { isLoading, isPlaying, isAudioUnlocked, buffers, loadError, lastUnlockError } = useAudioPlaybackState();
+    const {
+        isLoading,
+        isPlaying,
+        isAudioUnlocked,
+        buffers,
+        loadError,
+        lastUnlockError,
+        lastLoadReason,
+        lastLoadCacheHit,
+        lastLoadDurationMs,
+    } = useAudioPlaybackState();
     const [pathError, setPathError] = useState<string | null>(null);
     const [shouldAutoPlay, setShouldAutoPlay] = useState(true);
     const [allowManualRestart, setAllowManualRestart] = useState(false);
     const activeError = pathError ?? loadError;
     const showFallbackStart = !isPlaying && !isLoading && !activeError && (allowManualRestart || !isAudioUnlocked || Boolean(lastUnlockError));
+    const hasPrefetchedAudio = lastLoadReason === "prefetch" || (lastLoadReason === "active-load" && lastLoadCacheHit === true);
+    const audioStatus = activeError
+        ? "error"
+        : isLoading
+            ? "preparing"
+            : isPlaying
+                ? "playing"
+                : buffers !== null
+                    ? showFallbackStart
+                        ? "ready-manual"
+                        : "ready"
+                    : hasPrefetchedAudio
+                        ? "approaching"
+                        : "idle";
+
     useRenderDebug("HOARenderer", {
         parkName,
         parkDistance: Math.floor(parkDistance),
@@ -52,6 +77,9 @@ const HOARenderer = ({
         shouldAutoPlay,
         allowManualRestart,
         showFallbackStart,
+        audioStatus,
+        lastLoadReason,
+        lastLoadCacheHit,
     });
     // Track whether this instance is still mounted so cleanup can distinguish
     // a parkName change (still mounted → stop old park's sound) from an unmount
@@ -123,6 +151,14 @@ const HOARenderer = ({
         setAllowManualRestart(false);
     }, [activeError, buffers, isAudioUnlocked, isLoading, isPlaying, playSound, shouldAutoPlay]);
 
+    useEffect(() => {
+        if (!window.__audioDebug) {
+            return;
+        }
+
+        window.__audioDebug.uiStatus = audioStatus;
+    }, [audioStatus]);
+
     const onTogglePlayback = useCallback(() => {
         if (isPlaying) {
             setShouldAutoPlay(false);
@@ -140,26 +176,41 @@ const HOARenderer = ({
         }
     }, [buffers, isPlaying, playSound, stopSound, rotationActive, onRotationActiveChange]);
 
-    const audioStatusLabel = isLoading
-        ? "Loading audio"
-        : activeError
-            ? "Audio unavailable"
-            : isPlaying
-                ? "Playing automatically"
-                : showFallbackStart
-                    ? allowManualRestart
-                        ? "Playback stopped"
-                        : "Autoplay unavailable"
-                    : "Waiting for playback";
+    const audioStatusLabel = audioStatus === "preparing"
+        ? "Preparing audio"
+        : audioStatus === "playing"
+            ? "Playing automatically"
+            : audioStatus === "ready-manual"
+                ? allowManualRestart
+                    ? "Playback stopped"
+                    : "Ready to start"
+                : audioStatus === "ready"
+                    ? "Audio ready"
+                    : activeError
+                        ? "Audio unavailable"
+                        : hasPrefetchedAudio
+                            ? "Audio warming nearby"
+                            : "Entering listening zone";
     const statusMessage = activeError
         ? "Fix the audio error below to retry this park."
-        : isPlaying
-            ? "Audio started when you entered the listening area."
-            : allowManualRestart
-                ? "Tap start audio to resume this park."
-                : showFallbackStart
-                    ? "Use the fallback start if autoplay was blocked."
-                    : "Audio will start as soon as this park is ready.";
+        : audioStatus === "preparing"
+            ? hasPrefetchedAudio
+                ? "Finishing the park audio handoff now."
+                : "Loading this park's recording now."
+            : audioStatus === "playing"
+                ? "Audio started when you entered the listening area."
+                : audioStatus === "ready-manual"
+                    ? allowManualRestart
+                        ? "Tap start audio to resume this park."
+                        : "Autoplay was blocked. Tap start audio to begin."
+                    : audioStatus === "ready"
+                        ? "Audio is ready and should begin immediately."
+                        : hasPrefetchedAudio
+                            ? "A nearby park recording is already warming in the background."
+                            : "Move closer to a park center to begin preparing audio.";
+    const timingHint = lastLoadDurationMs !== null
+        ? `${lastLoadCacheHit ? "Cache hit" : "Loaded"} in ${Math.round(lastLoadDurationMs)} ms`
+        : null;
 
     const retryLoading = useCallback(() => {
         const soundPathList = pickSoundPath(parkName, stateParks, navigator.userAgent);
@@ -179,12 +230,17 @@ const HOARenderer = ({
         <div id="secSource">
             <div className={compact ? "flex items-center gap-3" : "space-y-4"}>
                 <div className="space-y-1">
-                    <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/50">
+                    <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/50" aria-live="polite">
                         {audioStatusLabel}
                     </p>
                     {!activeError && (
                         <p className="font-space-mono text-[11px] text-neutral-900/70">
                             {statusMessage}
+                        </p>
+                    )}
+                    {!activeError && timingHint && (
+                        <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/45">
+                            {timingHint}
                         </p>
                     )}
                 </div>

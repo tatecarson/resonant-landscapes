@@ -47,6 +47,7 @@ export default function GeolocationDebugPanel({
                     <p><span className="font-semibold text-slate-900">Unlocked:</span> {isAudioUnlocked ? "yes" : "no"}</p>
                     <p><span className="font-semibold text-slate-900">Loading:</span> {isLoading ? "yes" : "no"}</p>
                     <p><span className="font-semibold text-slate-900">Playing flag:</span> {isPlaying ? "yes" : "no"}</p>
+                    <p><span className="font-semibold text-slate-900">UI status:</span> {window.__audioDebug?.uiStatus ?? "n/a"}</p>
                     <p><span className="font-semibold text-slate-900">Source node:</span> {hasSourceNode ? "present" : "missing"}</p>
                     <p><span className="font-semibold text-slate-900">Buffers:</span> {hasBuffers ? "loaded" : "empty"}</p>
                     <p><span className="font-semibold text-slate-900">Duration:</span> {bufferDuration ? `${bufferDuration.toFixed(2)} s` : "n/a"}</p>

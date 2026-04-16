@@ -80,12 +80,17 @@ test("mobile audio loading stays on the latest park for Safari and Android", asy
   await expect(sicaHeading).toBeVisible({ timeout: 15_000 });
 
   await expect.poll(async () => {
+    return page.evaluate(() => window.__audioDebug?.uiStatus ?? null);
+  }, { timeout: 15_000 }).not.toBe("idle");
+
+  await expect.poll(async () => {
     return page.evaluate(() => window.__audioDebug ?? null);
   }, { timeout: 15_000 }).toMatchObject({
     isAudioUnlocked: true,
     hasBuffers: true,
     isPlaying: true,
     loadError: null,
+    uiStatus: "playing",
   });
 
   await page.waitForFunction(() => {
