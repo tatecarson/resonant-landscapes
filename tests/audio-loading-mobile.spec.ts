@@ -20,6 +20,20 @@ const replayPoints = [
   { latitude: 44.013364, longitude: -97.110649, waitMs: 1500 },
 ];
 
+async function expectParkLabelVisible(
+  page: import("@playwright/test").Page,
+  parkName: string
+) {
+  const heading = page.getByRole("heading", { name: parkName });
+  if (await heading.count()) {
+    await expect(heading).toBeVisible({ timeout: 15_000 });
+    return;
+  }
+
+  const compactLabel = page.locator("p.font-cormorant", { hasText: parkName });
+  await expect(compactLabel).toBeVisible({ timeout: 15_000 });
+}
+
 test("mobile audio loading stays on the latest park for Safari and Android", async ({
   context,
   page,
@@ -65,8 +79,7 @@ test("mobile audio loading stays on the latest park for Safari and Android", asy
     await unlockAudioButton.click();
   }
 
-  const custerHeading = page.getByRole("heading", { name: "Custer Test" });
-  await expect(custerHeading).toBeVisible({ timeout: 15_000 });
+  await expectParkLabelVisible(page, "Custer Test");
 
   for (const point of replayPoints) {
     await context.setGeolocation({
@@ -76,8 +89,7 @@ test("mobile audio loading stays on the latest park for Safari and Android", asy
     await page.waitForTimeout(point.waitMs);
   }
 
-  const sicaHeading = page.getByRole("heading", { name: "Sica Hollow State Park" });
-  await expect(sicaHeading).toBeVisible({ timeout: 15_000 });
+  await expectParkLabelVisible(page, "Sica Hollow State Park");
 
   await expect.poll(async () => {
     return page.evaluate(() => window.__audioDebug?.uiStatus ?? null);

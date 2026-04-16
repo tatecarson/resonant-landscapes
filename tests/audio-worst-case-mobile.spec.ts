@@ -27,6 +27,20 @@ const networkProfile = {
 };
 const webkitRequestDelayMs = Number(process.env.WORST_CASE_WEBKIT_REQUEST_DELAY_MS ?? 1_500);
 
+async function expectParkLabelVisible(
+  page: import("@playwright/test").Page,
+  parkName: string
+) {
+  const heading = page.getByRole("heading", { name: parkName });
+  if (await heading.count()) {
+    await expect(heading).toBeVisible({ timeout: 15_000 });
+    return;
+  }
+
+  const compactLabel = page.locator("p.font-cormorant", { hasText: parkName });
+  await expect(compactLabel).toBeVisible({ timeout: 15_000 });
+}
+
 async function dismissWelcomeIfPresent(page: import("@playwright/test").Page) {
   const beginButton = page.getByRole("button", { name: "Begin" });
   if (await beginButton.count()) {
@@ -273,8 +287,7 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   console.log("[worst-case] moving into park");
   await moveToPoint(context, page, worstCasePark.scaledCoords, 300);
 
-  const heading = page.getByRole("heading", { name: worstCasePark.name });
-  await expect(heading).toBeVisible({ timeout: 15_000 });
+  await expectParkLabelVisible(page, worstCasePark.name);
   console.log("[worst-case] park modal visible");
 
   await expect.poll(async () => page.evaluate(() => window.__audioDebug?.uiStatus ?? null), {
