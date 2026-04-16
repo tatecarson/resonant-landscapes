@@ -45,6 +45,14 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
         if (!isPlaying) setRotationActive(false);
     }, [isPlaying]);
 
+    useEffect(() => {
+        if (!permissionGranted || !userOrientation || !isPlaying || rotationActive) {
+            return;
+        }
+
+        setRotationActive(true);
+    }, [isPlaying, permissionGranted, rotationActive, userOrientation]);
+
     function cancel() {
         console.log('Cancelling...');
         stopSound();

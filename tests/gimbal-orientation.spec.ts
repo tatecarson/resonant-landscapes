@@ -107,17 +107,15 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   }).toBe(true);
   console.log("[test] audio autoplay active");
 
-  // Enable rotation from the compact strip (visible when playing and distance <= 3 m)
-  const enableRotationBtn = page.getByRole("button", { name: "Enable Rotation" });
-  await expect(enableRotationBtn).toBeVisible({ timeout: 10_000 });
-  await enableRotationBtn.click();
-  console.log("[test] body-oriented tracking enabled");
+  // Rotation should auto-enable once audio is playing and the user is at center range.
+  await expect
+    .poll(() => page.evaluate(() => (window as Window).__gimbalOrientation?.updatedAt ?? null), {
+      timeout: 10_000,
+    })
+    .not.toBeNull();
+  console.log("[test] body-oriented tracking enabled automatically");
 
   // GimbalArrow should now be mounted and writing to (window as any).__gimbalOrientation
-  await expect.poll(
-    () => page.evaluate(() => (window as Window).__gimbalOrientation?.updatedAt ?? null),
-    { timeout: 5_000 }
-  ).not.toBeNull();
   console.log("[test] gimbal render loop is running");
 
   // Quick two-point check: verify forward vector differs at alpha=0 vs alpha=90
