@@ -8,6 +8,7 @@ import { expect, test } from "@playwright/test";
 import stateParks from "../src/data/stateParks.json" with { type: "json" };
 import { scaleCoordinates } from "../src/utils/geo.js";
 import { formatParkSlug, getParkAudioVariants } from "../src/utils/audioPaths.js";
+import { expectAudioStatusVisible, expectParkLabelVisible } from "./helpers/ui-assertions";
 
 const replayPath = "/#/debug";
 const neutralPoint = {
@@ -26,28 +27,6 @@ const networkProfile = {
   connectionType: "cellular4g" as const,
 };
 const webkitRequestDelayMs = Number(process.env.WORST_CASE_WEBKIT_REQUEST_DELAY_MS ?? 1_500);
-
-async function expectParkLabelVisible(
-  page: import("@playwright/test").Page,
-  parkName: string
-) {
-  const heading = page.getByRole("heading", { name: parkName });
-  if (await heading.count()) {
-    await expect(heading).toBeVisible({ timeout: 15_000 });
-    return;
-  }
-
-  const compactLabel = page.locator("p.font-cormorant", { hasText: parkName });
-  await expect(compactLabel).toBeVisible({ timeout: 15_000 });
-}
-
-async function expectAudioStatusVisible(
-  page: import("@playwright/test").Page,
-  statusLabel: string
-) {
-  const status = page.locator("p.font-space-mono", { hasText: statusLabel });
-  await expect(status.first()).toBeVisible({ timeout: 15_000 });
-}
 
 async function dismissWelcomeIfPresent(page: import("@playwright/test").Page) {
   const beginButton = page.getByRole("button", { name: "Begin" });

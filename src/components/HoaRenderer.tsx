@@ -176,38 +176,42 @@ const HOARenderer = ({
         }
     }, [buffers, isPlaying, playSound, stopSound, rotationActive, onRotationActiveChange]);
 
-    const audioStatusLabel = audioStatus === "preparing"
-        ? "Preparing audio"
-        : audioStatus === "playing"
-            ? "Playing automatically"
-            : audioStatus === "ready-manual"
-                ? allowManualRestart
-                    ? "Playback stopped"
-                    : "Ready to start"
-                : audioStatus === "ready"
-                    ? "Audio ready"
-                    : activeError
-                        ? "Audio unavailable"
-                        : hasPrefetchedAudio
-                            ? "Audio warming nearby"
-                            : "Entering listening zone";
-    const statusMessage = activeError
-        ? "Fix the audio error below to retry this park."
-        : audioStatus === "preparing"
-            ? hasPrefetchedAudio
-                ? "Finishing the park audio handoff now."
-                : "Loading this park's recording now."
-            : audioStatus === "playing"
-                ? "Audio started when you entered the listening area."
-                : audioStatus === "ready-manual"
-                    ? allowManualRestart
-                        ? "Tap start audio to resume this park."
-                        : "Autoplay was blocked. Tap start audio to begin."
-                    : audioStatus === "ready"
-                        ? "Audio is ready and should begin immediately."
-                        : hasPrefetchedAudio
-                            ? "A nearby park recording is already warming in the background."
-                            : "Move closer to a park center to begin preparing audio.";
+    let audioStatusLabel: string;
+    let statusMessage: string;
+
+    if (activeError) {
+        audioStatusLabel = "Audio unavailable";
+        statusMessage = "Fix the audio error below to retry this park.";
+    } else {
+        switch (audioStatus) {
+            case "preparing":
+                audioStatusLabel = "Preparing audio";
+                statusMessage = hasPrefetchedAudio
+                    ? "Finishing the park audio handoff now."
+                    : "Loading this park's recording now.";
+                break;
+            case "playing":
+                audioStatusLabel = "Playing automatically";
+                statusMessage = "Audio started when you entered the listening area.";
+                break;
+            case "ready-manual":
+                audioStatusLabel = allowManualRestart ? "Playback stopped" : "Ready to start";
+                statusMessage = allowManualRestart
+                    ? "Tap start audio to resume this park."
+                    : "Autoplay was blocked. Tap start audio to begin.";
+                break;
+            case "ready":
+                audioStatusLabel = "Audio ready";
+                statusMessage = "Audio is ready and should begin immediately.";
+                break;
+            default:
+                audioStatusLabel = hasPrefetchedAudio ? "Audio warming nearby" : "Entering listening zone";
+                statusMessage = hasPrefetchedAudio
+                    ? "A nearby park recording is already warming in the background."
+                    : "Move closer to a park center to begin preparing audio.";
+                break;
+        }
+    }
     const timingHint = lastLoadDurationMs !== null
         ? `${lastLoadCacheHit ? "Cache hit" : "Loaded"} in ${Math.round(lastLoadDurationMs)} ms`
         : null;

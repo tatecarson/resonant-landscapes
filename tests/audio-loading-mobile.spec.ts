@@ -4,6 +4,7 @@
  * ends up loading and playing the final park's audio instead of the stale one.
  */
 import { expect, test } from "@playwright/test";
+import { expectParkLabelVisible } from "./helpers/ui-assertions";
 
 const replayPath = "/#/debug";
 const firstPoint = {
@@ -19,20 +20,6 @@ const replayPoints = [
   { latitude: 44.013350, longitude: -97.110649, waitMs: 750 },
   { latitude: 44.013364, longitude: -97.110649, waitMs: 1500 },
 ];
-
-async function expectParkLabelVisible(
-  page: import("@playwright/test").Page,
-  parkName: string
-) {
-  const heading = page.getByRole("heading", { name: parkName });
-  if (await heading.count()) {
-    await expect(heading).toBeVisible({ timeout: 15_000 });
-    return;
-  }
-
-  const compactLabel = page.locator("p.font-cormorant", { hasText: parkName });
-  await expect(compactLabel).toBeVisible({ timeout: 15_000 });
-}
 
 test("mobile audio loading stays on the latest park for Safari and Android", async ({
   context,
