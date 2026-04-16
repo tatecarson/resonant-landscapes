@@ -1,7 +1,6 @@
 import { useRef, Fragment, useCallback } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAudioContext } from "../contexts/AudioContextProvider";
-import { requestDeviceOrientationPermission } from "../utils/deviceOrientation";
 
 interface WelcomeModalProps {
     isOpen: boolean;
@@ -14,9 +13,6 @@ function WelcomeModal({ isOpen, setIsOpen }: WelcomeModalProps) {
 
     const handleBegin = useCallback(async () => {
         try {
-            // iOS Safari requires this prompt to be initiated directly from a user gesture.
-            void requestDeviceOrientationPermission();
-
             const didUnlockAudio = await unlockAudio();
             if (!didUnlockAudio) {
                 return;
@@ -80,7 +76,7 @@ function WelcomeModal({ isOpen, setIsOpen }: WelcomeModalProps) {
                                 </div>
 
                                 <p className="mt-6 font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/55">
-                                    Begin will request audio and motion access.
+                                    Begin will request audio access. Rotation access is requested later when needed.
                                 </p>
 
                                 <div className="mt-8">
@@ -92,7 +88,7 @@ function WelcomeModal({ isOpen, setIsOpen }: WelcomeModalProps) {
                                         }}
                                         ref={cancelButtonRef}
                                     >
-                                        Begin With Audio + Motion
+                                        Begin With Audio
                                     </button>
                                 </div>
 
