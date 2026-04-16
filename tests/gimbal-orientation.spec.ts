@@ -60,6 +60,15 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   await page.addInitScript(() => {
     const handlers: EventListenerOrEventListenerObject[] = [];
     const orig = window.addEventListener.bind(window);
+    const deviceOrientationCtor = window.DeviceOrientationEvent as IOSDeviceOrientationEvent | undefined;
+
+    if (deviceOrientationCtor) {
+      Object.defineProperty(deviceOrientationCtor, "requestPermission", {
+        configurable: true,
+        value: async () => "granted",
+      });
+    }
+
     window.addEventListener = function (
       type: string,
       handler: EventListenerOrEventListenerObject,
@@ -85,6 +94,10 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
     await beginBtn.click();
     await expect(page.getByRole("heading", { name: "Resonant Landscapes" })).toHaveCount(0);
   }
+
+  await page.evaluate(() => {
+    window.localStorage.setItem("deviceOrientationPermission", "granted");
+  });
 
   // Wait for the map to be interactive before re-applying position
   const mapCanvas = page.locator("canvas").first();
