@@ -115,7 +115,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
                                         onClick={() => {
                                             void enableRotation();
                                         }}
-                                        className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70 transition-colors hover:text-neutral-900"
+                                        className="inline-flex min-h-[40px] items-center rounded-full border border-neutral-900/20 bg-white/45 px-4 py-2 font-space-mono text-[10px] uppercase tracking-[0.22em] text-neutral-900 shadow-sm transition-colors hover:bg-white/65"
                                     >
                                         Enable Rotation
                                     </button>
@@ -126,7 +126,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
                                             setRotationDismissed(true);
                                             setRotationActive(false);
                                         }}
-                                        className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/50 transition-colors hover:text-neutral-900"
+                                        className="inline-flex min-h-[40px] items-center rounded-full border border-neutral-900/15 bg-neutral-900 px-4 py-2 font-space-mono text-[10px] uppercase tracking-[0.22em] text-white shadow-sm transition-colors hover:bg-neutral-800"
                                     >
                                         Stop Tracking
                                     </button>

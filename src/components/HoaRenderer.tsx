@@ -215,6 +215,11 @@ const HOARenderer = ({
     const timingHint = lastLoadDurationMs !== null
         ? `${lastLoadCacheHit ? "Cache hit" : "Loaded"} in ${Math.round(lastLoadDurationMs)} ms`
         : null;
+    const compactStatusLabel = audioStatus === "playing"
+        ? "Playing"
+        : audioStatus === "ready-manual" && !allowManualRestart
+            ? "Tap to start"
+            : audioStatusLabel;
 
     const retryLoading = useCallback(() => {
         const soundPathList = pickSoundPath(parkName, stateParks, navigator.userAgent);
@@ -235,14 +240,14 @@ const HOARenderer = ({
             <div className={compact ? "flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3" : "space-y-4"}>
                 <div className="min-w-0 space-y-1">
                     <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/50" aria-live="polite">
-                        {audioStatusLabel}
+                        {compact ? compactStatusLabel : audioStatusLabel}
                     </p>
-                    {!activeError && (
+                    {!compact && !activeError && (
                         <p className="font-space-mono text-[11px] text-neutral-900/70">
                             {statusMessage}
                         </p>
                     )}
-                    {!activeError && timingHint && (
+                    {!compact && !activeError && timingHint && (
                         <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/45">
                             {timingHint}
                         </p>
