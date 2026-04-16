@@ -42,18 +42,14 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
         setRotationDismissed(false);
     }, [parkName]);
 
-    // Deactivate rotation when playback stops
+    // Deactivate rotation when playback stops; also clear dismissed flag so
+    // auto-enable can fire again when the user next starts audio.
     useEffect(() => {
         if (!isPlaying) {
             setRotationActive(false);
+            setRotationDismissed(false);
         }
     }, [isPlaying]);
-
-    useEffect(() => {
-        if (!permissionGranted && hasStoredOrientationPermission()) {
-            setPermissionGranted(true);
-        }
-    }, [permissionGranted, parkName, showRotationButton]);
 
     // Reset the manual dismissal when the user leaves center conditions.
     useEffect(() => {
@@ -86,7 +82,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
             setPermissionGranted(true);
         }
 
-        setRotationDismissed(false);
+        setRotationDismissed(false); // user explicitly re-enabled — clear any prior dismissal
         setRotationActive(true);
     }
 

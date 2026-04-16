@@ -2,9 +2,10 @@
  * Verifies that GimbalArrow's render loop responds to DeviceOrientationEvents
  * and calls setListenerOrientation on the ResonanceAudio scene.
  *
- * Uses CDP to inject synthetic device orientation events at the browser level,
- * bypassing the iOS permission prompt (Chromium doesn't implement
- * DeviceOrientationEvent.requestPermission, so GimbalArrow auto-grants).
+ * Uses CDP to inject synthetic device orientation events at the browser level.
+ * Permission is seeded two ways: localStorage is pre-populated with "granted"
+ * (satisfying hasStoredOrientationPermission) and DeviceOrientationEvent.requestPermission
+ * is stubbed to return "granted" (Chromium doesn't implement it natively).
  *
  * Run with:
  *   npx playwright test gimbal-orientation --project=iphone-13
