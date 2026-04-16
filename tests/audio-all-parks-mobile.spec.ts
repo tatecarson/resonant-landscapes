@@ -46,16 +46,20 @@ const centerSettleMs = Number(process.env.ALL_PARKS_CENTER_SETTLE_MS ?? 300);
 const loadTimeoutMs = Number(process.env.ALL_PARKS_LOAD_TIMEOUT_MS ?? 20_000);
 const playTimeoutMs = Number(process.env.ALL_PARKS_PLAY_TIMEOUT_MS ?? 15_000);
 const playbackHoldMs = Number(process.env.ALL_PARKS_PLAYBACK_HOLD_MS ?? 3_000);
+const orderedStateParks = [
+  ...stateParks.filter((park) => park.name === "Good Earth State Park"),
+  ...stateParks.filter((park) => park.name !== "Good Earth State Park"),
+];
 
 const debugParks = [
+  ...orderedStateParks.map((park) => ({
+    name: park.name,
+    scaledCoords: scaleCoordinates(park.cords as Coordinate, referencePoint, scaleLong, scaleLat) as Coordinate,
+  })),
   {
     name: "Custer Test",
     scaledCoords: [-97.112994, 44.012224] as Coordinate,
   },
-  ...stateParks.map((park) => ({
-    name: park.name,
-    scaledCoords: scaleCoordinates(park.cords as Coordinate, referencePoint, scaleLong, scaleLat) as Coordinate,
-  })),
 ];
 
 function getExpectedSlug(parkName: string) {
