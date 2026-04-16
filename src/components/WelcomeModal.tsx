@@ -14,13 +14,13 @@ function WelcomeModal({ isOpen, setIsOpen }: WelcomeModalProps) {
 
     const handleBegin = useCallback(async () => {
         try {
-            const [didUnlockAudio, didUnlockMotion] = await Promise.all([
-                unlockAudio(),
-                requestDeviceOrientationPermission(),
-            ]);
-            if (didUnlockAudio && didUnlockMotion) {
-                setIsOpen(false);
+            const didUnlockAudio = await unlockAudio();
+            if (!didUnlockAudio) {
+                return;
             }
+
+            setIsOpen(false);
+            void requestDeviceOrientationPermission();
         } catch (error) {
             console.error("Error unlocking audio from welcome modal:", error);
         }

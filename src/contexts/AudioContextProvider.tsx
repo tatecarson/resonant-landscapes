@@ -76,6 +76,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const audioInitializedRef = useRef(false);
     const initAudioPromiseRef = useRef<Promise<void> | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
+    const audioPrimedRef = useRef(false);
     const bufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
     const lastAudioEventRef = useRef<string | null>(null);
     const activeLoadRequestIdRef = useRef(0);
@@ -288,6 +289,29 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         syncAudioDebug("playback-started");
     }, [audioContext, buffers, resonanceAudioScene, syncAudioDebug]);
 
+    const primeAudioContext = useCallback((context: AudioContext) => {
+        if (audioPrimedRef.current) {
+            return;
+        }
+
+        const silentGain = context.createGain();
+        silentGain.gain.value = 0;
+        silentGain.connect(context.destination);
+
+        const buffer = context.createBuffer(1, 1, context.sampleRate);
+        const source = context.createBufferSource();
+        source.buffer = buffer;
+        source.connect(silentGain);
+        source.onended = () => {
+            source.disconnect();
+            silentGain.disconnect();
+        };
+        source.start(0);
+        source.stop(context.currentTime + 0.001);
+
+        audioPrimedRef.current = true;
+    }, []);
+
     const unlockAudio = useCallback(async (): Promise<boolean> => {
         try {
             if (initAudioPromiseRef.current) {
@@ -305,6 +329,8 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
                 await context.resume();
             }
 
+            primeAudioContext(context);
+
             setIsAudioUnlocked(true);
             syncAudioDebug("audio-unlocked");
             return true;
@@ -316,7 +342,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             syncAudioDebug("unlock-error");
             return false;
         }
-    }, [syncAudioDebug]);
+    }, [primeAudioContext, syncAudioDebug]);
 
     const playSound = useCallback(() => {
         if (!audioContext || !resonanceAudioScene || isPlaying) {
