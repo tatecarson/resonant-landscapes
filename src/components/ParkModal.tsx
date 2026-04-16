@@ -101,34 +101,40 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
             <>
                 <AmbientGradient active={rotationActive} />
                 <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-neutral-900/20 bg-[#8ecdc0] px-5 py-3 shadow-lg">
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex flex-col gap-3">
                         <div className="min-w-0">
-                            <p className="font-cormorant italic truncate text-xl font-light text-neutral-900">{parkName}</p>
+                            <p className="font-cormorant text-pretty text-xl leading-tight font-light italic text-neutral-900">
+                                {parkName}
+                            </p>
                             <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/50">{Math.floor(parkDistance)} m away</p>
                         </div>
-                        <div className="flex items-center gap-3">
-                            {!rotationActive && showRotationButton && (
-                                <button
-                                    onClick={() => {
-                                        void enableRotation();
-                                    }}
-                                    className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70 transition-colors hover:text-neutral-900"
-                                >
-                                    Enable Rotation
-                                </button>
-                            )}
-                            {rotationActive && (
-                                <button
-                                    onClick={() => {
-                                        setRotationDismissed(true);
-                                        setRotationActive(false);
-                                    }}
-                                    className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/50 transition-colors hover:text-neutral-900"
-                                >
-                                    Stop Tracking
-                                </button>
-                            )}
-                            <HOARenderer {...hoaRendererProps} compact />
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="flex flex-wrap items-center gap-3">
+                                {!rotationActive && showRotationButton && (
+                                    <button
+                                        onClick={() => {
+                                            void enableRotation();
+                                        }}
+                                        className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70 transition-colors hover:text-neutral-900"
+                                    >
+                                        Enable Rotation
+                                    </button>
+                                )}
+                                {rotationActive && (
+                                    <button
+                                        onClick={() => {
+                                            setRotationDismissed(true);
+                                            setRotationActive(false);
+                                        }}
+                                        className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/50 transition-colors hover:text-neutral-900"
+                                    >
+                                        Stop Tracking
+                                    </button>
+                                )}
+                            </div>
+                            <div className="min-w-0 sm:flex-1">
+                                <HOARenderer {...hoaRendererProps} compact />
+                            </div>
                         </div>
                     </div>
                 </div>

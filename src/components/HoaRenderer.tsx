@@ -232,8 +232,8 @@ const HOARenderer = ({
 
     return (
         <div id="secSource">
-            <div className={compact ? "flex items-center gap-3" : "space-y-4"}>
-                <div className="space-y-1">
+            <div className={compact ? "flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3" : "space-y-4"}>
+                <div className="min-w-0 space-y-1">
                     <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/50" aria-live="polite">
                         {audioStatusLabel}
                     </p>
@@ -264,7 +264,7 @@ const HOARenderer = ({
                 )}
 
                 {!activeError && (
-                    <div className={compact ? "flex items-center gap-2" : "flex items-center gap-3"}>
+                    <div className={compact ? "flex flex-wrap items-center gap-2" : "flex items-center gap-3"}>
                         {isPlaying && (
                             <button
                                 onClick={onTogglePlayback}
