@@ -45,13 +45,11 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
         if (!isPlaying) setRotationActive(false);
     }, [isPlaying]);
 
+    // Auto-enable rotation when all conditions are met at park center
     useEffect(() => {
-        if (!permissionGranted || !userOrientation || !isPlaying || rotationActive) {
-            return;
-        }
-
+        if (!showRotationButton || rotationActive) return;
         setRotationActive(true);
-    }, [isPlaying, permissionGranted, rotationActive, userOrientation]);
+    }, [showRotationButton, rotationActive]);
 
     function cancel() {
         console.log('Cancelling...');
@@ -168,7 +166,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
                                         <HOARenderer {...hoaRendererProps} />
                                     </div>
 
-                                    {showRotationButton && (
+                                    {!rotationActive && showRotationButton && (
                                         <button
                                             type="button"
                                             onClick={() => {
