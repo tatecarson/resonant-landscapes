@@ -34,6 +34,10 @@ class Gimbal {
         this.eulerOrigin = new THREE.Euler();
         this.onSensorMoveBound = this.onSensorMove.bind(this);
         this.onDeviceReorientationBound = this.onDeviceReorientation.bind(this);
+        this.orientationEventNames = ["deviceorientation"];
+        if ("ondeviceorientationabsolute" in window) {
+            this.orientationEventNames.unshift("deviceorientationabsolute");
+        }
         this.enabled = false;
 
         if (typeof window.orientation !== "undefined") {
@@ -72,9 +76,20 @@ class Gimbal {
     // Beta = x axis [-180 , 180]
     // Gamma = y axis [-90 , 90]
     onSensorMove(event) {
-        this.data.alpha = event.alpha;
-        this.data.beta = event.beta;
-        this.data.gamma = event.gamma;
+        const compassHeading = typeof event.webkitCompassHeading === "number"
+            ? event.webkitCompassHeading
+            : null;
+        const alpha = compassHeading !== null ? 360 - compassHeading : event.alpha;
+        const beta = event.beta;
+        const gamma = event.gamma;
+
+        if (![alpha, beta, gamma].every(Number.isFinite)) {
+            return;
+        }
+
+        this.data.alpha = alpha;
+        this.data.beta = beta;
+        this.data.gamma = gamma;
         this.needsUpdate = true;
 
         if (this.recalRequested) {
@@ -101,7 +116,9 @@ class Gimbal {
 
         this.onDeviceReorientation();
 
-        window.addEventListener("deviceorientation", this.onSensorMoveBound, false);
+        this.orientationEventNames.forEach((eventName) => {
+            window.addEventListener(eventName, this.onSensorMoveBound, false);
+        });
         window.addEventListener("orientationchange", this.onDeviceReorientationBound, false);
         this.enabled = true;
 
@@ -114,7 +131,9 @@ class Gimbal {
             return;
         }
 
-        window.removeEventListener("deviceorientation", this.onSensorMoveBound, false);
+        this.orientationEventNames.forEach((eventName) => {
+            window.removeEventListener(eventName, this.onSensorMoveBound, false);
+        });
         window.removeEventListener("orientationchange", this.onDeviceReorientationBound, false);
         this.enabled = false;
     }
