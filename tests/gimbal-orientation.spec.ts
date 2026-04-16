@@ -2,9 +2,10 @@
  * Verifies that GimbalArrow's render loop responds to DeviceOrientationEvents
  * and calls setListenerOrientation on the ResonanceAudio scene.
  *
- * Uses CDP to inject synthetic device orientation events at the browser level,
- * bypassing the iOS permission prompt (Chromium doesn't implement
- * DeviceOrientationEvent.requestPermission, so GimbalArrow auto-grants).
+ * Uses CDP to inject synthetic device orientation events at the browser level.
+ * Permission is seeded two ways: localStorage is pre-populated with "granted"
+ * (satisfying hasStoredOrientationPermission) and DeviceOrientationEvent.requestPermission
+ * is stubbed to return "granted" (Chromium doesn't implement it natively).
  *
  * Run with:
  *   npx playwright test gimbal-orientation --project=iphone-13
@@ -60,6 +61,15 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   await page.addInitScript(() => {
     const handlers: EventListenerOrEventListenerObject[] = [];
     const orig = window.addEventListener.bind(window);
+    const deviceOrientationCtor = window.DeviceOrientationEvent as IOSDeviceOrientationEvent | undefined;
+
+    if (deviceOrientationCtor) {
+      Object.defineProperty(deviceOrientationCtor, "requestPermission", {
+        configurable: true,
+        value: async () => "granted",
+      });
+    }
+
     window.addEventListener = function (
       type: string,
       handler: EventListenerOrEventListenerObject,
@@ -86,6 +96,10 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
     await expect(page.getByRole("heading", { name: "Resonant Landscapes" })).toHaveCount(0);
   }
 
+  await page.evaluate(() => {
+    window.localStorage.setItem("deviceOrientationPermission", "granted");
+  });
+
   // Wait for the map to be interactive before re-applying position
   const mapCanvas = page.locator("canvas").first();
   await expect(mapCanvas).toBeVisible({ timeout: 15_000 });
@@ -107,17 +121,15 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   }).toBe(true);
   console.log("[test] audio autoplay active");
 
-  // Enable rotation from the compact strip (visible when playing and distance <= 3 m)
-  const enableRotationBtn = page.getByRole("button", { name: "Enable Rotation" });
-  await expect(enableRotationBtn).toBeVisible({ timeout: 10_000 });
-  await enableRotationBtn.click();
-  console.log("[test] body-oriented tracking enabled");
+  // Rotation should auto-enable once audio is playing and the user is at center range.
+  await expect
+    .poll(() => page.evaluate(() => (window as Window).__gimbalOrientation?.updatedAt ?? null), {
+      timeout: 10_000,
+    })
+    .not.toBeNull();
+  console.log("[test] body-oriented tracking enabled automatically");
 
   // GimbalArrow should now be mounted and writing to (window as any).__gimbalOrientation
-  await expect.poll(
-    () => page.evaluate(() => (window as Window).__gimbalOrientation?.updatedAt ?? null),
-    { timeout: 5_000 }
-  ).not.toBeNull();
   console.log("[test] gimbal render loop is running");
 
   // Quick two-point check: verify forward vector differs at alpha=0 vs alpha=90

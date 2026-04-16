@@ -20,6 +20,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
     const { isPlaying } = useAudioPlaybackState();
     const [rotationActive, setRotationActive] = useState(false);
     const [permissionGranted, setPermissionGranted] = useState(() => hasStoredOrientationPermission());
+    const [rotationDismissed, setRotationDismissed] = useState(false);
     const showRotationButton = isPlaying && parkDistance <= 3 && userOrientation;
 
     useRenderDebug("ParkModal", {
@@ -38,12 +39,33 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
     useEffect(() => {
         setRotationActive(false);
         setPermissionGranted(hasStoredOrientationPermission());
+        setRotationDismissed(false);
     }, [parkName]);
 
-    // Deactivate rotation when playback stops
+    // Deactivate rotation when playback stops; also clear dismissed flag so
+    // auto-enable can fire again when the user next starts audio.
     useEffect(() => {
-        if (!isPlaying) setRotationActive(false);
+        if (!isPlaying) {
+            setRotationActive(false);
+            setRotationDismissed(false);
+        }
     }, [isPlaying]);
+
+    // Reset the manual dismissal when the user leaves center conditions.
+    useEffect(() => {
+        if (!showRotationButton) {
+            setRotationDismissed(false);
+        }
+    }, [showRotationButton]);
+
+    // Auto-enable rotation when all conditions are met at park center.
+    useEffect(() => {
+        if (!permissionGranted || !showRotationButton || rotationActive || rotationDismissed) {
+            return;
+        }
+
+        setRotationActive(true);
+    }, [permissionGranted, rotationDismissed, rotationActive, showRotationButton]);
 
     function cancel() {
         console.log('Cancelling...');
@@ -60,6 +82,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
             setPermissionGranted(true);
         }
 
+        setRotationDismissed(false); // user explicitly re-enabled — clear any prior dismissal
         setRotationActive(true);
     }
 
@@ -96,7 +119,10 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
                             )}
                             {rotationActive && (
                                 <button
-                                    onClick={() => setRotationActive(false)}
+                                    onClick={() => {
+                                        setRotationDismissed(true);
+                                        setRotationActive(false);
+                                    }}
                                     className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/50 transition-colors hover:text-neutral-900"
                                 >
                                     Stop Tracking
@@ -160,7 +186,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
                                         <HOARenderer {...hoaRendererProps} />
                                     </div>
 
-                                    {showRotationButton && (
+                                    {!rotationActive && showRotationButton && (
                                         <button
                                             type="button"
                                             onClick={() => {
