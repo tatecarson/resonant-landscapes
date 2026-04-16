@@ -14,13 +14,15 @@ function WelcomeModal({ isOpen, setIsOpen }: WelcomeModalProps) {
 
     const handleBegin = useCallback(async () => {
         try {
+            // iOS Safari requires this prompt to be initiated directly from a user gesture.
+            void requestDeviceOrientationPermission();
+
             const didUnlockAudio = await unlockAudio();
             if (!didUnlockAudio) {
                 return;
             }
 
             setIsOpen(false);
-            void requestDeviceOrientationPermission();
         } catch (error) {
             console.error("Error unlocking audio from welcome modal:", error);
         }
