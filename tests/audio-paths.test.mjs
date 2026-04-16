@@ -36,13 +36,14 @@ test('safari variants use wav assets', () => {
   }
 });
 
-test('Good Earth State Park uses the known-good Safari fallback asset pair', () => {
+test('Good Earth State Park expands into all Safari wav variants from metadata', () => {
   const variants = getParkAudioVariants('Good Earth State Park', stateParks, 'Safari');
 
-  assert.deepEqual(variants, [[
-    'https://resonant-landscapes.b-cdn.net/sounds/Good-Earth-2-002_8ch.m4a',
-    'https://resonant-landscapes.b-cdn.net/sounds/Good-Earth-2-002_mono.m4a',
-  ]]);
+  assert.equal(variants?.length, 4);
+  assert.match(variants?.[0]?.[0] ?? '', /\/sounds-wav\/Good-Earth-1-001_8ch\.wav$/);
+  assert.match(variants?.[0]?.[1] ?? '', /\/sounds-wav\/Good-Earth-1-001_mono\.wav$/);
+  assert.match(variants?.[3]?.[0] ?? '', /\/sounds-wav\/Good-Earth-2-002_8ch\.wav$/);
+  assert.match(variants?.[3]?.[1] ?? '', /\/sounds-wav\/Good-Earth-2-002_mono\.wav$/);
 });
 
 test('Custer State Park uses the CDN slug override for both browser families', () => {

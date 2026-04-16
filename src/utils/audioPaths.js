@@ -4,12 +4,6 @@ const PARK_SLUG_OVERRIDES = {
   'Custer State Park': 'Custer-State',
   'Palisades State Park': 'Palisades-State',
 };
-const SAFARI_AUDIO_OVERRIDES = {
-  'Good Earth State Park': [
-    `${CDN_BASE}sounds/Good-Earth-2-002_8ch.m4a`,
-    `${CDN_BASE}sounds/Good-Earth-2-002_mono.m4a`,
-  ],
-};
 
 function hashString(value) {
   let hash = 0;
@@ -59,10 +53,6 @@ export function getParkAudioVariants(parkName, parksJSON, userAgent = '') {
   }
 
   const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
-  if (isSafari && SAFARI_AUDIO_OVERRIDES[parkName]) {
-    return [SAFARI_AUDIO_OVERRIDES[parkName]];
-  }
-
   const extension = isSafari ? 'wav' : 'm4a';
   const soundsFolder = isSafari ? 'sounds-wav' : 'sounds';
   const variants = [];
