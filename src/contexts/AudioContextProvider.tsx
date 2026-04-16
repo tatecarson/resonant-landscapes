@@ -23,6 +23,9 @@ interface AudioPlaybackStateContextType {
     buffers: AudioBuffer | null;
     loadError: string | null;
     lastUnlockError: string | null;
+    lastLoadReason: "active-load" | "prefetch" | null;
+    lastLoadCacheHit: boolean | null;
+    lastLoadDurationMs: number | null;
 }
 
 type AudioLoadDebug = {
@@ -54,6 +57,9 @@ const AudioPlaybackStateContext = createContext<AudioPlaybackStateContextType>({
     buffers: null,
     loadError: null,
     lastUnlockError: null,
+    lastLoadReason: null,
+    lastLoadCacheHit: null,
+    lastLoadDurationMs: null,
 });
 
 
@@ -66,6 +72,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [lastUnlockError, setLastUnlockError] = useState<string | null>(null);
+    const [lastLoad, setLastLoad] = useState<AudioLoadDebug | null>(null);
     const audioInitializedRef = useRef(false);
     const initAudioPromiseRef = useRef<Promise<void> | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
@@ -125,6 +132,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     const recordLoadDebug = useCallback((load: AudioLoadDebug) => {
+        setLastLoad(load);
         audioDebugStateRef.current = {
             ...audioDebugStateRef.current,
             activeUrls: load.urls,
@@ -140,9 +148,11 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         activeLoadRequestIdRef.current += 1;
         setIsLoading(false);
         setBuffers(null);
+        setLastLoad(null);
         audioDebugStateRef.current = {
             ...audioDebugStateRef.current,
             activeUrls: [],
+            lastLoad: null,
         };
         lastAudioEventRef.current = "load-cancelled";
         syncAudioDebug();
@@ -422,7 +432,10 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         buffers,
         loadError,
         lastUnlockError,
-    }), [isLoading, isPlaying, isAudioUnlocked, buffers, loadError, lastUnlockError]);
+        lastLoadReason: lastLoad?.reason ?? null,
+        lastLoadCacheHit: lastLoad?.cacheHit ?? null,
+        lastLoadDurationMs: lastLoad?.durationMs ?? null,
+    }), [isLoading, isPlaying, isAudioUnlocked, buffers, loadError, lastUnlockError, lastLoad]);
 
     useRenderDebug("AudioContextProvider", {
         audioContextState: audioContext?.state ?? "unavailable",

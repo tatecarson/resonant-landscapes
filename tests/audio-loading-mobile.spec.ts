@@ -4,6 +4,7 @@
  * ends up loading and playing the final park's audio instead of the stale one.
  */
 import { expect, test } from "@playwright/test";
+import { expectParkLabelVisible } from "./helpers/ui-assertions";
 
 const replayPath = "/#/debug";
 const firstPoint = {
@@ -65,8 +66,7 @@ test("mobile audio loading stays on the latest park for Safari and Android", asy
     await unlockAudioButton.click();
   }
 
-  const custerHeading = page.getByRole("heading", { name: "Custer Test" });
-  await expect(custerHeading).toBeVisible({ timeout: 15_000 });
+  await expectParkLabelVisible(page, "Custer Test");
 
   for (const point of replayPoints) {
     await context.setGeolocation({
@@ -76,8 +76,11 @@ test("mobile audio loading stays on the latest park for Safari and Android", asy
     await page.waitForTimeout(point.waitMs);
   }
 
-  const sicaHeading = page.getByRole("heading", { name: "Sica Hollow State Park" });
-  await expect(sicaHeading).toBeVisible({ timeout: 15_000 });
+  await expectParkLabelVisible(page, "Sica Hollow State Park");
+
+  await expect.poll(async () => {
+    return page.evaluate(() => window.__audioDebug?.uiStatus ?? null);
+  }, { timeout: 15_000 }).not.toBe("idle");
 
   await expect.poll(async () => {
     return page.evaluate(() => window.__audioDebug ?? null);
@@ -86,6 +89,7 @@ test("mobile audio loading stays on the latest park for Safari and Android", asy
     hasBuffers: true,
     isPlaying: true,
     loadError: null,
+    uiStatus: "playing",
   });
 
   await page.waitForFunction(() => {

@@ -8,6 +8,7 @@ import { expect, test } from "@playwright/test";
 import stateParks from "../src/data/stateParks.json" with { type: "json" };
 import { scaleCoordinates } from "../src/utils/geo.js";
 import { formatParkSlug, getParkAudioVariants } from "../src/utils/audioPaths.js";
+import { expectAudioStatusVisible, expectParkLabelVisible } from "./helpers/ui-assertions";
 
 const replayPath = "/#/debug";
 const neutralPoint = {
@@ -273,9 +274,11 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   console.log("[worst-case] moving into park");
   await moveToPoint(context, page, worstCasePark.scaledCoords, 300);
 
-  const heading = page.getByRole("heading", { name: worstCasePark.name });
-  await expect(heading).toBeVisible({ timeout: 15_000 });
+  await expectParkLabelVisible(page, worstCasePark.name);
   console.log("[worst-case] park modal visible");
+
+  await expectAudioStatusVisible(page, "Preparing audio");
+  console.log("[worst-case] preparing state visible");
 
   await expect.poll(async () => page.evaluate(() => window.__audioDebug ?? null), {
     timeout: 45_000,
@@ -337,6 +340,7 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   expect(relevantRequests.length).toBeGreaterThanOrEqual(2);
   expect(audioDebug?.activeUrls?.every((url: string) => url.includes(worstCasePark.slug))).toBeTruthy();
   expect(audioDebug?.lastLoadReason).toBeTruthy();
+  expect(audioDebug?.uiStatus).toBe("playing");
   expect(showsSuccessfulPrefetch(audioDebug) || showsSuccessfulPrefetch(prefetchDebug)).toBeTruthy();
   expect(loadCompletedAt - loadStartedAt).toBeLessThan(30_000);
   expect(playbackStartedAt - playStartedAt).toBeLessThan(5_000);

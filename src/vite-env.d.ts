@@ -37,6 +37,7 @@ interface Window {
     lastLoadReason: "active-load" | "prefetch" | null;
     lastLoadDurationMs: number | null;
     lastLoadCacheHit: boolean | null;
+    uiStatus?: string | null;
   };
   __renderDebug?: Record<string, {
     renderCount: number;
