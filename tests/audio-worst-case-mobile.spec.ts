@@ -41,6 +41,14 @@ async function expectParkLabelVisible(
   await expect(compactLabel).toBeVisible({ timeout: 15_000 });
 }
 
+async function expectAudioStatusVisible(
+  page: import("@playwright/test").Page,
+  statusLabel: string
+) {
+  const status = page.locator("p.font-space-mono", { hasText: statusLabel });
+  await expect(status.first()).toBeVisible({ timeout: 15_000 });
+}
+
 async function dismissWelcomeIfPresent(page: import("@playwright/test").Page) {
   const beginButton = page.getByRole("button", { name: "Begin" });
   if (await beginButton.count()) {
@@ -290,9 +298,7 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   await expectParkLabelVisible(page, worstCasePark.name);
   console.log("[worst-case] park modal visible");
 
-  await expect.poll(async () => page.evaluate(() => window.__audioDebug?.uiStatus ?? null), {
-    timeout: 15_000,
-  }).toBe("preparing");
+  await expectAudioStatusVisible(page, "Preparing audio");
   console.log("[worst-case] preparing state visible");
 
   await expect.poll(async () => page.evaluate(() => window.__audioDebug ?? null), {
