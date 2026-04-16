@@ -100,42 +100,71 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
         return (
             <>
                 <AmbientGradient active={rotationActive} />
-                <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-neutral-900/20 bg-[#8ecdc0] px-5 py-3 shadow-lg">
-                    <div className="flex flex-col gap-3">
-                        <div className="min-w-0">
-                            <p className="font-cormorant text-pretty text-xl leading-tight font-light italic text-neutral-900">
+                <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#8ecdc0] shadow-[0_-1px_0_rgba(0,0,0,0.10),0_-12px_32px_rgba(0,0,0,0.08)]">
+                    <div className="px-5 pt-3.5 pb-[max(1rem,env(safe-area-inset-bottom))]">
+
+                        {/* Park identity */}
+                        <div className="flex items-start justify-between gap-3">
+                            <p className="font-cormorant italic text-[22px] leading-tight font-light text-neutral-900 min-w-0 truncate">
                                 {parkName}
                             </p>
-                            <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/50">{Math.floor(parkDistance)} m away</p>
+                            {rotationActive && (
+                                <span
+                                    className="mt-1 flex-shrink-0 font-space-mono text-[8px] uppercase tracking-[0.2em] text-neutral-900/40"
+                                    aria-label="Spatial tracking active"
+                                >
+                                    ↻ tracking
+                                </span>
+                            )}
                         </div>
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                            <div className="flex flex-wrap items-center gap-3">
-                                {!rotationActive && showRotationButton && (
-                                    <button
-                                        onClick={() => {
-                                            void enableRotation();
-                                        }}
-                                        className="inline-flex min-h-[40px] items-center rounded-full border border-neutral-900/20 bg-white/45 px-4 py-2 font-space-mono text-[10px] uppercase tracking-[0.22em] text-neutral-900 shadow-sm transition-colors hover:bg-white/65"
-                                    >
-                                        Enable Rotation
-                                    </button>
-                                )}
+
+                        <div className="mt-0.5 flex items-center gap-1.5">
+                            {isPlaying && (
+                                <span className="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-neutral-900/60 animate-pulse" aria-hidden="true" />
+                            )}
+                            <p className="font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/45">
+                                {Math.floor(parkDistance)} m away
+                            </p>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="my-3 h-px bg-neutral-900/10" />
+
+                        {/* Controls row */}
+                        <div className="flex items-center justify-between gap-4">
+
+                            {/* Left: rotation secondary action */}
+                            <div className="flex-shrink-0">
                                 {rotationActive && (
                                     <button
                                         onClick={() => {
                                             setRotationDismissed(true);
                                             setRotationActive(false);
                                         }}
-                                        className="inline-flex min-h-[40px] items-center rounded-full border border-neutral-900/15 bg-neutral-900 px-4 py-2 font-space-mono text-[10px] uppercase tracking-[0.22em] text-white shadow-sm transition-colors hover:bg-neutral-800"
+                                        className="font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/45 transition-colors hover:text-neutral-900/70"
                                     >
-                                        Stop Tracking
+                                        × stop tracking
                                     </button>
                                 )}
+                                {!rotationActive && showRotationButton && (
+                                    <button
+                                        onClick={() => { void enableRotation(); }}
+                                        className="font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/45 underline underline-offset-2 decoration-neutral-900/20 transition-colors hover:text-neutral-900/70"
+                                    >
+                                        Enable rotation
+                                    </button>
+                                )}
+                                {!rotationActive && !showRotationButton && (
+                                    <span className="font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/25 select-none">
+                                        ✦
+                                    </span>
+                                )}
                             </div>
-                            <div className="min-w-0 sm:flex-1">
-                                <HOARenderer {...hoaRendererProps} compact />
-                            </div>
+
+                            {/* Right: audio controls */}
+                            <HOARenderer {...hoaRendererProps} compact hideStatusLabel />
                         </div>
+
                     </div>
                 </div>
             </>

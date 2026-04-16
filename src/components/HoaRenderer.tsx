@@ -12,6 +12,7 @@ interface HOARendererProps {
     parkDistance: number;
     userOrientation: boolean;
     compact?: boolean;
+    hideStatusLabel?: boolean;
     rotationActive: boolean;
     onRotationActiveChange: (next: boolean) => void;
     permissionGranted: boolean;
@@ -23,6 +24,7 @@ const HOARenderer = ({
     parkDistance,
     userOrientation,
     compact = false,
+    hideStatusLabel = false,
     rotationActive,
     onRotationActiveChange,
     permissionGranted,
@@ -239,9 +241,11 @@ const HOARenderer = ({
         <div id="secSource">
             <div className={compact ? "flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3" : "space-y-4"}>
                 <div className="min-w-0 space-y-1">
-                    <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/50" aria-live="polite">
-                        {compact ? compactStatusLabel : audioStatusLabel}
-                    </p>
+                    {!(compact && hideStatusLabel) && (
+                        <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/50" aria-live="polite">
+                            {compact ? compactStatusLabel : audioStatusLabel}
+                        </p>
+                    )}
                     {!compact && !activeError && (
                         <p className="font-space-mono text-[11px] text-neutral-900/70">
                             {statusMessage}
