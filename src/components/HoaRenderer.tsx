@@ -12,6 +12,7 @@ interface HOARendererProps {
     parkDistance: number;
     userOrientation: boolean;
     compact?: boolean;
+    hideStatusLabel?: boolean;
     rotationActive: boolean;
     onRotationActiveChange: (next: boolean) => void;
     permissionGranted: boolean;
@@ -23,6 +24,7 @@ const HOARenderer = ({
     parkDistance,
     userOrientation,
     compact = false,
+    hideStatusLabel = false,
     rotationActive,
     onRotationActiveChange,
     permissionGranted,
@@ -215,6 +217,11 @@ const HOARenderer = ({
     const timingHint = lastLoadDurationMs !== null
         ? `${lastLoadCacheHit ? "Cache hit" : "Loaded"} in ${Math.round(lastLoadDurationMs)} ms`
         : null;
+    const compactStatusLabel = audioStatus === "playing"
+        ? "Playing"
+        : audioStatus === "ready-manual" && !allowManualRestart
+            ? "Tap to start"
+            : audioStatusLabel;
 
     const retryLoading = useCallback(() => {
         const soundPathList = pickSoundPath(parkName, stateParks, navigator.userAgent);
@@ -232,17 +239,19 @@ const HOARenderer = ({
 
     return (
         <div id="secSource">
-            <div className={compact ? "flex items-center gap-3" : "space-y-4"}>
-                <div className="space-y-1">
-                    <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/50" aria-live="polite">
-                        {audioStatusLabel}
-                    </p>
-                    {!activeError && (
+            <div className={compact ? "flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3" : "space-y-4"}>
+                <div className="min-w-0 space-y-1">
+                    {!(compact && hideStatusLabel) && (
+                        <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/50" aria-live="polite">
+                            {compact ? compactStatusLabel : audioStatusLabel}
+                        </p>
+                    )}
+                    {!compact && !activeError && (
                         <p className="font-space-mono text-[11px] text-neutral-900/70">
                             {statusMessage}
                         </p>
                     )}
-                    {!activeError && timingHint && (
+                    {!compact && !activeError && timingHint && (
                         <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/45">
                             {timingHint}
                         </p>
@@ -264,7 +273,7 @@ const HOARenderer = ({
                 )}
 
                 {!activeError && (
-                    <div className={compact ? "flex items-center gap-2" : "flex items-center gap-3"}>
+                    <div className={compact ? "flex flex-wrap items-center gap-2" : "flex items-center gap-3"}>
                         {isPlaying && (
                             <button
                                 onClick={onTogglePlayback}
