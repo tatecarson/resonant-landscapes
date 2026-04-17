@@ -264,7 +264,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
             />
 
             <ErrorBoundary fallback={<div>Error</div>}>
-                {parkModalOpen && !helpIsOpen && (
+                {parkModalOpen && (
                     <ParkModal
                         isOpen={parkModalOpen}
                         setIsOpen={setParkModalOpen}
@@ -272,6 +272,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                         parkDistance={Math.floor(parkDistance)}
                         userOrientation={userOrientationEnabled}
                         compact={true}
+                        suppressed={helpIsOpen}
                     />
                 )}
             </ErrorBoundary>
