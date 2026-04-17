@@ -14,6 +14,30 @@ The automated tests are split by intent so each file proves a different behavior
 
 See `docs/testing.md` for the longer explanation of what each test is supposed to catch and when to run it.
 
+## BrowserStack Playwright
+
+BrowserStack is configured for real Android Chrome runs through the BrowserStack Node SDK and the root [browserstack.yml](/Users/tate.carson/other_websites/resonant-landscapes/browserstack.yml).
+
+Set credentials first:
+
+```bash
+export BROWSERSTACK_USERNAME="YOUR_USERNAME"
+export BROWSERSTACK_ACCESS_KEY="YOUR_ACCESS_KEY"
+```
+
+Start or reuse the current `cloudflared` HTTPS tunnel, then run one of the existing mobile specs on BrowserStack with that public origin:
+
+```bash
+PLAYWRIGHT_BASE_URL=https://<your-tunnel-host> npm run browserstack:path:android
+PLAYWRIGHT_BASE_URL=https://<your-tunnel-host> npm run browserstack:audio:all:android
+PLAYWRIGHT_BASE_URL=https://<your-tunnel-host> npm run browserstack:audio:worst:android
+```
+
+Notes:
+- These commands run the named spec files through the BrowserStack SDK. BrowserStack device and browser selection comes from `browserstack.yml`, not a local Playwright `--project` filter.
+- `browserstackLocal: false` is enabled, so BrowserStack connects directly to the public HTTPS tunnel you provide through `PLAYWRIGHT_BASE_URL`.
+- The committed config starts with a single real-device Android Chrome target on a Samsung Galaxy S22. Add more devices under `platforms` as needed.
+
 ## Phone Field Testing (HTTPS)
 
 iOS sensor/audio permissions require a secure context, so use an HTTPS tunnel for phone testing.
@@ -108,7 +132,7 @@ These use Playwright mobile emulation for layout, tap flow, and geolocation beha
 
 ### 4. Run against the current HTTPS tunnel
 
-For iPhone Safari and Android verification, prefer headed Playwright runs against the currently running `cloudflared` tunnel instead of Playwright's local HTTP server.
+For mobile verification, prefer headed Playwright runs against the currently running `cloudflared` tunnel instead of Playwright's local HTTP server.
 
 If `cloudflared` is already running, point Playwright at that tunnel:
 
