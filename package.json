@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "browserstack:audio:all:iphone": "browserstack-node-sdk playwright test tests/audio-all-parks-mobile.spec.ts --project=iphone-13",
-    "browserstack:audio:worst:iphone": "browserstack-node-sdk playwright test tests/audio-worst-case-mobile.spec.ts --project=iphone-13",
-    "browserstack:path:iphone": "browserstack-node-sdk playwright test tests/path-replay.spec.ts --project=iphone-13",
+    "browserstack:audio:all:android": "browserstack-node-sdk playwright test tests/audio-all-parks-mobile.spec.ts",
+    "browserstack:audio:worst:android": "browserstack-node-sdk playwright test tests/audio-worst-case-mobile.spec.ts",
+    "browserstack:path:android": "browserstack-node-sdk playwright test tests/path-replay.spec.ts",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",

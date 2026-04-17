@@ -16,7 +16,7 @@ See `docs/testing.md` for the longer explanation of what each test is supposed t
 
 ## BrowserStack Playwright
 
-BrowserStack is configured for real iPhone Safari runs through the BrowserStack Node SDK and the root [browserstack.yml](/Users/tate.carson/other_websites/resonant-landscapes/browserstack.yml).
+BrowserStack is configured for real Android Chrome runs through the BrowserStack Node SDK and the root [browserstack.yml](/Users/tate.carson/other_websites/resonant-landscapes/browserstack.yml).
 
 Set credentials first:
 
@@ -28,15 +28,15 @@ export BROWSERSTACK_ACCESS_KEY="YOUR_ACCESS_KEY"
 Then run one of the existing mobile specs on BrowserStack:
 
 ```bash
-npm run browserstack:path:iphone
-npm run browserstack:audio:all:iphone
-npm run browserstack:audio:worst:iphone
+npm run browserstack:path:android
+npm run browserstack:audio:all:android
+npm run browserstack:audio:worst:android
 ```
 
 Notes:
-- These commands target the Playwright `iphone-13` project so the test suite keeps its iPhone-specific assertions and harnesses, but BrowserStack device selection comes from `browserstack.yml`.
+- These commands run the named spec files through the BrowserStack SDK. BrowserStack device and browser selection comes from `browserstack.yml`, not a local Playwright `--project` filter.
 - `browserstackLocal: true` is enabled, so the SDK will expose the local Vite server to BrowserStack. The app still runs against `http://localhost:4173`.
-- The committed config starts with a single real-device Safari target. Add more devices under `platforms` as needed.
+- The committed config starts with a single real-device Android Chrome target on a Samsung Galaxy S22. Add more devices under `platforms` as needed.
 
 ## Phone Field Testing (HTTPS)
 
@@ -132,7 +132,7 @@ These use Playwright mobile emulation for layout, tap flow, and geolocation beha
 
 ### 4. Run against the current HTTPS tunnel
 
-For iPhone Safari and Android verification, prefer headed Playwright runs against the currently running `cloudflared` tunnel instead of Playwright's local HTTP server.
+For mobile verification, prefer headed Playwright runs against the currently running `cloudflared` tunnel instead of Playwright's local HTTP server.
 
 If `cloudflared` is already running, point Playwright at that tunnel:
 
