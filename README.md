@@ -25,17 +25,17 @@ export BROWSERSTACK_USERNAME="YOUR_USERNAME"
 export BROWSERSTACK_ACCESS_KEY="YOUR_ACCESS_KEY"
 ```
 
-Then run one of the existing mobile specs on BrowserStack:
+Start or reuse the current `cloudflared` HTTPS tunnel, then run one of the existing mobile specs on BrowserStack with that public origin:
 
 ```bash
-npm run browserstack:path:android
-npm run browserstack:audio:all:android
-npm run browserstack:audio:worst:android
+PLAYWRIGHT_BASE_URL=https://<your-tunnel-host> npm run browserstack:path:android
+PLAYWRIGHT_BASE_URL=https://<your-tunnel-host> npm run browserstack:audio:all:android
+PLAYWRIGHT_BASE_URL=https://<your-tunnel-host> npm run browserstack:audio:worst:android
 ```
 
 Notes:
 - These commands run the named spec files through the BrowserStack SDK. BrowserStack device and browser selection comes from `browserstack.yml`, not a local Playwright `--project` filter.
-- `browserstackLocal: true` is enabled, so the SDK will expose the local Vite server to BrowserStack. The app still runs against `http://localhost:4173`.
+- `browserstackLocal: false` is enabled, so BrowserStack connects directly to the public HTTPS tunnel you provide through `PLAYWRIGHT_BASE_URL`.
 - The committed config starts with a single real-device Android Chrome target on a Samsung Galaxy S22. Add more devices under `platforms` as needed.
 
 ## Phone Field Testing (HTTPS)

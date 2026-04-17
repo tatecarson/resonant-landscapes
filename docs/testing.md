@@ -97,12 +97,12 @@ BrowserStack real-device Android Chrome commands:
 ```bash
 export BROWSERSTACK_USERNAME="YOUR_USERNAME"
 export BROWSERSTACK_ACCESS_KEY="YOUR_ACCESS_KEY"
-npm run browserstack:path:android
-npm run browserstack:audio:all:android
-npm run browserstack:audio:worst:android
+PLAYWRIGHT_BASE_URL=https://<your-tunnel-host> npm run browserstack:path:android
+PLAYWRIGHT_BASE_URL=https://<your-tunnel-host> npm run browserstack:audio:all:android
+PLAYWRIGHT_BASE_URL=https://<your-tunnel-host> npm run browserstack:audio:worst:android
 ```
 
-These use the BrowserStack SDK plus the repo root `browserstack.yml`. The npm scripts run the named spec files directly, and the actual BrowserStack device/browser target is defined in YAML.
+These use the BrowserStack SDK plus the repo root `browserstack.yml`. The npm scripts run the named spec files directly, the actual BrowserStack device/browser target is defined in YAML, and the app origin comes from `PLAYWRIGHT_BASE_URL` so BrowserStack can hit the active HTTPS tunnel without BrowserStack Local.
 
 For HTTPS/tunnel-based mobile verification, reuse the active `cloudflared` origin:
 

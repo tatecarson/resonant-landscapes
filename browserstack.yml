@@ -8,7 +8,7 @@ platforms:
     osVersion: 13
 
 parallelsPerPlatform: 1
-browserstackLocal: true
+browserstackLocal: false
 
 projectName: Resonant-Landscapes
 buildName: BrowserStack-Android-Chrome
@@ -19,4 +19,4 @@ testObservability: true
 
 playwrightConfigOptions:
   use:
-    baseURL: http://localhost:4173
+    baseURL: ${PLAYWRIGHT_BASE_URL}
