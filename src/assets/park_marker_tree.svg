@@ -1,0 +1,15 @@
+<svg width="84" height="84" viewBox="0 0 84 84" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="treeShadow" x="10" y="16" width="64" height="58" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#17312A" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+  <g filter="url(#treeShadow)">
+    <path d="M42 67C52.4934 67 61 58.4934 61 48C61 39.7988 55.8045 32.8108 48.5189 30.1648C46.4285 29.4053 44.2388 29 42 29C39.7612 29 37.5715 29.4053 35.4811 30.1648C28.1955 32.8108 23 39.7988 23 48C23 58.4934 31.5066 67 42 67Z" fill="#F5EFE2"/>
+    <path d="M42 63.75C50.6985 63.75 57.75 56.6985 57.75 48C57.75 41.2096 53.4462 35.4191 47.4093 33.2267C45.6634 32.5925 43.8565 32.25 42 32.25C40.1435 32.25 38.3366 32.5925 36.5907 33.2267C30.5538 35.4191 26.25 41.2096 26.25 48C26.25 56.6985 33.3015 63.75 42 63.75Z" stroke="#23463A" stroke-width="2.25"/>
+  </g>
+  <path d="M42 18L50.365 32.25H33.635L42 18Z" fill="#23463A"/>
+  <path d="M30 39.5L42 23L54 39.5H30Z" fill="#2D5C4D"/>
+  <path d="M27 48L42 29L57 48H27Z" fill="#3E7863"/>
+  <path d="M37.75 48H46.25V58.5C46.25 60.8472 44.3472 62.75 42 62.75C39.6528 62.75 37.75 60.8472 37.75 58.5V48Z" fill="#B97249"/>
+</svg>

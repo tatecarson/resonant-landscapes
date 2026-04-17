@@ -1,0 +1,11 @@
+<svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="dotShadow" x="12" y="12" width="48" height="48" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#17312A" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <g filter="url(#dotShadow)">
+    <circle cx="36" cy="36" r="12" fill="#3F7A63"/>
+    <circle cx="36" cy="36" r="10.5" stroke="#F6F1E7" stroke-width="3"/>
+  </g>
+</svg>
