@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "browserstack:audio:all:iphone": "browserstack-node-sdk playwright test tests/audio-all-parks-mobile.spec.ts --project=iphone-13",
+    "browserstack:audio:worst:iphone": "browserstack-node-sdk playwright test tests/audio-worst-case-mobile.spec.ts --project=iphone-13",
+    "browserstack:path:iphone": "browserstack-node-sdk playwright test tests/path-replay.spec.ts --project=iphone-13",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
@@ -48,6 +51,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "@welldone-software/why-did-you-render": "^8.0.1",
     "autoprefixer": "^10.4.17",
+    "browserstack-node-sdk": "^1.52.0",
     "eslint": "^8.52.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",

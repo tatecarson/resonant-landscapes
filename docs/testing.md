@@ -92,6 +92,18 @@ npm run sim:audio:all:iphone
 npm run sim:audio:all:pixel
 ```
 
+BrowserStack real-device iPhone Safari commands:
+
+```bash
+export BROWSERSTACK_USERNAME="YOUR_USERNAME"
+export BROWSERSTACK_ACCESS_KEY="YOUR_ACCESS_KEY"
+npm run browserstack:path:iphone
+npm run browserstack:audio:all:iphone
+npm run browserstack:audio:worst:iphone
+```
+
+These use the BrowserStack SDK plus the repo root `browserstack.yml`. The Playwright project remains `iphone-13` for iPhone-specific assertions, while the actual BrowserStack device/browser target is defined in YAML.
+
 For HTTPS/tunnel-based mobile verification, reuse the active `cloudflared` origin:
 
 ```bash

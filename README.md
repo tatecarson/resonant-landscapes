@@ -14,6 +14,30 @@ The automated tests are split by intent so each file proves a different behavior
 
 See `docs/testing.md` for the longer explanation of what each test is supposed to catch and when to run it.
 
+## BrowserStack Playwright
+
+BrowserStack is configured for real iPhone Safari runs through the BrowserStack Node SDK and the root [browserstack.yml](/Users/tate.carson/other_websites/resonant-landscapes/browserstack.yml).
+
+Set credentials first:
+
+```bash
+export BROWSERSTACK_USERNAME="YOUR_USERNAME"
+export BROWSERSTACK_ACCESS_KEY="YOUR_ACCESS_KEY"
+```
+
+Then run one of the existing mobile specs on BrowserStack:
+
+```bash
+npm run browserstack:path:iphone
+npm run browserstack:audio:all:iphone
+npm run browserstack:audio:worst:iphone
+```
+
+Notes:
+- These commands target the Playwright `iphone-13` project so the test suite keeps its iPhone-specific assertions and harnesses, but BrowserStack device selection comes from `browserstack.yml`.
+- `browserstackLocal: true` is enabled, so the SDK will expose the local Vite server to BrowserStack. The app still runs against `http://localhost:4173`.
+- The committed config starts with a single real-device Safari target. Add more devices under `platforms` as needed.
+
 ## Phone Field Testing (HTTPS)
 
 iOS sensor/audio permissions require a secure context, so use an HTTPS tunnel for phone testing.

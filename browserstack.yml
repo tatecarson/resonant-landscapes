@@ -1,0 +1,22 @@
+userName: ${BROWSERSTACK_USERNAME}
+accessKey: ${BROWSERSTACK_ACCESS_KEY}
+framework: playwright
+
+platforms:
+  - browserName: safari
+    deviceName: iPhone 16
+    osVersion: 18.6
+
+parallelsPerPlatform: 1
+browserstackLocal: true
+
+projectName: Resonant-Landscapes
+buildName: BrowserStack-iPhone-Safari
+
+debug: true
+networkLogs: true
+testObservability: true
+
+playwrightConfigOptions:
+  use:
+    baseURL: http://localhost:4173
