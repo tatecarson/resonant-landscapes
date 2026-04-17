@@ -29,21 +29,136 @@ body {
 }
 
 .example-overlay {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: "Space Mono", monospace;
     user-select: none;
     pointer-events: none;
     position: absolute;
     width: max-content;
-    background-color: white;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-    padding: 15px;
-    border-radius: 10px;
-    border: 1px solid #cccccc;
+    background: rgba(246, 241, 231, 0.92);
+    color: #17312a;
+    box-shadow: 0 18px 40px rgba(16, 33, 29, 0.18);
+    backdrop-filter: blur(14px);
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(35, 70, 58, 0.14);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 10px;
 }
 
-.example-control {
-    top: 2.5em;
-    right: 0.5em;
+.map .example-control.ol-control {
+    top: 1rem;
+    right: 1rem;
+    background: transparent !important;
+    background-color: transparent !important;
+    border-radius: 0;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+}
+
+.map-help-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border: 1px solid rgba(35, 70, 58, 0.14);
+    border-radius: 999px;
+    background: rgba(246, 241, 231, 0.82);
+    color: #17312a;
+    box-shadow: 0 18px 40px rgba(16, 33, 29, 0.16);
+    backdrop-filter: blur(14px);
+    padding: 0;
+    font-size: 1.15rem;
+    line-height: 1;
+    transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.map-help-button:disabled {
+    opacity: 0.52;
+    transform: none;
+    cursor: default;
+}
+
+.map-help-button:hover {
+    transform: translateY(-1px);
+    background: rgba(246, 241, 231, 0.92);
+    border-color: rgba(35, 70, 58, 0.28);
+}
+
+.map-help-button:disabled:hover {
+    transform: none;
+    background: rgba(246, 241, 231, 0.82);
+    border-color: rgba(35, 70, 58, 0.14);
+}
+
+.map-help-button__glyph {
+    font-family: "Space Mono", monospace;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: inherit;
+}
+
+.map .ol-control {
+    background: transparent;
+    padding: 0;
+}
+
+.map .ol-zoom button {
+    width: 2.6rem;
+    height: 2.6rem;
+    margin: 0;
+    border: 1px solid rgba(35, 70, 58, 0.14);
+    border-radius: 999px;
+    background: rgba(246, 241, 231, 0.82);
+    color: #17312a;
+    box-shadow: 0 18px 40px rgba(16, 33, 29, 0.16);
+    backdrop-filter: blur(14px);
+    font-size: 1.15rem;
+    line-height: 1;
+    transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.map .ol-zoom button:hover,
+.map .ol-zoom button:focus {
+    background: rgba(246, 241, 231, 0.92);
+    border-color: rgba(35, 70, 58, 0.28);
+}
+
+.map .ol-zoom button:hover {
+    transform: translateY(-1px);
+}
+
+.map .ol-zoom {
+    top: 5.35rem;
+    right: 1rem;
+    left: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.map .ol-zoom .ol-zoom-in,
+.map .ol-zoom .ol-zoom-out {
+    position: static;
+}
+
+@media (max-width: 640px) {
+    .map .example-control.ol-control {
+        top: 0.75rem;
+        right: 0.75rem;
+    }
+
+    .map .ol-zoom {
+        top: 5rem;
+        right: 0.75rem;
+    }
+
+    .map-help-button {
+        width: 2.6rem;
+        height: 2.6rem;
+    }
 }
 
 .example-list {

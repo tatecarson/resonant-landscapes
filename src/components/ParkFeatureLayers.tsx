@@ -3,7 +3,7 @@ import { Point } from "ol/geom";
 import { fromLonLat } from "ol/proj";
 import { RFeature, RLayerVector, RPopup, RStyle } from "rlayers";
 
-import marker from "../assets/trees.png";
+import marker from "../assets/park_marker_dot.svg";
 
 interface ParkFeature {
     name: string;
@@ -20,7 +20,7 @@ function renderParkFeature(scaledCoords: [number, number], name: string, key: nu
     return (
         <RFeature geometry={pointGeometry} key={key}>
             <RStyle.RStyle>
-                <RStyle.RIcon src={marker} anchor={[0.5, 0.8]} />
+                <RStyle.RIcon src={marker} anchor={[0.5, 0.5]} scale={0.72} />
             </RStyle.RStyle>
             <RPopup trigger={"click"} className="example-overlay">
                 {name}
