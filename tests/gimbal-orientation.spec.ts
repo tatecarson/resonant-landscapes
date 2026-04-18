@@ -125,14 +125,17 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   // Inject a continuous 360° rotation loop into the browser (1°/frame at ~16ms).
   // The heading indicator in the modal will visibly spin and you can hear the pan.
   await page.evaluate(() => {
+    const alphaStep = 2;
     let alpha = 0;
+
     const tick = () => {
       (window as Window & {
         __dispatchDeviceOrientation: (nextAlpha: number, beta: number, gamma: number) => void;
       }).__dispatchDeviceOrientation(alpha, -90, 0);
-      alpha = (alpha + 1) % 360;
-      setTimeout(tick, 16);
+      alpha = (alpha + alphaStep) % 360;
+      window.setTimeout(tick, 32);
     };
+
     tick();
   });
   console.log("[test] continuous rotation loop running — watch 'heading' in modal");

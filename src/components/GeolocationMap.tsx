@@ -157,6 +157,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         prefetchParkName,
         prefetchParks,
         position,
+        mapHeading,
         userOrientationEnabled,
     } = useGeolocationTracking({
         debug,
@@ -218,7 +219,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         }
 
         const currentLonLat = toLonLat([position[0], position[1]]) as [number, number];
-        const rotation = -position[2];
+        const rotation = -mapHeading;
         const lastCenteredPosition = lastCenteredPositionRef.current;
         const shouldRecenter = !lastCenteredPosition || distanceInMeters(lastCenteredPosition, currentLonLat) >= RECENTER_DEAD_ZONE_METERS;
 
@@ -228,7 +229,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         }
 
         view.setRotation(rotation);
-    }, [map, position]);
+    }, [map, position, mapHeading]);
 
     useEffect(() => {
         const view = map?.getView();
