@@ -34,7 +34,9 @@ interface UseGeolocationTrackingOptions {
 const MIN_SMOOTHING_DELAY_MS = 120;
 const MAX_SMOOTHING_DELAY_MS = 420;
 const POSITION_EPSILON = 0.0001;
-const GPS_HEADING_SPEED_THRESHOLD_MPS = 1;
+const GPS_HEADING_ENTER_MPS = 1.2;
+const GPS_HEADING_EXIT_MPS = 0.6;
+const GPS_SPEED_FRESHNESS_MS = 3000;
 
 function mod(n: number) {
     return ((n % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
@@ -71,6 +73,9 @@ export function useGeolocationTracking({
     const lastRenderedPositionRef = useRef<number[] | null>(null);
     const compassHeadingRef = useRef<number | null>(null);
     const lastGpsSpeedRef = useRef(0);
+    const lastGpsSpeedAtRef = useRef(0);
+    const usingGpsHeadingRef = useRef(false);
+    const hasAbsoluteEventRef = useRef(false);
     const mapHeadingRef = useRef(0);
     const compassRafRef = useRef<number | null>(null);
     const [mapHeading, setMapHeading] = useState(0);
@@ -218,15 +223,33 @@ export function useGeolocationTracking({
         setMapHeading(next);
     }, []);
 
+    const isCompassHeadingActive = useCallback(() => {
+        const age = Date.now() - lastGpsSpeedAtRef.current;
+        if (age > GPS_SPEED_FRESHNESS_MS) {
+            return true;
+        }
+        return !usingGpsHeadingRef.current;
+    }, []);
+
     useEffect(() => {
-        const handler = (event: DeviceOrientationEvent) => {
+        const handler = (event: DeviceOrientationEvent, isAbsoluteEvent: boolean) => {
             const compassEvent = event as DeviceOrientationEvent & {
                 webkitCompassHeading?: number;
             };
+            const hasIosCompass = typeof compassEvent.webkitCompassHeading === "number";
+
+            if (isAbsoluteEvent) {
+                hasAbsoluteEventRef.current = true;
+            }
+
             let degrees: number | null = null;
-            if (typeof compassEvent.webkitCompassHeading === "number") {
-                degrees = compassEvent.webkitCompassHeading;
+            if (hasIosCompass) {
+                degrees = compassEvent.webkitCompassHeading as number;
             } else if (typeof event.alpha === "number") {
+                const absoluteOk = event.absolute === true || isAbsoluteEvent;
+                if (hasAbsoluteEventRef.current && !absoluteOk) {
+                    return;
+                }
                 degrees = (360 - event.alpha) % 360;
             }
             if (degrees === null || Number.isNaN(degrees)) {
@@ -235,7 +258,7 @@ export function useGeolocationTracking({
             const radians = (degrees * Math.PI) / 180;
             compassHeadingRef.current = radians;
 
-            if (lastGpsSpeedRef.current >= GPS_HEADING_SPEED_THRESHOLD_MPS) {
+            if (!isCompassHeadingActive()) {
                 return;
             }
 
@@ -246,23 +269,26 @@ export function useGeolocationTracking({
                 compassRafRef.current = null;
                 const latest = compassHeadingRef.current;
                 if (latest === null) return;
-                if (lastGpsSpeedRef.current >= GPS_HEADING_SPEED_THRESHOLD_MPS) return;
+                if (!isCompassHeadingActive()) return;
                 commitMapHeading(latest);
             });
         };
 
-        window.addEventListener("deviceorientation", handler);
-        window.addEventListener("deviceorientationabsolute", handler as EventListener);
+        const relativeListener = (event: DeviceOrientationEvent) => handler(event, false);
+        const absoluteListener = (event: Event) => handler(event as DeviceOrientationEvent, true);
+
+        window.addEventListener("deviceorientation", relativeListener);
+        window.addEventListener("deviceorientationabsolute", absoluteListener);
 
         return () => {
-            window.removeEventListener("deviceorientation", handler);
-            window.removeEventListener("deviceorientationabsolute", handler as EventListener);
+            window.removeEventListener("deviceorientation", relativeListener);
+            window.removeEventListener("deviceorientationabsolute", absoluteListener);
             if (compassRafRef.current !== null) {
                 cancelAnimationFrame(compassRafRef.current);
                 compassRafRef.current = null;
             }
         };
-    }, [commitMapHeading]);
+    }, [commitMapHeading, isCompassHeadingActive]);
 
     const onGeolocationChange = useCallback((event: { target: OLGeoLoc }) => {
         const geoloc = event.target as OLGeoLoc;
@@ -281,9 +307,17 @@ export function useGeolocationTracking({
         const gpsHeading = geoloc.getHeading();
         const speed = geoloc.getSpeed() ?? 0;
         lastGpsSpeedRef.current = speed;
+        lastGpsSpeedAtRef.current = m;
 
-        const useGpsHeading = speed >= GPS_HEADING_SPEED_THRESHOLD_MPS && gpsHeading !== undefined;
-        const rawHeading = useGpsHeading
+        if (usingGpsHeadingRef.current) {
+            if (speed < GPS_HEADING_EXIT_MPS || gpsHeading === undefined) {
+                usingGpsHeadingRef.current = false;
+            }
+        } else if (speed >= GPS_HEADING_ENTER_MPS && gpsHeading !== undefined) {
+            usingGpsHeadingRef.current = true;
+        }
+
+        const rawHeading = usingGpsHeadingRef.current
             ? (gpsHeading as number)
             : compassHeadingRef.current ?? gpsHeading ?? 0;
 
