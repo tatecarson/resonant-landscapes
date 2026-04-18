@@ -4,7 +4,7 @@ import { LineString } from "ol/geom";
 import { fromLonLat, toLonLat } from "ol/proj";
 import type { ResonanceAudio } from "resonance-audio";
 
-import scaledPoints, { testPark } from "../utils/scaledParks";
+import scaledPoints, { testParks } from "../utils/scaledParks";
 import { distanceInMeters } from "../utils/geo";
 import { findClosestPark, findParksInRange, PREFETCH_DISTANCE, selectNearestInRangePark } from "../utils/parkSelection";
 
@@ -60,7 +60,7 @@ export function useGeolocationTracking({
     const exitDistance = 18;
     const prefetchDistance = PREFETCH_DISTANCE;
     const parkFeatures = useMemo<ParkFeature[]>(
-        () => (debug ? [testPark, ...scaledPoints] : scaledPoints).map(toParkFeature),
+        () => (debug ? [...testParks, ...scaledPoints] : scaledPoints).map(toParkFeature),
         [debug]
     );
 

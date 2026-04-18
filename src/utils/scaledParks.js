@@ -19,6 +19,16 @@ const testPark = {
     scaledCoords: [-97.112994, 44.012224]
 };
 
+const currentLocationTestPark = {
+    name: "Current Location Test",
+    cords: [-96.741620, 43.552725],
+    recordingsCount: 1,
+    sectionsCount: 1,
+    scaledCoords: [-96.741620, 43.552725]
+};
+
+const testParks = [testPark, currentLocationTestPark];
+
 // Translate points to origin, apply scale, and translate back
 const scaledPoints = stateParks.map(park => {
     return {
@@ -27,6 +37,6 @@ const scaledPoints = stateParks.map(park => {
     };
 });
 
-export { testPark, scaledPoints };
+export { currentLocationTestPark, testPark, testParks, scaledPoints };
 
 export default scaledPoints;
