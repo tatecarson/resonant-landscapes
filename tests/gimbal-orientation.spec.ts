@@ -14,8 +14,13 @@
  *   GIMBAL_PAUSE=1 npx playwright test gimbal-orientation --project=iphone-13 --headed
  */
 import { expect, test } from "@playwright/test";
+import { dismissWelcomeModal } from "./helpers/app-flow";
+import {
+  dispatchDeviceOrientation,
+  seedDeviceOrientationHarness,
+} from "./helpers/device-orientation";
 
-const CUSTER_TEST_CENTER = { latitude: 44.012224, longitude: -97.112994 };
+const HARTFORD_BEACH_CENTER = { latitude: 44.01320393, longitude: -97.11059202 };
 type GimbalOrientationSnapshot = {
   fwdX: number;
   fwdY: number;
@@ -50,51 +55,17 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
 
   page.on("pageerror", (err) => console.error("[pageerror]", err));
 
-  // Position user exactly at Custer Test center (0 m → satisfies <= 3 m for rotation toggle)
+  // Position user exactly at Hartford Beach center (0 m → satisfies <= 3 m for rotation toggle)
   const permissionOrigin = new URL(baseURL).origin;
   await context.grantPermissions(["geolocation"], { origin: permissionOrigin });
-  await context.setGeolocation(CUSTER_TEST_CENTER);
+  await context.setGeolocation(HARTFORD_BEACH_CENTER);
 
-  // Patch addEventListener to intercept deviceorientation handlers, then expose
-  // window.__dispatchDeviceOrientation() to call them directly — avoids constructing
-  // DeviceOrientationEvent, which is an "Illegal constructor" in WebKit/Safari.
-  await page.addInitScript(() => {
-    const handlers: EventListenerOrEventListenerObject[] = [];
-    const orig = window.addEventListener.bind(window);
-    const deviceOrientationCtor = window.DeviceOrientationEvent as IOSDeviceOrientationEvent | undefined;
+  await seedDeviceOrientationHarness(page);
 
-    if (deviceOrientationCtor) {
-      Object.defineProperty(deviceOrientationCtor, "requestPermission", {
-        configurable: true,
-        value: async () => "granted",
-      });
-    }
-
-    window.addEventListener = function (
-      type: string,
-      handler: EventListenerOrEventListenerObject,
-      options?: boolean | AddEventListenerOptions
-    ) {
-      if (type === "deviceorientation") handlers.push(handler);
-      return orig(type, handler, options);
-    };
-    (window as unknown as Record<string, unknown>).__dispatchDeviceOrientation = (
-      alpha: number, beta: number, gamma: number
-    ) => {
-      const event = { alpha, beta, gamma, absolute: false } as DeviceOrientationEvent;
-      handlers.forEach((h) => (typeof h === "function" ? h(event) : h.handleEvent(event)));
-    };
-  });
-
-  await page.goto("/#/debug");
+  await page.goto("/");
   await page.waitForLoadState("domcontentloaded");
 
-  // Dismiss welcome modal if present
-  const beginBtn = page.getByRole("button", { name: /begin/i });
-  if (await beginBtn.count()) {
-    await beginBtn.click();
-    await expect(page.getByRole("heading", { name: "Resonant Landscapes" })).toHaveCount(0);
-  }
+  await dismissWelcomeModal(page);
 
   await page.evaluate(() => {
     window.localStorage.setItem("deviceOrientationPermission", "granted");
@@ -105,12 +76,12 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   await expect(mapCanvas).toBeVisible({ timeout: 15_000 });
 
   // Re-apply position to ensure the geolocation watcher picks it up
-  await context.setGeolocation(CUSTER_TEST_CENTER);
+  await context.setGeolocation(HARTFORD_BEACH_CENTER);
 
   // Wait for the compact park strip
-  const parkStrip = page.locator("p.font-cormorant", { hasText: "Custer Test" });
+  const parkStrip = page.locator("p.font-cormorant", { hasText: "Hartford Beach State Park" });
   await expect(parkStrip).toBeVisible({ timeout: 20_000 });
-  console.log("[test] Custer Test strip open");
+  console.log("[test] Hartford Beach State Park strip open");
 
   // Wait for audio to load and autoplay
   await expect.poll(() => page.evaluate(() => window.__audioDebug?.hasBuffers ?? false), {
@@ -134,20 +105,12 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
 
   // Quick two-point check: verify forward vector differs at alpha=0 vs alpha=90
   // (phone upright, beta=-90, so alpha rotation is meaningful)
-  await page.evaluate(() => {
-    (window as Window & {
-      __dispatchDeviceOrientation: (alpha: number, beta: number, gamma: number) => void;
-    }).__dispatchDeviceOrientation(0, -90, 0);
-  });
+  await dispatchDeviceOrientation(page, 0);
   await page.waitForTimeout(200);
   const o0 = await page.evaluate<GimbalOrientationSnapshot>(() => (window as Window).__gimbalOrientation!);
   const bg0 = await page.getByTestId("ambient-gradient").evaluate((el) => getComputedStyle(el).backgroundImage);
 
-  await page.evaluate(() => {
-    (window as Window & {
-      __dispatchDeviceOrientation: (alpha: number, beta: number, gamma: number) => void;
-    }).__dispatchDeviceOrientation(90, -90, 0);
-  });
+  await dispatchDeviceOrientation(page, 90);
   await page.waitForTimeout(200);
   const o90 = await page.evaluate<GimbalOrientationSnapshot>(() => (window as Window).__gimbalOrientation!);
   const bg90 = await page.getByTestId("ambient-gradient").evaluate((el) => getComputedStyle(el).backgroundImage);

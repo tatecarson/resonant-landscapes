@@ -31,6 +31,10 @@ interface UseGeolocationTrackingOptions {
     stopSound: () => void;
 }
 
+const MIN_SMOOTHING_DELAY_MS = 120;
+const MAX_SMOOTHING_DELAY_MS = 420;
+const POSITION_EPSILON = 0.0001;
+
 function mod(n: number) {
     return ((n % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 }
@@ -55,6 +59,8 @@ export function useGeolocationTracking({
     const deltaMeanRef = useRef(500);
     const previousMRef = useRef(0);
     const positionsRef = useRef(new LineString([], "XYZM"));
+    const animationFrameRef = useRef<number | null>(null);
+    const lastRenderedPositionRef = useRef<number[] | null>(null);
 
     const enterDistance = 15;
     const exitDistance = 18;
@@ -63,6 +69,13 @@ export function useGeolocationTracking({
         () => (debug ? [testPark, ...scaledPoints] : scaledPoints).map(toParkFeature),
         [debug]
     );
+
+    const getSmoothingDelay = useCallback(() => {
+        return Math.min(
+            MAX_SMOOTHING_DELAY_MS,
+            Math.max(MIN_SMOOTHING_DELAY_MS, deltaMeanRef.current * 0.35)
+        );
+    }, []);
 
     useEffect(() => {
         if (!debug || !navigator.permissions?.query) {
@@ -94,16 +107,26 @@ export function useGeolocationTracking({
         };
     }, [debug]);
 
-    const updateView = useCallback(() => {
-        let m = Date.now() - deltaMeanRef.current * 1.5;
+    const updateView = useCallback((timestamp = Date.now()) => {
+        let m = timestamp - getSmoothingDelay();
         m = Math.max(m, previousMRef.current);
         previousMRef.current = m;
 
         const coordinates = positionsRef.current.getCoordinateAtM(m, true);
         if (!coordinates) {
-            return;
+            return false;
         }
 
+        const previousPosition = lastRenderedPositionRef.current;
+        const positionChanged = !previousPosition || coordinates.some((value, index) => {
+            return Math.abs(value - previousPosition[index]) > POSITION_EPSILON;
+        });
+
+        if (!positionChanged) {
+            return false;
+        }
+
+        lastRenderedPositionRef.current = coordinates;
         setPosition(coordinates);
 
         const userLocation = toLonLat([coordinates[0], coordinates[1]]) as Coordinate;
@@ -141,7 +164,39 @@ export function useGeolocationTracking({
             setUserOrientationEnabled(false);
             stopSound();
         }
-    }, [currentParkLocation, parkFeatures, parkName, resonanceAudioScene, stopSound]);
+        return true;
+    }, [currentParkLocation, exitDistance, getSmoothingDelay, parkFeatures, parkName, prefetchDistance, resonanceAudioScene, stopSound]);
+
+    const stopAnimationLoop = useCallback(() => {
+        if (animationFrameRef.current !== null) {
+            cancelAnimationFrame(animationFrameRef.current);
+            animationFrameRef.current = null;
+        }
+    }, []);
+
+    const startAnimationLoop = useCallback(() => {
+        if (animationFrameRef.current !== null) {
+            return;
+        }
+
+        const tick = () => {
+            const now = Date.now();
+            updateView(now);
+
+            const coords = positionsRef.current.getCoordinates();
+            const latestFixM = coords[coords.length - 1]?.[3] ?? 0;
+            const shouldContinue = latestFixM > 0 && now - latestFixM < getSmoothingDelay() + 200;
+
+            if (!shouldContinue) {
+                animationFrameRef.current = null;
+                return;
+            }
+
+            animationFrameRef.current = requestAnimationFrame(tick);
+        };
+
+        animationFrameRef.current = requestAnimationFrame(tick);
+    }, [getSmoothingDelay, updateView]);
 
     const onGeolocationChange = useCallback((event: { target: OLGeoLoc }) => {
         const geoloc = event.target as OLGeoLoc;
@@ -177,8 +232,15 @@ export function useGeolocationTracking({
             deltaMeanRef.current = (coords[len - 1][3] - coords[0][3]) / (len - 1);
         }
 
-        updateView();
-    }, [updateView]);
+        updateView(m);
+        startAnimationLoop();
+    }, [startAnimationLoop, updateView]);
+
+    useEffect(() => {
+        return () => {
+            stopAnimationLoop();
+        };
+    }, [stopAnimationLoop]);
 
     return {
         accuracy,

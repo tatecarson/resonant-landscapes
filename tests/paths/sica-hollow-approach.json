@@ -1,6 +1,6 @@
 [
-  { "label": "Custer Test center", "latitude": 44.012224, "longitude": -97.112994, "waitMs": 2500 },
-  { "label": "Leave Custer Test radius", "latitude": 44.013000, "longitude": -97.110649, "waitMs": 1500 },
+  { "label": "Hartford Beach center", "latitude": 44.01320393, "longitude": -97.11059202, "waitMs": 2500 },
+  { "label": "Leave Hartford Beach radius", "latitude": 44.013000, "longitude": -97.110649, "waitMs": 1500 },
   { "label": "Sica approach 1", "latitude": 44.013120, "longitude": -97.110649, "waitMs": 1500 },
   { "label": "Sica approach 2", "latitude": 44.013220, "longitude": -97.110649, "waitMs": 1500 },
   { "label": "Sica approach 3", "latitude": 44.013290, "longitude": -97.110649, "waitMs": 1500 },

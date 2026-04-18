@@ -29,7 +29,10 @@ import { useGeolocationTracking } from "../hooks/useGeolocationTracking";
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
+import { distanceInMeters } from "../utils/geo";
 import locationIcon from "../assets/geolocation_marker_heading.svg";
+
+const RECENTER_DEAD_ZONE_METERS = 1.75;
 
 function getCenterWithHeading(
     map: ReturnType<typeof useOL>["map"],
@@ -203,20 +206,29 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         setParkModalOpen(Boolean(parkName));
     }, [parkName, stopSound]);
 
+    const savedZoomRef = useRef<number | null>(null);
+    const inProximityRef = useRef(false);
+    const lastCenteredPositionRef = useRef<[number, number] | null>(null);
+    const inProximity = prefetchParks.length > 0;
+
     useEffect(() => {
         const view = map?.getView();
         if (!view || !position) {
             return;
         }
 
+        const currentLonLat = toLonLat([position[0], position[1]]) as [number, number];
         const rotation = -position[2];
-        view.setCenter(getCenterWithHeading(map, [position[0], position[1]], rotation, view.getResolution() ?? 0));
+        const lastCenteredPosition = lastCenteredPositionRef.current;
+        const shouldRecenter = !lastCenteredPosition || distanceInMeters(lastCenteredPosition, currentLonLat) >= RECENTER_DEAD_ZONE_METERS;
+
+        if (shouldRecenter) {
+            view.setCenter(getCenterWithHeading(map, [position[0], position[1]], rotation, view.getResolution() ?? 0));
+            lastCenteredPositionRef.current = currentLonLat;
+        }
+
         view.setRotation(rotation);
     }, [map, position]);
-
-    const savedZoomRef = useRef<number | null>(null);
-    const inProximityRef = useRef(false);
-    const inProximity = prefetchParks.length > 0;
 
     useEffect(() => {
         const view = map?.getView();

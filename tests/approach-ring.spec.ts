@@ -9,6 +9,7 @@
  * guards the state boundary that drives it: prefetch range vs enter range.
  */
 import { expect, test, type Page, type BrowserContext } from "@playwright/test";
+import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";
 
 // Hartford Beach State Park scaled coords: [-97.11059202645, 44.01320393348]
 // Distances from each test position (verified with Haversine):
@@ -42,19 +43,11 @@ const POSITIONS = {
 const DWELL_MS = 3_000; // time to pause at each step so animations are visible
 
 const PARK_NAME = "Hartford Beach State Park";
-const DEBUG_ROUTE = "/#/debug";
+const ROUTE = "/";
 
 async function grantGeolocation(context: BrowserContext, baseURL: string) {
     const origin = new URL(baseURL).origin;
     await context.grantPermissions(["geolocation"], { origin });
-}
-
-async function dismissWelcomeModal(page: Page) {
-    const beginButton = page.getByRole("button", { name: /begin/i });
-    if (await beginButton.count()) {
-        await beginButton.click();
-        await expect(beginButton).toHaveCount(0, { timeout: 5_000 });
-    }
 }
 
 /** Polls parkStripIsVisible every 100ms for durationMs and fails immediately if it ever becomes true. */
@@ -103,10 +96,11 @@ test("compact strip is absent in prefetch range and appears on park entry", asyn
         throw new Error("Missing Playwright baseURL.");
     }
 
+    await seedOrientationPermission(page);
     await grantGeolocation(context, baseURL);
     await context.setGeolocation(POSITIONS.outsideFar);
 
-    await page.goto(DEBUG_ROUTE);
+    await page.goto(ROUTE);
     await page.waitForLoadState("domcontentloaded");
     await dismissWelcomeModal(page);
 
