@@ -1,0 +1,22 @@
+userName: ${BROWSERSTACK_USERNAME}
+accessKey: ${BROWSERSTACK_ACCESS_KEY}
+framework: playwright
+
+platforms:
+  - browserName: chrome
+    deviceName: Samsung Galaxy S22
+    osVersion: 13
+
+parallelsPerPlatform: 1
+browserstackLocal: false
+
+projectName: Resonant-Landscapes
+buildName: BrowserStack-Android-Chrome
+
+debug: true
+networkLogs: true
+testObservability: true
+
+playwrightConfigOptions:
+  use:
+    baseURL: ${PLAYWRIGHT_BASE_URL}

@@ -29,7 +29,7 @@ import { useGeolocationTracking } from "../hooks/useGeolocationTracking";
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
-import locationIcon from "../assets/geolocation_marker_heading.png";
+import locationIcon from "../assets/geolocation_marker_heading.svg";
 
 function getCenterWithHeading(
     map: ReturnType<typeof useOL>["map"],
@@ -120,8 +120,8 @@ const GeolocationPositionLayer = memo(function GeolocationPositionLayer({
     return (
         <RLayerVector zIndex={10}>
             <RStyle.RStyle>
-                <RStyle.RIcon src={locationIcon} anchor={[0.5, 0.8]} />
-                <RStyle.RStroke color={"#007bff"} width={3} />
+                <RStyle.RIcon src={locationIcon} anchor={[0.5, 0.8]} scale={0.62} />
+                <RStyle.RStroke color={"rgba(33,73,62,0.28)"} width={2} />
             </RStyle.RStyle>
             {position && <RFeature geometry={new Point(position)}></RFeature>}
             {accuracy && <RFeature geometry={accuracy as LineString}></RFeature>}
@@ -132,9 +132,11 @@ const GeolocationPositionLayer = memo(function GeolocationPositionLayer({
 const GeolocationTrackingController = memo(function GeolocationTrackingController({
     debug,
     map,
+    helpIsOpen,
 }: {
     debug: boolean;
     map: ReturnType<typeof useOL>["map"];
+    helpIsOpen: boolean;
 }): JSX.Element {
     const [parkModalOpen, setParkModalOpen] = useState(false);
     const { preloadBuffers, resonanceAudioScene, stopSound } = useAudioEngine();
@@ -270,6 +272,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                         parkDistance={Math.floor(parkDistance)}
                         userOrientation={userOrientationEnabled}
                         compact={true}
+                        suppressed={helpIsOpen}
                     />
                 )}
             </ErrorBoundary>
@@ -285,7 +288,13 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     );
 });
 
-function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element {
+function GeolocationOverlay({
+    debug = false,
+    helpIsOpen,
+}: {
+    debug?: boolean;
+    helpIsOpen: boolean;
+}): JSX.Element {
     const { map } = useOL();
 
     useRenderDebug("GeolocationOverlay", {
@@ -298,6 +307,7 @@ function GeolocationOverlay({ debug = false }: { debug?: boolean }): JSX.Element
             <GeolocationTrackingController
                 debug={debug}
                 map={map}
+                helpIsOpen={helpIsOpen}
             />
         </div>
     );
@@ -325,8 +335,14 @@ export default function GeolocationMap({ debug = false }: { debug?: boolean }): 
                 maxZoom={19.9999999}
             />
             <RControl.RCustom className="example-control">
-                <button onClick={openHelp}>
-                    ?
+                <button
+                    type="button"
+                    onClick={openHelp}
+                    className="map-help-button"
+                    title="Open field guide"
+                    aria-label="Open field guide"
+                >
+                    <span className="map-help-button__glyph" aria-hidden="true">?</span>
                 </button>
             </RControl.RCustom>
             {helpIsOpen && <HelpModal isOpen={helpIsOpen} setIsOpen={setHelpIsOpen} />}
@@ -335,7 +351,10 @@ export default function GeolocationMap({ debug = false }: { debug?: boolean }): 
                 maxZoom={20}
                 attributions='Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
             />
-            <GeolocationOverlay debug={debug} />
+            <GeolocationOverlay
+                debug={debug}
+                helpIsOpen={helpIsOpen}
+            />
         </RMap>
     );
 }

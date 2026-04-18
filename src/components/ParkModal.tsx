@@ -13,9 +13,18 @@ interface ParkModalProps {
     parkDistance: number;
     userOrientation: boolean;
     compact?: boolean;
+    suppressed?: boolean;
 }
 
-function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation, compact = false }: ParkModalProps) {
+function ParkModal({
+    setIsOpen,
+    isOpen,
+    parkName,
+    parkDistance,
+    userOrientation,
+    compact = false,
+    suppressed = false,
+}: ParkModalProps) {
     const { stopSound } = useAudioEngine();
     const { isPlaying } = useAudioPlaybackState();
     const [rotationActive, setRotationActive] = useState(false);
@@ -29,6 +38,7 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
         parkDistance: Math.floor(parkDistance),
         userOrientation,
         compact,
+        suppressed,
         rotationActive,
         permissionGranted,
     });
@@ -99,8 +109,13 @@ function ParkModal({ setIsOpen, isOpen, parkName, parkDistance, userOrientation,
     if (compact || rotationActive) {
         return (
             <>
-                <AmbientGradient active={rotationActive} />
-                <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#8ecdc0] shadow-[0_-1px_0_rgba(0,0,0,0.10),0_-12px_32px_rgba(0,0,0,0.08)]">
+                <AmbientGradient active={rotationActive && !suppressed} />
+                <div
+                    className={`fixed bottom-0 left-0 right-0 z-50 bg-[#8ecdc0] shadow-[0_-1px_0_rgba(0,0,0,0.10),0_-12px_32px_rgba(0,0,0,0.08)] transition-opacity duration-150 ${
+                        suppressed ? "pointer-events-none opacity-0" : "opacity-100"
+                    }`}
+                    aria-hidden={suppressed}
+                >
                     <div className="px-5 pt-3.5 pb-[max(1rem,env(safe-area-inset-bottom))]">
 
                         {/* Park identity */}

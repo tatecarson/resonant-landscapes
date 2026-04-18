@@ -4,6 +4,16 @@ const PARK_SLUG_OVERRIDES = {
   'Custer State Park': 'Custer-State',
   'Palisades State Park': 'Palisades-State',
 };
+const DEBUG_PARK_AUDIO_VARIANTS = {
+  'Custer Test': [[
+    `${CDN_BASE}sounds/Custer-Test-1-001_8ch.wav`,
+    `${CDN_BASE}sounds/Custer-Test-1-001_mono.wav`
+  ]],
+  'Current Location Test': [[
+    `${CDN_BASE}sounds/Custer-Test-1-001_8ch.wav`,
+    `${CDN_BASE}sounds/Custer-Test-1-001_mono.wav`
+  ]],
+};
 
 function hashString(value) {
   let hash = 0;
@@ -29,11 +39,8 @@ export function formatParkSlug(parkName) {
 }
 
 export function getParkAudioVariants(parkName, parksJSON, userAgent = '') {
-  if (parkName === 'Custer Test') {
-    return [[
-      `${CDN_BASE}sounds/Custer-Test-1-001_8ch.wav`,
-      `${CDN_BASE}sounds/Custer-Test-1-001_mono.wav`
-    ]];
+  if (DEBUG_PARK_AUDIO_VARIANTS[parkName]) {
+    return DEBUG_PARK_AUDIO_VARIANTS[parkName];
   }
 
   const foundPark = parksJSON.find((park) => park.name === parkName);

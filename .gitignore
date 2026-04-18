@@ -37,4 +37,5 @@ public/sounds/
 test-results/
 playwright-report/
 blob-report/
+log/
 .beads/metadata.json
