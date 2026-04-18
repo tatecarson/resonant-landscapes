@@ -58,6 +58,15 @@ test('Custer State Park uses the CDN slug override for both browser families', (
   assert.match(chromeVariants[12][1], /\/sounds\/Custer-State-7-001_mono\.m4a$/);
 });
 
+test('debug-only parks reuse the Custer Test audio pair', () => {
+  const custerTestVariants = getParkAudioVariants('Custer Test', stateParks, 'Chrome');
+  const currentLocationVariants = getParkAudioVariants('Current Location Test', stateParks, 'Chrome');
+
+  assert.deepEqual(currentLocationVariants, custerTestVariants);
+  assert.match(currentLocationVariants?.[0]?.[0] ?? '', /\/sounds\/Custer-Test-1-001_8ch\.wav$/);
+  assert.match(currentLocationVariants?.[0]?.[1] ?? '', /\/sounds\/Custer-Test-1-001_mono\.wav$/);
+});
+
 test('Palisades State Park uses the CDN slug override for both browser families', () => {
   const safariVariants = getParkAudioVariants('Palisades State Park', stateParks, 'Safari');
   const chromeVariants = getParkAudioVariants('Palisades State Park', stateParks, 'Chrome');
