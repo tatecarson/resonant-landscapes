@@ -26,6 +26,19 @@ type AudioDebugState = {
   lastUnlockError: string | null;
 };
 
+type IosPermissionCall = {
+  hadGesture: boolean;
+  gestureType: string | null;
+  ts: number;
+};
+
+type IosPermissionHarnessState = {
+  motionPermissionCalls: number;
+  motionPermissionCallsDuringGesture: number;
+  motionPermissionCallsOutsideGesture: number;
+  calls: IosPermissionCall[];
+};
+
 type ParkRunResult = {
   parkName: string;
   loadTimeMs: number | null;
@@ -73,6 +86,80 @@ function getExpectedSlug(parkName: string) {
   }
 }
 
+async function installIPhoneSafariPermissionHarness(page: Page) {
+  await page.addInitScript(() => {
+    let activeGesture: { id: number; type: string } | null = null;
+    let gestureId = 0;
+    const state = {
+      motionPermissionCalls: 0,
+      motionPermissionCallsDuringGesture: 0,
+      motionPermissionCallsOutsideGesture: 0,
+      calls: [],
+    };
+
+    const markGesture = (type: string) => {
+      gestureId += 1;
+      const nextGesture = { id: gestureId, type };
+      activeGesture = nextGesture;
+
+      queueMicrotask(() => {
+        if (activeGesture?.id === nextGesture.id) {
+          activeGesture = null;
+        }
+      });
+
+      setTimeout(() => {
+        if (activeGesture?.id === nextGesture.id) {
+          activeGesture = null;
+        }
+      }, 0);
+    };
+
+    window.addEventListener("click", () => markGesture("click"), true);
+    window.addEventListener("touchend", () => markGesture("touchend"), true);
+    window.addEventListener("pointerup", () => markGesture("pointerup"), true);
+
+    const ctor = window.DeviceOrientationEvent ?? function DeviceOrientationEvent() {};
+    if (!window.DeviceOrientationEvent) {
+      Object.defineProperty(window, "DeviceOrientationEvent", {
+        configurable: true,
+        writable: true,
+        value: ctor,
+      });
+    }
+
+    Object.defineProperty(window, "__iosPermissionHarness", {
+      configurable: true,
+      value: state,
+    });
+
+    Object.defineProperty(ctor, "requestPermission", {
+      configurable: true,
+      value: async () => {
+        const call = {
+          hadGesture: Boolean(activeGesture),
+          gestureType: activeGesture?.type ?? null,
+          ts: Date.now(),
+        };
+
+        state.motionPermissionCalls += 1;
+        if (call.hadGesture) {
+          state.motionPermissionCallsDuringGesture += 1;
+        } else {
+          state.motionPermissionCallsOutsideGesture += 1;
+        }
+        state.calls.push(call);
+
+        if (!call.hadGesture) {
+          throw new Error("NotAllowedError: requestPermission() must be called during a user gesture");
+        }
+
+        return "granted";
+      },
+    });
+  });
+}
+
 async function moveToPoint(
   context: BrowserContext,
   page: Page,
@@ -93,6 +180,9 @@ async function getAudioDebug(page: Page) {
   return page.evaluate(() => window.__audioDebug ?? null) as Promise<AudioDebugState | null>;
 }
 
+async function getIosPermissionHarnessState(page: Page) {
+  return page.evaluate(() => window.__iosPermissionHarness ?? null) as Promise<IosPermissionHarnessState | null>;
+}
 
 test("mobile audio loads and plays for every real park on the normal route", async ({ context, page, baseURL }, testInfo) => {
   test.skip(
@@ -114,6 +204,11 @@ test("mobile audio loads and plays for every real park on the normal route", asy
   const runResults: ParkRunResult[] = [];
   const failures: string[] = [];
   const observedAudioRequests: { url: string; ts: number }[] = [];
+  const useIPhonePermissionHarness = testInfo.project.name === "iphone-13";
+
+  if (useIPhonePermissionHarness) {
+    await installIPhoneSafariPermissionHarness(page);
+  }
 
   await context.route("https://resonant-landscapes.b-cdn.net/**", async (route) => {
     observedAudioRequests.push({
@@ -130,6 +225,14 @@ test("mobile audio loads and plays for every real park on the normal route", asy
   await page.goto(replayPath);
   await page.waitForLoadState("domcontentloaded");
   await dismissWelcomeModal(page);
+
+  if (useIPhonePermissionHarness) {
+    await expect
+      .poll(async () => (await getIosPermissionHarnessState(page))?.motionPermissionCalls ?? 0, {
+        timeout: 5_000,
+      })
+      .toBe(0);
+  }
 
   for (const park of testParks) {
     const parkStartRequestIndex = observedAudioRequests.length;
@@ -242,6 +345,9 @@ test("mobile audio loads and plays for every real park on the normal route", asy
     totalParks: testParks.length,
     passed: runResults.filter((result) => result.status === "passed").length,
     failed: runResults.filter((result) => result.status === "failed").length,
+    iosPermissionHarness: useIPhonePermissionHarness
+      ? await getIosPermissionHarnessState(page)
+      : null,
     results: runResults,
   };
 
