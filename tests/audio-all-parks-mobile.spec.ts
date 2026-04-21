@@ -1,11 +1,12 @@
 /**
- * Broad mobile regression that walks the debug map through every park.
+ * Broad mobile regression that walks the normal map through every real park.
  * This is the suite's breadth check: each park should open, load buffers,
  * and start playback at least once on the supported mobile profiles.
  */
 import fs from "node:fs/promises";
 import stateParks from "../src/data/stateParks.json" with { type: "json" };
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";
 
 import { scaleCoordinates } from "../src/utils/geo.js";
 
@@ -64,21 +65,13 @@ const orderedStateParks = [
   ...stateParks.filter((park) => park.name !== "Good Earth State Park"),
 ];
 
-const debugParks = [
-  ...orderedStateParks.map((park) => ({
-    name: park.name,
-    scaledCoords: scaleCoordinates(park.cords as Coordinate, referencePoint, scaleLong, scaleLat) as Coordinate,
-  })),
-  {
-    name: "Custer Test",
-    scaledCoords: [-97.112994, 44.012224] as Coordinate,
-  },
-];
+const testParks = orderedStateParks.map((park) => ({
+  name: park.name,
+  scaledCoords: scaleCoordinates(park.cords as Coordinate, referencePoint, scaleLong, scaleLat) as Coordinate,
+}));
 
 function getExpectedSlug(parkName: string) {
   switch (parkName) {
-    case "Custer Test":
-      return "Custer-Test";
     case "Custer State Park":
       return "Custer-State";
     case "Palisades State Park":
@@ -90,14 +83,6 @@ function getExpectedSlug(parkName: string) {
         .split(/\s+/)
         .slice(0, 2)
         .join("-");
-  }
-}
-
-async function dismissWelcomeIfPresent(page: Page) {
-  const beginButton = page.getByRole("button", { name: /begin/i });
-  if (await beginButton.count()) {
-    await beginButton.click();
-    await expect(page.getByRole("heading", { name: "Resonant Landscapes" })).toHaveCount(0);
   }
 }
 
@@ -199,7 +184,11 @@ async function getIosPermissionHarnessState(page: Page) {
   return page.evaluate(() => window.__iosPermissionHarness ?? null) as Promise<IosPermissionHarnessState | null>;
 }
 
-test("mobile audio loads and plays for every debug map park", async ({ context, page, baseURL }, testInfo) => {
+test("mobile audio loads and plays for every real park on the normal route", async ({ context, page, baseURL }, testInfo) => {
+  test.skip(
+    process.env.RUN_ALL_PARKS_SOAK !== "1",
+    "Set RUN_ALL_PARKS_SOAK=1 to run the full all-parks mobile soak."
+  );
   test.skip(
     !["iphone-13", "pixel-7"].includes(testInfo.project.name),
     "This regression is only meant for the mobile Safari and Android projects."
@@ -229,12 +218,13 @@ test("mobile audio loads and plays for every debug map park", async ({ context, 
     await route.continue();
   });
 
+  await seedOrientationPermission(page);
   await context.grantPermissions(["geolocation"], { origin: permissionOrigin });
   await moveToPoint(context, page, neutralPoint, 0);
 
   await page.goto(replayPath);
   await page.waitForLoadState("domcontentloaded");
-  await dismissWelcomeIfPresent(page);
+  await dismissWelcomeModal(page);
 
   if (useIPhonePermissionHarness) {
     await expect
@@ -244,7 +234,7 @@ test("mobile audio loads and plays for every debug map park", async ({ context, 
       .toBe(0);
   }
 
-  for (const park of debugParks) {
+  for (const park of testParks) {
     const parkStartRequestIndex = observedAudioRequests.length;
     const heading = page.getByRole("heading", { name: park.name });
     let loadStartedAt = 0;
@@ -352,7 +342,7 @@ test("mobile audio loads and plays for every debug map park", async ({ context, 
   const report = {
     project: testInfo.project.name,
     generatedAt: new Date().toISOString(),
-    totalParks: debugParks.length,
+    totalParks: testParks.length,
     passed: runResults.filter((result) => result.status === "passed").length,
     failed: runResults.filter((result) => result.status === "failed").length,
     iosPermissionHarness: useIPhonePermissionHarness

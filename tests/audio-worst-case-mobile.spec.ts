@@ -8,9 +8,10 @@ import { expect, test } from "@playwright/test";
 import stateParks from "../src/data/stateParks.json" with { type: "json" };
 import { scaleCoordinates } from "../src/utils/geo.js";
 import { formatParkSlug, getParkAudioVariants } from "../src/utils/audioPaths.js";
+import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";
 import { expectAudioStatusVisible, expectParkLabelVisible } from "./helpers/ui-assertions";
 
-const replayPath = "/#/debug";
+const replayPath = "/";
 const neutralPoint = {
   latitude: 44.0142,
   longitude: -97.1098,
@@ -27,14 +28,6 @@ const networkProfile = {
   connectionType: "cellular4g" as const,
 };
 const webkitRequestDelayMs = Number(process.env.WORST_CASE_WEBKIT_REQUEST_DELAY_MS ?? 1_500);
-
-async function dismissWelcomeIfPresent(page: import("@playwright/test").Page) {
-  const beginButton = page.getByRole("button", { name: "Begin" });
-  if (await beginButton.count()) {
-    await beginButton.click();
-    await expect(page.getByRole("heading", { name: "Resonant Landscapes" })).toHaveCount(0);
-  }
-}
 
 async function moveToPoint(
   context: import("@playwright/test").BrowserContext,
@@ -224,6 +217,7 @@ test("worst-case park audio loads under throttled mobile network conditions", as
     }
   });
 
+  await seedOrientationPermission(page);
   await context.grantPermissions(["geolocation"], { origin: permissionOrigin });
   await context.setGeolocation(neutralPoint);
 
@@ -231,10 +225,7 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   await page.goto(replayPath);
   await page.waitForLoadState("domcontentloaded");
   console.log("[worst-case] page loaded");
-  await dismissWelcomeIfPresent(page);
-  await expect.poll(() => page.url(), { timeout: 15_000 }).toContain("#/debug");
-  console.log("[worst-case] confirmed debug route");
-
+  await dismissWelcomeModal(page);
   const userAgent = await page.evaluate(() => navigator.userAgent);
   console.log("[worst-case] resolving largest audio payload park");
   const worstCasePark = await resolveWorstCasePark(request, userAgent);
@@ -243,19 +234,6 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   );
   const prefetchPoint = offsetPointByMeters(worstCasePark.scaledCoords, 22, 0);
   const outerApproachPoint = offsetPointByMeters(worstCasePark.scaledCoords, 65, 0);
-
-  const debugToggle = page.getByRole("button", { name: "Open" });
-  if (await debugToggle.count()) {
-    await expect(debugToggle).toBeVisible({ timeout: 10_000 });
-    await debugToggle.click();
-    console.log("[worst-case] opened debug panel");
-  }
-
-  const unlockAudioButton = page.getByRole("button", { name: "Unlock Audio" });
-  if (await unlockAudioButton.count()) {
-    await unlockAudioButton.click();
-    console.log("[worst-case] unlocked audio");
-  }
 
   console.log("[worst-case] moving to outer approach point");
   await moveToPoint(context, page, outerApproachPoint, 250);

@@ -1,15 +1,16 @@
 /**
  * Regression for the "latest park wins" audio-loading race on mobile.
- * Starts at Custer Test, moves quickly to Sica Hollow, and verifies the app
+ * Starts at Hartford Beach, moves quickly to Sica Hollow, and verifies the app
  * ends up loading and playing the final park's audio instead of the stale one.
  */
 import { expect, test } from "@playwright/test";
+import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";
 import { expectParkLabelVisible } from "./helpers/ui-assertions";
 
-const replayPath = "/#/debug";
+const replayPath = "/";
 const firstPoint = {
-  latitude: 44.012224,
-  longitude: -97.112994,
+  latitude: 44.01320393,
+  longitude: -97.11059202,
 };
 const replayPoints = [
   { latitude: 44.013000, longitude: -97.110649, waitMs: 250 },
@@ -44,29 +45,22 @@ test("mobile audio loading stays on the latest park for Safari and Android", asy
     const url = route.request().url();
     audioRequests.push(url);
 
-    if (url.includes("Custer-Test")) {
+    if (url.includes("Hartford-Beach")) {
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
 
     await route.continue();
   });
 
+  await seedOrientationPermission(page);
   await context.grantPermissions(["geolocation"], { origin: permissionOrigin });
   await context.setGeolocation(firstPoint);
 
   await page.goto(replayPath);
   await page.waitForLoadState("domcontentloaded");
+  await dismissWelcomeModal(page);
 
-  const debugToggle = page.getByRole("button", { name: "Open" });
-  await expect(debugToggle).toBeVisible({ timeout: 10_000 });
-  await debugToggle.click();
-
-  const unlockAudioButton = page.getByRole("button", { name: "Unlock Audio" });
-  if (await unlockAudioButton.count()) {
-    await unlockAudioButton.click();
-  }
-
-  await expectParkLabelVisible(page, "Custer Test");
+  await expectParkLabelVisible(page, "Hartford Beach State Park");
 
   for (const point of replayPoints) {
     await context.setGeolocation({
@@ -109,6 +103,6 @@ test("mobile audio loading stays on the latest park for Safari and Android", asy
   expect(sicaRequests.every((url) => url.includes(`/${expectedFolder}/`))).toBeTruthy();
   expect(sicaRequests.every((url) => url.endsWith(expectedExtension))).toBeTruthy();
 
-  const custerRequests = audioRequests.filter((url) => url.includes("Custer-Test"));
-  expect(custerRequests).toHaveLength(2);
+  const hartfordRequests = audioRequests.filter((url) => url.includes("Hartford-Beach"));
+  expect(hartfordRequests).toHaveLength(2);
 });

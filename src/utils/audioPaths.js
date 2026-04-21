@@ -39,7 +39,7 @@ export function formatParkSlug(parkName) {
 }
 
 export function getParkAudioVariants(parkName, parksJSON, userAgent = '') {
-  if (DEBUG_PARK_AUDIO_VARIANTS[parkName]) {
+  if (Object.hasOwn(DEBUG_PARK_AUDIO_VARIANTS, parkName)) {
     return DEBUG_PARK_AUDIO_VARIANTS[parkName];
   }
 

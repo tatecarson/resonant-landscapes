@@ -1,0 +1,10 @@
+[
+  { "label": "Hartford Beach center", "latitude": 44.01320393, "longitude": -97.11059202, "waitMs": 3000 },
+  { "label": "Roy Lake center", "latitude": 44.01334233, "longitude": -97.11094111, "waitMs": 25000 },
+  { "label": "Fort Sisseton swing", "latitude": 44.01330914, "longitude": -97.11118915, "waitMs": 15000 },
+  { "label": "Fisher Grove swing", "latitude": 44.01279702, "longitude": -97.11134876, "waitMs": 45000 },
+  { "label": "Oakwood Lakes center", "latitude": 44.01251077, "longitude": -97.11073104, "waitMs": 45000 },
+  { "label": "Lake Herman center", "latitude": 44.01220923, "longitude": -97.11081133, "waitMs": 26000 },
+  { "label": "Sica approach 3", "latitude": 44.01329000, "longitude": -97.11064900, "waitMs": 93000 },
+  { "label": "Sica approach center", "latitude": 44.01336400, "longitude": -97.11064900, "waitMs": 7000 }
+]
