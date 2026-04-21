@@ -136,8 +136,8 @@ export function useGeolocationTracking({
         }
 
         const previousPosition = lastRenderedPositionRef.current;
-        const positionChanged = !previousPosition || coordinates.some((value, index) => {
-            return Math.abs(value - previousPosition[index]) > POSITION_EPSILON;
+        const positionChanged = !previousPosition || [0, 1, 2].some((index) => {
+            return Math.abs(coordinates[index] - previousPosition[index]) > POSITION_EPSILON;
         });
 
         if (!positionChanged) {

@@ -122,7 +122,7 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   console.log("[test] forward vector changes with rotation ✓");
   console.log(`[test] ambient gradient updated ✓ ${bg0} -> ${bg90}`);
 
-  // Inject a continuous 360° rotation loop into the browser (1°/frame at ~16ms).
+  // Inject a continuous 360° rotation loop into the browser (2° per 32ms tick, ≈62.5Hz).
   // The heading indicator in the modal will visibly spin and you can hear the pan.
   await page.evaluate(() => {
     const alphaStep = 2;
