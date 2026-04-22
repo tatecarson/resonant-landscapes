@@ -39,3 +39,7 @@ playwright-report/
 blob-report/
 log/
 .beads/metadata.json
+
+# Claude Code local state (ephemeral lock + per-user permissions)
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
