@@ -100,8 +100,8 @@ function getMetadataVariants(parkName, userAgent) {
   const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
   const spatialFolder = isSafari ? 'sounds-flac' : 'sounds';
   const spatialExtension = isSafari ? 'flac' : 'm4a';
-  const monoFolder = 'sounds';
-  const monoExtension = 'm4a';
+  const monoFolder = isSafari ? 'sounds-wav' : 'sounds';
+  const monoExtension = isSafari ? 'wav' : 'm4a';
   const variants = [];
 
   for (let recording = 1; recording <= recordingsCount; recording += 1) {

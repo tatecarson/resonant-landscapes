@@ -24,15 +24,15 @@ test('every park in stateParks.json expands into valid audio URL pairs', () => {
   }
 });
 
-test('safari variants use flac 8ch and aac mono assets', () => {
+test('safari variants use flac 8ch and wav mono assets', () => {
   const variants = getParkAudioVariants('Sica Hollow State Park', stateParks, 'Safari');
 
   assert.ok(variants);
   for (const [eightChannelUrl, monoUrl] of variants) {
     assert.match(eightChannelUrl, /^https:\/\/resonant-landscapes\.b-cdn\.net\/sounds-flac\//);
-    assert.match(monoUrl, /^https:\/\/resonant-landscapes\.b-cdn\.net\/sounds\//);
+    assert.match(monoUrl, /^https:\/\/resonant-landscapes\.b-cdn\.net\/sounds-wav\//);
     assert.match(eightChannelUrl, /_8ch\.flac$/);
-    assert.match(monoUrl, /_mono\.m4a$/);
+    assert.match(monoUrl, /_mono\.wav$/);
   }
 });
 
@@ -41,9 +41,9 @@ test('Good Earth State Park expands into all Safari variants from metadata', () 
 
   assert.equal(variants?.length, 4);
   assert.match(variants?.[0]?.[0] ?? '', /\/sounds-flac\/Good-Earth-1-001_8ch\.flac$/);
-  assert.match(variants?.[0]?.[1] ?? '', /\/sounds\/Good-Earth-1-001_mono\.m4a$/);
+  assert.match(variants?.[0]?.[1] ?? '', /\/sounds-wav\/Good-Earth-1-001_mono\.wav$/);
   assert.match(variants?.[3]?.[0] ?? '', /\/sounds-flac\/Good-Earth-2-002_8ch\.flac$/);
-  assert.match(variants?.[3]?.[1] ?? '', /\/sounds\/Good-Earth-2-002_mono\.m4a$/);
+  assert.match(variants?.[3]?.[1] ?? '', /\/sounds-wav\/Good-Earth-2-002_mono\.wav$/);
 });
 
 test('Custer State Park uses the CDN slug override for both browser families', () => {
@@ -53,7 +53,7 @@ test('Custer State Park uses the CDN slug override for both browser families', (
   assert.ok(safariVariants);
   assert.ok(chromeVariants);
   assert.match(safariVariants[12][0], /\/sounds-flac\/Custer-State-7-001_8ch\.flac$/);
-  assert.match(safariVariants[12][1], /\/sounds\/Custer-State-7-001_mono\.m4a$/);
+  assert.match(safariVariants[12][1], /\/sounds-wav\/Custer-State-7-001_mono\.wav$/);
   assert.match(chromeVariants[12][0], /\/sounds\/Custer-State-7-001_8ch\.m4a$/);
   assert.match(chromeVariants[12][1], /\/sounds\/Custer-State-7-001_mono\.m4a$/);
 });
@@ -74,7 +74,7 @@ test('Palisades State Park uses the CDN slug override for both browser families'
   assert.ok(safariVariants);
   assert.ok(chromeVariants);
   assert.match(safariVariants[0][0], /\/sounds-flac\/Palisades-State-1-001_8ch\.flac$/);
-  assert.match(safariVariants[0][1], /\/sounds\/Palisades-State-1-001_mono\.m4a$/);
+  assert.match(safariVariants[0][1], /\/sounds-wav\/Palisades-State-1-001_mono\.wav$/);
   assert.match(chromeVariants[0][0], /\/sounds\/Palisades-State-1-001_8ch\.m4a$/);
   assert.match(chromeVariants[0][1], /\/sounds\/Palisades-State-1-001_mono\.m4a$/);
 });

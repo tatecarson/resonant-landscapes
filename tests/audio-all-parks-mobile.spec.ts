@@ -204,7 +204,9 @@ test("mobile audio loads and plays for every real park on the normal route", asy
   const expectedSpatialPattern = isIphone
     ? /\/sounds-flac\/.+_8ch\.flac$/
     : /\/sounds\/.+_8ch\.m4a$/;
-  const expectedMonoPattern = /\/sounds\/.+_mono\.m4a$/;
+  const expectedMonoPattern = isIphone
+    ? /\/sounds-wav\/.+_mono\.wav$/
+    : /\/sounds\/.+_mono\.m4a$/;
   const runResults: ParkRunResult[] = [];
   const failures: string[] = [];
   const observedAudioRequests: { url: string; ts: number }[] = [];

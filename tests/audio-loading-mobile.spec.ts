@@ -41,7 +41,9 @@ test("mobile audio loading stays on the latest park for Safari and Android", asy
   const expectedSpatialPattern = isIphone
     ? /\/sounds-flac\/.+_8ch\.flac$/
     : /\/sounds\/.+_8ch\.m4a$/;
-  const expectedMonoPattern = /\/sounds\/.+_mono\.m4a$/;
+  const expectedMonoPattern = isIphone
+    ? /\/sounds-wav\/.+_mono\.wav$/
+    : /\/sounds\/.+_mono\.m4a$/;
   const audioRequests: string[] = [];
 
   await context.route("https://resonant-landscapes.b-cdn.net/**", async (route) => {
