@@ -37,8 +37,11 @@ test("mobile audio loading stays on the latest park for Safari and Android", asy
   }
 
   const permissionOrigin = new URL(baseURL).origin;
-  const expectedFolder = testInfo.project.name === "iphone-13" ? "sounds-wav" : "sounds";
-  const expectedExtension = testInfo.project.name === "iphone-13" ? ".wav" : ".m4a";
+  const isIphone = testInfo.project.name === "iphone-13";
+  const expectedSpatialPattern = isIphone
+    ? /\/sounds-flac\/.+_8ch\.flac$/
+    : /\/sounds\/.+_8ch\.m4a$/;
+  const expectedMonoPattern = /\/sounds\/.+_mono\.m4a$/;
   const audioRequests: string[] = [];
 
   await context.route("https://resonant-landscapes.b-cdn.net/**", async (route) => {
@@ -100,8 +103,8 @@ test("mobile audio loading stays on the latest park for Safari and Android", asy
 
   const sicaRequests = audioRequests.filter((url) => url.includes("Sica-Hollow"));
   expect(sicaRequests).toHaveLength(2);
-  expect(sicaRequests.every((url) => url.includes(`/${expectedFolder}/`))).toBeTruthy();
-  expect(sicaRequests.every((url) => url.endsWith(expectedExtension))).toBeTruthy();
+  expect(sicaRequests.some((url) => expectedSpatialPattern.test(url))).toBeTruthy();
+  expect(sicaRequests.some((url) => expectedMonoPattern.test(url))).toBeTruthy();
 
   const hartfordRequests = audioRequests.filter((url) => url.includes("Hartford-Beach"));
   expect(hartfordRequests).toHaveLength(2);
