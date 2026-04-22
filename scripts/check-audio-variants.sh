@@ -98,16 +98,19 @@ function getMetadataVariants(parkName, userAgent) {
 
   const cleanParkName = formatParkSlug(foundPark.name);
   const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
-  const extension = isSafari ? 'wav' : 'm4a';
-  const soundsFolder = isSafari ? 'sounds-wav' : 'sounds';
+  const spatialFolder = isSafari ? 'sounds-flac' : 'sounds';
+  const spatialExtension = isSafari ? 'flac' : 'm4a';
+  const monoFolder = isSafari ? 'sounds-wav' : 'sounds';
+  const monoExtension = isSafari ? 'wav' : 'm4a';
   const variants = [];
 
   for (let recording = 1; recording <= recordingsCount; recording += 1) {
     for (let section = 1; section <= sectionsCount; section += 1) {
       const paddedSection = String(section).padStart(3, '0');
+      const base = `${cleanParkName}-${recording}-${paddedSection}`;
       variants.push([
-        `${CDN_BASE}${soundsFolder}/${cleanParkName}-${recording}-${paddedSection}_8ch.${extension}`,
-        `${CDN_BASE}${soundsFolder}/${cleanParkName}-${recording}-${paddedSection}_mono.${extension}`,
+        `${CDN_BASE}${spatialFolder}/${base}_8ch.${spatialExtension}`,
+        `${CDN_BASE}${monoFolder}/${base}_mono.${monoExtension}`,
       ]);
     }
   }

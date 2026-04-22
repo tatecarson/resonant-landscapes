@@ -60,16 +60,24 @@ export function getParkAudioVariants(parkName, parksJSON, userAgent = '') {
   }
 
   const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
-  const extension = isSafari ? 'wav' : 'm4a';
-  const soundsFolder = isSafari ? 'sounds-wav' : 'sounds';
+  // Safari pulls 8ch as FLAC (lossless, ~77% smaller than 16-bit PCM WAV).
+  // Mono stays on WAV for Safari because Playwright's open-source WebKit
+  // can't decode AAC (lacks the proprietary AudioToolbox codec real iOS
+  // Safari uses), which would break the iPhone all-parks regression.
+  // Chrome stays on AAC for both variants.
+  const spatialFolder = isSafari ? 'sounds-flac' : 'sounds';
+  const spatialExtension = isSafari ? 'flac' : 'm4a';
+  const monoFolder = isSafari ? 'sounds-wav' : 'sounds';
+  const monoExtension = isSafari ? 'wav' : 'm4a';
   const variants = [];
 
   for (let recording = 1; recording <= recordingsCount; recording += 1) {
     for (let section = 1; section <= sectionsCount; section += 1) {
       const paddedSection = String(section).padStart(3, '0');
+      const base = `${cleanParkName}-${recording}-${paddedSection}`;
       variants.push([
-        `${CDN_BASE}${soundsFolder}/${cleanParkName}-${recording}-${paddedSection}_8ch.${extension}`,
-        `${CDN_BASE}${soundsFolder}/${cleanParkName}-${recording}-${paddedSection}_mono.${extension}`
+        `${CDN_BASE}${spatialFolder}/${base}_8ch.${spatialExtension}`,
+        `${CDN_BASE}${monoFolder}/${base}_mono.${monoExtension}`
       ]);
     }
   }

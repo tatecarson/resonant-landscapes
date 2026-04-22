@@ -15,7 +15,7 @@ export async function seedOrientationPermission(page: Page) {
 }
 
 export async function dismissWelcomeModal(page: Page) {
-  const beginButton = page.getByRole("button", { name: /Begin With Audio \+ Motion/i });
+  const beginButton = page.getByRole("button", { name: /Begin With Audio/i });
   if (!(await beginButton.count())) {
     return;
   }
