@@ -29,29 +29,7 @@ import { useGeolocationTracking } from "../hooks/useGeolocationTracking";
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
-import { distanceInMeters } from "../utils/geo";
 import locationIcon from "../assets/geolocation_marker_heading.svg";
-
-const RECENTER_DEAD_ZONE_METERS = 1.75;
-
-function getCenterWithHeading(
-    map: ReturnType<typeof useOL>["map"],
-    position: [number, number],
-    rotation: number,
-    resolution: number
-) {
-    const size = map?.getSize();
-    if (!size) {
-        return position;
-    }
-
-    const height = size[1];
-
-    return [
-        position[0] - (Math.sin(rotation) * height * resolution) / 4,
-        position[1] + (Math.cos(rotation) * height * resolution) / 4,
-    ] as [number, number];
-}
 
 function ZoomBoundsController({
     debug = false,
@@ -111,24 +89,48 @@ function ZoomBoundsController({
 const GeolocationPositionLayer = memo(function GeolocationPositionLayer({
     position,
     accuracy,
+    showPositionIcon = true,
 }: {
     position: number[] | null;
     accuracy: LineString | null;
+    showPositionIcon?: boolean;
 }): JSX.Element {
     useRenderDebug("GeolocationPositionLayer", {
         hasPosition: Boolean(position),
         hasAccuracy: Boolean(accuracy),
+        showPositionIcon,
     });
 
     return (
         <RLayerVector zIndex={10}>
             <RStyle.RStyle>
-                <RStyle.RIcon src={locationIcon} anchor={[0.5, 0.8]} scale={0.62} />
+                <RStyle.RIcon src={locationIcon} anchor={[0.5, 52 / 96]} scale={0.62} />
                 <RStyle.RStroke color={"rgba(33,73,62,0.28)"} width={2} />
             </RStyle.RStyle>
-            {position && <RFeature geometry={new Point(position)}></RFeature>}
+            {showPositionIcon && position && <RFeature geometry={new Point(position)}></RFeature>}
             {accuracy && <RFeature geometry={accuracy as LineString}></RFeature>}
         </RLayerVector>
+    );
+});
+
+const CenteredGeolocationMarker = memo(function CenteredGeolocationMarker({
+    active,
+}: {
+    active: boolean;
+}): JSX.Element | null {
+    if (!active) {
+        return null;
+    }
+
+    return (
+        <RControl.RCustom className="centered-geolocation-control">
+            <img
+                src={locationIcon}
+                alt=""
+                aria-hidden="true"
+                className="centered-geolocation-marker"
+            />
+        </RControl.RCustom>
     );
 });
 
@@ -209,7 +211,6 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
 
     const savedZoomRef = useRef<number | null>(null);
     const inProximityRef = useRef(false);
-    const lastCenteredPositionRef = useRef<[number, number] | null>(null);
     const inProximity = prefetchParks.length > 0;
 
     useEffect(() => {
@@ -218,17 +219,20 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
             return;
         }
 
-        const currentLonLat = toLonLat([position[0], position[1]]) as [number, number];
         const rotation = -mapHeading;
-        const lastCenteredPosition = lastCenteredPositionRef.current;
-        const shouldRecenter = !lastCenteredPosition || distanceInMeters(lastCenteredPosition, currentLonLat) >= RECENTER_DEAD_ZONE_METERS;
-
-        if (shouldRecenter) {
-            view.setCenter(getCenterWithHeading(map, [position[0], position[1]], rotation, view.getResolution() ?? 0));
-            lastCenteredPositionRef.current = currentLonLat;
-        }
-
+        view.setCenter([position[0], position[1]] as [number, number]);
         view.setRotation(rotation);
+
+        const markerPixel = map?.getPixelFromCoordinate([position[0], position[1]]) ?? null;
+        const viewportSize = map?.getSize() ?? null;
+        window.__mapDebug = {
+            center: view.getCenter() as [number, number] | null,
+            position: [position[0], position[1]],
+            rotation,
+            centerOnUser: true,
+            markerPixel: markerPixel as [number, number] | null,
+            viewportSize: viewportSize as [number, number] | null,
+        };
     }, [map, position, mapHeading]);
 
     useEffect(() => {
@@ -263,7 +267,12 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
             />
             <ParkFeatureLayers parkFeatures={parkFeatures} />
 
-            <GeolocationPositionLayer position={position} accuracy={accuracy} />
+            <GeolocationPositionLayer
+                position={position}
+                accuracy={accuracy}
+                showPositionIcon={!userOrientationEnabled}
+            />
+            <CenteredGeolocationMarker active={Boolean(position && userOrientationEnabled)} />
 
             <ProximityRingLayer
                 parks={prefetchParks}

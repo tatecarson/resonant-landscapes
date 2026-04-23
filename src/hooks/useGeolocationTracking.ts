@@ -78,6 +78,7 @@ export function useGeolocationTracking({
     const hasAbsoluteEventRef = useRef(false);
     const mapHeadingRef = useRef(0);
     const compassRafRef = useRef<number | null>(null);
+    const userOrientationEnabledRef = useRef(false);
     const [mapHeading, setMapHeading] = useState(0);
 
     const enterDistance = 15;
@@ -169,16 +170,26 @@ export function useGeolocationTracking({
         }
 
         const currentDistance = distanceInMeters(activeParkLocation, userLocation);
-        if (currentDistance < exitDistance) {
+        if (currentDistance <= exitDistance) {
             setParkDistance(currentDistance);
             resonanceAudioScene?.setListenerPosition(currentDistance, currentDistance, 0);
-            setUserOrientationEnabled(currentDistance < 5);
+            // Keep center-mode latched while the user remains in the active park so
+            // minor GPS drift does not drop map centering after rotation has started.
+            const nextUserOrientationEnabled =
+                currentDistance < 5 ||
+                (userOrientationEnabledRef.current && currentDistance <= exitDistance);
+
+            if (userOrientationEnabledRef.current !== nextUserOrientationEnabled) {
+                userOrientationEnabledRef.current = nextUserOrientationEnabled;
+                setUserOrientationEnabled(nextUserOrientationEnabled);
+            }
         }
 
         if (currentDistance > exitDistance) {
             setParkName("");
             setParkDistance(0);
             setCurrentParkLocation(null);
+            userOrientationEnabledRef.current = false;
             setUserOrientationEnabled(false);
             stopSound();
         }

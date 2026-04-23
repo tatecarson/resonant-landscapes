@@ -44,4 +44,12 @@ interface Window {
     changedKeys: string[];
     lastRenderedAt: number;
   }>;
+  __mapDebug?: {
+    center: [number, number] | null;
+    position: [number, number];
+    rotation: number;
+    centerOnUser: boolean;
+    markerPixel: [number, number] | null;
+    viewportSize: [number, number] | null;
+  };
 }
