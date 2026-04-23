@@ -105,6 +105,29 @@ body {
     padding: 0;
 }
 
+.map .centered-geolocation-control.ol-control {
+    top: 50%;
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    pointer-events: none;
+}
+
+.centered-geolocation-marker {
+    display: block;
+    width: 59.5px;
+    height: auto;
+    transform: translateY(-2.5px);
+    user-select: none;
+    pointer-events: none;
+}
+
 .map .ol-zoom button {
     width: 2.6rem;
     height: 2.6rem;
