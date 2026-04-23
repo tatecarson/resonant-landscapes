@@ -31,6 +31,10 @@ type GimbalOrientationSnapshot = {
   updatedAt: number;
 };
 
+async function readAmbientGradient(page: import("@playwright/test").Page) {
+  return page.getByTestId("ambient-gradient").evaluate((el) => getComputedStyle(el).backgroundImage);
+}
+
 test("GimbalArrow updates listener orientation when device rotates", async ({
   context,
   page,
@@ -108,19 +112,24 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   await dispatchDeviceOrientation(page, 0);
   await page.waitForTimeout(200);
   const o0 = await page.evaluate<GimbalOrientationSnapshot>(() => (window as Window).__gimbalOrientation!);
-  const bg0 = await page.getByTestId("ambient-gradient").evaluate((el) => getComputedStyle(el).backgroundImage);
+  const bg0 = await readAmbientGradient(page);
 
   await dispatchDeviceOrientation(page, 90);
   await page.waitForTimeout(200);
   const o90 = await page.evaluate<GimbalOrientationSnapshot>(() => (window as Window).__gimbalOrientation!);
-  const bg90 = await page.getByTestId("ambient-gradient").evaluate((el) => getComputedStyle(el).backgroundImage);
+  const bg90 = await readAmbientGradient(page);
+
+  await dispatchDeviceOrientation(page, 180);
+  await page.waitForTimeout(200);
+  const bg180 = await readAmbientGradient(page);
 
   console.log(`[test] alpha=  0° → fwd=(${o0.fwdX.toFixed(3)}, ${o0.fwdY.toFixed(3)}, ${o0.fwdZ.toFixed(3)})`);
   console.log(`[test] alpha= 90° → fwd=(${o90.fwdX.toFixed(3)}, ${o90.fwdY.toFixed(3)}, ${o90.fwdZ.toFixed(3)})`);
   expect(o0.fwdX.toFixed(2)).not.toBe(o90.fwdX.toFixed(2));
   expect(bg0).not.toBe(bg90);
+  expect(bg90).not.toBe(bg180);
   console.log("[test] forward vector changes with rotation ✓");
-  console.log(`[test] ambient gradient updated ✓ ${bg0} -> ${bg90}`);
+  console.log(`[test] ambient gradient updated ✓ ${bg0} -> ${bg90} -> ${bg180}`);
 
   // Inject a continuous 360° rotation loop into the browser (2° per 32ms tick, ≈62.5Hz).
   // The heading indicator in the modal will visibly spin and you can hear the pan.

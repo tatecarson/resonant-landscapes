@@ -12,6 +12,7 @@ interface ParkModalProps {
     parkName: string;
     parkDistance: number;
     userOrientation: boolean;
+    mapHeading: number;
     compact?: boolean;
     suppressed?: boolean;
 }
@@ -22,6 +23,7 @@ function ParkModal({
     parkName,
     parkDistance,
     userOrientation,
+    mapHeading,
     compact = false,
     suppressed = false,
 }: ParkModalProps) {
@@ -109,7 +111,7 @@ function ParkModal({
     if (compact || rotationActive) {
         return (
             <>
-                <AmbientGradient active={rotationActive && !suppressed} />
+                <AmbientGradient active={rotationActive && !suppressed} headingRadians={mapHeading} />
                 <div
                     className={`fixed bottom-0 left-0 right-0 z-50 bg-[#8ecdc0] shadow-[0_-1px_0_rgba(0,0,0,0.10),0_-12px_32px_rgba(0,0,0,0.08)] transition-opacity duration-150 ${
                         suppressed ? "pointer-events-none opacity-0" : "opacity-100"
@@ -188,7 +190,7 @@ function ParkModal({
 
     return (
         <>
-            <AmbientGradient active={rotationActive} />
+            <AmbientGradient active={rotationActive} headingRadians={mapHeading} />
             <Transition.Root show={isOpen} as={Fragment}>
                 <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} onClose={setIsOpen}>
                     <Transition.Child
