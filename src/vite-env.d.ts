@@ -22,6 +22,7 @@ interface Window {
   };
   __audioDebug?: {
     contextState: string;
+    isEngineInitializing: boolean;
     isLoading: boolean;
     isPlaying: boolean;
     isAudioUnlocked: boolean;
@@ -29,6 +30,7 @@ interface Window {
     bufferDuration: number | null;
     bufferChannels: number | null;
     hasSourceNode: boolean;
+    engineError: string | null;
     loadError: string | null;
     lastUnlockError: string | null;
     lastEvent: string | null;
