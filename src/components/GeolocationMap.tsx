@@ -210,6 +210,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     const savedZoomRef = useRef<number | null>(null);
     const inProximityRef = useRef(false);
     const lastCenteredPositionRef = useRef<[number, number] | null>(null);
+    const lastCenterOnUserRef = useRef<boolean | null>(null);
     const inProximity = prefetchParks.length > 0;
 
     useEffect(() => {
@@ -220,16 +221,34 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
 
         const currentLonLat = toLonLat([position[0], position[1]]) as [number, number];
         const rotation = -mapHeading;
+        const centerOnUser = userOrientationEnabled;
         const lastCenteredPosition = lastCenteredPositionRef.current;
-        const shouldRecenter = !lastCenteredPosition || distanceInMeters(lastCenteredPosition, currentLonLat) >= RECENTER_DEAD_ZONE_METERS;
+        const modeChanged = lastCenterOnUserRef.current !== centerOnUser;
+        const shouldRecenter =
+            centerOnUser ||
+            modeChanged ||
+            !lastCenteredPosition ||
+            distanceInMeters(lastCenteredPosition, currentLonLat) >= RECENTER_DEAD_ZONE_METERS;
 
         if (shouldRecenter) {
-            view.setCenter(getCenterWithHeading(map, [position[0], position[1]], rotation, view.getResolution() ?? 0));
+            const nextCenter = centerOnUser
+                ? ([position[0], position[1]] as [number, number])
+                : getCenterWithHeading(map, [position[0], position[1]], rotation, view.getResolution() ?? 0);
+
+            view.setCenter(nextCenter);
             lastCenteredPositionRef.current = currentLonLat;
         }
 
         view.setRotation(rotation);
-    }, [map, position, mapHeading]);
+        lastCenterOnUserRef.current = centerOnUser;
+
+        window.__mapDebug = {
+            center: view.getCenter() as [number, number] | null,
+            position: [position[0], position[1]],
+            rotation,
+            centerOnUser,
+        };
+    }, [map, position, mapHeading, userOrientationEnabled]);
 
     useEffect(() => {
         const view = map?.getView();
