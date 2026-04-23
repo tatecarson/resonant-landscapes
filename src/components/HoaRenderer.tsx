@@ -32,10 +32,12 @@ const HOARenderer = ({
 }: HOARendererProps) => {
     const { playSound, stopSound, loadBuffers, clearLoadError, cancelPendingLoad } = useAudioEngine();
     const {
+        isEngineInitializing,
         isLoading,
         isPlaying,
         isAudioUnlocked,
         buffers,
+        engineError,
         loadError,
         lastUnlockError,
         lastLoadReason,
@@ -45,12 +47,14 @@ const HOARenderer = ({
     const [pathError, setPathError] = useState<string | null>(null);
     const [shouldAutoPlay, setShouldAutoPlay] = useState(true);
     const [allowManualRestart, setAllowManualRestart] = useState(false);
-    const activeError = pathError ?? loadError;
+    const activeError = pathError ?? engineError ?? loadError;
     const showFallbackStart = !isPlaying && !isLoading && !activeError && (allowManualRestart || !isAudioUnlocked || Boolean(lastUnlockError));
     const hasPrefetchedAudio = lastLoadReason === "prefetch" || (lastLoadReason === "active-load" && lastLoadCacheHit === true);
     const audioStatus = activeError
         ? "error"
-        : isLoading
+        : isEngineInitializing
+            ? "initializing"
+            : isLoading
             ? "preparing"
             : isPlaying
                 ? "playing"
@@ -67,10 +71,12 @@ const HOARenderer = ({
         parkDistance: Math.floor(parkDistance),
         userOrientation,
         compact,
+        isEngineInitializing,
         isLoading,
         isPlaying,
         isAudioUnlocked,
         hasBuffers: Boolean(buffers),
+        engineError,
         loadError,
         lastUnlockError,
         rotationActive,
@@ -192,6 +198,10 @@ const HOARenderer = ({
                     ? "Finishing the park audio handoff now."
                     : "Loading this park's recording now.";
                 break;
+            case "initializing":
+                audioStatusLabel = "Starting audio";
+                statusMessage = "Initializing the audio engine for this park now.";
+                break;
             case "playing":
                 audioStatusLabel = "Playing automatically";
                 statusMessage = "Audio started when you entered the listening area.";
@@ -219,9 +229,14 @@ const HOARenderer = ({
         : null;
     const compactStatusLabel = audioStatus === "playing"
         ? "Playing"
+        : audioStatus === "initializing"
+            ? "Starting audio"
+            : audioStatus === "preparing"
+                ? "Loading audio"
         : audioStatus === "ready-manual" && !allowManualRestart
             ? "Tap to start"
             : audioStatusLabel;
+    const showCompactLoadingIndicator = compact && hideStatusLabel && !activeError && (audioStatus === "initializing" || audioStatus === "preparing" || audioStatus === "ready");
 
     const retryLoading = useCallback(() => {
         const soundPathList = pickSoundPath(parkName, stateParks, navigator.userAgent);
@@ -274,6 +289,21 @@ const HOARenderer = ({
 
                 {!activeError && (
                     <div className={compact ? "flex flex-wrap items-center gap-2" : "flex items-center gap-3"}>
+                        {showCompactLoadingIndicator && (
+                            <div
+                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-neutral-900/15 bg-white/35 px-4 py-2 font-space-mono text-[10px] uppercase tracking-[0.18em] text-neutral-900/65"
+                                aria-live="polite"
+                            >
+                                <span
+                                    className={`inline-block h-2 w-2 rounded-full ${
+                                        audioStatus === "ready" ? "bg-emerald-700/70" : "animate-pulse bg-neutral-900/55"
+                                    }`}
+                                    aria-hidden="true"
+                                />
+                                <span>{compactStatusLabel}</span>
+                            </div>
+                        )}
+
                         {isPlaying && (
                             <button
                                 onClick={onTogglePlayback}
