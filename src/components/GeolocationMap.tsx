@@ -220,7 +220,6 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         }
 
         const rotation = -mapHeading;
-        const centerOnUser = true;
         view.setCenter([position[0], position[1]] as [number, number]);
         view.setRotation(rotation);
 
@@ -230,11 +229,11 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
             center: view.getCenter() as [number, number] | null,
             position: [position[0], position[1]],
             rotation,
-            centerOnUser,
+            centerOnUser: true,
             markerPixel: markerPixel as [number, number] | null,
             viewportSize: viewportSize as [number, number] | null,
         };
-    }, [map, position, mapHeading, userOrientationEnabled]);
+    }, [map, position, mapHeading]);
 
     useEffect(() => {
         const view = map?.getView();
@@ -273,7 +272,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                 accuracy={accuracy}
                 showPositionIcon={!userOrientationEnabled}
             />
-            <CenteredGeolocationMarker active={Boolean(position && accuracy && userOrientationEnabled)} />
+            <CenteredGeolocationMarker active={Boolean(position && userOrientationEnabled)} />
 
             <ProximityRingLayer
                 parks={prefetchParks}

@@ -170,14 +170,14 @@ export function useGeolocationTracking({
         }
 
         const currentDistance = distanceInMeters(activeParkLocation, userLocation);
-        if (currentDistance < exitDistance) {
+        if (currentDistance <= exitDistance) {
             setParkDistance(currentDistance);
             resonanceAudioScene?.setListenerPosition(currentDistance, currentDistance, 0);
             // Keep center-mode latched while the user remains in the active park so
             // minor GPS drift does not drop map centering after rotation has started.
             const nextUserOrientationEnabled =
                 currentDistance < 5 ||
-                (userOrientationEnabledRef.current && currentDistance < exitDistance);
+                (userOrientationEnabledRef.current && currentDistance <= exitDistance);
 
             if (userOrientationEnabledRef.current !== nextUserOrientationEnabled) {
                 userOrientationEnabledRef.current = nextUserOrientationEnabled;
