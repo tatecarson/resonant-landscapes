@@ -227,15 +227,21 @@ const HOARenderer = ({
     const timingHint = lastLoadDurationMs !== null
         ? `${lastLoadCacheHit ? "Cache hit" : "Loaded"} in ${Math.round(lastLoadDurationMs)} ms`
         : null;
-    const compactStatusLabel = audioStatus === "playing"
-        ? "Playing"
-        : audioStatus === "initializing"
-            ? "Starting audio"
-            : audioStatus === "preparing"
-                ? "Loading audio"
-        : audioStatus === "ready-manual" && !allowManualRestart
-            ? "Tap to start"
-            : audioStatusLabel;
+    const getCompactStatusLabel = () => {
+        switch (audioStatus) {
+            case "playing":
+                return "Playing";
+            case "initializing":
+                return "Starting audio";
+            case "preparing":
+                return "Loading audio";
+            case "ready-manual":
+                return allowManualRestart ? audioStatusLabel : "Tap to start";
+            default:
+                return audioStatusLabel;
+        }
+    };
+    const compactStatusLabel = getCompactStatusLabel();
     const showCompactLoadingIndicator = compact && hideStatusLabel && !activeError && (audioStatus === "initializing" || audioStatus === "preparing" || audioStatus === "ready");
 
     const retryLoading = useCallback(() => {

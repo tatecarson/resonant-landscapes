@@ -82,6 +82,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const audioInitializedRef = useRef(false);
     const initAudioPromiseRef = useRef<Promise<void> | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
+    const resonanceSceneRef = useRef<ResonanceAudio | null>(null);
     const audioPrimedRef = useRef(false);
     const bufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
     const lastAudioEventRef = useRef<string | null>(null);
@@ -175,7 +176,10 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         urls: string[],
         reason: "active-load" | "prefetch"
     ): Promise<AudioBuffer> => {
-        if (!audioContext || !resonanceAudioScene || !urls.length) {
+        const context = audioContextRef.current;
+        const scene = resonanceSceneRef.current;
+
+        if (!context || !scene || !urls.length) {
             throw new Error("Missing audio context, resonance scene, or URLs.");
         }
 
@@ -211,9 +215,9 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             return buffer;
         }
 
-        const request = Omnitone.createBufferList(audioContext, urls)
+        const request = Omnitone.createBufferList(context, urls)
             .then((results) => {
-                const contentBuffer = Omnitone.mergeBufferListByChannel(audioContext, results);
+                const contentBuffer = Omnitone.mergeBufferListByChannel(context, results);
                 bufferCacheRef.current.set(cacheKey, contentBuffer);
                 return contentBuffer;
             })
@@ -233,7 +237,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             cacheHit: false,
         });
         return buffer;
-    }, [audioContext, getCacheKey, recordLoadDebug, resonanceAudioScene]);
+    }, [getCacheKey, recordLoadDebug]);
 
     const loadBuffers = useCallback(async (urls: string[]): Promise<boolean> => {
         const requestId = ++activeLoadRequestIdRef.current;
@@ -420,6 +424,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
                 audioContextRef.current = context;
                 setAudioContext(context);
                 const scene = new ResonanceAudio(context);
+                resonanceSceneRef.current = scene;
                 scene.setAmbisonicOrder(2);
                 setResonanceAudioScene(scene);
                 scene.output.connect(context.destination);
