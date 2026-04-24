@@ -6,6 +6,8 @@ import HOARenderer from './HoaRenderer';
 import AmbientGradient from './AmbientGradient';
 import { hasStoredOrientationPermission, requestDeviceOrientationPermission } from "../utils/deviceOrientation";
 
+const CENTER_ROTATION_RADIUS_METERS = 3;
+
 interface ParkModalProps {
     setIsOpen: (value: boolean) => void;
     isOpen: boolean;
@@ -32,7 +34,8 @@ function ParkModal({
     const [rotationActive, setRotationActive] = useState(false);
     const [permissionGranted, setPermissionGranted] = useState(() => hasStoredOrientationPermission());
     const [rotationDismissed, setRotationDismissed] = useState(false);
-    const showRotationButton = isPlaying && parkDistance <= 3 && userOrientation;
+    const userAtRotationCenter = parkDistance <= CENTER_ROTATION_RADIUS_METERS;
+    const showRotationButton = isPlaying && userAtRotationCenter && userOrientation;
 
     useRenderDebug("ParkModal", {
         isOpen,
@@ -69,6 +72,14 @@ function ParkModal({
             setRotationDismissed(false);
         }
     }, [showRotationButton]);
+
+    // Rotation is only valid at the listening spot center. Clear it as soon as
+    // GPS moves outside the center radius, even while the active park remains open.
+    useEffect(() => {
+        if (rotationActive && !userAtRotationCenter) {
+            setRotationActive(false);
+        }
+    }, [rotationActive, userAtRotationCenter]);
 
     // Auto-enable rotation when all conditions are met at park center.
     useEffect(() => {

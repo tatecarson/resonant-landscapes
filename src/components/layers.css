@@ -119,6 +119,14 @@ body {
     pointer-events: none;
 }
 
+.map .centered-geolocation-control--hidden.ol-control {
+    opacity: 0;
+}
+
+.map .centered-geolocation-control--active.ol-control {
+    opacity: 1;
+}
+
 .centered-geolocation-marker {
     display: block;
     width: 59.5px;
