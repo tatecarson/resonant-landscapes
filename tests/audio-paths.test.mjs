@@ -87,6 +87,20 @@ test('slug formatting matches current CDN naming convention', () => {
   assert.equal(formatParkSlug('Bear Butte State Park'), 'Bear-Butte');
 });
 
+test('no generated URL points at the retired sounds-wav/*_8ch.wav assets (rl-tbu)', () => {
+  const legacyPattern = /\/sounds-wav\/.+_8ch\.wav$/;
+  for (const park of stateParks) {
+    for (const userAgent of ['Chrome', 'Safari']) {
+      const variants = getParkAudioVariants(park.name, stateParks, userAgent);
+      if (!variants) continue;
+      for (const [spatialUrl, monoUrl] of variants) {
+        assert.doesNotMatch(spatialUrl, legacyPattern, `${park.name} (${userAgent}) spatial hit retired asset: ${spatialUrl}`);
+        assert.doesNotMatch(monoUrl, legacyPattern, `${park.name} (${userAgent}) mono hit retired asset: ${monoUrl}`);
+      }
+    }
+  }
+});
+
 test('park audio selection stays stable within a single app session', () => {
   const firstSelection = pickSoundPath('Sica Hollow State Park', stateParks, 'Safari');
   const secondSelection = pickSoundPath('Sica Hollow State Park', stateParks, 'Safari');
