@@ -433,17 +433,23 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
                 resonanceSceneRef.current = scene;
                 scene.setAmbisonicOrder(2);
                 setResonanceAudioScene(scene);
-                // Safety limiter: catches peaks only so a later gain bump or an
-                // unusually hot park recording can't clip mobile speakers. Field
-                // recordings must keep their dynamic range, so this must stay
-                // effectively inaudible on the natural signal.
+                // Master gain: ~+3 dB bump so park center is perceptibly louder
+                // on mobile. The rl-52o limiter downstream catches any peaks
+                // this pushes above -1 dBFS.
+                const masterGain = context.createGain();
+                masterGain.gain.value = 1.413;
+                // Safety limiter: catches peaks only so the master-gain bump or
+                // an unusually hot park recording can't clip mobile speakers.
+                // Field recordings must keep their dynamic range, so this must
+                // stay effectively inaudible on the natural signal.
                 const limiter = context.createDynamicsCompressor();
                 limiter.threshold.value = -1;
                 limiter.knee.value = 0;
                 limiter.ratio.value = 20;
                 limiter.attack.value = 0.005;
                 limiter.release.value = 0.15;
-                scene.output.connect(limiter);
+                scene.output.connect(masterGain);
+                masterGain.connect(limiter);
                 limiter.connect(context.destination);
                 lastAudioEventRef.current = "audio-initialized";
             } catch (error) {
