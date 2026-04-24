@@ -205,7 +205,7 @@ test("mobile audio loads and plays for every real park on the normal route", asy
     ? /\/sounds-flac\/.+_8ch\.flac$/
     : /\/sounds\/.+_8ch\.m4a$/;
   const expectedMonoPattern = isIphone
-    ? /\/sounds-wav\/.+_mono\.wav$/
+    ? /\/sounds-wav-mono\/.+_mono\.wav$/
     : /\/sounds\/.+_mono\.m4a$/;
   const runResults: ParkRunResult[] = [];
   const failures: string[] = [];
@@ -375,8 +375,10 @@ test("mobile audio loads and plays for every real park on the normal route", asy
   ).toBeTruthy();
   // Guards the FLAC cutover: if any legacy sounds-wav/ URL slips through we've
   // either shipped a stale audioPaths.js or the Safari branch has regressed.
+  // The folder was renamed to sounds-wav-mono/ in rl-u2s after its accidental
+  // deletion — any bare /sounds-wav/ URL is now a 404.
   const legacyWavRequests = observedAudioRequests.filter((request) =>
-    request.url.includes("/sounds-wav/")
+    /\/sounds-wav\//.test(request.url)
   );
   expect(legacyWavRequests, JSON.stringify(legacyWavRequests, null, 2)).toEqual([]);
   // Every loaded park must end up with an 8-channel buffer — otherwise the 8ch

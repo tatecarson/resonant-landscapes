@@ -30,7 +30,7 @@ test('safari variants use flac 8ch and wav mono assets', () => {
   assert.ok(variants);
   for (const [eightChannelUrl, monoUrl] of variants) {
     assert.match(eightChannelUrl, /^https:\/\/resonant-landscapes\.b-cdn\.net\/sounds-flac\//);
-    assert.match(monoUrl, /^https:\/\/resonant-landscapes\.b-cdn\.net\/sounds-wav\//);
+    assert.match(monoUrl, /^https:\/\/resonant-landscapes\.b-cdn\.net\/sounds-wav-mono\//);
     assert.match(eightChannelUrl, /_8ch\.flac$/);
     assert.match(monoUrl, /_mono\.wav$/);
   }
@@ -41,9 +41,9 @@ test('Good Earth State Park expands into all Safari variants from metadata', () 
 
   assert.equal(variants?.length, 4);
   assert.match(variants?.[0]?.[0] ?? '', /\/sounds-flac\/Good-Earth-1-001_8ch\.flac$/);
-  assert.match(variants?.[0]?.[1] ?? '', /\/sounds-wav\/Good-Earth-1-001_mono\.wav$/);
+  assert.match(variants?.[0]?.[1] ?? '', /\/sounds-wav-mono\/Good-Earth-1-001_mono\.wav$/);
   assert.match(variants?.[3]?.[0] ?? '', /\/sounds-flac\/Good-Earth-2-002_8ch\.flac$/);
-  assert.match(variants?.[3]?.[1] ?? '', /\/sounds-wav\/Good-Earth-2-002_mono\.wav$/);
+  assert.match(variants?.[3]?.[1] ?? '', /\/sounds-wav-mono\/Good-Earth-2-002_mono\.wav$/);
 });
 
 test('Custer State Park uses the CDN slug override for both browser families', () => {
@@ -53,7 +53,7 @@ test('Custer State Park uses the CDN slug override for both browser families', (
   assert.ok(safariVariants);
   assert.ok(chromeVariants);
   assert.match(safariVariants[12][0], /\/sounds-flac\/Custer-State-7-001_8ch\.flac$/);
-  assert.match(safariVariants[12][1], /\/sounds-wav\/Custer-State-7-001_mono\.wav$/);
+  assert.match(safariVariants[12][1], /\/sounds-wav-mono\/Custer-State-7-001_mono\.wav$/);
   assert.match(chromeVariants[12][0], /\/sounds\/Custer-State-7-001_8ch\.m4a$/);
   assert.match(chromeVariants[12][1], /\/sounds\/Custer-State-7-001_mono\.m4a$/);
 });
@@ -74,7 +74,7 @@ test('Palisades State Park uses the CDN slug override for both browser families'
   assert.ok(safariVariants);
   assert.ok(chromeVariants);
   assert.match(safariVariants[0][0], /\/sounds-flac\/Palisades-State-1-001_8ch\.flac$/);
-  assert.match(safariVariants[0][1], /\/sounds-wav\/Palisades-State-1-001_mono\.wav$/);
+  assert.match(safariVariants[0][1], /\/sounds-wav-mono\/Palisades-State-1-001_mono\.wav$/);
   assert.match(chromeVariants[0][0], /\/sounds\/Palisades-State-1-001_8ch\.m4a$/);
   assert.match(chromeVariants[0][1], /\/sounds\/Palisades-State-1-001_mono\.m4a$/);
 });
@@ -85,6 +85,27 @@ test('slug formatting matches current CDN naming convention', () => {
   assert.equal(formatParkSlug('Fort Sisseton Historic State Park'), 'Fort-Sisseton');
   assert.equal(formatParkSlug('Good Earth State Park'), 'Good-Earth');
   assert.equal(formatParkSlug('Bear Butte State Park'), 'Bear-Butte');
+});
+
+test('no generated URL points at retired wav assets (rl-tbu, rl-u2s)', () => {
+  // Guards two retirements:
+  //  - rl-tbu: sounds-wav/*_8ch.wav files were deleted from the CDN.
+  //  - rl-u2s: sounds-wav/ itself was renamed to sounds-wav-mono/ after the
+  //    mono-only re-upload, so any remaining sounds-wav/ URL is a 404.
+  const retiredFolderPattern = /\/sounds-wav\//;
+  const retired8chPattern = /_8ch\.wav$/;
+  for (const park of stateParks) {
+    for (const userAgent of ['Chrome', 'Safari']) {
+      const variants = getParkAudioVariants(park.name, stateParks, userAgent);
+      if (!variants) continue;
+      for (const [spatialUrl, monoUrl] of variants) {
+        for (const url of [spatialUrl, monoUrl]) {
+          assert.doesNotMatch(url, retiredFolderPattern, `${park.name} (${userAgent}) hit retired sounds-wav/ folder: ${url}`);
+          assert.doesNotMatch(url, retired8chPattern, `${park.name} (${userAgent}) hit retired _8ch.wav asset: ${url}`);
+        }
+      }
+    }
+  }
 });
 
 test('park audio selection stays stable within a single app session', () => {
