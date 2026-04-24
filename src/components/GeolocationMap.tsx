@@ -29,6 +29,7 @@ import { useGeolocationTracking } from "../hooks/useGeolocationTracking";
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
+import type { Variant } from "../App";
 import locationIcon from "../assets/geolocation_marker_heading.svg";
 
 const CENTER_ROTATION_RADIUS_METERS = 3;
@@ -136,10 +137,12 @@ const CenteredGeolocationMarker = memo(function CenteredGeolocationMarker({
 
 const GeolocationTrackingController = memo(function GeolocationTrackingController({
     debug,
+    variant,
     map,
     helpIsOpen,
 }: {
     debug: boolean;
+    variant: Variant;
     map: ReturnType<typeof useOL>["map"];
     helpIsOpen: boolean;
 }): JSX.Element {
@@ -163,6 +166,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         userOrientationEnabled,
     } = useGeolocationTracking({
         debug,
+        variant,
         resonanceAudioScene,
         stopSound,
     });
@@ -317,9 +321,11 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
 
 function GeolocationOverlay({
     debug = false,
+    variant,
     helpIsOpen,
 }: {
     debug?: boolean;
+    variant: Variant;
     helpIsOpen: boolean;
 }): JSX.Element {
     const { map } = useOL();
@@ -333,6 +339,7 @@ function GeolocationOverlay({
         <div>
             <GeolocationTrackingController
                 debug={debug}
+                variant={variant}
                 map={map}
                 helpIsOpen={helpIsOpen}
             />
@@ -340,7 +347,13 @@ function GeolocationOverlay({
     );
 }
 
-export default function GeolocationMap({ debug = false }: { debug?: boolean }): JSX.Element {
+export default function GeolocationMap({
+    debug = false,
+    variant = "dsu",
+}: {
+    debug?: boolean;
+    variant?: Variant;
+}): JSX.Element {
     const [helpIsOpen, setHelpIsOpen] = useState(false);
     const openHelp = useCallback(() => {
         setHelpIsOpen(true);
@@ -380,6 +393,7 @@ export default function GeolocationMap({ debug = false }: { debug?: boolean }): 
             />
             <GeolocationOverlay
                 debug={debug}
+                variant={variant}
                 helpIsOpen={helpIsOpen}
             />
         </RMap>

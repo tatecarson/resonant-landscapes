@@ -6,14 +6,23 @@ import AudioContextProvider from "./contexts/AudioContextProvider";
 
 const MapExperience = lazy(() => import("./components/MapExperience"));
 
+export type Variant = "dsu" | "terrace";
+
 function isDebugLocation(location: Location) {
   return location.pathname.endsWith("/debug") || location.hash === "#/debug";
 }
 
-function DebugRoute() {
+function detectVariant(location: Location): Variant {
+  if (location.hash === "#/terrace" || location.pathname.endsWith("/terrace")) {
+    return "terrace";
+  }
+  return "dsu";
+}
+
+function DebugRoute({ variant }: { variant: Variant }) {
   return (
     <Suspense fallback={<div>Loading debug tools...</div>}>
-      <MapExperience debug />
+      <MapExperience debug variant={variant} />
     </Suspense>
   );
 }
@@ -21,18 +30,20 @@ function DebugRoute() {
 function App() {
   const [isOpen, setIsOpen] = useState(true)
   const [isDebugRoute, setIsDebugRoute] = useState(() => isDebugLocation(window.location));
+  const [variant, setVariant] = useState<Variant>(() => detectVariant(window.location));
 
   useEffect(() => {
-    const syncDebugRoute = () => {
+    const syncRoute = () => {
       setIsDebugRoute(isDebugLocation(window.location));
+      setVariant(detectVariant(window.location));
     };
 
-    window.addEventListener("hashchange", syncDebugRoute);
-    window.addEventListener("popstate", syncDebugRoute);
+    window.addEventListener("hashchange", syncRoute);
+    window.addEventListener("popstate", syncRoute);
 
     return () => {
-      window.removeEventListener("hashchange", syncDebugRoute);
-      window.removeEventListener("popstate", syncDebugRoute);
+      window.removeEventListener("hashchange", syncRoute);
+      window.removeEventListener("popstate", syncRoute);
     };
   }, []);
 
@@ -69,13 +80,13 @@ function App() {
     <ErrorBoundary fallback={<div>Error</div>}>
       <AudioContextProvider>
         {isDebugRoute ? (
-          <DebugRoute />
+          <DebugRoute variant={variant} />
         ) : (
           <>
-            <WelcomeModal isOpen={isOpen} setIsOpen={setWelcomeOpen} />
+            <WelcomeModal isOpen={isOpen} setIsOpen={setWelcomeOpen} variant={variant} />
             {!isOpen && (
               <Suspense fallback={<div>Loading map...</div>}>
-                <MapExperience />
+                <MapExperience variant={variant} />
               </Suspense>
             )}
           </>

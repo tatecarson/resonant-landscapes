@@ -4,7 +4,8 @@ import { LineString } from "ol/geom";
 import { fromLonLat, toLonLat } from "ol/proj";
 import type { ResonanceAudio } from "resonance-audio";
 
-import scaledPoints, { testParks } from "../utils/scaledParks";
+import { getScaledPoints, testParks } from "../utils/scaledParks";
+import type { Variant } from "../App";
 import { distanceInMeters } from "../utils/geo";
 import { findClosestPark, findParksInRange, PREFETCH_DISTANCE, selectNearestInRangePark } from "../utils/parkSelection";
 
@@ -27,6 +28,7 @@ function toParkFeature(park: { name: string; scaledCoords: number[] }): ParkFeat
 
 interface UseGeolocationTrackingOptions {
     debug: boolean;
+    variant: Variant;
     resonanceAudioScene: ResonanceAudio | null;
     stopSound: () => void;
 }
@@ -51,6 +53,7 @@ function shortestRadianDelta(from: number, to: number) {
 
 export function useGeolocationTracking({
     debug,
+    variant,
     resonanceAudioScene,
     stopSound,
 }: UseGeolocationTrackingOptions) {
@@ -85,8 +88,11 @@ export function useGeolocationTracking({
     const exitDistance = 18;
     const prefetchDistance = PREFETCH_DISTANCE;
     const parkFeatures = useMemo<ParkFeature[]>(
-        () => (debug ? [...testParks, ...scaledPoints] : scaledPoints).map(toParkFeature),
-        [debug]
+        () => {
+            const pts = getScaledPoints(variant);
+            return (debug ? [...testParks, ...pts] : pts).map(toParkFeature);
+        },
+        [debug, variant]
     );
 
     const getSmoothingDelay = useCallback(() => {

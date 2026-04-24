@@ -3,14 +3,13 @@ import { scaleCoordinates } from './geo';
 
 // lon, lat
 
-// Placeholder for your scale factors
-// const scaleLat = 0.00065;
-// const scaleLong = 0.0004;
-const scaleLat = 0.00066;
-const scaleLong = 0.00045;
+// Per-variant reference point + scale factors. Same factors across variants
+// for now; tune onsite after a Terrace Park walkthrough.
+export const VARIANTS = {
+    dsu:     { referencePoint: [-97.110789, 44.012222],             scaleLong: 0.00045, scaleLat: 0.00066 },
+    terrace: { referencePoint: [-96.74190700446347, 43.55479966608823], scaleLong: 0.00045, scaleLat: 0.00066 },
+};
 
-// Assuming a reference point (for example, the center of DSU campus)
-const referencePoint = [-97.110789, 44.012222];
 const testPark = {
     name: "Custer Test",
     cords: [-97.112994, 44.012224],
@@ -29,13 +28,15 @@ const currentLocationTestPark = {
 
 const testParks = [testPark, currentLocationTestPark];
 
-// Translate points to origin, apply scale, and translate back
-const scaledPoints = stateParks.map(park => {
-    return {
+export function getScaledPoints(variant = 'dsu') {
+    const { referencePoint, scaleLong, scaleLat } = VARIANTS[variant] ?? VARIANTS.dsu;
+    return stateParks.map(park => ({
         ...park,
-        scaledCoords: scaleCoordinates(park.cords, referencePoint, scaleLong, scaleLat)
-    };
-});
+        scaledCoords: scaleCoordinates(park.cords, referencePoint, scaleLong, scaleLat),
+    }));
+}
+
+const scaledPoints = getScaledPoints('dsu');
 
 export { currentLocationTestPark, testPark, testParks, scaledPoints };
 

@@ -1,13 +1,15 @@
 import { useRef, Fragment, useCallback } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAudioContext } from "../contexts/AudioContextProvider";
+import type { Variant } from "../App";
 
 interface WelcomeModalProps {
     isOpen: boolean;
     setIsOpen: (value: boolean) => void;
+    variant?: Variant;
 }
 
-function WelcomeModal({ isOpen, setIsOpen }: WelcomeModalProps) {
+function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps) {
     const cancelButtonRef = useRef(null);
     const { unlockAudio, lastUnlockError } = useAudioContext();
 
@@ -69,7 +71,9 @@ function WelcomeModal({ isOpen, setIsOpen }: WelcomeModalProps) {
                                 </p>
 
                                 <div className="font-space-mono space-y-4 text-[12px] leading-relaxed text-neutral-900/75">
-                                    <p>Walk around DSU's campus to hear sounds recorded in each of South Dakota's 13 State Parks.</p>
+                                    <p>{variant === "terrace"
+                                        ? "Walk around Terrace Park in Sioux Falls to hear sounds recorded in each of South Dakota's 13 State Parks."
+                                        : "Walk around DSU's campus to hear sounds recorded in each of South Dakota's 13 State Parks."}</p>
                                     <p>As you approach a park, a menu will appear. Walk closer to the center icon — the volume rises with proximity.</p>
                                     <p>At the center of a listening spot, turn with your phone to hear the recording in 360 degrees.</p>
                                     <p>Close the menu to load a different recording. Walk away or press stop to end.</p>
