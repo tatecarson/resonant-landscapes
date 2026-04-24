@@ -31,6 +31,8 @@ import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
 import locationIcon from "../assets/geolocation_marker_heading.svg";
 
+const CENTER_ROTATION_RADIUS_METERS = 3;
+
 function ZoomBoundsController({
     debug = false,
     minZoom = 16.72582728647343,
@@ -117,13 +119,11 @@ const CenteredGeolocationMarker = memo(function CenteredGeolocationMarker({
     active,
 }: {
     active: boolean;
-}): JSX.Element | null {
-    if (!active) {
-        return null;
-    }
-
+}): JSX.Element {
     return (
-        <RControl.RCustom className="centered-geolocation-control">
+        <RControl.RCustom
+            className={`centered-geolocation-control ${active ? "centered-geolocation-control--active" : "centered-geolocation-control--hidden"}`}
+        >
             <img
                 src={locationIcon}
                 alt=""
@@ -212,6 +212,10 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     const savedZoomRef = useRef<number | null>(null);
     const inProximityRef = useRef(false);
     const inProximity = prefetchParks.length > 0;
+    const showCenteredGeolocationMarker =
+        Boolean(position) &&
+        userOrientationEnabled &&
+        parkDistance <= CENTER_ROTATION_RADIUS_METERS;
 
     useEffect(() => {
         const view = map?.getView();
@@ -270,9 +274,9 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
             <GeolocationPositionLayer
                 position={position}
                 accuracy={accuracy}
-                showPositionIcon={!userOrientationEnabled}
+                showPositionIcon={!showCenteredGeolocationMarker}
             />
-            <CenteredGeolocationMarker active={Boolean(position && userOrientationEnabled)} />
+            <CenteredGeolocationMarker active={showCenteredGeolocationMarker} />
 
             <ProximityRingLayer
                 parks={prefetchParks}
@@ -291,7 +295,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                         isOpen={parkModalOpen}
                         setIsOpen={setParkModalOpen}
                         parkName={parkName}
-                        parkDistance={Math.floor(parkDistance)}
+                        parkDistance={parkDistance}
                         userOrientation={userOrientationEnabled}
                         mapHeading={mapHeading}
                         compact={true}

@@ -21,6 +21,7 @@ import {
 } from "./helpers/device-orientation";
 
 const HARTFORD_BEACH_CENTER = { latitude: 44.01320393, longitude: -97.11059202 };
+const HARTFORD_BEACH_OUTSIDE_CENTER = { latitude: 44.01325393, longitude: -97.11059202 };
 type GimbalOrientationSnapshot = {
   fwdX: number;
   fwdY: number;
@@ -234,4 +235,80 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   }
 
   await stopPreviewRotationLoop(page);
+});
+
+test("rotation tracking stops after leaving the center radius", async ({
+  context,
+  page,
+  baseURL,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "iphone-13",
+    "Gimbal orientation test is only meaningful on the iphone-13 project."
+  );
+
+  if (!baseURL) throw new Error("Missing Playwright baseURL.");
+
+  page.on("console", async (msg) => {
+    const args = await Promise.all(
+      msg.args().map(async (arg) => {
+        try { return await arg.jsonValue(); }
+        catch { return String(arg); }
+      })
+    );
+    console.log(`[browser:${msg.type()}]`, ...args);
+  });
+
+  page.on("pageerror", (err) => console.error("[pageerror]", err));
+
+  const permissionOrigin = new URL(baseURL).origin;
+  await context.grantPermissions(["geolocation"], { origin: permissionOrigin });
+  await context.setGeolocation(HARTFORD_BEACH_CENTER);
+
+  await seedDeviceOrientationHarness(page);
+
+  await page.goto("/");
+  await page.waitForLoadState("domcontentloaded");
+
+  await dismissWelcomeModal(page);
+
+  await page.evaluate(() => {
+    window.localStorage.setItem("deviceOrientationPermission", "granted");
+  });
+
+  const mapCanvas = page.locator("canvas").first();
+  await expect(mapCanvas).toBeVisible({ timeout: 15_000 });
+  await context.setGeolocation(HARTFORD_BEACH_CENTER);
+
+  await expect(page.locator("p.font-cormorant", { hasText: "Hartford Beach State Park" })).toBeVisible({
+    timeout: 20_000,
+  });
+
+  await expect.poll(() => page.evaluate(() => window.__audioDebug?.hasBuffers ?? false), {
+    timeout: 15_000,
+  }).toBe(true);
+  await expect.poll(() => page.evaluate(() => window.__audioDebug?.isPlaying ?? false), {
+    timeout: 10_000,
+  }).toBe(true);
+
+  const trackingLabel = page.getByLabel("Spatial tracking active");
+  const centeredMarker = page.locator(".centered-geolocation-control");
+  await expect(centeredMarker).toHaveClass(/centered-geolocation-control--active/, { timeout: 10_000 });
+  await expect(trackingLabel).toBeVisible({ timeout: 10_000 });
+  await expect
+    .poll(() => page.evaluate(() => (window as Window).__gimbalOrientation?.updatedAt ?? null), {
+      timeout: 10_000,
+    })
+    .not.toBeNull();
+
+  await context.setGeolocation(HARTFORD_BEACH_OUTSIDE_CENTER);
+  await expect(trackingLabel).toHaveCount(0, { timeout: 10_000 });
+  await expect(centeredMarker).toHaveClass(/centered-geolocation-control--hidden/, { timeout: 10_000 });
+
+  await page.waitForTimeout(300);
+  const stoppedAt = await page.evaluate(() => (window as Window).__gimbalOrientation?.updatedAt ?? null);
+  await dispatchDeviceOrientation(page, 45);
+  await page.waitForTimeout(300);
+
+  await expect(page.evaluate(() => (window as Window).__gimbalOrientation?.updatedAt ?? null)).resolves.toBe(stoppedAt);
 });
