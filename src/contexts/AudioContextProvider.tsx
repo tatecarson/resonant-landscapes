@@ -296,6 +296,12 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
 
         console.log('Playing sound...', buffers);
         const source = resonanceAudioScene.createSource();
+        // The merged buffer is 9 channels (8ch HOA + 1ch mono). ResonanceAudio's
+        // Source.input is a default GainNode (channelInterpretation='speakers'),
+        // and the FLAC container labels the 8ch stream as 7.1, which Safari can
+        // use to apply a 5.1-style downmix matrix that drops/attenuates channels.
+        // Force discrete routing so every channel reaches the encoder intact.
+        source.input.channelInterpretation = 'discrete';
         const bufferSource = audioContext.createBufferSource();
         bufferSourceRef.current = bufferSource;
         bufferSource.buffer = buffers;
