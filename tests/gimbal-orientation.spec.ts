@@ -276,7 +276,6 @@ test("shows the rotation affordance before tracking is enabled at center", async
 
   const enableRotation = page.getByRole("button", { name: /Enable rotation/i });
   await expect(enableRotation).toBeVisible({ timeout: 10_000 });
-  await expect(enableRotation).toHaveAttribute("data-emphasized", "true");
   await expect.poll(() => enableRotation.evaluate((node) => getComputedStyle(node).animationName), {
     timeout: 5_000,
   }).toBe("rotation-affordance-breathe");

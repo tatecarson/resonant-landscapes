@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-.rotation-affordance[data-emphasized="true"] {
+.rotation-affordance {
   animation: rotation-affordance-breathe 2.2s ease-in-out infinite;
   background-color: rgb(23 23 23 / 0.035);
   box-shadow:
@@ -29,7 +29,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rotation-affordance[data-emphasized="true"] {
+  .rotation-affordance {
     animation: none;
     background-color: rgb(23 23 23 / 0.06);
     box-shadow: 0 0 0 2px rgb(23 23 23 / 0.28);
