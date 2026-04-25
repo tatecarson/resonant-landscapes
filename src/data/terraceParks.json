@@ -1,0 +1,15 @@
+[
+    { "name": "Sica Hollow State Park",            "cords": [-96.74300, 43.55950], "recordingsCount": 3, "sectionsCount": 2 },
+    { "name": "Roy Lake State Park",               "cords": [-96.74270, 43.55880], "recordingsCount": 2, "sectionsCount": 2 },
+    { "name": "Fort Sisseton Historic State Park", "cords": [-96.74240, 43.55820], "recordingsCount": 1, "sectionsCount": 1 },
+    { "name": "Hartford Beach State Park",         "cords": [-96.74230, 43.55750], "recordingsCount": 8, "sectionsCount": 2 },
+    { "name": "Fisher Grove State Park",           "cords": [-96.74220, 43.55680], "recordingsCount": 1, "sectionsCount": 2 },
+    { "name": "Oakwood Lakes State Park",          "cords": [-96.74215, 43.55610], "recordingsCount": 1, "sectionsCount": 4 },
+    { "name": "Lake Herman State Park",            "cords": [-96.74215, 43.55540], "recordingsCount": 2, "sectionsCount": 5 },
+    { "name": "Palisades State Park",              "cords": [-96.74220, 43.55480], "recordingsCount": 2, "sectionsCount": 3 },
+    { "name": "Good Earth State Park",             "cords": [-96.74230, 43.55420], "recordingsCount": 2, "sectionsCount": 2 },
+    { "name": "Newton Hills State Park",           "cords": [-96.74250, 43.55360], "recordingsCount": 5, "sectionsCount": 3 },
+    { "name": "Union Grove State Park",            "cords": [-96.74280, 43.55300], "recordingsCount": 2, "sectionsCount": 4 },
+    { "name": "Custer State Park",                 "cords": [-96.74320, 43.55250], "recordingsCount": 9, "sectionsCount": 2 },
+    { "name": "Bear Butte State Park",             "cords": [-96.74360, 43.55210], "recordingsCount": 4, "sectionsCount": 2 }
+]
