@@ -5,7 +5,7 @@ import { fromLonLat, toLonLat } from "ol/proj";
 import type { ResonanceAudio } from "resonance-audio";
 
 import { getScaledPoints, testParks } from "../utils/scaledParks";
-import type { Variant } from "../App";
+import type { Variant, MockPosition } from "../App";
 import { distanceInMeters } from "../utils/geo";
 import { findClosestPark, findParksInRange, PREFETCH_DISTANCE, selectNearestInRangePark } from "../utils/parkSelection";
 
@@ -29,6 +29,7 @@ function toParkFeature(park: { name: string; scaledCoords: number[] }): ParkFeat
 interface UseGeolocationTrackingOptions {
     debug: boolean;
     variant: Variant;
+    mockPosition: MockPosition | null;
     resonanceAudioScene: ResonanceAudio | null;
     stopSound: () => void;
 }
@@ -54,6 +55,7 @@ function shortestRadianDelta(from: number, to: number) {
 export function useGeolocationTracking({
     debug,
     variant,
+    mockPosition,
     resonanceAudioScene,
     stopSound,
 }: UseGeolocationTrackingOptions) {
@@ -368,6 +370,21 @@ export function useGeolocationTracking({
             stopAnimationLoop();
         };
     }, [stopAnimationLoop]);
+
+    // Dev shim: when ?mock=lat,lon is in the URL, synthesize a single
+    // OLGeoLoc-shaped event so the rest of the pipeline runs without a real
+    // GPS fix (useful in iframes / preview panes where geolocation is blocked).
+    useEffect(() => {
+        if (!mockPosition) return;
+        const projected = fromLonLat(mockPosition);
+        const stub = {
+            getPosition: () => projected,
+            getAccuracy: () => 5,
+            getHeading: () => undefined,
+            getSpeed: () => 0,
+        };
+        onGeolocationChange({ target: stub as unknown as OLGeoLoc });
+    }, [mockPosition, onGeolocationChange]);
 
     return {
         accuracy,
