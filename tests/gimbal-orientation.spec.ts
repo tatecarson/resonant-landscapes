@@ -237,6 +237,61 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   await stopPreviewRotationLoop(page);
 });
 
+test("shows the rotation affordance before tracking is enabled at center", async ({
+  context,
+  page,
+  baseURL,
+}) => {
+  if (!baseURL) throw new Error("Missing Playwright baseURL.");
+
+  const permissionOrigin = new URL(baseURL).origin;
+  await context.grantPermissions(["geolocation"], { origin: permissionOrigin });
+  await context.setGeolocation(HARTFORD_BEACH_CENTER);
+
+  await seedDeviceOrientationHarness(page);
+
+  await page.goto("/");
+  await page.waitForLoadState("domcontentloaded");
+
+  await dismissWelcomeModal(page);
+
+  await page.evaluate(() => {
+    window.localStorage.removeItem("deviceOrientationPermission");
+  });
+
+  const mapCanvas = page.locator("canvas").first();
+  await expect(mapCanvas).toBeVisible({ timeout: 15_000 });
+  await context.setGeolocation(HARTFORD_BEACH_CENTER);
+
+  await expect(page.locator("p.font-cormorant", { hasText: "Hartford Beach State Park" })).toBeVisible({
+    timeout: 20_000,
+  });
+
+  await expect.poll(() => page.evaluate(() => window.__audioDebug?.hasBuffers ?? false), {
+    timeout: 15_000,
+  }).toBe(true);
+  await expect.poll(() => page.evaluate(() => window.__audioDebug?.isPlaying ?? false), {
+    timeout: 10_000,
+  }).toBe(true);
+
+  const enableRotation = page.getByRole("button", { name: /Enable rotation/i });
+  await expect(enableRotation).toBeVisible({ timeout: 10_000 });
+  await expect.poll(() => enableRotation.evaluate((node) => getComputedStyle(node).animationName), {
+    timeout: 5_000,
+  }).toBe("rotation-affordance-breathe");
+
+  await expect(page.getByLabel("Spatial tracking active")).toHaveCount(0);
+  await expect
+    .poll(() => page.evaluate(() => (window as Window).__gimbalOrientation?.updatedAt ?? null), {
+      timeout: 1_000,
+    })
+    .toBeNull();
+
+  if (process.env.ROTATION_AFFORDANCE_PAUSE === "1") {
+    await page.pause();
+  }
+});
+
 test("rotation tracking stops after leaving the center radius", async ({
   context,
   page,

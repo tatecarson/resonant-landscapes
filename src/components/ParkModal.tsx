@@ -177,7 +177,7 @@ function ParkModal({
                                 {!rotationActive && showRotationButton && (
                                     <button
                                         onClick={() => { void enableRotation(); }}
-                                        className="font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/45 underline underline-offset-2 decoration-neutral-900/20 transition-colors hover:text-neutral-900/70"
+                                        className="rotation-affordance rounded-full px-2.5 py-1 font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/50 underline underline-offset-2 decoration-neutral-900/25 transition-colors hover:text-neutral-900/75"
                                     >
                                         Enable rotation
                                     </button>
@@ -255,7 +255,7 @@ function ParkModal({
                                             onClick={() => {
                                                 void enableRotation();
                                             }}
-                                            className="mt-4 w-full rounded-full border border-neutral-900/40 bg-transparent px-6 py-2 font-space-mono text-xs tracking-widest uppercase text-neutral-900/70 transition-colors hover:border-neutral-900 hover:text-neutral-900"
+                                            className="rotation-affordance mt-4 w-full rounded-full border border-neutral-900/40 bg-transparent px-6 py-2 font-space-mono text-xs tracking-widest uppercase text-neutral-900/70 transition-colors hover:border-neutral-900 hover:text-neutral-900"
                                         >
                                             Enable Rotation
                                         </button>

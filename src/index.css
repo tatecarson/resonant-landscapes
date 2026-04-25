@@ -1,3 +1,37 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.rotation-affordance {
+  animation: rotation-affordance-breathe 2.2s ease-in-out infinite;
+  background-color: rgb(23 23 23 / 0.035);
+  box-shadow:
+    0 0 0 1px rgb(23 23 23 / 0.28),
+    0 0 0 0 rgb(23 23 23 / 0.18);
+  will-change: background-color, box-shadow;
+}
+
+@keyframes rotation-affordance-breathe {
+  0%,
+  100% {
+    background-color: rgb(23 23 23 / 0.025);
+    box-shadow:
+      0 0 0 1px rgb(23 23 23 / 0.22),
+      0 0 0 0 rgb(23 23 23 / 0.12);
+  }
+
+  52% {
+    background-color: rgb(23 23 23 / 0.085);
+    box-shadow:
+      0 0 0 1px rgb(23 23 23 / 0.42),
+      0 0 0 8px rgb(23 23 23 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rotation-affordance {
+    animation: none;
+    background-color: rgb(23 23 23 / 0.06);
+    box-shadow: 0 0 0 2px rgb(23 23 23 / 0.28);
+  }
+}
