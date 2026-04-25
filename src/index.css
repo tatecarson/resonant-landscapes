@@ -1,3 +1,32 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.rotation-affordance[data-emphasized="true"] {
+  animation: rotation-affordance-breathe 2.8s ease-in-out infinite;
+  box-shadow:
+    0 0 0 1px rgb(23 23 23 / 0.2),
+    0 0 0 0 rgb(23 23 23 / 0.18);
+}
+
+@keyframes rotation-affordance-breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgb(23 23 23 / 0.18),
+      0 0 0 0 rgb(23 23 23 / 0.12);
+  }
+
+  52% {
+    box-shadow:
+      0 0 0 1px rgb(23 23 23 / 0.34),
+      0 0 0 6px rgb(23 23 23 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rotation-affordance[data-emphasized="true"] {
+    animation: none;
+    box-shadow: 0 0 0 2px rgb(23 23 23 / 0.28);
+  }
+}
