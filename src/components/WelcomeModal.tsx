@@ -72,14 +72,19 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
 
                                 <div className="font-space-mono space-y-4 text-[12px] leading-relaxed text-neutral-900/75">
                                     <p>{variant === "terrace"
-                                        ? "Walk around Terrace Park in Sioux Falls to hear sounds recorded in each of South Dakota's 13 State Parks."
-                                        : "Walk around DSU's campus to hear sounds recorded in each of South Dakota's 13 State Parks."}</p>
-                                    <p>As you approach a park, a menu will appear. Walk closer to the center icon — the volume rises with proximity.</p>
+                                        ? "A locative soundscape walk — the sounds of South Dakota's 13 state parks, mapped onto Terrace Park in Sioux Falls."
+                                        : "A locative soundscape walk — the sounds of South Dakota's 13 state parks, mapped onto DSU's campus."}</p>
+                                    <p>{variant === "terrace"
+                                        ? "Walk around the park to hear each one. As you approach, a menu will appear. Walk closer to the center icon — the volume rises with proximity."
+                                        : "Walk around campus to hear each park. As you approach, a menu will appear. Walk closer to the center icon — the volume rises with proximity."}</p>
                                     <p>At the center of a listening spot, turn with your phone to hear the recording in 360 degrees.</p>
                                     <p>Close the menu to load a different recording. Walk away or press stop to end.</p>
                                 </div>
 
                                 <p className="mt-6 font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/55">
+                                    Use headphones — non-noise-canceling preferred.
+                                </p>
+                                <p className="mt-2 font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/55">
                                     Begin will request audio access. Rotation access is requested later when needed.
                                 </p>
 
