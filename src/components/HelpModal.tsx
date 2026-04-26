@@ -102,9 +102,10 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                             href="https://dl.acm.org/doi/10.1145/3678299.3678354"
                                             target="_blank"
                                             rel="noopener noreferrer"
+                                            aria-label="Read the paper (AM '24) — opens in new tab"
                                             className="text-neutral-900 underline decoration-neutral-900/40 underline-offset-2 transition-colors hover:decoration-neutral-900"
                                         >
-                                            Read the paper (AM '24)
+                                            Read the paper (AM '24) <span aria-hidden="true">↗</span>
                                         </a>
                                     </p>
                                     <p>
@@ -112,9 +113,10 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                             href="https://www.tatecarson.com/blog/2024-09-29-resonant-landscapes"
                                             target="_blank"
                                             rel="noopener noreferrer"
+                                            aria-label="Project page — photos, code, and more — opens in new tab"
                                             className="text-neutral-900 underline decoration-neutral-900/40 underline-offset-2 transition-colors hover:decoration-neutral-900"
                                         >
-                                            Project page — photos, code, and more
+                                            Project page — photos, code, and more <span aria-hidden="true">↗</span>
                                         </a>
                                     </p>
                                 </div>
