@@ -43,3 +43,4 @@ log/
 # Claude Code local state (ephemeral lock + per-user permissions)
 .claude/scheduled_tasks.lock
 .claude/settings.local.json
+/issues.jsonl

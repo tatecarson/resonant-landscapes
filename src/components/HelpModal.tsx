@@ -47,10 +47,10 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                     as="h2"
                                     className="font-cormorant text-5xl italic font-light tracking-tight text-neutral-900 mb-1"
                                 >
-                                    Troubleshooting
+                                    Help &amp; About
                                 </Dialog.Title>
                                 <p className="font-space-mono text-[10px] tracking-widest uppercase text-neutral-900/50 mb-7">
-                                    things to try
+                                    troubleshooting · credits
                                 </p>
 
                                 <ul className="font-space-mono space-y-3 text-[12px] leading-relaxed text-neutral-900/75">
@@ -64,7 +64,7 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                     </li>
                                     <li className="flex gap-3">
                                         <span className="select-none text-neutral-900/40">—</span>
-                                        <span>Make sure geolocation is enabled in your phone and browser settings.</span>
+                                        <span>Enable geolocation in your phone and browser settings.</span>
                                     </li>
                                     <li className="flex gap-3">
                                         <span className="select-none text-neutral-900/40">—</span>
@@ -83,6 +83,43 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                         </span>
                                     </li>
                                 </ul>
+
+                                <div className="mt-8 mb-6 flex items-center gap-3">
+                                    <div className="h-px flex-1 bg-neutral-900/25" />
+                                    <span className="text-xs text-neutral-900/40 font-space-mono tracking-widest">✦</span>
+                                    <div className="h-px flex-1 bg-neutral-900/25" />
+                                </div>
+
+                                <p className="font-space-mono text-[10px] tracking-widest uppercase text-neutral-900/50 mb-3">
+                                    about
+                                </p>
+                                <div className="font-space-mono space-y-3 text-[12px] leading-relaxed text-neutral-900/75">
+                                    <p>
+                                        By Tate Carson and Carter Gordon. Support from Dakota State University Faculty and Student Research Initiative Grants. 
+                                    </p>
+                                    <p>
+                                        <a
+                                            href="https://dl.acm.org/doi/10.1145/3678299.3678354"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            aria-label="Read the paper (AM '24) — opens in new tab"
+                                            className="text-neutral-900 underline decoration-neutral-900/40 underline-offset-2 transition-colors hover:decoration-neutral-900"
+                                        >
+                                            Read the paper (AM '24) <span aria-hidden="true">↗</span>
+                                        </a>
+                                    </p>
+                                    <p>
+                                        <a
+                                            href="https://www.tatecarson.com/blog/2024-09-29-resonant-landscapes"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            aria-label="Project page — photos, code, and more — opens in new tab"
+                                            className="text-neutral-900 underline decoration-neutral-900/40 underline-offset-2 transition-colors hover:decoration-neutral-900"
+                                        >
+                                            Project page — photos, code, and more <span aria-hidden="true">↗</span>
+                                        </a>
+                                    </p>
+                                </div>
 
                                 <div className="mt-8">
                                     <button
