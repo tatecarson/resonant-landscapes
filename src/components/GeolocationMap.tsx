@@ -29,6 +29,7 @@ import { useGeolocationTracking } from "../hooks/useGeolocationTracking";
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
+import type { Variant, MockPosition } from "../App";
 import locationIcon from "../assets/geolocation_marker_heading.svg";
 
 const CENTER_ROTATION_RADIUS_METERS = 3;
@@ -136,10 +137,14 @@ const CenteredGeolocationMarker = memo(function CenteredGeolocationMarker({
 
 const GeolocationTrackingController = memo(function GeolocationTrackingController({
     debug,
+    variant,
+    mockPosition,
     map,
     helpIsOpen,
 }: {
     debug: boolean;
+    variant: Variant;
+    mockPosition: MockPosition | null;
     map: ReturnType<typeof useOL>["map"];
     helpIsOpen: boolean;
 }): JSX.Element {
@@ -163,6 +168,8 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         userOrientationEnabled,
     } = useGeolocationTracking({
         debug,
+        variant,
+        mockPosition,
         resonanceAudioScene,
         stopSound,
     });
@@ -317,9 +324,13 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
 
 function GeolocationOverlay({
     debug = false,
+    variant,
+    mockPosition,
     helpIsOpen,
 }: {
     debug?: boolean;
+    variant: Variant;
+    mockPosition: MockPosition | null;
     helpIsOpen: boolean;
 }): JSX.Element {
     const { map } = useOL();
@@ -333,6 +344,8 @@ function GeolocationOverlay({
         <div>
             <GeolocationTrackingController
                 debug={debug}
+                variant={variant}
+                mockPosition={mockPosition}
                 map={map}
                 helpIsOpen={helpIsOpen}
             />
@@ -340,7 +353,15 @@ function GeolocationOverlay({
     );
 }
 
-export default function GeolocationMap({ debug = false }: { debug?: boolean }): JSX.Element {
+export default function GeolocationMap({
+    debug = false,
+    variant = "dsu",
+    mockPosition = null,
+}: {
+    debug?: boolean;
+    variant?: Variant;
+    mockPosition?: MockPosition | null;
+}): JSX.Element {
     const [helpIsOpen, setHelpIsOpen] = useState(false);
     const openHelp = useCallback(() => {
         setHelpIsOpen(true);
@@ -380,6 +401,8 @@ export default function GeolocationMap({ debug = false }: { debug?: boolean }): 
             />
             <GeolocationOverlay
                 debug={debug}
+                variant={variant}
+                mockPosition={mockPosition}
                 helpIsOpen={helpIsOpen}
             />
         </RMap>

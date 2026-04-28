@@ -6,14 +6,40 @@ import AudioContextProvider from "./contexts/AudioContextProvider";
 
 const MapExperience = lazy(() => import("./components/MapExperience"));
 
+export type Variant = "dsu" | "terrace";
+
 function isDebugLocation(location: Location) {
   return location.pathname.endsWith("/debug") || location.hash === "#/debug";
 }
 
-function DebugRoute() {
+function detectVariant(location: Location): Variant {
+  const hashRoute = location.hash.replace(/^#/, "").split("?")[0];
+  if (hashRoute === "/terrace" || location.pathname.endsWith("/terrace")) {
+    return "terrace";
+  }
+  return "dsu";
+}
+
+export type MockPosition = [number, number]; // [lon, lat]
+
+function detectMockPosition(location: Location): MockPosition | null {
+  // Dev shim: parse `?mock=lat,lon` from either the search string or the
+  // post-? portion of the hash (e.g. `#/terrace?mock=43.5548,-96.7419`).
+  const hashQuery = location.hash.includes("?") ? location.hash.split("?")[1] : "";
+  const params = new URLSearchParams(hashQuery || location.search.replace(/^\?/, ""));
+  const raw = params.get("mock");
+  if (!raw) return null;
+  const [latStr, lonStr] = raw.split(",");
+  const lat = Number(latStr);
+  const lon = Number(lonStr);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  return [lon, lat];
+}
+
+function DebugRoute({ variant, mockPosition }: { variant: Variant; mockPosition: MockPosition | null }) {
   return (
     <Suspense fallback={<div>Loading debug tools...</div>}>
-      <MapExperience debug />
+      <MapExperience debug variant={variant} mockPosition={mockPosition} />
     </Suspense>
   );
 }
@@ -21,18 +47,22 @@ function DebugRoute() {
 function App() {
   const [isOpen, setIsOpen] = useState(true)
   const [isDebugRoute, setIsDebugRoute] = useState(() => isDebugLocation(window.location));
+  const [variant, setVariant] = useState<Variant>(() => detectVariant(window.location));
+  const [mockPosition, setMockPosition] = useState<MockPosition | null>(() => detectMockPosition(window.location));
 
   useEffect(() => {
-    const syncDebugRoute = () => {
+    const syncRoute = () => {
       setIsDebugRoute(isDebugLocation(window.location));
+      setVariant(detectVariant(window.location));
+      setMockPosition(detectMockPosition(window.location));
     };
 
-    window.addEventListener("hashchange", syncDebugRoute);
-    window.addEventListener("popstate", syncDebugRoute);
+    window.addEventListener("hashchange", syncRoute);
+    window.addEventListener("popstate", syncRoute);
 
     return () => {
-      window.removeEventListener("hashchange", syncDebugRoute);
-      window.removeEventListener("popstate", syncDebugRoute);
+      window.removeEventListener("hashchange", syncRoute);
+      window.removeEventListener("popstate", syncRoute);
     };
   }, []);
 
@@ -69,13 +99,13 @@ function App() {
     <ErrorBoundary fallback={<div>Error</div>}>
       <AudioContextProvider>
         {isDebugRoute ? (
-          <DebugRoute />
+          <DebugRoute variant={variant} mockPosition={mockPosition} />
         ) : (
           <>
-            <WelcomeModal isOpen={isOpen} setIsOpen={setWelcomeOpen} />
+            <WelcomeModal isOpen={isOpen} setIsOpen={setWelcomeOpen} variant={variant} />
             {!isOpen && (
               <Suspense fallback={<div>Loading map...</div>}>
-                <MapExperience />
+                <MapExperience variant={variant} mockPosition={mockPosition} />
               </Suspense>
             )}
           </>

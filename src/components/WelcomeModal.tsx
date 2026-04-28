@@ -1,13 +1,15 @@
 import { useRef, Fragment, useCallback } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAudioContext } from "../contexts/AudioContextProvider";
+import type { Variant } from "../App";
 
 interface WelcomeModalProps {
     isOpen: boolean;
     setIsOpen: (value: boolean) => void;
+    variant?: Variant;
 }
 
-function WelcomeModal({ isOpen, setIsOpen }: WelcomeModalProps) {
+function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps) {
     const cancelButtonRef = useRef(null);
     const { unlockAudio, lastUnlockError } = useAudioContext();
 
