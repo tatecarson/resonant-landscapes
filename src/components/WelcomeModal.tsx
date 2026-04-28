@@ -67,16 +67,12 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                     Resonant Landscapes
                                 </Dialog.Title>
                                 <p className="font-space-mono text-[10px] tracking-widest uppercase text-neutral-900/50 mb-7">
-                                    a walking soundscape
+                                    a locative sound walk
                                 </p>
 
                                 <div className="font-space-mono space-y-4 text-[12px] leading-relaxed text-neutral-900/75">
-                                    <p>{variant === "terrace"
-                                        ? "A locative soundscape walk — the sounds of South Dakota's 13 state parks, mapped onto Terrace Park in Sioux Falls."
-                                        : "A locative soundscape walk — the sounds of South Dakota's 13 state parks, mapped onto DSU's campus."}</p>
-                                    <p>{variant === "terrace"
-                                        ? "Walk around the park to hear each one. As you approach, a menu will appear. Walk closer to the center icon — the volume rises with proximity."
-                                        : "Walk around campus to hear each park. As you approach, a menu will appear. Walk closer to the center icon — the volume rises with proximity."}</p>
+                                    <p>Walk DSU's campus to hear the soundscapes of South Dakota's 13 state parks.</p>
+                                    <p>As you approach a park, a menu opens. Walk closer to the center icon and the volume increases with proximity.</p>
                                     <p>At the center of a listening spot, turn with your phone to hear the recording in 360 degrees.</p>
                                     <p>Close the menu to load a different recording. Walk away or press stop to end.</p>
                                 </div>
@@ -85,7 +81,7 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                     Use headphones — non-noise-canceling preferred.
                                 </p>
                                 <p className="mt-2 font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/55">
-                                    Begin will request audio access. Rotation access is requested later when needed.
+                                    Start will request audio access. Rotation access comes later, when you need it.
                                 </p>
 
                                 <div className="mt-8">
@@ -97,7 +93,7 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                         }}
                                         ref={cancelButtonRef}
                                     >
-                                        Begin With Audio
+                                        Start 
                                     </button>
                                 </div>
 
