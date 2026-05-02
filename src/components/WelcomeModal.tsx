@@ -71,7 +71,11 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                 </p>
 
                                 <div className="font-space-mono space-y-4 text-[12px] leading-relaxed text-neutral-900/75">
-                                    <p>Walk DSU's campus to hear the soundscapes of South Dakota's 13 state parks.</p>
+                                    <p>
+                                        {variant === "terrace"
+                                            ? "Walk Terrace Park to hear the soundscapes of South Dakota's 13 state parks."
+                                            : "Walk DSU's campus to hear the soundscapes of South Dakota's 13 state parks."}
+                                    </p>
                                     <p>As you approach a park, a menu opens. Walk closer to the center icon and the volume increases with proximity.</p>
                                     <p>At the center of a listening spot, turn with your phone to hear the recording in 360 degrees.</p>
                                     <p>Close the menu to load a different recording. Walk away or press stop to end.</p>
