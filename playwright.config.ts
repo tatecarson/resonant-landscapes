@@ -7,9 +7,11 @@ const useExternalServer = process.env.PLAYWRIGHT_EXTERNAL_SERVER === "1";
 export default defineConfig({
   testDir: "./tests",
   // Playwright owns *.spec.ts only. Its default pattern also matches
-  // *.test.mjs, which would pull the Vitest unit tests into this runner —
-  // importing Vitest's expect here redefines the jest-matchers symbol and
-  // takes down collection for every spec.
+  // *.test.mjs, which would pull the Vitest unit tests into this runner.
+  // Importing from "vitest" loads @vitest/expect transitively, which throws
+  // "Cannot redefine property: Symbol($$jest-matchers-object)" against the
+  // matchers Playwright has already installed — taking down collection for
+  // every spec, not just that file.
   testMatch: /.*\.spec\.ts$/,
   timeout: 90_000,
   expect: {

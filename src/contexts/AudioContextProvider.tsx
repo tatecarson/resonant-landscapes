@@ -238,7 +238,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         };
         lastAudioEventRef.current = "load-cancelled";
         syncAudioDebug();
-    }, [syncAudioDebug]);
+    }, [getBufferLoader, pinActiveBuffer, syncAudioDebug]);
 
     const ensureBuffers = useCallback(async (
         urls: string[],
@@ -279,10 +279,15 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         syncAudioDebug("load-start");
 
         try {
+            // Claim the key before any await. While this is unset, a prefetch
+            // retargeting mid-await sees a stale active key and aborts the
+            // download for the park being entered — then this load restarts it
+            // from zero, which is the cellular round trip the abort exists to
+            // avoid.
+            activeLoadUrlsRef.current = urls;
             if (initAudioPromiseRef.current) {
                 await initAudioPromiseRef.current;
             }
-            activeLoadUrlsRef.current = urls;
             const contentBuffer = await ensureBuffers(urls, "active-load");
             if (requestId !== activeLoadRequestIdRef.current) {
                 lastAudioEventRef.current = "load-stale-ignored";
