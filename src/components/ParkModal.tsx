@@ -123,6 +123,15 @@ function ParkModal({
         return (
             <>
                 <AmbientGradient active={rotationActive && !suppressed} headingRadians={mapHeading} />
+
+                {/* Arriving somewhere is the event of a sound walk, and until
+                    now it was conveyed only by the strip appearing on screen.
+                    Announced separately from the visual layout so it survives
+                    the strip being visually suppressed. */}
+                <p className="sr-only" data-testid="park-announcement" role="status" aria-live="polite">
+                    {parkName ? `${parkName}, ${Math.floor(parkDistance)} metres away` : ""}
+                </p>
+
                 <div
                     className={`fixed bottom-0 left-0 right-0 z-50 bg-[#8ecdc0] shadow-[0_-1px_0_rgba(0,0,0,0.10),0_-12px_32px_rgba(0,0,0,0.08)] transition-opacity duration-150 ${
                         suppressed ? "pointer-events-none opacity-0" : "opacity-100"
@@ -138,7 +147,7 @@ function ParkModal({
                             </p>
                             {rotationActive && (
                                 <span
-                                    className="mt-1 flex-shrink-0 font-space-mono text-[8px] uppercase tracking-[0.2em] text-neutral-900/40"
+                                    className="mt-1 flex-shrink-0 font-space-mono text-[8px] uppercase tracking-[0.2em] text-neutral-900/70"
                                     aria-label="Spatial tracking active"
                                 >
                                     ↻ tracking
@@ -150,7 +159,7 @@ function ParkModal({
                             {isPlaying && (
                                 <span className="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-neutral-900/60 animate-pulse" aria-hidden="true" />
                             )}
-                            <p className="font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/45">
+                            <p className="font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/70">
                                 {Math.floor(parkDistance)} m away
                             </p>
                         </div>
@@ -169,7 +178,7 @@ function ParkModal({
                                             setRotationDismissed(true);
                                             setRotationActive(false);
                                         }}
-                                        className="font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/45 transition-colors hover:text-neutral-900/70"
+                                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] rounded-full inline-flex min-h-[44px] items-center px-1 font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/70 transition-colors hover:text-neutral-900"
                                     >
                                         × stop tracking
                                     </button>
@@ -177,7 +186,7 @@ function ParkModal({
                                 {!rotationActive && showRotationButton && (
                                     <button
                                         onClick={() => { void enableRotation(); }}
-                                        className="rotation-affordance rounded-full px-2.5 py-1 font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/50 underline underline-offset-2 decoration-neutral-900/25 transition-colors hover:text-neutral-900/75"
+                                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] rotation-affordance inline-flex min-h-[44px] items-center rounded-full px-2.5 py-1 font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/70 underline underline-offset-2 decoration-neutral-900/40 transition-colors hover:text-neutral-900"
                                     >
                                         Enable rotation
                                     </button>
@@ -241,7 +250,7 @@ function ParkModal({
                                     >
                                         {parkName}
                                     </Dialog.Title>
-                                    <p className="font-space-mono mt-1 text-[10px] uppercase tracking-widest text-neutral-900/50">
+                                    <p className="font-space-mono mt-1 text-[10px] uppercase tracking-widest text-neutral-900/70">
                                         {Math.floor(parkDistance)} meters away
                                     </p>
 

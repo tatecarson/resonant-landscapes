@@ -263,7 +263,7 @@ const HOARenderer = ({
             <div className={compact ? "flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3" : "space-y-4"}>
                 <div className="min-w-0 space-y-1">
                     {!(compact && hideStatusLabel) && (
-                        <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/50" aria-live="polite">
+                        <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70" aria-live="polite">
                             {compact ? compactStatusLabel : audioStatusLabel}
                         </p>
                     )}
@@ -273,7 +273,7 @@ const HOARenderer = ({
                         </p>
                     )}
                     {!compact && !activeError && timingHint && (
-                        <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/45">
+                        <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70">
                             {timingHint}
                         </p>
                     )}
@@ -297,7 +297,7 @@ const HOARenderer = ({
                     <div className={compact ? "flex flex-wrap items-center gap-2" : "flex items-center gap-3"}>
                         {showCompactLoadingIndicator && (
                             <div
-                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-neutral-900/15 bg-white/35 px-4 py-2 font-space-mono text-[10px] uppercase tracking-[0.18em] text-neutral-900/65"
+                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-neutral-900/15 bg-white/35 px-4 py-2 font-space-mono text-[10px] uppercase tracking-[0.18em] text-neutral-900/70"
                                 aria-live="polite"
                             >
                                 <span
