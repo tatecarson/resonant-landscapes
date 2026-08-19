@@ -9,6 +9,9 @@
     "browserstack:path:android": "browserstack-node-sdk playwright test tests/path-replay.spec.ts",
     "dev": "vite",
     "build": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "sim:path": "playwright test tests/path-replay.spec.ts --project=chromium --headed",
@@ -63,6 +66,7 @@
     "postcss": "^8.4.34",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.2.2",
-    "vite": "^8.0.7"
+    "vite": "^8.0.7",
+    "vitest": "^4.1.11"
   }
 }

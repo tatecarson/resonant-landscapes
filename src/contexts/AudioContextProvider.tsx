@@ -2,6 +2,13 @@ import React, { createContext, useState, useEffect, useContext, useRef, useCallb
 import { ResonanceAudio } from "resonance-audio";
 import Omnitone from 'omnitone/build/omnitone.min.esm.js';
 import { useRenderDebug } from "../hooks/useRenderDebug";
+import { createBufferCache } from "../audio/bufferCache";
+import { createBufferLoader, getCacheKey, isAbortError } from "../audio/bufferLoader";
+
+// Active park plus one prefetch. Each merged park buffer is 9 channels of
+// float PCM (~100 MB per minute), so this cap is what keeps a full walk from
+// exhausting mobile Safari.
+const MAX_CACHED_PARKS = 2;
 
 interface AudioEngineContextType {
     audioContext: AudioContext | null;
@@ -87,8 +94,12 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const bufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
     const lastAudioEventRef = useRef<string | null>(null);
     const activeLoadRequestIdRef = useRef(0);
-    const bufferCacheRef = useRef(new Map<string, AudioBuffer>());
-    const pendingBufferLoadsRef = useRef(new Map<string, Promise<AudioBuffer>>());
+    const bufferCacheRef = useRef(createBufferCache({ maxEntries: MAX_CACHED_PARKS }));
+    // Key of the buffer currently pinned for playback, and the keys of the
+    // in-flight active/prefetch loads, so each can be aborted independently.
+    const pinnedKeyRef = useRef<string | null>(null);
+    const activeLoadUrlsRef = useRef<string[] | null>(null);
+    const prefetchUrlsRef = useRef<string[] | null>(null);
     const audioDebugStateRef = useRef({
         audioContextState: 'unavailable',
         isEngineInitializing: true,
@@ -103,7 +114,56 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         lastLoad: null as AudioLoadDebug | null,
     });
 
-    const getCacheKey = useCallback((urls: string[]) => urls.join("::"), []);
+    const bufferLoaderRef = useRef<ReturnType<typeof createBufferLoader> | null>(null);
+
+    const getBufferLoader = useCallback(() => {
+        if (bufferLoaderRef.current) return bufferLoaderRef.current;
+
+        bufferLoaderRef.current = createBufferLoader({
+            cache: bufferCacheRef.current,
+            fetchArrayBuffer: async (url, signal) => {
+                const response = await fetch(url, { signal });
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch ${url} (${response.status})`);
+                }
+                return response.arrayBuffer();
+            },
+            decode: (data) => {
+                const context = audioContextRef.current;
+                if (!context) throw new Error("Audio context is not ready yet.");
+                // Older Safari only implements the callback form of
+                // decodeAudioData; Omnitone's loader used to paper over this.
+                return new Promise<AudioBuffer>((resolve, reject) => {
+                    const maybePromise = context.decodeAudioData(data, resolve, reject);
+                    if (maybePromise && typeof maybePromise.then === "function") {
+                        maybePromise.then(resolve, reject);
+                    }
+                });
+            },
+            merge: (decoded) => {
+                const context = audioContextRef.current;
+                if (!context) throw new Error("Audio context is not ready yet.");
+                return Omnitone.mergeBufferListByChannel(context, decoded);
+            },
+        });
+
+        return bufferLoaderRef.current;
+    }, []);
+
+    /**
+     * Pin the buffer that is about to play so eviction can never drop it out
+     * from under a live AudioBufferSourceNode, and release the previous one.
+     */
+    const pinActiveBuffer = useCallback((key: string | null) => {
+        if (pinnedKeyRef.current === key) return;
+        if (pinnedKeyRef.current) {
+            bufferCacheRef.current.unpin(pinnedKeyRef.current);
+        }
+        pinnedKeyRef.current = key;
+        if (key) {
+            bufferCacheRef.current.pin(key);
+        }
+    }, []);
 
     const syncAudioDebug = useCallback((nextEvent?: string | null) => {
         if (nextEvent !== undefined) {
@@ -160,6 +220,14 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
 
     const cancelPendingLoad = useCallback(() => {
         activeLoadRequestIdRef.current += 1;
+        // Stop the bytes, not just the bookkeeping: an abandoned park download
+        // otherwise keeps competing for bandwidth with the one being entered.
+        if (activeLoadUrlsRef.current) {
+            getBufferLoader().abort(activeLoadUrlsRef.current);
+            activeLoadUrlsRef.current = null;
+        }
+        // The park is being left, so its buffer no longer needs protecting.
+        pinActiveBuffer(null);
         setIsLoading(false);
         setBuffers(null);
         setLastLoad(null);
@@ -183,50 +251,14 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             throw new Error("Missing audio context, resonance scene, or URLs.");
         }
 
-        const cacheKey = getCacheKey(urls);
-        const cachedBuffer = bufferCacheRef.current.get(cacheKey);
+        const loader = getBufferLoader();
         const startedAt = Date.now();
+        // Read before loading so the debug mirror can still distinguish a
+        // caller that avoided a download from one that started it.
+        const alreadyResident = Boolean(bufferCacheRef.current.get(getCacheKey(urls)))
+            || loader.isLoading(urls);
 
-        if (cachedBuffer) {
-            const load = {
-                urls,
-                reason,
-                startedAt,
-                completedAt: startedAt,
-                durationMs: 0,
-                cacheHit: true,
-            } satisfies AudioLoadDebug;
-            recordLoadDebug(load);
-            return cachedBuffer;
-        }
-
-        const pendingLoad = pendingBufferLoadsRef.current.get(cacheKey);
-        if (pendingLoad) {
-            const buffer = await pendingLoad;
-            const completedAt = Date.now();
-            recordLoadDebug({
-                urls,
-                reason,
-                startedAt,
-                completedAt,
-                durationMs: completedAt - startedAt,
-                cacheHit: true,
-            });
-            return buffer;
-        }
-
-        const request = Omnitone.createBufferList(context, urls)
-            .then((results) => {
-                const contentBuffer = Omnitone.mergeBufferListByChannel(context, results);
-                bufferCacheRef.current.set(cacheKey, contentBuffer);
-                return contentBuffer;
-            })
-            .finally(() => {
-                pendingBufferLoadsRef.current.delete(cacheKey);
-            });
-
-        pendingBufferLoadsRef.current.set(cacheKey, request);
-        const buffer = await request;
+        const buffer = await loader.load(urls);
         const completedAt = Date.now();
         recordLoadDebug({
             urls,
@@ -234,10 +266,10 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             startedAt,
             completedAt,
             durationMs: completedAt - startedAt,
-            cacheHit: false,
+            cacheHit: alreadyResident,
         });
         return buffer;
-    }, [getCacheKey, recordLoadDebug]);
+    }, [getBufferLoader, recordLoadDebug]);
 
     const loadBuffers = useCallback(async (urls: string[]): Promise<boolean> => {
         const requestId = ++activeLoadRequestIdRef.current;
@@ -250,21 +282,24 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             if (initAudioPromiseRef.current) {
                 await initAudioPromiseRef.current;
             }
+            activeLoadUrlsRef.current = urls;
             const contentBuffer = await ensureBuffers(urls, "active-load");
             if (requestId !== activeLoadRequestIdRef.current) {
                 lastAudioEventRef.current = "load-stale-ignored";
                 return false;
             }
 
+            // Protect this buffer for as long as it is the active park.
+            pinActiveBuffer(getCacheKey(urls));
             setBuffers(contentBuffer);
             lastAudioEventRef.current = "buffers-loaded";
             return true;
         } catch (error) {
-            if (requestId !== activeLoadRequestIdRef.current) {
+            if (requestId !== activeLoadRequestIdRef.current || isAbortError(error)) {
                 lastAudioEventRef.current = "load-stale-ignored";
                 return false;
             }
-            console.error("Error loading buffers with Omnitone:", error);
+            console.error("Error loading buffers:", error);
             setLoadError(error instanceof Error ? error.message : String(error));
             setBuffers(null);
             lastAudioEventRef.current = "load-error";
@@ -274,9 +309,22 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
                 setIsLoading(false);
             }
         }
-    }, [ensureBuffers, syncAudioDebug]);
+    }, [ensureBuffers, pinActiveBuffer, syncAudioDebug]);
 
     const preloadBuffers = useCallback(async (urls: string[]): Promise<boolean> => {
+        const key = getCacheKey(urls);
+        // Walking past a cluster of parks retargets the prefetch repeatedly;
+        // drop the previous one so it stops consuming cellular bandwidth.
+        const previousUrls = prefetchUrlsRef.current;
+        const previousKey = previousUrls ? getCacheKey(previousUrls) : null;
+        const activeKey = activeLoadUrlsRef.current
+            ? getCacheKey(activeLoadUrlsRef.current)
+            : null;
+        if (previousUrls && previousKey !== key && previousKey !== activeKey) {
+            getBufferLoader().abort(previousUrls);
+        }
+        prefetchUrlsRef.current = urls;
+
         try {
             if (initAudioPromiseRef.current) {
                 await initAudioPromiseRef.current;
@@ -285,11 +333,19 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             syncAudioDebug("prefetch-complete");
             return true;
         } catch (error) {
-            console.error("Error preloading buffers with Omnitone:", error);
+            if (isAbortError(error)) {
+                syncAudioDebug("prefetch-aborted");
+                return false;
+            }
+            console.error("Error preloading buffers:", error);
             syncAudioDebug("prefetch-error");
             return false;
+        } finally {
+            if (prefetchUrlsRef.current && getCacheKey(prefetchUrlsRef.current) === key) {
+                prefetchUrlsRef.current = null;
+            }
         }
-    }, [ensureBuffers, syncAudioDebug]);
+    }, [ensureBuffers, getBufferLoader, syncAudioDebug]);
 
     const proceedWithPlayback = useCallback(() => {
         if (!audioContext || !resonanceAudioScene || !buffers) return;
