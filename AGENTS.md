@@ -118,3 +118,34 @@ Rules:
 - Do not leave completed work stranded locally
 - If push fails, resolve it and retry
 - Do not create a pull request until the user explicitly says testing is done
+
+## Engineering Principles
+
+Adapted from [poteto/plugins pstack](https://github.com/poteto/plugins/tree/main/pstack). Apply these to code work in this repo.
+
+- **Prove it works.** Before declaring a task done, verify against the real artifact: run the feature, read the actual value, inspect the diff. "It compiles" and "the test file exists" are proxies, not evidence. For UI and audio changes this means a headed Playwright run against the live tunnel, not a unit test that stands in for one.
+- **Fix root causes.** Reproduce the defect first, then ask why until you reach the cause and fix it there. A nil check that silences a crash moves the bug; it does not remove it.
+- **Subtract before you add.** Remove dead weight, redundant validation, and stale references before building on top. Bias toward deletion and the smallest change that solves the problem. A smaller diff is a better diff.
+- **Sequence verifiable units.** Break multi-step work into units that each end in a state you can check, verify each before starting the next, and order commits so the sequence proves itself to a reviewer. One `bd` issue should map to one such unit.
+- **Guard the context window.** Route bulk reading and wide searches to subagents and keep summaries, not raw payloads, in the main thread. Subject to the agent-spawning rules in effect for the session.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in **bd (beads)** — the `bd` CLI, always with `--json` for programmatic reads. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), applied via `bd label`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+### Project skills
+
+Skills in `.claude/skills/`, ported from pstack:
+
+- `typescript-best-practices` + `principle-type-system-discipline` — language-level rules for any `.ts`/`.tsx` edit.
+- `unslop` — prose discipline for anything a human reads.
