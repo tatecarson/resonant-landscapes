@@ -38,6 +38,52 @@ export function formatParkSlug(parkName) {
     .join('-');
 }
 
+// Engines measured to decode 8-channel AAC from our CDN. Verified 2026-08-20
+// with decodeAudioData against real assets (rl-06c.2):
+//
+//   engine    8ch m4a   8ch flac   mono m4a   mono wav
+//   Chromium  OK 8ch    OK 8ch     OK         OK
+//   Firefox   OK 8ch    OK 8ch     OK         OK
+//   WebKit    FAIL      OK 8ch     FAIL       OK
+//
+// WebKit here is Playwright's open-source build, which lacks the proprietary
+// AudioToolbox codec real iOS Safari ships. Real iOS Safari does decode AAC,
+// but serving it FLAC/WAV costs only bandwidth and keeps one code path that
+// works in both, so Safari stays on the lossless family.
+//
+// The iOS wrappers (CriOS, FxiOS, EdgiOS) are deliberately absent. They are all
+// WebKit underneath, none of them can be tested from here, and today's branch
+// already serves them the lossless family. Leaving them out keeps that.
+//
+// No \b anchors. Playwright's chromium reports "HeadlessChrome/126", which a
+// \bChrome\b would miss, silently flipping the chromium project onto assets
+// production Chrome never sees. Bare substrings are safe here because the iOS
+// wrapper tokens do not contain these words: CriOS is not Chrome, FxiOS is not
+// Firefox. Edg/ keeps its slash so it does not match EdgiOS. Desktop Edge and
+// Samsung Internet also carry "Chrome" and would match either way.
+const AAC_CAPABLE_ENGINES = /Chrome|Chromium|Firefox|SamsungBrowser|Edg\//;
+
+/**
+ * Choose the asset family for a browser.
+ *
+ * Not a capability check. canPlayType is unusable for this decision: WebKit
+ * reports "probably" for audio/mp4; codecs="mp4a.40.2" and then throws
+ * EncodingError on the same file, so a positive answer proves nothing. It is
+ * only trustworthy as a negative ("" means definitely not).
+ *
+ * So this is an allowlist with a safe default. Recognised AAC-capable engines
+ * get the smaller AAC assets. Everything else, including unknown and future
+ * engines, gets FLAC 8ch + WAV mono, the only pair that decoded in every
+ * engine tested. An unrecognised browser now gets larger files rather than
+ * silence.
+ *
+ * @param {string} userAgent
+ * @returns {'aac' | 'lossless'}
+ */
+export function pickAssetFamily(userAgent = '') {
+  return AAC_CAPABLE_ENGINES.test(userAgent) ? 'aac' : 'lossless';
+}
+
 export function getParkAudioVariants(parkName, parksJSON, userAgent = '') {
   if (Object.hasOwn(DEBUG_PARK_AUDIO_VARIANTS, parkName)) {
     return DEBUG_PARK_AUDIO_VARIANTS[parkName];
@@ -59,16 +105,11 @@ export function getParkAudioVariants(parkName, parksJSON, userAgent = '') {
     return null;
   }
 
-  const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
-  // Safari pulls 8ch as FLAC (lossless, ~77% smaller than 16-bit PCM WAV).
-  // Mono stays on WAV for Safari because Playwright's open-source WebKit
-  // can't decode AAC (lacks the proprietary AudioToolbox codec real iOS
-  // Safari uses), which would break the iPhone all-parks regression.
-  // Chrome stays on AAC for both variants.
-  const spatialFolder = isSafari ? 'sounds-flac' : 'sounds';
-  const spatialExtension = isSafari ? 'flac' : 'm4a';
-  const monoFolder = isSafari ? 'sounds-wav-mono' : 'sounds';
-  const monoExtension = isSafari ? 'wav' : 'm4a';
+  const family = pickAssetFamily(userAgent);
+  const spatialFolder = family === 'aac' ? 'sounds' : 'sounds-flac';
+  const spatialExtension = family === 'aac' ? 'm4a' : 'flac';
+  const monoFolder = family === 'aac' ? 'sounds' : 'sounds-wav-mono';
+  const monoExtension = family === 'aac' ? 'm4a' : 'wav';
   const variants = [];
 
   for (let recording = 1; recording <= recordingsCount; recording += 1) {
