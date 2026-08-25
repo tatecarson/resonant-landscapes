@@ -25,8 +25,11 @@ export default function GeolocationDebugPanel({
         return b[1].lastRenderedAt - a[1].lastRenderedAt;
     });
 
+    // Anchored top-left above the park strip (z-50). It used to sit at
+    // bottom-3 z-20, where the strip covered it completely whenever the user
+    // was inside a park — the only time its readouts matter.
     return (
-        <div className="pointer-events-auto fixed bottom-3 left-3 z-20 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-[1.6rem] border border-[#23463a]/15 bg-[#f6f1e7]/78 p-3 text-[11px] leading-4 text-[#35574c] shadow-[0_18px_45px_rgba(16,33,29,0.16)] backdrop-blur-md">
+        <div className="pointer-events-auto fixed left-3 top-[max(0.75rem,env(safe-area-inset-top))] z-[60] w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-[1.6rem] border border-[#23463a]/15 bg-[#f6f1e7]/78 p-3 text-[11px] leading-4 text-[#35574c] shadow-[0_18px_45px_rgba(16,33,29,0.16)] backdrop-blur-md">
             <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-[#23463a]/20 to-transparent" />
             <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
