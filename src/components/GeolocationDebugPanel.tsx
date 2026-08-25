@@ -21,6 +21,14 @@ export default function GeolocationDebugPanel({
     const hasBuffers = Boolean(audioBuffer);
     const bufferDuration = audioBuffer?.duration ?? null;
     const bufferChannels = audioBuffer?.numberOfChannels ?? null;
+    // Read from the debug mirror rather than context: these describe the
+    // buffer cache and loader, which deliberately live outside React state.
+    // Cache/Event/Cache hit are what steps 3-5 of the PR #61 field test need,
+    // and reading them used to require attaching Safari Web Inspector.
+    const audioDebug = window.__audioDebug;
+    const cacheHitLabel = audioDebug?.lastLoadCacheHit === null || audioDebug?.lastLoadCacheHit === undefined
+        ? "n/a"
+        : audioDebug.lastLoadCacheHit ? "yes" : "no";
     const renderDebugEntries = Object.entries(window.__renderDebug ?? {}).sort((a, b) => {
         return b[1].lastRenderedAt - a[1].lastRenderedAt;
     });
@@ -75,6 +83,12 @@ export default function GeolocationDebugPanel({
                             <span className="font-semibold text-[#17312a]">{bufferDuration ? `${bufferDuration.toFixed(2)} s` : "n/a"}</span>
                             <span className="font-space-mono text-[9px] uppercase tracking-[0.22em] text-[#6a8276]">Channels</span>
                             <span className="font-semibold text-[#17312a]">{bufferChannels ?? "n/a"}</span>
+                            <span className="font-space-mono text-[9px] uppercase tracking-[0.22em] text-[#6a8276]">Cache</span>
+                            <span className="font-semibold text-[#17312a]">{audioDebug?.cacheEntries ?? "n/a"}</span>
+                            <span className="font-space-mono text-[9px] uppercase tracking-[0.22em] text-[#6a8276]">Event</span>
+                            <span className="font-semibold text-[#17312a]">{audioDebug?.lastEvent ?? "n/a"}</span>
+                            <span className="font-space-mono text-[9px] uppercase tracking-[0.22em] text-[#6a8276]">Cache hit</span>
+                            <span className="font-semibold text-[#17312a]">{cacheHitLabel}</span>
                             <span className="font-space-mono text-[9px] uppercase tracking-[0.22em] text-[#6a8276]">Geo</span>
                             <span className="font-semibold text-[#17312a]">{debugPermission}</span>
                             <span className="font-space-mono text-[9px] uppercase tracking-[0.22em] text-[#6a8276]">Coords</span>
