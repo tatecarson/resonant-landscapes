@@ -149,8 +149,4 @@ export function getScaledPoints(variant = 'dsu') {
     return variant === 'terrace' ? terraceScaledPoints() : dsuScaledPoints();
 }
 
-const scaledPoints = getScaledPoints('dsu');
-
-export { currentLocationTestPark, testPark, testParks, scaledPoints };
-
-export default scaledPoints;
+export { currentLocationTestPark, testPark, testParks };
