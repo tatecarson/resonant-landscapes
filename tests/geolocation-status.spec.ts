@@ -79,5 +79,10 @@ test("clears the acquiring message once a fix arrives", async ({ page, context }
   await context.setGeolocation({ latitude: 44.013, longitude: -97.110649 });
   await openMap(page);
 
+  // WebKit does not replay a position set before the page loaded to a
+  // watchPosition registered afterwards; it emits on change. Real GPS pushes
+  // updates continuously, so nudge the fix here the way a device would.
+  await context.setGeolocation({ latitude: 44.0131, longitude: -97.110649 });
+
   await expect(page.getByTestId("location-status")).toHaveCount(0, { timeout: 20_000 });
 });
