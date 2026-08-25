@@ -114,9 +114,18 @@ test("entering a park is announced to screen readers", async ({ page, context })
 
   await page.goto("/");
   await startWalk(page);
-  await context.setGeolocation({ latitude: 44.01308, longitude: -97.11062 });
 
-  await expect(page.locator("p.font-cormorant").first()).toBeVisible({ timeout: 20_000 });
+  // The map is lazy-loaded, so its geolocation watch registers after Start.
+  // WebKit only emits on change and does not replay an earlier fix, so nudge
+  // the position repeatedly the way a real device pushes updates.
+  const strip = page.locator("p.font-cormorant").first();
+  await expect(async () => {
+    await context.setGeolocation({
+      latitude: 44.01308 + Math.random() * 1e-5,
+      longitude: -97.11062,
+    });
+    await expect(strip).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
 
   // The park name and distance are conveyed only by sighted layout in the
   // strip. For a sound walk, arriving somewhere is the single most important
