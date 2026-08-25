@@ -242,7 +242,12 @@ test("mobile audio loads and plays for every real park on the normal route", asy
 
   for (const park of testParks) {
     const parkStartRequestIndex = observedAudioRequests.length;
-    const heading = page.getByRole("heading", { name: park.name });
+    // The park name renders in the compact strip as a <p>. It was a heading
+    // when this spec was written, but GeolocationMap always passes
+    // compact={true} now and the only Dialog.Title lives in the expanded
+    // branch — so getByRole("heading") could never match, and this spec failed
+    // every park regardless of the code under test.
+    const heading = page.locator("p.font-cormorant").filter({ hasText: park.name }).first();
     let loadStartedAt = 0;
     let playStartedAt = 0;
 
@@ -381,10 +386,11 @@ test("mobile audio loads and plays for every real park on the normal route", asy
     /\/sounds-wav\//.test(request.url)
   );
   expect(legacyWavRequests, JSON.stringify(legacyWavRequests, null, 2)).toEqual([]);
-  // Every loaded park must end up with an 8-channel buffer — otherwise the 8ch
-  // stem silently fell back to the mono file (the exact regression this spec
-  // exists to catch).
+  // Every loaded park must end up with a 9-channel buffer: the 8ch HOA stem
+  // merged with the 1ch mono track. A fallback to the mono file alone — the
+  // regression this guards — shows up as 1 or 2 channels. The expectation said
+  // 8, which predates the mono merge and could not hold.
   expect(
-    runResults.every((result) => result.status !== "passed" || result.bufferChannels === 8)
+    runResults.every((result) => result.status !== "passed" || result.bufferChannels === 9)
   ).toBeTruthy();
 });
