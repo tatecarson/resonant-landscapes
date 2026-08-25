@@ -21,12 +21,23 @@ export default function GeolocationDebugPanel({
     const hasBuffers = Boolean(audioBuffer);
     const bufferDuration = audioBuffer?.duration ?? null;
     const bufferChannels = audioBuffer?.numberOfChannels ?? null;
+    // Read from the debug mirror rather than context: these describe the
+    // buffer cache and loader, which deliberately live outside React state.
+    // Cache/Event/Cache hit are what steps 3-5 of the PR #61 field test need,
+    // and reading them used to require attaching Safari Web Inspector.
+    const audioDebug = window.__audioDebug;
+    const cacheHitLabel = audioDebug?.lastLoadCacheHit === null || audioDebug?.lastLoadCacheHit === undefined
+        ? "n/a"
+        : audioDebug.lastLoadCacheHit ? "yes" : "no";
     const renderDebugEntries = Object.entries(window.__renderDebug ?? {}).sort((a, b) => {
         return b[1].lastRenderedAt - a[1].lastRenderedAt;
     });
 
+    // Anchored top-left above the park strip (z-50). It used to sit at
+    // bottom-3 z-20, where the strip covered it completely whenever the user
+    // was inside a park — the only time its readouts matter.
     return (
-        <div className="pointer-events-auto fixed bottom-3 left-3 z-20 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-[1.6rem] border border-[#23463a]/15 bg-[#f6f1e7]/78 p-3 text-[11px] leading-4 text-[#35574c] shadow-[0_18px_45px_rgba(16,33,29,0.16)] backdrop-blur-md">
+        <div className="pointer-events-auto fixed left-3 top-[max(0.75rem,env(safe-area-inset-top))] z-[60] w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-[1.6rem] border border-[#23463a]/15 bg-[#f6f1e7]/78 p-3 text-[11px] leading-4 text-[#35574c] shadow-[0_18px_45px_rgba(16,33,29,0.16)] backdrop-blur-md">
             <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-[#23463a]/20 to-transparent" />
             <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
@@ -72,6 +83,12 @@ export default function GeolocationDebugPanel({
                             <span className="font-semibold text-[#17312a]">{bufferDuration ? `${bufferDuration.toFixed(2)} s` : "n/a"}</span>
                             <span className="font-space-mono text-[9px] uppercase tracking-[0.22em] text-[#6a8276]">Channels</span>
                             <span className="font-semibold text-[#17312a]">{bufferChannels ?? "n/a"}</span>
+                            <span className="font-space-mono text-[9px] uppercase tracking-[0.22em] text-[#6a8276]">Cache</span>
+                            <span className="font-semibold text-[#17312a]">{audioDebug?.cacheEntries ?? "n/a"}</span>
+                            <span className="font-space-mono text-[9px] uppercase tracking-[0.22em] text-[#6a8276]">Event</span>
+                            <span className="font-semibold text-[#17312a]">{audioDebug?.lastEvent ?? "n/a"}</span>
+                            <span className="font-space-mono text-[9px] uppercase tracking-[0.22em] text-[#6a8276]">Cache hit</span>
+                            <span className="font-semibold text-[#17312a]">{cacheHitLabel}</span>
                             <span className="font-space-mono text-[9px] uppercase tracking-[0.22em] text-[#6a8276]">Geo</span>
                             <span className="font-semibold text-[#17312a]">{debugPermission}</span>
                             <span className="font-space-mono text-[9px] uppercase tracking-[0.22em] text-[#6a8276]">Coords</span>
