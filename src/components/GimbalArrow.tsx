@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 
 import Gimbal from '../utils/Gimbal';
-import { requestDeviceOrientationPermission } from '../utils/deviceOrientation';
+import { requestDeviceOrientationPermission, watchOrientationAvailability } from '../utils/deviceOrientation';
 import { useAudioEngine } from '../contexts/AudioContextProvider';
 import { useRenderDebug } from "../hooks/useRenderDebug";
 
@@ -12,7 +12,13 @@ interface GimbalArrowProps {
 }
 
 const GimbalArrow = ({ permissionGranted, onPermissionGranted, hideUI = false }: GimbalArrowProps) => {
-    const gimbalRef = useRef(new Gimbal());
+    // Lazily constructed: useRef(new Gimbal()) built and discarded a Gimbal
+    // on every render.
+    const gimbalRef = useRef<Gimbal | null>(null);
+    if (gimbalRef.current === null) {
+        gimbalRef.current = new Gimbal();
+    }
+    const gimbal = gimbalRef.current;
     const yawDisplayRef = useRef<HTMLSpanElement>(null);
     const { resonanceAudioScene } = useAudioEngine();
     useRenderDebug("GimbalArrow", {
@@ -23,7 +29,6 @@ const GimbalArrow = ({ permissionGranted, onPermissionGranted, hideUI = false }:
     const requestPermission = useCallback(async () => {
         const granted = await requestDeviceOrientationPermission();
         if (granted) {
-            console.log("Permission granted");
             onPermissionGranted();
         }
     }, [onPermissionGranted]);
@@ -33,25 +38,29 @@ const GimbalArrow = ({ permissionGranted, onPermissionGranted, hideUI = false }:
             return;
         }
 
-        gimbalRef.current.enable();
-        gimbalRef.current.recalibrate();
+        gimbal.enable();
+        gimbal.recalibrate();
+
+        // A stored grant can be stale; if no orientation event arrives the
+        // flag is cleared so the next session re-prompts.
+        const stopWatching = watchOrientationAvailability();
 
         return () => {
-            gimbalRef.current.disable();
+            stopWatching();
+            gimbal.disable();
         };
-    }, [permissionGranted]);
+    }, [gimbal, permissionGranted]);
 
     useEffect(() => {
-        console.log("Permission granted:", permissionGranted);
         if (!permissionGranted) {
             return;
         }
 
         let animationFrameId: number;
         const renderLoop = () => {
-            gimbalRef.current.update();
+            gimbal.update();
 
-            const { vectorFwd, vectorUp } = gimbalRef.current;
+            const { vectorFwd, vectorUp } = gimbal;
 
             if (resonanceAudioScene) {
                 resonanceAudioScene.setListenerOrientation(vectorFwd.x, vectorFwd.y, vectorFwd.z, vectorUp.x, vectorUp.y, vectorUp.z);
@@ -64,7 +73,7 @@ const GimbalArrow = ({ permissionGranted, onPermissionGranted, hideUI = false }:
             };
 
             if (yawDisplayRef.current) {
-                const deg = Math.round((gimbalRef.current.yaw ?? 0) * (180 / Math.PI));
+                const deg = Math.round(gimbal.yaw * (180 / Math.PI));
                 yawDisplayRef.current.textContent = `${deg}°`;
             }
 
@@ -76,13 +85,17 @@ const GimbalArrow = ({ permissionGranted, onPermissionGranted, hideUI = false }:
         return () => {
             cancelAnimationFrame(animationFrameId);
         };
-    }, [permissionGranted, resonanceAudioScene]);
+    }, [gimbal, permissionGranted, resonanceAudioScene]);
 
     if (!permissionGranted) {
         if (hideUI) return null;
         return (
-            <div className="flex justify-center items-center h-screen">
-                <button className="p-4 bg-blue-500 text-white rounded" onClick={requestPermission}>
+            <div className="flex items-center justify-center py-2">
+                <button
+                    type="button"
+                    onClick={requestPermission}
+                    className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] inline-flex min-h-[44px] items-center rounded-full border border-neutral-900/30 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-neutral-900 transition-colors hover:border-neutral-900 hover:bg-white/30"
+                >
                     Allow Orientation Access
                 </button>
             </div>
