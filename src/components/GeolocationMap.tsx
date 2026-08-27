@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Geolocation as OLGeoLoc } from "ol";
 import { LineString, Point } from "ol/geom";
+import { unByKey } from "ol/Observable";
 import { fromLonLat, toLonLat } from "ol/proj";
 import {
     RControl,
@@ -315,16 +316,23 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         view.setCenter([position[0], position[1]] as [number, number]);
         view.setRotation(rotation);
 
-        const markerPixel = map?.getPixelFromCoordinate([position[0], position[1]]) ?? null;
-        const viewportSize = map?.getSize() ?? null;
-        window.__mapDebug = {
-            center: view.getCenter() as [number, number] | null,
-            position: [position[0], position[1]],
-            rotation,
-            centerOnUser: true,
-            markerPixel: markerPixel as [number, number] | null,
-            viewportSize: viewportSize as [number, number] | null,
-        };
+        // OpenLayers updates its coordinate-to-pixel transform during render.
+        // Reading it immediately after setCenter/setRotation uses the previous
+        // frame and can report a projected coordinate as a huge pixel offset.
+        const renderKey = map.once("postrender", () => {
+            const markerPixel = map.getPixelFromCoordinate([position[0], position[1]]) ?? null;
+            const viewportSize = map.getSize() ?? null;
+            window.__mapDebug = {
+                center: view.getCenter() as [number, number] | null,
+                position: [position[0], position[1]],
+                rotation,
+                centerOnUser: true,
+                markerPixel: markerPixel as [number, number] | null,
+                viewportSize: viewportSize as [number, number] | null,
+            };
+        });
+
+        return () => unByKey(renderKey);
     }, [map, position, mapHeading]);
 
     useEffect(() => {

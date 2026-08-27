@@ -6,7 +6,7 @@
 - Do not create markdown TODO lists or alternate tracking systems
 - Use non-interactive shell flags for file operations
 - Isolate task work in a dedicated branch or worktree before editing code
-- For mobile Playwright testing, use headed runs against the active `cloudflared` HTTPS tunnel
+- For mobile Playwright testing, use headed runs against the PR's Netlify HTTPS preview when available
 
 ## Task Tracking
 
@@ -57,16 +57,17 @@ Rules:
 For iPhone Safari and Android verification:
 
 - Always run Playwright in headed mode
-- Always reuse the currently running `cloudflared` tunnel for HTTPS
+- Use the PR's Netlify deploy preview as the primary HTTPS test target
+- Before a PR preview exists, reuse the currently running `cloudflared` tunnel
 - Set `PLAYWRIGHT_EXTERNAL_SERVER=1`
-- Set `PLAYWRIGHT_BASE_URL=https://<active-tunnel-host>/`
-- Do not start a separate Playwright-managed local server when an active tunnel already exists
+- Set `PLAYWRIGHT_BASE_URL` to the Netlify preview or active tunnel URL
+- Do not start a Playwright-managed local server when an HTTPS target already exists
 
 Examples:
 
 ```bash
-PLAYWRIGHT_BASE_URL=https://<active-tunnel-host>/ npm run sim:path:https:iphone
-PLAYWRIGHT_BASE_URL=https://<active-tunnel-host>/ npm run sim:path:https:pixel
+PLAYWRIGHT_EXTERNAL_SERVER=1 PLAYWRIGHT_BASE_URL=https://deploy-preview-<pr>--<site>.netlify.app/ npm run sim:path:https:iphone
+PLAYWRIGHT_EXTERNAL_SERVER=1 PLAYWRIGHT_BASE_URL=https://deploy-preview-<pr>--<site>.netlify.app/ npm run sim:path:https:pixel
 ```
 
 ## Non-Interactive Shell Commands
@@ -117,4 +118,6 @@ Rules:
 - Work is not complete until changes are pushed successfully
 - Do not leave completed work stranded locally
 - If push fails, resolve it and retry
-- Do not create a pull request until the user explicitly says testing is done
+- Create a draft pull request after the branch is pushed when a Netlify preview is needed for testing
+- Keep the pull request in draft until automated checks and requested manual tests are complete
+- Do not merge until testing is complete and the user explicitly approves the merge

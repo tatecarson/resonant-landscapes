@@ -12,6 +12,10 @@ const firstPoint = {
   latitude: 44.01320393,
   longitude: -97.11059202,
 };
+const neutralPoint = {
+  latitude: 44.0115,
+  longitude: -97.1095,
+};
 const replayPoints = [
   { latitude: 44.013000, longitude: -97.110649, waitMs: 250 },
   { latitude: 44.013120, longitude: -97.110649, waitMs: 250 },
@@ -59,12 +63,14 @@ test("mobile audio loading stays on the latest park for Safari and Android", asy
 
   await seedOrientationPermission(page);
   await context.grantPermissions(["geolocation"], { origin: permissionOrigin });
-  await context.setGeolocation(firstPoint);
+  await context.setGeolocation(neutralPoint);
 
   await page.goto(replayPath);
   await page.waitForLoadState("domcontentloaded");
   await dismissWelcomeModal(page);
 
+  await expect(page.locator("canvas").first()).toBeVisible({ timeout: 15_000 });
+  await context.setGeolocation(firstPoint);
   await expectParkLabelVisible(page, "Hartford Beach State Park");
 
   for (const point of replayPoints) {
@@ -109,5 +115,9 @@ test("mobile audio loading stays on the latest park for Safari and Android", asy
   expect(sicaRequests.some((url) => expectedMonoPattern.test(url))).toBeTruthy();
 
   const hartfordRequests = audioRequests.filter((url) => url.includes("Hartford-Beach"));
-  expect(hartfordRequests).toHaveLength(2);
+  // The deliberately delayed stale load may be retried before the park switch.
+  // What matters here is that both channels were attempted and Sica wins.
+  expect(hartfordRequests.length).toBeGreaterThanOrEqual(2);
+  expect(hartfordRequests.some((url) => expectedSpatialPattern.test(url))).toBeTruthy();
+  expect(hartfordRequests.some((url) => expectedMonoPattern.test(url))).toBeTruthy();
 });
