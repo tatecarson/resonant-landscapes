@@ -90,7 +90,7 @@ async function installIPhoneSafariPermissionHarness(page: Page) {
   await page.addInitScript(() => {
     let activeGesture: { id: number; type: string } | null = null;
     let gestureId = 0;
-    const state = {
+    const state: IosPermissionHarnessState = {
       motionPermissionCalls: 0,
       motionPermissionCallsDuringGesture: 0,
       motionPermissionCallsOutsideGesture: 0,
@@ -136,7 +136,7 @@ async function installIPhoneSafariPermissionHarness(page: Page) {
     Object.defineProperty(ctor, "requestPermission", {
       configurable: true,
       value: async () => {
-        const call = {
+        const call: IosPermissionCall = {
           hadGesture: Boolean(activeGesture),
           gestureType: activeGesture?.type ?? null,
           ts: Date.now(),

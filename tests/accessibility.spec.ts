@@ -78,7 +78,7 @@ test("welcome copy meets AA contrast against its panel", async ({ page }) => {
   await page.goto("/");
   await page.addScriptTag({ content: CONTRAST_HELPER });
 
-  const failures = await page.evaluate(() => {
+  const failures = await page.evaluate((minRatio) => {
     const panel = document.querySelector("[role=dialog]") ?? document.body;
     const results: { text: string; ratio: number }[] = [];
     for (const el of Array.from(panel.querySelectorAll("p, li, span, h1, h2"))) {
@@ -88,10 +88,10 @@ test("welcome copy meets AA contrast against its panel", async ({ page }) => {
       if (el.querySelector("p, li, span, h1, h2")) continue;
       const ratio = (window as unknown as { __contrastOf: (e: Element) => number })
         .__contrastOf(el);
-      if (ratio < 4.5) results.push({ text: text.slice(0, 40), ratio: Math.round(ratio * 100) / 100 });
+      if (ratio < minRatio) results.push({ text: text.slice(0, 40), ratio: Math.round(ratio * 100) / 100 });
     }
     return results;
-  });
+  }, AA_NORMAL);
 
   expect(failures, `low-contrast copy: ${JSON.stringify(failures, null, 2)}`).toEqual([]);
 });

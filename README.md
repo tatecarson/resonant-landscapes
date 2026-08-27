@@ -62,6 +62,27 @@ The automated tests are split by intent so each file proves a different behavior
 
 See `docs/testing.md` for the longer explanation of what each test is supposed to catch and when to run it.
 
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request:
+
+```bash
+npm ci
+npm run lint       # eslint over src, tests, scripts and config (react-hooks included)
+npm run typecheck  # tsc --noEmit for src, then for tests via tsconfig.test.json
+npm test           # vitest unit tests
+npm run build
+npm run test:e2e   # the fast chromium Playwright specs
+```
+
+`npm run test:e2e` deliberately covers only the specs that run headless in a
+few seconds. The mobile projects (`iphone-13`, `pixel-7`), the audio soaks, and
+the BrowserStack runs stay manual — they need real devices, throttled networks,
+and multi-megabyte payloads from the CDN.
+
+Node 22 is required (`engines` in `package.json`, plus `.nvmrc`); run
+`nvm use` before installing.
+
 ## BrowserStack Playwright
 
 BrowserStack is configured for real Android Chrome runs through the BrowserStack Node SDK and the root [browserstack.yml](/Users/tate.carson/other_websites/resonant-landscapes/browserstack.yml).
@@ -233,3 +254,5 @@ Build command: npm run build
 Publish directory: dist
 Node version: 22
 ```
+
+`netlify.toml` pins `NODE_VERSION = "22"` so the deploy matches `.nvmrc`.

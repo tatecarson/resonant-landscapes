@@ -2,6 +2,9 @@
   "name": "sandbox",
   "private": true,
   "version": "0.0.0",
+  "engines": {
+    "node": ">=22"
+  },
   "type": "module",
   "scripts": {
     "browserstack:audio:all:android": "RUN_ALL_PARKS_SOAK=1 browserstack-node-sdk playwright test tests/audio-all-parks-mobile.spec.ts",
@@ -11,8 +14,9 @@
     "build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "test:e2e": "playwright test tests/park-selection.spec.ts tests/prefetch-proximity.spec.ts tests/gimbal-math.spec.ts tests/approach-ring.spec.ts tests/path-replay.spec.ts --project=chromium",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "lint": "eslint . --ext js,mjs,cjs,ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "sim:path": "playwright test tests/path-replay.spec.ts --project=chromium --headed",
     "sim:path:iphone": "playwright test tests/path-replay.spec.ts --project=iphone-13 --headed",
@@ -65,7 +69,7 @@
     "eslint-plugin-react-refresh": "^0.4.4",
     "postcss": "^8.4.34",
     "tailwindcss": "^3.4.19",
-    "typescript": "^5.2.2",
+    "typescript": "^5.9.3",
     "vite": "^8.0.7",
     "vitest": "^4.1.11"
   }
