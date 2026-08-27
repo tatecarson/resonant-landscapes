@@ -7,7 +7,13 @@ import type { ResonanceAudio } from "resonance-audio";
 import { getScaledPoints, testParks } from "../utils/scaledParks";
 import type { Variant, MockPosition } from "../App";
 import { distanceInMeters } from "../utils/geo";
-import { PREFETCH_DISTANCE, scanParks } from "../utils/parkSelection";
+import { scanParks } from "../utils/parkSelection";
+import {
+    CENTER_LATCH_RADIUS_METERS,
+    ENTER_DISTANCE_METERS,
+    EXIT_DISTANCE_METERS,
+    PREFETCH_DISTANCE_METERS,
+} from "../config/geofence";
 
 type Coordinate = [number, number];
 
@@ -127,9 +133,6 @@ export function useGeolocationTracking({
     const userOrientationEnabledRef = useRef(false);
     const [mapHeading, setMapHeading] = useState(0);
 
-    const enterDistance = 15;
-    const exitDistance = 18;
-    const prefetchDistance = PREFETCH_DISTANCE;
     const parkFeatures = useMemo<ParkFeature[]>(
         () => {
             const pts = getScaledPoints(variant);
@@ -259,20 +262,28 @@ export function useGeolocationTracking({
 
         const userLocation = toLonLat([coordinates[0], coordinates[1]]) as Coordinate;
         // One pass for all three answers: this runs on every GPS frame.
-        const scan = scanParks(userLocation, parkFeatures, { prefetchDistance, enterDistance }) as {
-            closest: { park: ParkFeature; distance: number } | null;
-            inPrefetchRange: { coords: Coordinate; distance: number }[];
-            nearestInEnterRange: ParkFeature | null;
-        };
+        // No cast: scanParks is generic over the park type, so closest.park is
+        // a ParkFeature here rather than something to assert about.
+        const scan = scanParks(userLocation, parkFeatures, {
+            prefetchDistance: PREFETCH_DISTANCE_METERS,
+            enterDistance: ENTER_DISTANCE_METERS,
+        });
         const closest = scan.closest;
-        const inPrefetchRange = Boolean(closest && closest.distance < prefetchDistance);
-        setPrefetchParkName(inPrefetchRange ? closest!.park.name : "");
+        const inPrefetchRange = Boolean(closest && closest.distance < PREFETCH_DISTANCE_METERS);
+        setPrefetchParkName(inPrefetchRange && closest ? closest.park.name : "");
         setPrefetchParks(scan.inPrefetchRange);
 
         const nearbyPark = scan.nearestInEnterRange;
         const nextParkLocation = nearbyPark?.scaledCoords ?? null;
 
         if (nearbyPark && nearbyPark.name !== parkName) {
+            // Park-to-park without passing through the exit branch. On the
+            // scaled debug map the parks sit metres apart, so this is a normal
+            // walk, not an edge case — and the outgoing park's audio has to
+            // stop before the incoming one loads.
+            if (parkName) {
+                stopSound();
+            }
             setParkName(nearbyPark.name);
             setCurrentParkLocation(nextParkLocation);
         }
@@ -285,14 +296,14 @@ export function useGeolocationTracking({
         }
 
         const currentDistance = distanceInMeters(activeParkLocation, userLocation);
-        if (currentDistance <= exitDistance) {
+        if (currentDistance <= EXIT_DISTANCE_METERS) {
             setParkDistance(currentDistance);
             resonanceAudioScene?.setListenerPosition(currentDistance, currentDistance, 0);
             // Keep center-mode latched while the user remains in the active park so
             // minor GPS drift does not drop map centering after rotation has started.
             const nextUserOrientationEnabled =
-                currentDistance < 5 ||
-                (userOrientationEnabledRef.current && currentDistance <= exitDistance);
+                currentDistance < CENTER_LATCH_RADIUS_METERS ||
+                (userOrientationEnabledRef.current && currentDistance <= EXIT_DISTANCE_METERS);
 
             if (userOrientationEnabledRef.current !== nextUserOrientationEnabled) {
                 userOrientationEnabledRef.current = nextUserOrientationEnabled;
@@ -300,7 +311,9 @@ export function useGeolocationTracking({
             }
         }
 
-        if (currentDistance > exitDistance) {
+        if (currentDistance > EXIT_DISTANCE_METERS) {
+            // The one place audio stops on leaving. GeolocationMap and
+            // HoaRenderer used to duplicate this from their own lifecycles.
             setParkName("");
             setParkDistance(0);
             setCurrentParkLocation(null);
@@ -309,7 +322,7 @@ export function useGeolocationTracking({
             stopSound();
         }
         return true;
-    }, [currentParkLocation, exitDistance, getSmoothingDelay, parkFeatures, parkName, prefetchDistance, resonanceAudioScene, stopSound]);
+    }, [currentParkLocation, getSmoothingDelay, parkFeatures, parkName, resonanceAudioScene, stopSound]);
 
     // The running tick captures updateView by closure, but updateView is
     // rebuilt whenever parkName or currentParkLocation changes — exactly when
@@ -523,7 +536,7 @@ export function useGeolocationTracking({
         ? (geolocationError ? "error" : "acquiring")
         : isFixStale
             ? "stale"
-            : accuracyMeters !== null && accuracyMeters > enterDistance
+            : accuracyMeters !== null && accuracyMeters > ENTER_DISTANCE_METERS
                 ? "imprecise"
                 : "tracking";
 
@@ -535,8 +548,8 @@ export function useGeolocationTracking({
         geolocationError,
         locationStatus,
         onGeolocationError,
-        enterDistance,
-        exitDistance,
+        enterDistance: ENTER_DISTANCE_METERS,
+        exitDistance: EXIT_DISTANCE_METERS,
         onGeolocationChange,
         parkDistance,
         parkFeatures,

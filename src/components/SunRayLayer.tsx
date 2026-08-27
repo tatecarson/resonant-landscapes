@@ -6,7 +6,7 @@ import { RLayerVector, useOL } from "rlayers";
 import { useDecorativeLayerFrame } from "../hooks/useDecorativeLayerFrame";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 import { mapRange } from "../utils/math";
-import { PREFETCH_DISTANCE } from "../utils/parkSelection";
+import { PREFETCH_DISTANCE_METERS } from "../config/geofence";
 
 /** Mid-pulse: visible, and the same on every render. */
 const REDUCED_MOTION_PHASE_S = 0.5;
@@ -54,7 +54,7 @@ function SunRayLayer({ parks, active }: SunRayLayerProps) {
             const cy = pixel[1] * dpr;
 
             // Faster pulse as user closes in
-            const cycleS = mapRange(distance, PREFETCH_DISTANCE, 5, BASE_CYCLE_S, MIN_CYCLE_S);
+            const cycleS = mapRange(distance, PREFETCH_DISTANCE_METERS, 5, BASE_CYCLE_S, MIN_CYCLE_S);
 
             for (let i = 0; i < RAY_COUNT; i++) {
                 const angleDeg = i * 30;

@@ -102,3 +102,50 @@ test("returning to a recent park replays it from cache", async ({ context, page 
   const cacheEntries = (await audioDebug(page))?.cacheEntries ?? 0;
   expect(cacheEntries).toBeLessThanOrEqual(3);
 });
+
+test("audio stops when the walker leaves the park", async ({
+  context,
+  page,
+  baseURL,
+}, testInfo) => {
+  test.skip(
+    !["iphone-13", "pixel-7"].includes(testInfo.project.name),
+    "Audio lifecycle regression is meant for the mobile profiles."
+  );
+  if (!baseURL) throw new Error("Missing Playwright baseURL.");
+
+  // Three separate code paths used to stop audio on park exit, each with a
+  // comment explaining why the others were insufficient — and nothing tested
+  // any of them. Deleting all three left the whole suite green while the park
+  // kept playing after the walker had gone. isPlaying is the observable that
+  // matters: activeUrls reflects the last load, not what is audible.
+  await context.grantPermissions(["geolocation"], { origin: new URL(baseURL).origin });
+  await seedOrientationPermission(page);
+  await context.setGeolocation({ latitude: 44.01308, longitude: -97.11062 });
+
+  await page.goto("/");
+  await page.waitForLoadState("domcontentloaded");
+  await dismissWelcomeModal(page);
+
+  const settle = async (latitude: number, longitude: number) => {
+    for (let i = 0; i < 25; i += 1) {
+      await context.setGeolocation({ latitude, longitude });
+      await page.waitForTimeout(60);
+    }
+  };
+
+  await settle(44.01308, -97.11062);
+  await expect(page.locator("p.font-cormorant").first()).toBeVisible({ timeout: 30_000 });
+  await expect
+    .poll(() => page.evaluate(() => window.__audioDebug?.isPlaying ?? false), { timeout: 30_000 })
+    .toBe(true);
+
+  // Out to the position the approach-ring spec establishes is outside every
+  // park — walking an arbitrary distance instead lands inside a neighbour,
+  // because the scaled debug map packs them metres apart.
+  await settle(44.01271, -97.11065);
+
+  await expect
+    .poll(() => page.evaluate(() => window.__audioDebug?.isPlaying ?? false), { timeout: 20_000 })
+    .toBe(false);
+});

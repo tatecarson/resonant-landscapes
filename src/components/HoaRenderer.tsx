@@ -102,14 +102,6 @@ const HOARenderer = ({
         lastLoadReason,
         lastLoadCacheHit,
     });
-    // Track whether this instance is still mounted so cleanup can distinguish
-    // a parkName change (still mounted → stop old park's sound) from an unmount
-    // caused by layout switching (Dialog ↔ strip) where sound should keep playing.
-    const isMountedRef = useRef(true);
-    useEffect(() => {
-        return () => { isMountedRef.current = false; };
-    }, []);
-
     const audioActionsRef = useRef({
         loadBuffers,
         stopSound,
@@ -152,13 +144,13 @@ const HOARenderer = ({
 
         return () => {
             isCurrent = false;
+            // Cancel the load, but do not stop playback: this cleanup runs on
+            // every layout unmount too (Dialog ↔ strip on rotationActive), and
+            // telling playback apart from layout here needed an isMountedRef
+            // guard that only approximated the question. The tracking hook
+            // stops audio on the parkName transition, which is the real event.
             audioActionsRef.current.cancelPendingLoad();
             audioActionsRef.current.clearLoadError();
-            // Only stop sound when the park actually changed — not when the component
-            // unmounts for layout reasons (Dialog ↔ strip switch on rotationActive).
-            if (isMountedRef.current) {
-                audioActionsRef.current.stopSound();
-            }
         };
     }, [parkName]);
 

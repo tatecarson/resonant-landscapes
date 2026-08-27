@@ -1,21 +1,29 @@
-import { distanceInMeters } from "./geo";
+import { distanceInMeters, type Coordinate } from "./geo";
 
-export const PREFETCH_DISTANCE = 40; // meters — park enters approach-ring animation range
+export type Park = {
+  name: string;
+  scaledCoords: Coordinate;
+};
 
-/**
- * @typedef {{ name: string; scaledCoords: [number, number] }} Park
- */
+export type ParkWithDistance = {
+  park: Park;
+  distance: number;
+};
+
+export type ParkInRange = {
+  coords: Coordinate;
+  distance: number;
+};
 
 /**
  * Returns the closest park to userLocation and its distance, regardless of range.
  * Returns null if parks is empty.
- *
- * @param {[number, number]} userLocation - [longitude, latitude]
- * @param {Park[]} parks
- * @returns {{ park: Park, distance: number } | null}
  */
-export function findClosestPark(userLocation, parks) {
-  let closest = null;
+export function findClosestPark<T extends Park>(
+  userLocation: Coordinate,
+  parks: T[]
+): { park: T; distance: number } | null {
+  let closest: T | null = null;
   let closestDistance = Number.POSITIVE_INFINITY;
 
   for (const park of parks) {
@@ -32,14 +40,13 @@ export function findClosestPark(userLocation, parks) {
 /**
  * Returns all parks within maxDistance of userLocation, each with its distance.
  * Used for the visual proximity ring — does not affect audio prefetch logic.
- *
- * @param {[number, number]} userLocation - [longitude, latitude]
- * @param {Park[]} parks
- * @param {number} maxDistance - meters
- * @returns {{ coords: [number, number], distance: number }[]}
  */
-export function findParksInRange(userLocation, parks, maxDistance) {
-  const result = [];
+export function findParksInRange(
+  userLocation: Coordinate,
+  parks: Park[],
+  maxDistance: number
+): ParkInRange[] {
+  const result: ParkInRange[] = [];
 
   for (const park of parks) {
     const distance = distanceInMeters(userLocation, park.scaledCoords);
@@ -51,8 +58,12 @@ export function findParksInRange(userLocation, parks, maxDistance) {
   return result;
 }
 
-export function selectNearestInRangePark(userLocation, parks, maxDistance) {
-  let nearest = null;
+export function selectNearestInRangePark<T extends Park>(
+  userLocation: Coordinate,
+  parks: T[],
+  maxDistance: number
+): T | null {
+  let nearest: T | null = null;
   let nearestDistance = Number.POSITIVE_INFINITY;
 
   for (const park of parks) {
@@ -73,22 +84,21 @@ export function selectNearestInRangePark(userLocation, parks, maxDistance) {
  * called per tick and each walked all 13 parks — three scans and 39 haversine
  * calls for three answers that come from the same distances. They remain
  * exported and tested individually; this is the hot path.
- *
- * @param {[number, number]} userLocation - [longitude, latitude]
- * @param {Park[]} parks
- * @param {{ prefetchDistance: number, enterDistance: number }} distances
- * @returns {{
- *   closest: { park: Park, distance: number } | null,
- *   inPrefetchRange: { coords: [number, number], distance: number }[],
- *   nearestInEnterRange: Park | null,
- * }}
  */
-export function scanParks(userLocation, parks, { prefetchDistance, enterDistance }) {
-  let closest = null;
+export function scanParks<T extends Park>(
+  userLocation: Coordinate,
+  parks: T[],
+  { prefetchDistance, enterDistance }: { prefetchDistance: number; enterDistance: number }
+): {
+  closest: { park: T; distance: number } | null;
+  inPrefetchRange: ParkInRange[];
+  nearestInEnterRange: T | null;
+} {
+  let closest: T | null = null;
   let closestDistance = Number.POSITIVE_INFINITY;
-  let nearestInEnterRange = null;
+  let nearestInEnterRange: T | null = null;
   let nearestInEnterRangeDistance = Number.POSITIVE_INFINITY;
-  const inPrefetchRange = [];
+  const inPrefetchRange: ParkInRange[] = [];
 
   for (const park of parks) {
     const distance = distanceInMeters(userLocation, park.scaledCoords);
