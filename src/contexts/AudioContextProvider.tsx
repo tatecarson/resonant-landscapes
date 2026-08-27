@@ -196,6 +196,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         if (nextEvent !== undefined) {
             lastAudioEventRef.current = nextEvent;
         }
+        const uiStatus = window.__audioDebug?.uiStatus ?? null;
 
         const {
             audioContextState,
@@ -231,6 +232,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             lastLoadReason: lastLoad?.reason ?? null,
             lastLoadDurationMs: lastLoad?.durationMs ?? null,
             lastLoadCacheHit: lastLoad?.cacheHit ?? null,
+            uiStatus,
         };
     }, []);
 
