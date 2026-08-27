@@ -1,5 +1,6 @@
 import { useRef, Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
+import { useAudioEngine, useAudioPlaybackState } from '../contexts/AudioContextProvider';
 
 interface HelpModalProps {
     isOpen: boolean;
@@ -8,6 +9,13 @@ interface HelpModalProps {
 
 function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
     const cancelButtonRef = useRef(null);
+    const { setKeepScreenAwake } = useAudioEngine();
+    const {
+        keepScreenAwake,
+        wakeLockSupported,
+        wakeLockStatus,
+        wakeLockError,
+    } = useAudioPlaybackState();
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
@@ -83,6 +91,48 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                         </span>
                                     </li>
                                 </ul>
+
+                                <div className="mt-6 rounded-2xl border border-neutral-900/15 bg-white/20 p-4">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div>
+                                            <p className="font-space-mono text-[11px] font-semibold uppercase tracking-wider text-neutral-900">
+                                                Keep screen awake
+                                            </p>
+                                            <p className="mt-1 font-space-mono text-[10px] leading-relaxed text-neutral-900/70">
+                                                Prevents screen lock while park audio plays. Uses more battery.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            role="switch"
+                                            aria-checked={wakeLockSupported && keepScreenAwake}
+                                            aria-label="Keep screen awake while audio plays"
+                                            disabled={!wakeLockSupported}
+                                            onClick={() => setKeepScreenAwake(!keepScreenAwake)}
+                                            className={`relative mt-0.5 inline-flex h-7 w-12 flex-none rounded-full border border-neutral-900/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] ${
+                                                keepScreenAwake && wakeLockSupported ? 'bg-neutral-900' : 'bg-white/40'
+                                            } ${wakeLockSupported ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                                        >
+                                            <span
+                                                className={`mt-0.5 inline-block h-5 w-5 rounded-full bg-[#8ecdc0] shadow transition-transform ${
+                                                    keepScreenAwake && wakeLockSupported ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
+                                                aria-hidden="true"
+                                            />
+                                        </button>
+                                    </div>
+                                    <p className="mt-2 font-space-mono text-[9px] uppercase tracking-wider text-neutral-900/55" aria-live="polite">
+                                        {!wakeLockSupported
+                                            ? 'Screen wake lock is not supported by this browser.'
+                                            : wakeLockError
+                                                ? 'The phone refused the wake lock. Playback recovery remains active.'
+                                                : wakeLockStatus === 'active'
+                                                    ? 'Screen wake lock active.'
+                                                    : keepScreenAwake
+                                                        ? 'Turns on when audio starts.'
+                                                        : 'Off.'}
+                                    </p>
+                                </div>
 
                                 <div className="mt-8 mb-6 flex items-center gap-3">
                                     <div className="h-px flex-1 bg-neutral-900/25" />

@@ -30,7 +30,14 @@ const HOARenderer = ({
     permissionGranted,
     onPermissionGranted,
 }: HOARendererProps) => {
-    const { playSound, stopSound, loadBuffers, clearLoadError, cancelPendingLoad } = useAudioEngine();
+    const {
+        playSound,
+        stopSound,
+        loadBuffers,
+        clearLoadError,
+        cancelPendingLoad,
+        resumeInterruptedAudio,
+    } = useAudioEngine();
     const {
         isEngineInitializing,
         isLoading,
@@ -43,6 +50,7 @@ const HOARenderer = ({
         lastLoadReason,
         lastLoadCacheHit,
         lastLoadDurationMs,
+        needsAudioResume,
     } = useAudioPlaybackState();
     const [pathError, setPathError] = useState<string | null>(null);
     const [shouldAutoPlay, setShouldAutoPlay] = useState(true);
@@ -56,7 +64,9 @@ const HOARenderer = ({
             ? "initializing"
             : isLoading
             ? "preparing"
-            : isPlaying
+            : needsAudioResume
+                ? "interrupted"
+                : isPlaying
                 ? "playing"
                 : buffers !== null
                     ? showFallbackStart
@@ -79,6 +89,7 @@ const HOARenderer = ({
         engineError,
         loadError,
         lastUnlockError,
+        needsAudioResume,
         rotationActive,
         permissionGranted,
         pathError,
@@ -206,6 +217,10 @@ const HOARenderer = ({
                 audioStatusLabel = "Playing automatically";
                 statusMessage = "Audio started when you entered the listening area.";
                 break;
+            case "interrupted":
+                audioStatusLabel = "Audio paused by your phone";
+                statusMessage = "Tap resume audio to continue this park.";
+                break;
             case "ready-manual":
                 audioStatusLabel = allowManualRestart ? "Playback stopped" : "Ready to start";
                 statusMessage = allowManualRestart
@@ -231,6 +246,8 @@ const HOARenderer = ({
         switch (audioStatus) {
             case "playing":
                 return "Playing";
+            case "interrupted":
+                return "Audio paused";
             case "initializing":
                 return "Starting audio";
             case "preparing":
@@ -310,7 +327,7 @@ const HOARenderer = ({
                             </div>
                         )}
 
-                        {isPlaying && (
+                        {isPlaying && !needsAudioResume && (
                             <button
                                 onClick={onTogglePlayback}
                                 aria-label="Stop playback"
@@ -318,6 +335,16 @@ const HOARenderer = ({
                             >
                                 <StopCircleIcon className={compact ? "h-4 w-4" : "h-5 w-5"} aria-hidden="true" />
                                 <span>Stop</span>
+                            </button>
+                        )}
+
+                        {needsAudioResume && (
+                            <button
+                                onClick={() => { void resumeInterruptedAudio(); }}
+                                aria-label="Resume audio after interruption"
+                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-neutral-700"
+                            >
+                                <span>Resume Audio</span>
                             </button>
                         )}
 
