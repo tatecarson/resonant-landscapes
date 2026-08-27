@@ -8,42 +8,47 @@ Decided 2026-08-20 (rl-06c.1). The app is a spatial-audio walk taken outdoors on
 a phone, so support is defined by what can decode 8-channel audio and hold a
 geolocation watch, not by market share.
 
-### Fully supported
+### Supported targets
 
-These are tested and any break is a bug.
+These are the release targets. A reported break is a bug. The test column says
+whether coverage is emulated or runs on a real device.
 
 | Platform | Floor | Tested by |
 |---|---|---|
-| iOS Safari | 15 | Playwright WebKit, `iphone-13` project, plus headed runs over the tunnel |
-| Android Chrome | last 2 major versions | Playwright `pixel-7` project |
+| iOS Safari | 15 | Playwright WebKit and `iphone-13` emulation, plus a real-iPhone release check against the Netlify deploy preview |
+| Android Chrome | last 2 major versions | Playwright `pixel-7` emulation and BrowserStack on a real Samsung Galaxy S22 |
 | Desktop Chrome | last 2 major versions | Playwright `chromium` project |
 
 iOS 15 is the floor because it is the oldest release with the Web Audio and
 DeviceOrientation behaviour the walk depends on, and iOS 15 devices still take
 OS updates.
 
+Playwright WebKit does not prove that real iOS Safari decodes the same audio.
+Its open-source build lacks the proprietary AAC codec available on iOS. Any
+change to audio loading, decoding, or asset selection therefore needs a manual
+check on a real iPhone using the PR's HTTPS Netlify deploy preview.
+
 ### Best effort
 
 Desktop Safari, desktop and Android Firefox, Edge, and Samsung Internet. These
-get an asset family verified to decode (see `src/utils/audioPaths.js`) and
-should work, but nothing in CI exercises them. Bugs reported here get fixed
-when they are cheap; they do not block a release.
+get the asset family selected for their engine (see `src/utils/audioPaths.js`)
+and should work, but CI does not exercise each browser. Bugs reported here get
+fixed when they are cheap; they do not block a release.
 
 ### Unsupported
 
 Anything else, including any engine the audio-format allowlist does not
 recognise. An unrecognised browser is served FLAC 8ch and WAV mono, the pair
-that decoded in every engine measured, so the failure mode is a larger download
-rather than silence. There is no browser-blocking interstitial and none is
-planned.
+that decoded in every engine measured. This favors compatibility over download
+size, but it cannot guarantee support for an engine we have not tested. There
+is no browser-blocking interstitial and none is planned.
 
 ### Not yet enforced mechanically
 
 `tsconfig.json` sets `target: ESNext`, `vite.config.ts` sets no `build.target`,
 and `package.json` has no `browserslist` key, so nothing in the build stops a
-feature that iOS 15 cannot parse from shipping. Adding those three is the
-remaining half of rl-06c.1 and is deliberately held until PR #61 lands, because
-that PR edits both `package.json` and `vite.config.ts`.
+feature that iOS 15 cannot parse from shipping. Adding those three remains
+tracked in rl-06c.1. PR #61 has landed, so its edits no longer block that work.
 
 ## Testing
 
