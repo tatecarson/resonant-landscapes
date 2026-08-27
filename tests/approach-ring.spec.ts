@@ -40,7 +40,10 @@ const POSITIONS = {
     atCenter:          { latitude: 44.01320393, longitude: -97.11059202 }, // ~0m
 };
 
-const DWELL_MS = 3_000; // time to pause at each step so animations are visible
+// Time to pause at each step so animations are visible. npm run sim:ring sets
+// APPROACH_RING_HOLD_MS to slow this down for watching by eye; without it the
+// twelve steps go by in about 40 seconds, which is too quick to judge a pulse.
+const DWELL_MS = Number(process.env.APPROACH_RING_HOLD_MS ?? 3_000);
 
 const PARK_NAME = "Hartford Beach State Park";
 const ROUTE = "/";
