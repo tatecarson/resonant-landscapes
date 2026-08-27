@@ -8,10 +8,17 @@ import { useRenderDebug } from "../hooks/useRenderDebug";
 interface GimbalArrowProps {
     permissionGranted: boolean;
     onPermissionGranted: () => void;
+    /** Fired when the grant is stale: enabled, but no orientation event ever arrived. */
+    onOrientationUnavailable?: () => void;
     hideUI?: boolean;
 }
 
-const GimbalArrow = ({ permissionGranted, onPermissionGranted, hideUI = false }: GimbalArrowProps) => {
+const GimbalArrow = ({
+    permissionGranted,
+    onPermissionGranted,
+    onOrientationUnavailable,
+    hideUI = false,
+}: GimbalArrowProps) => {
     // Lazily constructed: useRef(new Gimbal()) built and discarded a Gimbal
     // on every render.
     const gimbalRef = useRef<Gimbal | null>(null);
@@ -25,6 +32,14 @@ const GimbalArrow = ({ permissionGranted, onPermissionGranted, hideUI = false }:
         permissionGranted,
         hasResonanceScene: Boolean(resonanceAudioScene),
     });
+
+    // Held in a ref: this callback is recreated on every ParkModal render, and
+    // taking it as an effect dependency would tear down and re-enable the
+    // gimbal — recalibrating the walker's heading — on unrelated renders.
+    const onOrientationUnavailableRef = useRef(onOrientationUnavailable);
+    useEffect(() => {
+        onOrientationUnavailableRef.current = onOrientationUnavailable;
+    }, [onOrientationUnavailable]);
 
     const requestPermission = useCallback(async () => {
         const granted = await requestDeviceOrientationPermission();
@@ -41,9 +56,13 @@ const GimbalArrow = ({ permissionGranted, onPermissionGranted, hideUI = false }:
         gimbal.enable();
         gimbal.recalibrate();
 
-        // A stored grant can be stale; if no orientation event arrives the
-        // flag is cleared so the next session re-prompts.
-        const stopWatching = watchOrientationAvailability();
+        // A stored grant can be stale. watchOrientationAvailability clears the
+        // flag, but on its own that only helps the *next* session: this one
+        // keeps showing "rotation tracking" over spatial audio that no longer
+        // moves. Report it so the current session can recover too.
+        const stopWatching = watchOrientationAvailability(() => {
+            onOrientationUnavailableRef.current?.();
+        });
 
         return () => {
             stopWatching();

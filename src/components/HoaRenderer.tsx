@@ -17,6 +17,7 @@ interface HOARendererProps {
     onRotationActiveChange: (next: boolean) => void;
     permissionGranted: boolean;
     onPermissionGranted: () => void;
+    onOrientationUnavailable?: () => void;
 }
 
 const HOARenderer = ({
@@ -29,6 +30,7 @@ const HOARenderer = ({
     onRotationActiveChange,
     permissionGranted,
     onPermissionGranted,
+    onOrientationUnavailable,
 }: HOARendererProps) => {
     const {
         playSound,
@@ -365,6 +367,7 @@ const HOARenderer = ({
                     <GimbalArrow
                         permissionGranted={permissionGranted}
                         onPermissionGranted={onPermissionGranted}
+                        onOrientationUnavailable={onOrientationUnavailable}
                         hideUI={compact}
                     />
                 )}

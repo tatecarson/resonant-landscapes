@@ -117,6 +117,14 @@ function ParkModal({
         onRotationActiveChange: setRotationActive,
         permissionGranted,
         onPermissionGranted: () => setPermissionGranted(true),
+        // iOS only accepts requestPermission() during a user gesture, so
+        // "re-prompt" means putting the Enable Rotation button back rather
+        // than prompting from here — which would throw NotAllowedError.
+        onOrientationUnavailable: () => {
+            setRotationActive(false);
+            setPermissionGranted(false);
+            setRotationDismissed(false);
+        },
     };
 
     if (compact || rotationActive) {
