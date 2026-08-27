@@ -3,7 +3,7 @@ import { mapRange } from "./math";
 
 /**
  * mapRange drives the proximity ring's pulse speed and alpha and the sun
- * rays' cycle time, always over a *descending* input range (PREFETCH_DISTANCE
+ * rays' cycle time, always over a *descending* input range (PREFETCH_DISTANCE_METERS
  * down to 5 m) — closer means faster. Its clamping is what keeps those layers
  * inside their intended visual bounds when the walker is outside the ring or
  * standing on the marker.
@@ -27,7 +27,7 @@ describe("mapRange", () => {
     });
 
     it("handles a descending input range, as every caller uses", () => {
-        // ProximityRingLayer: mapRange(distance, PREFETCH_DISTANCE, 5, 0.18, 1.4)
+        // ProximityRingLayer: mapRange(distance, PREFETCH_DISTANCE_METERS, 5, 0.18, 1.4)
         expect(mapRange(40, 40, 5, 0.18, 1.4)).toBeCloseTo(0.18, 10);
         expect(mapRange(5, 40, 5, 0.18, 1.4)).toBeCloseTo(1.4, 10);
         expect(mapRange(22.5, 40, 5, 0.18, 1.4)).toBeCloseTo(0.79, 10);

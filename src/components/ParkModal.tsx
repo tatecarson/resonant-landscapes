@@ -5,8 +5,8 @@ import { useRenderDebug } from "../hooks/useRenderDebug";
 import HOARenderer from './HoaRenderer';
 import AmbientGradient from './AmbientGradient';
 import { hasStoredOrientationPermission, requestDeviceOrientationPermission } from "../utils/deviceOrientation";
+import { CENTER_ROTATION_RADIUS_METERS } from "../config/geofence";
 
-const CENTER_ROTATION_RADIUS_METERS = 3;
 
 interface ParkModalProps {
     setIsOpen: (value: boolean) => void;

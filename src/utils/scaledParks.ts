@@ -3,7 +3,8 @@ import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
 
 import stateParks from '../data/stateParks.json';
 import noGoPolygons from '../data/terraceNoGoPolygons.json';
-import { scaleCoordinates } from './geo';
+import { scaleCoordinates, type Coordinate } from './geo';
+import type { Feature, MultiPolygon, Point, Polygon } from 'geojson';
 
 // lon, lat
 
@@ -11,14 +12,14 @@ import { scaleCoordinates } from './geo';
 // Translate-scale-translate the real SD park coordinates around DSU campus
 // center. Works because the campus is open green space — no water, buildings,
 // or major roads inside the walkable area to dodge.
-const DSU_REFERENCE_POINT = [-97.110789, 44.012222];
+const DSU_REFERENCE_POINT: Coordinate = [-97.110789, 44.012222];
 const DSU_SCALE_LONG = 0.00045;
 const DSU_SCALE_LAT = 0.00066;
 
 function dsuScaledPoints() {
     return stateParks.map(park => ({
         ...park,
-        scaledCoords: scaleCoordinates(park.cords, DSU_REFERENCE_POINT, DSU_SCALE_LONG, DSU_SCALE_LAT),
+        scaledCoords: scaleCoordinates(park.cords as Coordinate, DSU_REFERENCE_POINT, DSU_SCALE_LONG, DSU_SCALE_LAT),
     }));
 }
 
@@ -44,11 +45,14 @@ const ROTATE_DIRECTION = 'cw'; // 'cw' or 'ccw' — flip if the N/S orientation 
 
 // CW: (lon, lat) -> (lat, -lon).  CCW: (lon, lat) -> (-lat, lon).
 // Output is an abstract (x, y) used for bbox remap; not a real-world coord.
-function rotateSD([lon, lat]) {
+/** Abstract (x, y) for the bbox remap — not a real-world coordinate. */
+type PlanePoint = [number, number];
+
+function rotateSD([lon, lat]: Coordinate): PlanePoint {
     return ROTATE_DIRECTION === 'cw' ? [lat, -lon] : [-lat, lon];
 }
 
-function findBoundingBoxXY(points) {
+function findBoundingBoxXY(points: PlanePoint[]) {
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     for (const [x, y] of points) {
         if (x < minX) minX = x;
@@ -59,10 +63,10 @@ function findBoundingBoxXY(points) {
     return { minX, maxX, minY, maxY };
 }
 
-function isPointInNoGo(point) {
+function isPointInNoGo(candidate: Feature<Point>) {
     return noGoPolygons.features.some(f => {
         try {
-            return booleanPointInPolygon(point, f);
+            return booleanPointInPolygon(candidate, f as Feature<Polygon | MultiPolygon>);
         } catch {
             return false;
         }
@@ -71,12 +75,12 @@ function isPointInNoGo(point) {
 
 // Spiral the point outward in a square pattern until it clears every no-go
 // polygon. Cap iterations so a buggy polygon never freezes the page.
-function snapOutOfNoGo(point) {
+function snapOutOfNoGo(start: Feature<Point>): Feature<Point> {
     const stepDeg = 0.00008; // ~ 9 m east, ~ 9 m north (good lab/walking resolution)
     const maxIterations = 240;
     const dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]]; // E, N, W, S
 
-    let current = point;
+    let current = start;
     let leg = 1;
     let dirIndex = 0;
     let stepsThisLeg = 0;
@@ -84,7 +88,7 @@ function snapOutOfNoGo(point) {
 
     while (isPointInNoGo(current) && iter < maxIterations) {
         const [dx, dy] = dirs[dirIndex];
-        const [lon, lat] = current.geometry.coordinates;
+        const [lon, lat] = current.geometry.coordinates as Coordinate;
         current = point([lon + dx * stepDeg, lat + dy * stepDeg]);
         stepsThisLeg += 1;
         iter += 1;
@@ -110,7 +114,7 @@ function terraceScaledPoints() {
     const N = north - TERRACE_BUFFER;
     const S = south + TERRACE_BUFFER;
 
-    const rotated = stateParks.map(p => rotateSD(p.cords));
+    const rotated = stateParks.map(p => rotateSD(p.cords as Coordinate));
     const { minX, maxX, minY, maxY } = findBoundingBoxXY(rotated);
     const xScale = (E - W) / (maxX - minX);
     const yScale = (N - S) / (maxY - minY);
@@ -121,7 +125,7 @@ function terraceScaledPoints() {
         const scaledLat = S + (ry - minY) * yScale;
         let pt = point([scaledLon, scaledLat]);
         if (isPointInNoGo(pt)) pt = snapOutOfNoGo(pt);
-        return { ...park, scaledCoords: pt.geometry.coordinates };
+        return { ...park, scaledCoords: pt.geometry.coordinates as Coordinate };
     });
 }
 

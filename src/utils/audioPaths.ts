@@ -1,10 +1,20 @@
 const CDN_BASE = 'https://resonant-landscapes.b-cdn.net/';
 const SESSION_AUDIO_VARIANT_SEED = Math.floor(Math.random() * 0x7fffffff);
-const PARK_SLUG_OVERRIDES = {
+/** [8-channel spatial URL, mono URL] for one recording section. */
+export type AudioVariant = [string, string];
+
+/** The park shape audioPaths needs from stateParks.json. */
+export type AudioPark = {
+  name: string;
+  recordingsCount?: number;
+  sectionsCount?: number;
+};
+
+const PARK_SLUG_OVERRIDES: Record<string, string> = {
   'Custer State Park': 'Custer-State',
   'Palisades State Park': 'Palisades-State',
 };
-const DEBUG_PARK_AUDIO_VARIANTS = {
+const DEBUG_PARK_AUDIO_VARIANTS: Record<string, AudioVariant[]> = {
   'Custer Test': [[
     `${CDN_BASE}sounds/Custer-Test-1-001_8ch.wav`,
     `${CDN_BASE}sounds/Custer-Test-1-001_mono.wav`
@@ -15,7 +25,7 @@ const DEBUG_PARK_AUDIO_VARIANTS = {
   ]],
 };
 
-function hashString(value) {
+function hashString(value: string): number {
   let hash = 0;
 
   for (let index = 0; index < value.length; index += 1) {
@@ -25,7 +35,7 @@ function hashString(value) {
   return Math.abs(hash);
 }
 
-export function formatParkSlug(parkName) {
+export function formatParkSlug(parkName: string): string {
   if (PARK_SLUG_OVERRIDES[parkName]) {
     return PARK_SLUG_OVERRIDES[parkName];
   }
@@ -77,14 +87,16 @@ const AAC_CAPABLE_ENGINES = /Chrome|Chromium|Firefox|SamsungBrowser|Edg\//;
  * engine tested. An unrecognised browser now gets larger files rather than
  * silence.
  *
- * @param {string} userAgent
- * @returns {'aac' | 'lossless'}
  */
-export function pickAssetFamily(userAgent = '') {
+export function pickAssetFamily(userAgent = ''): 'aac' | 'lossless' {
   return AAC_CAPABLE_ENGINES.test(userAgent) ? 'aac' : 'lossless';
 }
 
-export function getParkAudioVariants(parkName, parksJSON, userAgent = '') {
+export function getParkAudioVariants(
+  parkName: string,
+  parksJSON: AudioPark[],
+  userAgent = ''
+): AudioVariant[] | null {
   if (Object.hasOwn(DEBUG_PARK_AUDIO_VARIANTS, parkName)) {
     return DEBUG_PARK_AUDIO_VARIANTS[parkName];
   }
@@ -110,7 +122,7 @@ export function getParkAudioVariants(parkName, parksJSON, userAgent = '') {
   const spatialExtension = family === 'aac' ? 'm4a' : 'flac';
   const monoFolder = family === 'aac' ? 'sounds' : 'sounds-wav-mono';
   const monoExtension = family === 'aac' ? 'm4a' : 'wav';
-  const variants = [];
+  const variants: AudioVariant[] = [];
 
   for (let recording = 1; recording <= recordingsCount; recording += 1) {
     for (let section = 1; section <= sectionsCount; section += 1) {
@@ -126,7 +138,11 @@ export function getParkAudioVariants(parkName, parksJSON, userAgent = '') {
   return variants.length > 0 ? variants : null;
 }
 
-export function pickSoundPath(parkName, parksJSON, userAgent = '') {
+export function pickSoundPath(
+  parkName: string,
+  parksJSON: AudioPark[],
+  userAgent = ''
+): AudioVariant | null {
   const variants = getParkAudioVariants(parkName, parksJSON, userAgent);
   if (!variants?.length) {
     return null;

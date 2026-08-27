@@ -35,12 +35,17 @@ import {
 } from "../hooks/useGeolocationTracking";
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
+import {
+    CENTER_ROTATION_RADIUS_METERS,
+    MAX_ZOOM,
+    MIN_ZOOM,
+    PROXIMITY_ZOOM,
+} from "../config/geofence";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
 import type { Variant, MockPosition } from "../App";
 import locationIcon from "../assets/geolocation_marker_heading.svg";
 
-const CENTER_ROTATION_RADIUS_METERS = 3;
 
 function locationStatusMessage(
     status: LocationStatus,
@@ -137,8 +142,8 @@ const LocationStatusOverlay = memo(function LocationStatusOverlay({
 
 function ZoomBoundsController({
     debug = false,
-    minZoom = 16.72582728647343,
-    maxZoom = 19.9999999,
+    minZoom = MIN_ZOOM,
+    maxZoom = MAX_ZOOM,
 }: {
     debug?: boolean;
     minZoom?: number;
@@ -317,13 +322,10 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     }, [audioContext, prefetchUrls, preloadBuffers]);
 
     useEffect(() => {
-        // Stop sound when user walks out of range — HOARenderer no longer stops
-        // on unmount so we need to handle the "left the park" case here.
-        if (!parkName) {
-            stopSound();
-        }
+        // Audio is stopped by the tracking hook on the parkName transition
+        // itself; this only follows the park with the modal.
         setParkModalOpen(Boolean(parkName));
-    }, [parkName, stopSound]);
+    }, [parkName]);
 
     // memo()'d layers only pay off if their props are stable: both of these
     // were fresh arrays on every render, which is every GPS frame.
@@ -411,7 +413,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
 
         if (inProximity && !inProximityRef.current) {
             savedZoomRef.current = view.getZoom() ?? null;
-            view.animate({ zoom: 19, duration: zoomDurationMs });
+            view.animate({ zoom: PROXIMITY_ZOOM, duration: zoomDurationMs });
         } else if (!inProximity && inProximityRef.current) {
             if (savedZoomRef.current !== null) {
                 view.animate({ zoom: savedZoomRef.current, duration: zoomDurationMs });

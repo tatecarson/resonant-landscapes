@@ -7,7 +7,7 @@ import { useOL } from "rlayers";
 import { useDecorativeLayerFrame } from "../hooks/useDecorativeLayerFrame";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 import { mapRange } from "../utils/math";
-import { PREFETCH_DISTANCE } from "../utils/parkSelection";
+import { PREFETCH_DISTANCE_METERS } from "../config/geofence";
 
 /** Mid-pulse: visible, and the same on every render. */
 const REDUCED_MOTION_PHASE_S = 0.5;
@@ -59,8 +59,8 @@ function ProximityRingLayer({ parks, active, enterDistance }: ProximityRingLayer
             const pointResolution = getPointResolution(projection, viewResolution, projectedCoords);
             const boundaryRadius = enterDistance / pointResolution;
 
-            const speed = mapRange(distance, PREFETCH_DISTANCE, 5, 0.18, 1.4);
-            const maxAlpha = mapRange(distance, PREFETCH_DISTANCE, 5, 0.12, 0.65);
+            const speed = mapRange(distance, PREFETCH_DISTANCE_METERS, 5, 0.18, 1.4);
+            const maxAlpha = mapRange(distance, PREFETCH_DISTANCE_METERS, 5, 0.12, 0.65);
             const phases = [(t * speed) % 1, (t * speed + 0.5) % 1];
 
             for (const phase of phases) {

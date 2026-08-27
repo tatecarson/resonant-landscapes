@@ -6,7 +6,8 @@
  * returns the correct park coordinates and distance for the proximity animations.
  */
 import { test, expect } from "@playwright/test";
-import { findClosestPark, PREFETCH_DISTANCE } from "../src/utils/parkSelection";
+import { findClosestPark } from "../src/utils/parkSelection";
+import { PREFETCH_DISTANCE_METERS } from "../src/config/geofence";
 
 type Park = {
     name: string;
@@ -47,7 +48,7 @@ test.describe("findClosestPark", () => {
 
         expect(result).not.toBeNull();
         expect(result!.distance).toBeGreaterThan(15);
-        expect(result!.distance).toBeLessThan(PREFETCH_DISTANCE);
+        expect(result!.distance).toBeLessThan(PREFETCH_DISTANCE_METERS);
     });
 
     test("returns a result even when user is far away (caller checks range)", () => {
@@ -55,15 +56,15 @@ test.describe("findClosestPark", () => {
 
         // findClosestPark always returns the closest — caller decides if in range
         expect(result).not.toBeNull();
-        expect(result!.distance).toBeGreaterThan(PREFETCH_DISTANCE);
+        expect(result!.distance).toBeGreaterThan(PREFETCH_DISTANCE_METERS);
     });
 
     test("caller can gate on prefetch distance to get prefetchParkCoords behavior", () => {
         const near = findClosestPark(USER_APPROACHING, [SICA_HOLLOW, HARTFORD_BEACH]);
         const far = findClosestPark(USER_FAR, [SICA_HOLLOW, HARTFORD_BEACH]);
 
-        const nearCoords = near && near.distance < PREFETCH_DISTANCE ? near.park.scaledCoords : null;
-        const farCoords = far && far.distance < PREFETCH_DISTANCE ? far.park.scaledCoords : null;
+        const nearCoords = near && near.distance < PREFETCH_DISTANCE_METERS ? near.park.scaledCoords : null;
+        const farCoords = far && far.distance < PREFETCH_DISTANCE_METERS ? far.park.scaledCoords : null;
 
         // Hartford Beach is closest at USER_APPROACHING (~20m vs ~38m for Sica Hollow)
         expect(nearCoords).toEqual(HARTFORD_BEACH.scaledCoords);

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
-    PREFETCH_DISTANCE,
     findClosestPark,
     findParksInRange,
     scanParks,
     selectNearestInRangePark,
 } from "./parkSelection";
+import { PREFETCH_DISTANCE_METERS } from "../config/geofence";
 
 /**
  * These three functions decide which park the walker is at, which are drawn
@@ -40,7 +40,7 @@ describe("findClosestPark", () => {
         const result = findClosestPark(origin, [far]);
 
         expect(result?.park.name).toBe(far.name);
-        expect(result?.distance).toBeGreaterThan(PREFETCH_DISTANCE);
+        expect(result?.distance).toBeGreaterThan(PREFETCH_DISTANCE_METERS);
     });
 
     it("returns the closest park and its distance", () => {
@@ -70,40 +70,40 @@ describe("findClosestPark", () => {
         const result = findClosestPark(origin, [far]);
 
         // This is what makes prefetch gating a caller decision:
-        // `result.distance < PREFETCH_DISTANCE ? result.park.scaledCoords : null`
+        // `result.distance < PREFETCH_DISTANCE_METERS ? result.park.scaledCoords : null`
         expect(result).not.toBeNull();
-        expect(result!.distance).toBeGreaterThan(PREFETCH_DISTANCE);
+        expect(result!.distance).toBeGreaterThan(PREFETCH_DISTANCE_METERS);
     });
 });
 
 describe("findParksInRange", () => {
     it("returns an empty array when nothing is in range", () => {
-        expect(findParksInRange(origin, [far], PREFETCH_DISTANCE)).toEqual([]);
+        expect(findParksInRange(origin, [far], PREFETCH_DISTANCE_METERS)).toEqual([]);
     });
 
     it("returns every park inside the radius with its distance", () => {
-        const result = findParksInRange(origin, [near, middle, far], PREFETCH_DISTANCE);
+        const result = findParksInRange(origin, [near, middle, far], PREFETCH_DISTANCE_METERS);
 
         expect(result).toHaveLength(2);
         expect(result.map((entry) => entry.distance.toFixed(0))).toEqual(["10", "25"]);
     });
 
     it("returns coordinates rather than parks, for the ring layer", () => {
-        const [first] = findParksInRange(origin, [near], PREFETCH_DISTANCE);
+        const [first] = findParksInRange(origin, [near], PREFETCH_DISTANCE_METERS);
 
         expect(first.coords).toEqual(near.scaledCoords);
     });
 
     it("excludes a park sitting exactly on the boundary", () => {
-        const boundary = park("Boundary", PREFETCH_DISTANCE);
+        const boundary = park("Boundary", PREFETCH_DISTANCE_METERS);
 
         // The comparison is `distance < maxDistance`, so the ring appears just
         // inside 40 m rather than at it.
-        expect(findParksInRange(origin, [boundary], PREFETCH_DISTANCE)).toEqual([]);
+        expect(findParksInRange(origin, [boundary], PREFETCH_DISTANCE_METERS)).toEqual([]);
     });
 
     it("preserves input order", () => {
-        const result = findParksInRange(origin, [middle, near], PREFETCH_DISTANCE);
+        const result = findParksInRange(origin, [middle, near], PREFETCH_DISTANCE_METERS);
 
         expect(result.map((entry) => entry.distance.toFixed(0))).toEqual(["25", "10"]);
     });
@@ -119,7 +119,7 @@ describe("selectNearestInRangePark", () => {
     });
 
     it("returns the nearest park within range, not merely the first", () => {
-        const result = selectNearestInRangePark(origin, [middle, near], PREFETCH_DISTANCE);
+        const result = selectNearestInRangePark(origin, [middle, near], PREFETCH_DISTANCE_METERS);
 
         expect(result?.name).toBe(near.name);
     });
@@ -135,16 +135,16 @@ describe("selectNearestInRangePark", () => {
     });
 });
 
-describe("PREFETCH_DISTANCE", () => {
+describe("PREFETCH_DISTANCE_METERS", () => {
     it("is 40 m — the approach-ring and audio-prefetch radius", () => {
         // Asserted because the approach-ring specs and the audio prefetch path
         // both assume this number; changing it silently changes both.
-        expect(PREFETCH_DISTANCE).toBe(40);
+        expect(PREFETCH_DISTANCE_METERS).toBe(40);
     });
 });
 
 describe("scanParks", () => {
-    const distances = { prefetchDistance: PREFETCH_DISTANCE, enterDistance: 15 };
+    const distances = { prefetchDistance: PREFETCH_DISTANCE_METERS, enterDistance: 15 };
 
     it("agrees with the three functions it replaces", () => {
         // The hot path takes one pass where it used to take three; this is the
@@ -155,7 +155,7 @@ describe("scanParks", () => {
 
         expect(scan.closest).toEqual(findClosestPark(origin, parks));
         expect(scan.inPrefetchRange).toEqual(
-            findParksInRange(origin, parks, PREFETCH_DISTANCE)
+            findParksInRange(origin, parks, PREFETCH_DISTANCE_METERS)
         );
         expect(scan.nearestInEnterRange).toBe(
             selectNearestInRangePark(origin, parks, 15)
@@ -189,7 +189,7 @@ describe("scanParks", () => {
     });
 
     it("excludes parks exactly on either boundary", () => {
-        const onPrefetch = park("OnPrefetch", PREFETCH_DISTANCE);
+        const onPrefetch = park("OnPrefetch", PREFETCH_DISTANCE_METERS);
         const onEnter = park("OnEnter", 15);
         const scan = scanParks(origin, [onPrefetch, onEnter], distances);
 
