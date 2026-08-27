@@ -56,7 +56,12 @@ export type GeolocationFailure = {
     message: string;
 };
 
-export type LocationStatus = "acquiring" | "tracking" | "error";
+export type LocationStatus =
+    | "acquiring"
+    | "tracking"
+    | "imprecise"
+    | "stale"
+    | "error";
 
 /**
  * How long to wait for a first fix before telling the walker something is
@@ -66,6 +71,11 @@ export type LocationStatus = "acquiring" | "tracking" | "error";
  * at all, only silence.
  */
 const ACQUIRING_TIMEOUT_MS = 12_000;
+// Under tree cover a phone can report a fix that is minutes old without ever
+// erroring, so a fix that has stopped arriving is reported separately from one
+// that never arrived.
+const STALE_FIX_MS = 10_000;
+const STALE_FIX_POLL_MS = 1_000;
 
 function mod(n: number) {
     return ((n % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
@@ -91,6 +101,9 @@ export function useGeolocationTracking({
     const [position, setPosition] = useState<number[] | null>(null);
     const [geolocationError, setGeolocationError] = useState<GeolocationFailure | null>(null);
     const [accuracy, setAccuracy] = useState<LineString | null>(null);
+    const [accuracyMeters, setAccuracyMeters] = useState<number | null>(null);
+    const [isFixStale, setIsFixStale] = useState(false);
+    const lastFixAtRef = useRef<number | null>(null);
     const [parkName, setParkName] = useState("");
     const [parkDistance, setParkDistance] = useState(0);
     const [prefetchParkName, setPrefetchParkName] = useState("");
@@ -183,6 +196,25 @@ export function useGeolocationTracking({
             }
         };
     }, []);
+
+    // A watch that stops calling back does not error, so nothing else notices.
+    // Polling a timestamp is enough: the walker needs to know the blue dot has
+    // stopped meaning anything, not the exact moment it happened.
+    useEffect(() => {
+        if (!position) {
+            return;
+        }
+
+        const timer = window.setInterval(() => {
+            const lastFixAt = lastFixAtRef.current;
+            if (lastFixAt === null) {
+                return;
+            }
+            setIsFixStale(Date.now() - lastFixAt > STALE_FIX_MS);
+        }, STALE_FIX_POLL_MS);
+
+        return () => window.clearInterval(timer);
+    }, [position]);
 
     // Backstop for a watch that never calls back at all.
     useEffect(() => {
@@ -403,6 +435,14 @@ export function useGeolocationTracking({
         const [x, y] = nextPosition;
         setAccuracy(new LineString([nextPosition]));
 
+        // Accuracy is a radius in metres. Compared against the 15 m enter
+        // distance it is the difference between "you are at the park" and
+        // "you are somewhere in a circle that happens to contain it".
+        const reportedAccuracy = geoloc.getAccuracy();
+        setAccuracyMeters(typeof reportedAccuracy === "number" ? reportedAccuracy : null);
+        lastFixAtRef.current = Date.now();
+        setIsFixStale(false);
+
         const m = Date.now();
         const features = positionsRef.current.getCoordinates();
         const previous = features[features.length - 1];
@@ -473,14 +513,17 @@ export function useGeolocationTracking({
     // An error only matters while there is nothing to show. Once a fix has
     // landed the walk continues on the last known position rather than
     // throwing up a banner over a working map.
-    const locationStatus: LocationStatus = position
-        ? "tracking"
-        : geolocationError
-            ? "error"
-            : "acquiring";
+    const locationStatus: LocationStatus = !position
+        ? (geolocationError ? "error" : "acquiring")
+        : isFixStale
+            ? "stale"
+            : accuracyMeters !== null && accuracyMeters > enterDistance
+                ? "imprecise"
+                : "tracking";
 
     return {
         accuracy,
+        accuracyMeters,
         currentParkLocation,
         debugPermission,
         geolocationError,
