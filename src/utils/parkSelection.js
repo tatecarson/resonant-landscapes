@@ -3,20 +3,16 @@ import { distanceInMeters } from "./geo";
 export const PREFETCH_DISTANCE = 40; // meters — park enters approach-ring animation range
 
 /**
- * Returns the nearest park within maxDistance of userLocation,
- * or null if no parks qualify. Ignores array order.
- *
- * @param {[number, number]} userLocation - [longitude, latitude]
- * @param {{ name: string; scaledCoords: [number, number] }[]} parks
- * @param {number} maxDistance - meters
+ * @typedef {{ name: string; scaledCoords: [number, number] }} Park
  */
+
 /**
  * Returns the closest park to userLocation and its distance, regardless of range.
  * Returns null if parks is empty.
  *
  * @param {[number, number]} userLocation - [longitude, latitude]
- * @param {{ name: string; scaledCoords: [number, number] }[]} parks
- * @returns {{ park: object, distance: number } | null}
+ * @param {Park[]} parks
+ * @returns {{ park: Park, distance: number } | null}
  */
 export function findClosestPark(userLocation, parks) {
   let closest = null;
@@ -38,7 +34,7 @@ export function findClosestPark(userLocation, parks) {
  * Used for the visual proximity ring — does not affect audio prefetch logic.
  *
  * @param {[number, number]} userLocation - [longitude, latitude]
- * @param {{ name: string; scaledCoords: [number, number] }[]} parks
+ * @param {Park[]} parks
  * @param {number} maxDistance - meters
  * @returns {{ coords: [number, number], distance: number }[]}
  */

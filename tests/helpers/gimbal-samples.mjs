@@ -38,6 +38,10 @@ export function buildCases() {
  * Stubs `window` the way the browser would present it, since the constructor
  * reads window.orientation and probes for deviceorientationabsolute.
  */
+/**
+ * @param {new () => any} GimbalClass
+ * @param {{ orientation?: number, angles: { alpha: number, beta: number, gamma: number }, recalibrate: boolean }} testCase
+ */
 export function runCase(GimbalClass, { orientation, angles, recalibrate }) {
     const previousWindow = globalThis.window;
 

@@ -97,7 +97,6 @@ function snapOutOfNoGo(point) {
     }
 
     if (iter >= maxIterations) {
-        // eslint-disable-next-line no-console
         console.warn('[scaledParks] snapOutOfNoGo hit iteration cap; returning last position', current.geometry.coordinates);
     }
     return current;

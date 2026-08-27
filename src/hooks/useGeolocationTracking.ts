@@ -430,7 +430,7 @@ export function useGeolocationTracking({
 
         updateView(m);
         startAnimationLoop();
-    }, [startAnimationLoop, updateView]);
+    }, [commitMapHeading, startAnimationLoop, updateView]);
 
     useEffect(() => {
         return () => {
