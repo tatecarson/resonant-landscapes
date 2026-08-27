@@ -41,6 +41,27 @@ const GPS_HEADING_ENTER_MPS = 1.2;
 const GPS_HEADING_EXIT_MPS = 0.6;
 const GPS_SPEED_FRESHNESS_MS = 3000;
 
+/** W3C GeolocationPositionError codes, as reported through OpenLayers. */
+export const GEOLOCATION_PERMISSION_DENIED = 1;
+export const GEOLOCATION_POSITION_UNAVAILABLE = 2;
+export const GEOLOCATION_TIMEOUT = 3;
+
+export type GeolocationFailure = {
+    code: number;
+    message: string;
+};
+
+export type LocationStatus = "acquiring" | "tracking" | "error";
+
+/**
+ * How long to wait for a first fix before telling the walker something is
+ * wrong. This backstop matters more than the error event: a watch that simply
+ * never calls back — the common outdoor case, and what happens when rlayers'
+ * error plumbing drops the event under StrictMode remounts — produces no error
+ * at all, only silence.
+ */
+const ACQUIRING_TIMEOUT_MS = 12_000;
+
 function mod(n: number) {
     return ((n % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 }
@@ -59,7 +80,11 @@ export function useGeolocationTracking({
     resonanceAudioScene,
     stopSound,
 }: UseGeolocationTrackingOptions) {
-    const [position, setPosition] = useState<number[] | null>(fromLonLat([0, 0]));
+    // Null until the first fix arrives. Seeding a coordinate here used to put
+    // the walker at Null Island, so a slow or failed fix rendered an empty
+    // ocean with nothing to explain it.
+    const [position, setPosition] = useState<number[] | null>(null);
+    const [geolocationError, setGeolocationError] = useState<GeolocationFailure | null>(null);
     const [accuracy, setAccuracy] = useState<LineString | null>(null);
     const [parkName, setParkName] = useState("");
     const [parkDistance, setParkDistance] = useState(0);
@@ -104,8 +129,20 @@ export function useGeolocationTracking({
         );
     }, []);
 
+    const onGeolocationError = useCallback((event: unknown) => {
+        // OpenLayers forwards the W3C error as the event itself; be defensive
+        // about the shape rather than trusting a cast.
+        const failure = event as Partial<GeolocationFailure> | null;
+        setGeolocationError({
+            code: typeof failure?.code === "number" ? failure.code : GEOLOCATION_POSITION_UNAVAILABLE,
+            message: typeof failure?.message === "string" ? failure.message : "Geolocation failed.",
+        });
+    }, []);
+
     useEffect(() => {
-        if (!debug || !navigator.permissions?.query) {
+        // Runs in production too: a denied permission is the single most
+        // common reason the walk never starts, and it is worth naming.
+        if (!navigator.permissions?.query) {
             return;
         }
 
@@ -118,10 +155,20 @@ export function useGeolocationTracking({
                 return;
             }
 
-            setDebugPermission(status.state);
-            status.onchange = () => {
+            const applyPermission = () => {
                 setDebugPermission(status.state);
+                // A denied permission is reported reliably here even when the
+                // geolocation error event never arrives.
+                if (status.state === "denied") {
+                    setGeolocationError({
+                        code: GEOLOCATION_PERMISSION_DENIED,
+                        message: "Geolocation permission denied.",
+                    });
+                }
             };
+
+            applyPermission();
+            status.onchange = applyPermission;
         }).catch(() => {
             setDebugPermission("unsupported");
         });
@@ -132,7 +179,23 @@ export function useGeolocationTracking({
                 permissionStatus.onchange = null;
             }
         };
-    }, [debug]);
+    }, []);
+
+    // Backstop for a watch that never calls back at all.
+    useEffect(() => {
+        if (position || geolocationError) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            setGeolocationError((current) => current ?? {
+                code: GEOLOCATION_TIMEOUT,
+                message: "Timed out waiting for a position fix.",
+            });
+        }, ACQUIRING_TIMEOUT_MS);
+
+        return () => window.clearTimeout(timer);
+    }, [position, geolocationError]);
 
     const updateView = useCallback((timestamp = Date.now()) => {
         let m = timestamp - getSmoothingDelay();
@@ -316,6 +379,10 @@ export function useGeolocationTracking({
             return;
         }
 
+        // A fix arrived, so any earlier failure no longer describes reality.
+        // Passing null when already null is a no-op re-render-wise.
+        setGeolocationError(null);
+
         const [x, y] = nextPosition;
         setAccuracy(new LineString([nextPosition]));
 
@@ -386,10 +453,22 @@ export function useGeolocationTracking({
         onGeolocationChange({ target: stub as unknown as OLGeoLoc });
     }, [mockPosition, onGeolocationChange]);
 
+    // An error only matters while there is nothing to show. Once a fix has
+    // landed the walk continues on the last known position rather than
+    // throwing up a banner over a working map.
+    const locationStatus: LocationStatus = position
+        ? "tracking"
+        : geolocationError
+            ? "error"
+            : "acquiring";
+
     return {
         accuracy,
         currentParkLocation,
         debugPermission,
+        geolocationError,
+        locationStatus,
+        onGeolocationError,
         enterDistance,
         exitDistance,
         onGeolocationChange,
