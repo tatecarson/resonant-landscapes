@@ -65,3 +65,52 @@ export function selectNearestInRangePark(userLocation, parks, maxDistance) {
 
   return nearest;
 }
+
+/**
+ * One pass over the parks answering everything a geolocation tick needs.
+ *
+ * findClosestPark, findParksInRange and selectNearestInRangePark were each
+ * called per tick and each walked all 13 parks — three scans and 39 haversine
+ * calls for three answers that come from the same distances. They remain
+ * exported and tested individually; this is the hot path.
+ *
+ * @param {[number, number]} userLocation - [longitude, latitude]
+ * @param {Park[]} parks
+ * @param {{ prefetchDistance: number, enterDistance: number }} distances
+ * @returns {{
+ *   closest: { park: Park, distance: number } | null,
+ *   inPrefetchRange: { coords: [number, number], distance: number }[],
+ *   nearestInEnterRange: Park | null,
+ * }}
+ */
+export function scanParks(userLocation, parks, { prefetchDistance, enterDistance }) {
+  let closest = null;
+  let closestDistance = Number.POSITIVE_INFINITY;
+  let nearestInEnterRange = null;
+  let nearestInEnterRangeDistance = Number.POSITIVE_INFINITY;
+  const inPrefetchRange = [];
+
+  for (const park of parks) {
+    const distance = distanceInMeters(userLocation, park.scaledCoords);
+
+    if (distance < closestDistance) {
+      closest = park;
+      closestDistance = distance;
+    }
+
+    if (distance < prefetchDistance) {
+      inPrefetchRange.push({ coords: park.scaledCoords, distance });
+    }
+
+    if (distance < enterDistance && distance < nearestInEnterRangeDistance) {
+      nearestInEnterRange = park;
+      nearestInEnterRangeDistance = distance;
+    }
+  }
+
+  return {
+    closest: closest ? { park: closest, distance: closestDistance } : null,
+    inPrefetchRange,
+    nearestInEnterRange,
+  };
+}

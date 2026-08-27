@@ -1,4 +1,5 @@
-import * as turf from '@turf/turf';
+import { point } from '@turf/helpers';
+import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
 
 import stateParks from '../data/stateParks.json';
 import noGoPolygons from '../data/terraceNoGoPolygons.json';
@@ -61,7 +62,7 @@ function findBoundingBoxXY(points) {
 function isPointInNoGo(point) {
     return noGoPolygons.features.some(f => {
         try {
-            return turf.booleanPointInPolygon(point, f);
+            return booleanPointInPolygon(point, f);
         } catch {
             return false;
         }
@@ -84,7 +85,7 @@ function snapOutOfNoGo(point) {
     while (isPointInNoGo(current) && iter < maxIterations) {
         const [dx, dy] = dirs[dirIndex];
         const [lon, lat] = current.geometry.coordinates;
-        current = turf.point([lon + dx * stepDeg, lat + dy * stepDeg]);
+        current = point([lon + dx * stepDeg, lat + dy * stepDeg]);
         stepsThisLeg += 1;
         iter += 1;
         if (stepsThisLeg >= leg) {
@@ -118,7 +119,7 @@ function terraceScaledPoints() {
         const [rx, ry] = rotated[i];
         const scaledLon = W + (rx - minX) * xScale;
         const scaledLat = S + (ry - minY) * yScale;
-        let pt = turf.point([scaledLon, scaledLat]);
+        let pt = point([scaledLon, scaledLat]);
         if (isPointInNoGo(pt)) pt = snapOutOfNoGo(pt);
         return { ...park, scaledCoords: pt.geometry.coordinates };
     });

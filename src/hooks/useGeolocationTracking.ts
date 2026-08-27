@@ -7,7 +7,7 @@ import type { ResonanceAudio } from "resonance-audio";
 import { getScaledPoints, testParks } from "../utils/scaledParks";
 import type { Variant, MockPosition } from "../App";
 import { distanceInMeters } from "../utils/geo";
-import { findClosestPark, findParksInRange, PREFETCH_DISTANCE, selectNearestInRangePark } from "../utils/parkSelection";
+import { PREFETCH_DISTANCE, scanParks } from "../utils/parkSelection";
 
 type Coordinate = [number, number];
 
@@ -258,12 +258,18 @@ export function useGeolocationTracking({
         setPosition(coordinates);
 
         const userLocation = toLonLat([coordinates[0], coordinates[1]]) as Coordinate;
-        const closest = findClosestPark(userLocation, parkFeatures) as { park: ParkFeature; distance: number } | null;
+        // One pass for all three answers: this runs on every GPS frame.
+        const scan = scanParks(userLocation, parkFeatures, { prefetchDistance, enterDistance }) as {
+            closest: { park: ParkFeature; distance: number } | null;
+            inPrefetchRange: { coords: Coordinate; distance: number }[];
+            nearestInEnterRange: ParkFeature | null;
+        };
+        const closest = scan.closest;
         const inPrefetchRange = Boolean(closest && closest.distance < prefetchDistance);
         setPrefetchParkName(inPrefetchRange ? closest!.park.name : "");
-        setPrefetchParks(findParksInRange(userLocation, parkFeatures, prefetchDistance));
+        setPrefetchParks(scan.inPrefetchRange);
 
-        const nearbyPark = selectNearestInRangePark(userLocation, parkFeatures, enterDistance);
+        const nearbyPark = scan.nearestInEnterRange;
         const nextParkLocation = nearbyPark?.scaledCoords ?? null;
 
         if (nearbyPark && nearbyPark.name !== parkName) {

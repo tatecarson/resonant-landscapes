@@ -5,15 +5,6 @@ type IOSDeviceOrientationEvent = typeof DeviceOrientationEvent & {
   requestPermission?: () => Promise<'granted' | 'denied'>;
 };
 
-// Declare Omnitone module (no bundled types)
-declare module 'omnitone/build/omnitone.min.esm.js' {
-  const Omnitone: {
-    createBufferList(context: AudioContext, urls: string[]): Promise<AudioBuffer[]>;
-    mergeBufferListByChannel(context: AudioContext, buffers: AudioBuffer[]): AudioBuffer;
-  };
-  export default Omnitone;
-}
-
 interface Window {
   __gimbalOrientation?: {
     fwdX: number; fwdY: number; fwdZ: number;

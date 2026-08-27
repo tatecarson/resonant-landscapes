@@ -4,6 +4,7 @@ import type RenderEvent from "ol/render/Event";
 import { RLayerVector } from "rlayers";
 import { useOL } from "rlayers";
 
+import { useDecorativeLayerFrame } from "../hooks/useDecorativeLayerFrame";
 import { mapRange } from "../utils/math";
 import { PREFETCH_DISTANCE } from "../utils/parkSelection";
 
@@ -22,6 +23,7 @@ interface ProximityRingLayerProps {
 
 function ProximityRingLayer({ parks, active, enterDistance }: ProximityRingLayerProps) {
     const { map } = useOL();
+    const requestNextFrame = useDecorativeLayerFrame(active);
 
     const handlePostrender = useCallback((event: RenderEvent) => {
         if (!active || !parks.length || !map) {
@@ -67,8 +69,8 @@ function ProximityRingLayer({ parks, active, enterDistance }: ProximityRingLayer
         }
         ctx.restore();
 
-        event.target?.changed();
-    }, [active, parks, enterDistance, map]);
+        requestNextFrame(event.target);
+    }, [active, parks, enterDistance, map, requestNextFrame]);
 
     return (
         <RLayerVector

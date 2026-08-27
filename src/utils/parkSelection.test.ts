@@ -3,6 +3,7 @@ import {
     PREFETCH_DISTANCE,
     findClosestPark,
     findParksInRange,
+    scanParks,
     selectNearestInRangePark,
 } from "./parkSelection";
 
@@ -139,5 +140,60 @@ describe("PREFETCH_DISTANCE", () => {
         // Asserted because the approach-ring specs and the audio prefetch path
         // both assume this number; changing it silently changes both.
         expect(PREFETCH_DISTANCE).toBe(40);
+    });
+});
+
+describe("scanParks", () => {
+    const distances = { prefetchDistance: PREFETCH_DISTANCE, enterDistance: 15 };
+
+    it("agrees with the three functions it replaces", () => {
+        // The hot path takes one pass where it used to take three; this is the
+        // property that has to hold, so assert it against the originals rather
+        // than against hand-written expectations.
+        const parks = [far, middle, near];
+        const scan = scanParks(origin, parks, distances);
+
+        expect(scan.closest).toEqual(findClosestPark(origin, parks));
+        expect(scan.inPrefetchRange).toEqual(
+            findParksInRange(origin, parks, PREFETCH_DISTANCE)
+        );
+        expect(scan.nearestInEnterRange).toBe(
+            selectNearestInRangePark(origin, parks, 15)
+        );
+    });
+
+    it("agrees when nothing is in range", () => {
+        const parks = [far];
+        const scan = scanParks(origin, parks, distances);
+
+        expect(scan.closest).toEqual(findClosestPark(origin, parks));
+        expect(scan.inPrefetchRange).toEqual([]);
+        expect(scan.nearestInEnterRange).toBeNull();
+    });
+
+    it("agrees on an empty park list", () => {
+        const scan = scanParks(origin, [], distances);
+
+        expect(scan.closest).toBeNull();
+        expect(scan.inPrefetchRange).toEqual([]);
+        expect(scan.nearestInEnterRange).toBeNull();
+    });
+
+    it("keeps prefetch order and the first-wins tie, like the originals", () => {
+        const west = { name: "West", scaledCoords: metresNorth(20) };
+        const east = { name: "East", scaledCoords: metresNorth(20) };
+        const scan = scanParks(origin, [west, east], distances);
+
+        expect(scan.closest?.park.name).toBe("West");
+        expect(scan.inPrefetchRange).toHaveLength(2);
+    });
+
+    it("excludes parks exactly on either boundary", () => {
+        const onPrefetch = park("OnPrefetch", PREFETCH_DISTANCE);
+        const onEnter = park("OnEnter", 15);
+        const scan = scanParks(origin, [onPrefetch, onEnter], distances);
+
+        expect(scan.inPrefetchRange.map((entry) => entry.distance.toFixed(0))).toEqual(["15"]);
+        expect(scan.nearestInEnterRange).toBeNull();
     });
 });
