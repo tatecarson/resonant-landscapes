@@ -3,6 +3,7 @@ import { fromLonLat } from "ol/proj";
 import type RenderEvent from "ol/render/Event";
 import { RLayerVector, useOL } from "rlayers";
 
+import { useDecorativeLayerFrame } from "../hooks/useDecorativeLayerFrame";
 import { mapRange } from "../utils/math";
 import { PREFETCH_DISTANCE } from "../utils/parkSelection";
 
@@ -25,6 +26,7 @@ const MIN_CYCLE_S = 0.7;          // cycle duration at closest approach
 
 function SunRayLayer({ parks, active }: SunRayLayerProps) {
     const { map } = useOL();
+    const requestNextFrame = useDecorativeLayerFrame(active);
 
     const handlePostrender = useCallback((event: RenderEvent) => {
         if (!active || !parks.length || !map) return;
@@ -94,8 +96,8 @@ function SunRayLayer({ parks, active }: SunRayLayerProps) {
         ctx.setLineDash([]);
         ctx.restore();
 
-        event.target?.changed();
-    }, [active, parks, map]);
+        requestNextFrame(event.target);
+    }, [active, parks, map, requestNextFrame]);
 
     return (
         <RLayerVector
