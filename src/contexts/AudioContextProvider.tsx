@@ -103,9 +103,13 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const [lastUnlockError, setLastUnlockError] = useState<string | null>(null);
     const [lastLoad, setLastLoad] = useState<AudioLoadDebug | null>(null);
     const [needsAudioResume, setNeedsAudioResume] = useState(false);
-    const [keepScreenAwake, setKeepScreenAwakeState] = useState(() => (
-        window.localStorage.getItem(KEEP_SCREEN_AWAKE_STORAGE_KEY) !== "false"
-    ));
+    const [keepScreenAwake, setKeepScreenAwakeState] = useState(() => {
+        try {
+            return window.localStorage.getItem(KEEP_SCREEN_AWAKE_STORAGE_KEY) !== "false";
+        } catch {
+            return true;
+        }
+    });
     const audioInitializedRef = useRef(false);
     const initAudioPromiseRef = useRef<Promise<void> | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
@@ -438,7 +442,11 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
 
     const setKeepScreenAwake = useCallback((enabled: boolean) => {
         setKeepScreenAwakeState(enabled);
-        window.localStorage.setItem(KEEP_SCREEN_AWAKE_STORAGE_KEY, String(enabled));
+        try {
+            window.localStorage.setItem(KEEP_SCREEN_AWAKE_STORAGE_KEY, String(enabled));
+        } catch {
+            // Keep the in-memory preference usable when browser storage is blocked.
+        }
     }, []);
 
     const resumeInterruptedAudio = useCallback(async (): Promise<boolean> => {

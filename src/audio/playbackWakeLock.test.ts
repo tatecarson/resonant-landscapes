@@ -7,16 +7,19 @@ import {
 
 function createSentinel() {
     const listeners = new Set<() => void>();
+    const dispatchRelease = () => {
+        Object.defineProperty(sentinel, "released", { value: true });
+        listeners.forEach((listener) => listener());
+    };
     const sentinel: WakeLockSentinelLike = {
         released: false,
         release: vi.fn(async () => {
-            Object.defineProperty(sentinel, "released", { value: true });
-            listeners.forEach((listener) => listener());
+            dispatchRelease();
         }),
         addEventListener: (_type, listener) => listeners.add(listener),
         removeEventListener: (_type, listener) => listeners.delete(listener),
     };
-    return sentinel;
+    return { sentinel, dispatchRelease };
 }
 
 async function flushPromises() {
@@ -26,7 +29,7 @@ async function flushPromises() {
 
 describe("createPlaybackWakeLockController", () => {
     it("holds a wake lock only while playback wants it", async () => {
-        const sentinel = createSentinel();
+        const { sentinel } = createSentinel();
         const statuses: WakeLockStatus[] = [];
         const controller = createPlaybackWakeLockController({
             request: vi.fn(async () => sentinel),
@@ -47,8 +50,8 @@ describe("createPlaybackWakeLockController", () => {
 
     it("releases while hidden and reacquires when visible", async () => {
         let visibility: DocumentVisibilityState = "visible";
-        const first = createSentinel();
-        const second = createSentinel();
+        const { sentinel: first } = createSentinel();
+        const { sentinel: second } = createSentinel();
         const request = vi.fn()
             .mockResolvedValueOnce(first)
             .mockResolvedValueOnce(second);
@@ -74,7 +77,7 @@ describe("createPlaybackWakeLockController", () => {
     });
 
     it("releases a late request result after playback stops", async () => {
-        const sentinel = createSentinel();
+        const { sentinel } = createSentinel();
         let resolveRequest: ((value: WakeLockSentinelLike) => void) | undefined;
         const request = vi.fn(() => new Promise<WakeLockSentinelLike>((resolve) => {
             resolveRequest = resolve;
@@ -92,5 +95,26 @@ describe("createPlaybackWakeLockController", () => {
         await flushPromises();
 
         expect(sentinel.release).toHaveBeenCalledOnce();
+    });
+
+    it("reacquires when the browser revokes an active wake lock", async () => {
+        const { sentinel: first, dispatchRelease } = createSentinel();
+        const { sentinel: second } = createSentinel();
+        const request = vi.fn()
+            .mockResolvedValueOnce(first)
+            .mockResolvedValueOnce(second);
+        const controller = createPlaybackWakeLockController({
+            request,
+            getVisibilityState: () => "visible",
+            onStatusChange: vi.fn(),
+            onError: vi.fn(),
+        });
+
+        controller.setDesired(true);
+        await flushPromises();
+        dispatchRelease();
+        await flushPromises();
+
+        expect(request).toHaveBeenCalledTimes(2);
     });
 });

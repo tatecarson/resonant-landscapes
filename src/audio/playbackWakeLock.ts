@@ -36,7 +36,11 @@ export function createPlaybackWakeLockController({
         if (!sentinel?.released) return;
         sentinel.removeEventListener("release", handleRelease);
         sentinel = null;
-        onStatusChange("inactive");
+        if (!disposed && desired && getVisibilityState() === "visible") {
+            void acquire();
+        } else {
+            onStatusChange("inactive");
+        }
     };
 
     const release = async () => {
