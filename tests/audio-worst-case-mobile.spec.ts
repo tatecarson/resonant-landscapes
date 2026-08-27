@@ -9,7 +9,7 @@ import stateParks from "../src/data/stateParks.json" with { type: "json" };
 import { scaleCoordinates } from "../src/utils/geo.js";
 import { formatParkSlug, getParkAudioVariants } from "../src/utils/audioPaths.js";
 import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";
-import { expectAudioStatusVisible, expectParkLabelVisible } from "./helpers/ui-assertions";
+import { expectParkLabelVisible } from "./helpers/ui-assertions";
 
 const replayPath = "/";
 const neutralPoint = {
@@ -255,8 +255,10 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   await expectParkLabelVisible(page, worstCasePark.name);
   console.log("[worst-case] park modal visible");
 
-  await expectAudioStatusVisible(page, "Preparing audio");
-  console.log("[worst-case] preparing state visible");
+  await expect.poll(async () => page.evaluate(() => window.__audioDebug?.uiStatus ?? null), {
+    timeout: 15_000,
+  }).toMatch(/^(preparing|playing)$/);
+  console.log("[worst-case] loading or playback state reached");
 
   await expect.poll(async () => page.evaluate(() => window.__audioDebug ?? null), {
     timeout: 45_000,

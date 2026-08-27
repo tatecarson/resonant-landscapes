@@ -14,7 +14,7 @@
  *   GIMBAL_PAUSE=1 npx playwright test gimbal-orientation --project=iphone-13 --headed
  */
 import { expect, test } from "@playwright/test";
-import { dismissWelcomeModal } from "./helpers/app-flow";
+import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";
 import {
   dispatchDeviceOrientation,
   seedDeviceOrientationHarness,
@@ -119,16 +119,13 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   await context.grantPermissions(["geolocation"], { origin: permissionOrigin });
   await context.setGeolocation(HARTFORD_BEACH_CENTER);
 
+  await seedOrientationPermission(page);
   await seedDeviceOrientationHarness(page);
 
   await page.goto("/");
   await page.waitForLoadState("domcontentloaded");
 
   await dismissWelcomeModal(page);
-
-  await page.evaluate(() => {
-    window.localStorage.setItem("deviceOrientationPermission", "granted");
-  });
 
   // Wait for the map to be interactive before re-applying position
   const mapCanvas = page.locator("canvas").first();
@@ -320,16 +317,13 @@ test("rotation tracking stops after leaving the center radius", async ({
   await context.grantPermissions(["geolocation"], { origin: permissionOrigin });
   await context.setGeolocation(HARTFORD_BEACH_CENTER);
 
+  await seedOrientationPermission(page);
   await seedDeviceOrientationHarness(page);
 
   await page.goto("/");
   await page.waitForLoadState("domcontentloaded");
 
   await dismissWelcomeModal(page);
-
-  await page.evaluate(() => {
-    window.localStorage.setItem("deviceOrientationPermission", "granted");
-  });
 
   const mapCanvas = page.locator("canvas").first();
   await expect(mapCanvas).toBeVisible({ timeout: 15_000 });
