@@ -3,7 +3,7 @@
  * Keeps slug formatting, browser-specific asset families, and stable path
  * selection logic from drifting without needing a browser run.
  */
-import test from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import stateParks from '../src/data/stateParks.json' with { type: 'json' };
 import { formatParkSlug, getParkAudioVariants, pickSoundPath } from '../src/utils/audioPaths.js';
