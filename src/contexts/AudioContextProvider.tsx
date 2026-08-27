@@ -1,10 +1,13 @@
 import React, { createContext, useState, useEffect, useContext, useRef, useCallback, useMemo } from 'react';
-import { ResonanceAudio } from "resonance-audio";
-import Omnitone from 'omnitone/build/omnitone.min.esm.js';
+// Type-only: the library itself is dynamically imported in the init effect
+// below so its ~300 kB (its own bundled Omnitone and base64 HRIR tables
+// included) stays out of the chunk the first paint waits on.
+import type { ResonanceAudio } from "resonance-audio";
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import { usePlaybackWakeLock } from "../hooks/usePlaybackWakeLock";
 import { createBufferCache } from "../audio/bufferCache";
 import { createBufferLoader, getCacheKey, isAbortError } from "../audio/bufferLoader";
+import { mergeBuffersByChannel } from "../audio/mergeBuffers";
 
 // Active park plus one prefetch. Each merged park buffer is 9 channels of
 // float PCM (~100 MB per minute), so this cap is what keeps a full walk from
@@ -178,7 +181,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             merge: (decoded) => {
                 const context = audioContextRef.current;
                 if (!context) throw new Error("Audio context is not ready yet.");
-                return Omnitone.mergeBufferListByChannel(context, decoded);
+                return mergeBuffersByChannel(context, decoded);
             },
         });
 
@@ -617,6 +620,10 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
                 const context = new AudioContextCtor();
                 audioContextRef.current = context;
                 setAudioContext(context);
+                // Resolved during mount, long before the walker can press
+                // Start; unlockAudio already awaits this same init promise, so
+                // the gesture path is unchanged.
+                const { ResonanceAudio } = await import("resonance-audio");
                 const scene = new ResonanceAudio(context);
                 resonanceSceneRef.current = scene;
                 scene.setAmbisonicOrder(2);
