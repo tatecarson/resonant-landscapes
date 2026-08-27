@@ -272,3 +272,42 @@ body {
 .example-spinner>img {
     width: 100%;
 }
+
+/* Location status: shown only while there is no fix to render, so it sits
+   above the map rather than beside the park strip. */
+.location-status-control {
+    /* Never block map gestures; only the card itself is interactive. */
+    pointer-events: none;
+    position: absolute;
+    top: max(1rem, env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(22rem, calc(100vw - 2rem));
+    z-index: 1200;
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+.location-status {
+    pointer-events: auto;
+    background: #8ecdc0;
+    border-radius: 0.75rem;
+    padding: 0.85rem 1rem;
+    box-shadow: 0 6px 20px rgba(23, 43, 36, 0.22);
+    text-align: center;
+}
+
+.location-status__title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: rgba(23, 43, 36, 0.95);
+}
+
+.location-status__detail {
+    margin: 0.3rem 0 0;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: rgba(23, 43, 36, 0.8);
+}

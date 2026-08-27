@@ -49,7 +49,7 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                 >
                                     Help &amp; About
                                 </Dialog.Title>
-                                <p className="font-space-mono text-[10px] tracking-widest uppercase text-neutral-900/50 mb-7">
+                                <p className="font-space-mono text-[10px] tracking-widest uppercase text-neutral-900/70 mb-7">
                                     troubleshooting · credits
                                 </p>
 
@@ -90,7 +90,7 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                     <div className="h-px flex-1 bg-neutral-900/25" />
                                 </div>
 
-                                <p className="font-space-mono text-[10px] tracking-widest uppercase text-neutral-900/50 mb-3">
+                                <p className="font-space-mono text-[10px] tracking-widest uppercase text-neutral-900/70 mb-3">
                                     about
                                 </p>
                                 <div className="font-space-mono space-y-3 text-[12px] leading-relaxed text-neutral-900/75">

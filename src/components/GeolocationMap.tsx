@@ -25,7 +25,13 @@ import SunRayLayer from "./SunRayLayer";
 import ParkGlowLayer from "./ParkGlowLayer";
 import GeolocationDebugPanel from "./GeolocationDebugPanel";
 import { useAudioContext, useAudioEngine } from "../contexts/AudioContextProvider";
-import { useGeolocationTracking } from "../hooks/useGeolocationTracking";
+import {
+    useGeolocationTracking,
+    GEOLOCATION_PERMISSION_DENIED,
+    GEOLOCATION_TIMEOUT,
+    type GeolocationFailure,
+    type LocationStatus,
+} from "../hooks/useGeolocationTracking";
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
@@ -33,6 +39,74 @@ import type { Variant, MockPosition } from "../App";
 import locationIcon from "../assets/geolocation_marker_heading.svg";
 
 const CENTER_ROTATION_RADIUS_METERS = 3;
+
+function locationStatusMessage(
+    status: LocationStatus,
+    error: GeolocationFailure | null
+): { title: string; detail: string } | null {
+    if (status === "acquiring") {
+        return {
+            title: "Finding you…",
+            detail: "Step into open sky if this takes more than a moment.",
+        };
+    }
+
+    if (status !== "error") {
+        return null;
+    }
+
+    if (error?.code === GEOLOCATION_PERMISSION_DENIED) {
+        return {
+            title: "Location is blocked",
+            detail:
+                "This walk follows where you are. Allow location for this site in your browser settings, then reload the page.",
+        };
+    }
+
+    if (error?.code === GEOLOCATION_TIMEOUT) {
+        return {
+            title: "Can't find your location yet",
+            detail: "This is taking longer than usual. Move away from buildings and tree cover.",
+        };
+    }
+
+    return {
+        title: "Can't find your location",
+        detail: "Your device could not get a fix. Move into open sky, then reload the page.",
+    };
+}
+
+const LocationStatusOverlay = memo(function LocationStatusOverlay({
+    status,
+    error,
+}: {
+    status: LocationStatus;
+    error: GeolocationFailure | null;
+}): JSX.Element {
+    const message = locationStatusMessage(status, error);
+
+    // The control stays mounted and only its contents toggle. Unmounting an
+    // RCustom throws "removeChild ... is not a child of this node" from
+    // rlayers, which lands in the ErrorBoundary around ParkModal and silently
+    // replaces the park strip with its fallback.
+    return (
+        <RControl.RCustom className="location-status-control">
+            {message ? (
+                <div
+                    className="location-status"
+                    data-testid="location-status"
+                    role="status"
+                    aria-live="polite"
+                >
+                    <p className="location-status__title">{message.title}</p>
+                    <p className="location-status__detail">{message.detail}</p>
+                </div>
+            ) : (
+                <></>
+            )}
+        </RControl.RCustom>
+    );
+});
 
 function ZoomBoundsController({
     debug = false,
@@ -158,6 +232,9 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         enterDistance,
         exitDistance,
         onGeolocationChange,
+        onGeolocationError,
+        geolocationError,
+        locationStatus,
         parkDistance,
         parkFeatures,
         parkName,
@@ -186,6 +263,10 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     const handleGeolocationChange = useCallback((event: { target: OLGeoLoc }) => {
         onGeolocationChange(event);
     }, [onGeolocationChange]);
+
+    const handleGeolocationError = useCallback((event: unknown) => {
+        onGeolocationError(event);
+    }, [onGeolocationError]);
 
     useRenderDebug("GeolocationTrackingController", {
         debug,
@@ -269,7 +350,10 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                 tracking={true}
                 trackingOptions={{ enableHighAccuracy: true }}
                 onChange={handleGeolocationChange}
+                onError={handleGeolocationError}
             />
+
+            <LocationStatusOverlay status={locationStatus} error={geolocationError} />
 
             <ParkGlowLayer
                 parks={parkFeatures.map(p => ({ name: p.name, coords: p.scaledCoords }))}

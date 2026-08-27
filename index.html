@@ -4,7 +4,11 @@
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-  <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+  <!-- Zoom stays available: this is read outdoors in glare at 9-12px, and
+       blocking it fails WCAG 1.4.4. viewport-fit=cover is what makes the
+       env(safe-area-inset-*) padding already written into the park strip
+       resolve above 0 on a notched iPhone. -->
+  <meta name="viewport" content="initial-scale=1.0, width=device-width, viewport-fit=cover">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Space+Mono&display=swap" rel="stylesheet">
