@@ -50,6 +50,33 @@ function ParkModal({
 
     const cancelButtonRef = useRef(null);
 
+    /**
+     * aria-hidden on a container whose Stop and rotation buttons stay
+     * focusable is undefined behaviour: the ARIA spec says hidden subtrees
+     * leave the accessibility tree, but a focusable element inside one is a
+     * contradiction assistive tech resolves differently. On a phone that
+     * reaches iOS Switch Control and Android Switch Access, which step through
+     * focusable elements — the mobile equivalent of tabbing — and a paired
+     * keyboard with Full Keyboard Access.
+     *
+     * `inert` resolves it properly by removing the subtree from focus order
+     * as well. React 18 does not forward the attribute, so it is set on the
+     * node directly.
+     */
+    const suppressedStripRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const strip = suppressedStripRef.current;
+        if (!strip) {
+            return;
+        }
+
+        if (suppressed) {
+            strip.setAttribute("inert", "");
+        } else {
+            strip.removeAttribute("inert");
+        }
+    }, [suppressed]);
+
     // Reset rotation state when park changes
     useEffect(() => {
         setRotationActive(false);
@@ -132,15 +159,8 @@ function ParkModal({
             <>
                 <AmbientGradient active={rotationActive && !suppressed} headingRadians={mapHeading} />
 
-                {/* Arriving somewhere is the event of a sound walk, and until
-                    now it was conveyed only by the strip appearing on screen.
-                    Announced separately from the visual layout so it survives
-                    the strip being visually suppressed. */}
-                <p className="sr-only" data-testid="park-announcement" role="status" aria-live="polite">
-                    {parkName ? `${parkName}, ${Math.floor(parkDistance)} metres away` : ""}
-                </p>
-
                 <div
+                    ref={suppressedStripRef}
                     className={`fixed bottom-0 left-0 right-0 z-50 bg-[#8ecdc0] shadow-[0_-1px_0_rgba(0,0,0,0.10),0_-12px_32px_rgba(0,0,0,0.08)] transition-opacity duration-150 ${
                         suppressed ? "pointer-events-none opacity-0" : "opacity-100"
                     }`}

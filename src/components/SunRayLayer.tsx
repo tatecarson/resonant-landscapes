@@ -4,8 +4,12 @@ import type RenderEvent from "ol/render/Event";
 import { RLayerVector, useOL } from "rlayers";
 
 import { useDecorativeLayerFrame } from "../hooks/useDecorativeLayerFrame";
+import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 import { mapRange } from "../utils/math";
 import { PREFETCH_DISTANCE } from "../utils/parkSelection";
+
+/** Mid-pulse: visible, and the same on every render. */
+const REDUCED_MOTION_PHASE_S = 0.5;
 
 type Coordinate = [number, number];
 
@@ -26,7 +30,8 @@ const MIN_CYCLE_S = 0.7;          // cycle duration at closest approach
 
 function SunRayLayer({ parks, active }: SunRayLayerProps) {
     const { map } = useOL();
-    const requestNextFrame = useDecorativeLayerFrame(active);
+    const prefersReducedMotion = usePrefersReducedMotion();
+    const requestNextFrame = useDecorativeLayerFrame(active && !prefersReducedMotion);
 
     const handlePostrender = useCallback((event: RenderEvent) => {
         if (!active || !parks.length || !map) return;
@@ -34,7 +39,9 @@ function SunRayLayer({ parks, active }: SunRayLayerProps) {
 
         const ctx = event.context;
         const dpr = event.frameState?.pixelRatio ?? window.devicePixelRatio ?? 1;
-        const now = Date.now() / 1000;
+        // Under reduced motion the pulse holds still at a fixed phase rather
+        // than being frozen wherever the clock happened to be.
+        const now = prefersReducedMotion ? REDUCED_MOTION_PHASE_S : Date.now() / 1000;
 
         ctx.save();
 
@@ -97,7 +104,7 @@ function SunRayLayer({ parks, active }: SunRayLayerProps) {
         ctx.restore();
 
         requestNextFrame(event.target);
-    }, [active, parks, map, requestNextFrame]);
+    }, [active, parks, map, requestNextFrame, prefersReducedMotion]);
 
     return (
         <RLayerVector

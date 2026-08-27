@@ -5,8 +5,12 @@ import { RLayerVector } from "rlayers";
 import { useOL } from "rlayers";
 
 import { useDecorativeLayerFrame } from "../hooks/useDecorativeLayerFrame";
+import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 import { mapRange } from "../utils/math";
 import { PREFETCH_DISTANCE } from "../utils/parkSelection";
+
+/** Mid-pulse: visible, and the same on every render. */
+const REDUCED_MOTION_PHASE_S = 0.5;
 
 type Coordinate = [number, number];
 
@@ -23,7 +27,8 @@ interface ProximityRingLayerProps {
 
 function ProximityRingLayer({ parks, active, enterDistance }: ProximityRingLayerProps) {
     const { map } = useOL();
-    const requestNextFrame = useDecorativeLayerFrame(active);
+    const prefersReducedMotion = usePrefersReducedMotion();
+    const requestNextFrame = useDecorativeLayerFrame(active && !prefersReducedMotion);
 
     const handlePostrender = useCallback((event: RenderEvent) => {
         if (!active || !parks.length || !map) {
@@ -39,7 +44,9 @@ function ProximityRingLayer({ parks, active, enterDistance }: ProximityRingLayer
         const view = map.getView();
         const projection = view.getProjection();
         const viewResolution = view.getResolution() ?? 1;
-        const t = Date.now() / 1000;
+        // Under reduced motion the pulse holds still at a fixed phase rather
+        // than being frozen wherever the clock happened to be.
+        const t = prefersReducedMotion ? REDUCED_MOTION_PHASE_S : Date.now() / 1000;
 
         ctx.save();
         for (const { coords, distance } of parks) {
@@ -70,7 +77,7 @@ function ProximityRingLayer({ parks, active, enterDistance }: ProximityRingLayer
         ctx.restore();
 
         requestNextFrame(event.target);
-    }, [active, parks, enterDistance, map, requestNextFrame]);
+    }, [active, parks, enterDistance, map, requestNextFrame, prefersReducedMotion]);
 
     return (
         <RLayerVector

@@ -34,6 +34,7 @@ import {
     type LocationStatus,
 } from "../hooks/useGeolocationTracking";
 import { useRenderDebug } from "../hooks/useRenderDebug";
+import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
 import type { Variant, MockPosition } from "../App";
@@ -335,6 +336,38 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         [currentParkLocation, parkDistance]
     );
 
+    const prefersReducedMotion = usePrefersReducedMotion();
+
+    /**
+     * Arriving somewhere is the event of a sound walk, and leaving is the
+     * other one. Both were conveyed only by the strip appearing and
+     * disappearing on screen.
+     *
+     * This lives here rather than in ParkModal because the modal unmounts on
+     * exit — an exit announcement inside it would be removed from the DOM
+     * before any screen reader could speak it. Announcing on transitions
+     * rather than interpolating the live distance also stops it re-announcing
+     * every single metre walked.
+     */
+    const [parkAnnouncement, setParkAnnouncement] = useState("");
+    const announcedParkRef = useRef("");
+    useEffect(() => {
+        const previous = announcedParkRef.current;
+        if (parkName === previous) {
+            return;
+        }
+        announcedParkRef.current = parkName;
+
+        if (parkName) {
+            setParkAnnouncement(`Entering ${parkName}, ${Math.floor(parkDistance)} metres away`);
+        } else if (previous) {
+            setParkAnnouncement("Left the listening area");
+        }
+    }, [parkName, parkDistance]);
+    // The proximity zoom is an 800 ms camera move over the whole viewport.
+    // Reduced motion gets the same destination, arrived at instantly.
+    const zoomDurationMs = prefersReducedMotion ? 0 : 800;
+
     const savedZoomRef = useRef<number | null>(null);
     const inProximityRef = useRef(false);
     const inProximity = prefetchParks.length > 0;
@@ -378,15 +411,15 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
 
         if (inProximity && !inProximityRef.current) {
             savedZoomRef.current = view.getZoom() ?? null;
-            view.animate({ zoom: 19, duration: 800 });
+            view.animate({ zoom: 19, duration: zoomDurationMs });
         } else if (!inProximity && inProximityRef.current) {
             if (savedZoomRef.current !== null) {
-                view.animate({ zoom: savedZoomRef.current, duration: 800 });
+                view.animate({ zoom: savedZoomRef.current, duration: zoomDurationMs });
             }
         }
 
         inProximityRef.current = inProximity;
-    }, [map, inProximity]);
+    }, [map, inProximity, zoomDurationMs]);
 
 
     return (
@@ -397,6 +430,10 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                 onChange={handleGeolocationChange}
                 onError={handleGeolocationError}
             />
+
+            <p className="sr-only" data-testid="park-announcement" role="status" aria-live="polite">
+                {parkAnnouncement}
+            </p>
 
             <LocationStatusOverlay
                 status={locationStatus}

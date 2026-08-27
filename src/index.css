@@ -34,4 +34,22 @@
     background-color: rgb(23 23 23 / 0.06);
     box-shadow: 0 0 0 2px rgb(23 23 23 / 0.28);
   }
+
+  /*
+   * Everything else that moves on its own. Guarding only the affordance left
+   * the pulsing "audio playing" dots, the modal transitions and the ambient
+   * fade running — and this is a screen held at walking pace outdoors, where
+   * large-area motion is the thing people turn this setting on to avoid.
+   *
+   * The canvas layers and the map's zoom cannot be reached from CSS; they read
+   * the same preference through usePrefersReducedMotion.
+   */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

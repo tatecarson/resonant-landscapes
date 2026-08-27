@@ -261,6 +261,38 @@ const HOARenderer = ({
         }
     };
     const compactStatusLabel = getCompactStatusLabel();
+
+    /**
+     * What a screen-reader user is told about the audio.
+     *
+     * The visible status label carries this for sighted users, but its
+     * aria-live region is behind `!(compact && hideStatusLabel)` and the strip
+     * passes both — so on the real code path audio state was announced
+     * nowhere. Someone walking with VoiceOver or TalkBack got no notice that a
+     * park's audio had started, stopped, or failed.
+     *
+     * Only the states worth interrupting for. "ready" and "approaching" are
+     * deliberately silent: they change often and say nothing actionable, and a
+     * live region that chatters is one people turn off.
+     */
+    const audioAnnouncement = (() => {
+        switch (audioStatus) {
+            case "error":
+                return "Audio unavailable for this park.";
+            case "preparing":
+                return "Loading audio.";
+            case "playing":
+                return "Audio playing.";
+            case "interrupted":
+                return "Audio paused.";
+            case "ready-manual":
+                return allowManualRestart
+                    ? "Playback stopped. Activate start audio to resume."
+                    : "Audio ready. Activate start audio to begin.";
+            default:
+                return "";
+        }
+    })();
     const showCompactLoadingIndicator = compact && hideStatusLabel && !activeError && (audioStatus === "initializing" || audioStatus === "preparing" || audioStatus === "ready");
 
     const retryLoading = useCallback(() => {
@@ -279,6 +311,10 @@ const HOARenderer = ({
 
     return (
         <div id="secSource">
+            <p className="sr-only" data-testid="audio-announcement" role="status" aria-live="polite">
+                {audioAnnouncement}
+            </p>
+
             <div className={compact ? "flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3" : "space-y-4"}>
                 <div className="min-w-0 space-y-1">
                     {!(compact && hideStatusLabel) && (
