@@ -73,6 +73,43 @@ async function startPreviewRotationLoop(page: import("@playwright/test").Page) {
   });
 }
 
+/**
+ * A real gyroscope emits continuously whether or not the device is moving, and
+ * the app now treats silence as a revoked grant (rl-dqc.5): rotation switches
+ * itself off if no deviceorientation event arrives within 1.5 s of enabling.
+ * Specs that enable rotation without dispatching anything were relying on
+ * getting their assertion in before that timer — a race that stepping through
+ * the debugger loses. This holds the device still while still reporting.
+ */
+async function startOrientationHeartbeat(page: import("@playwright/test").Page) {
+  await page.evaluate(() => {
+    const heartbeatWindow = window as Window & {
+      __dispatchDeviceOrientation: (alpha: number, beta: number, gamma: number) => void;
+      __gimbalHeartbeatId?: number;
+    };
+
+    if (heartbeatWindow.__gimbalHeartbeatId !== undefined) {
+      window.clearInterval(heartbeatWindow.__gimbalHeartbeatId);
+    }
+
+    heartbeatWindow.__dispatchDeviceOrientation(0, -90, 0);
+    heartbeatWindow.__gimbalHeartbeatId = window.setInterval(() => {
+      heartbeatWindow.__dispatchDeviceOrientation(0, -90, 0);
+    }, 250);
+  });
+}
+
+async function stopOrientationHeartbeat(page: import("@playwright/test").Page) {
+  await page.evaluate(() => {
+    const heartbeatWindow = window as Window & { __gimbalHeartbeatId?: number };
+
+    if (heartbeatWindow.__gimbalHeartbeatId !== undefined) {
+      window.clearInterval(heartbeatWindow.__gimbalHeartbeatId);
+      delete heartbeatWindow.__gimbalHeartbeatId;
+    }
+  });
+}
+
 async function stopPreviewRotationLoop(page: import("@playwright/test").Page) {
   await page.evaluate(() => {
     const previewWindow = window as Window & {
@@ -148,6 +185,10 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   }).toBe(true);
   console.log("[test] audio autoplay active");
 
+  // Report orientation before rotation can auto-enable: the staleness watchdog
+  // gives it 1.5 s to hear from the sensor, and the poll below can outlast that.
+  await startOrientationHeartbeat(page);
+
   // Rotation should auto-enable once audio is playing and the user is at center range.
   await expect
     .poll(() => page.evaluate(() => (window as Window).__gimbalOrientation?.updatedAt ?? null), {
@@ -158,6 +199,8 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
 
   // Start the visible rotation preview before the map-centering assertion so
   // a failing centerOnUser check does not hide the headed-mode motion entirely.
+  // It supersedes the heartbeat, which would fight it for the current heading.
+  await stopOrientationHeartbeat(page);
   await startPreviewRotationLoop(page);
   console.log("[test] continuous rotation preview running");
 
@@ -340,6 +383,10 @@ test("rotation tracking stops after leaving the center radius", async ({
     timeout: 10_000,
   }).toBe(true);
 
+  // Playback is what auto-enables rotation, so the sensor has to be reporting
+  // from here on or the staleness watchdog turns rotation straight back off.
+  await startOrientationHeartbeat(page);
+
   const trackingLabel = page.getByLabel("Spatial tracking active");
   const centeredMarker = page.locator(".centered-geolocation-control");
   await expect(centeredMarker).toHaveClass(/centered-geolocation-control--active/, { timeout: 10_000 });
@@ -353,6 +400,10 @@ test("rotation tracking stops after leaving the center radius", async ({
   await context.setGeolocation(HARTFORD_BEACH_OUTSIDE_CENTER);
   await expect(trackingLabel).toHaveCount(0, { timeout: 10_000 });
   await expect(centeredMarker).toHaveClass(/centered-geolocation-control--hidden/, { timeout: 10_000 });
+
+  // The gimbal should now be torn down: silence the heartbeat so the frozen
+  // check below is measuring that, and not a stopped interval.
+  await stopOrientationHeartbeat(page);
 
   await page.waitForTimeout(300);
   const stoppedAt = await page.evaluate(() => (window as Window).__gimbalOrientation?.updatedAt ?? null);

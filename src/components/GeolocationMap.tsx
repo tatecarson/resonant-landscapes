@@ -43,8 +43,29 @@ const CENTER_ROTATION_RADIUS_METERS = 3;
 
 function locationStatusMessage(
     status: LocationStatus,
-    error: GeolocationFailure | null
+    error: GeolocationFailure | null,
+    accuracyMeters: number | null,
+    enterDistance: number
 ): { title: string; detail: string } | null {
+    if (status === "stale") {
+        return {
+            title: "Signal lost",
+            detail: "Your position has stopped updating. Move into open sky — parks will not trigger until it does.",
+        };
+    }
+
+    if (status === "imprecise") {
+        // Without the number this reads as a vague apology. With it, the
+        // walker can tell "drifting a little" from "useless under these trees".
+        const radius = accuracyMeters === null ? null : Math.round(accuracyMeters);
+        return {
+            title: "GPS is imprecise here",
+            detail: radius === null
+                ? `Your position is less accurate than the ${enterDistance} m listening areas, so parks may trigger late or not at all.`
+                : `Your position is accurate to about ${radius} m, wider than the ${enterDistance} m listening areas. Parks may trigger late, early, or not at all — open sky helps.`,
+        };
+    }
+
     if (status === "acquiring") {
         return {
             title: "Finding you…",
@@ -80,11 +101,15 @@ function locationStatusMessage(
 const LocationStatusOverlay = memo(function LocationStatusOverlay({
     status,
     error,
+    accuracyMeters,
+    enterDistance,
 }: {
     status: LocationStatus;
     error: GeolocationFailure | null;
+    accuracyMeters: number | null;
+    enterDistance: number;
 }): JSX.Element {
-    const message = locationStatusMessage(status, error);
+    const message = locationStatusMessage(status, error, accuracyMeters, enterDistance);
 
     // The control stays mounted and only its contents toggle. Unmounting an
     // RCustom throws "removeChild ... is not a child of this node" from
@@ -228,6 +253,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     const { audioContext } = useAudioContext();
     const {
         accuracy,
+        accuracyMeters,
         currentParkLocation,
         debugPermission,
         enterDistance,
@@ -298,6 +324,17 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         setParkModalOpen(Boolean(parkName));
     }, [parkName, stopSound]);
 
+    // memo()'d layers only pay off if their props are stable: both of these
+    // were fresh arrays on every render, which is every GPS frame.
+    const glowParks = useMemo(
+        () => parkFeatures.map((p) => ({ name: p.name, coords: p.scaledCoords })),
+        [parkFeatures]
+    );
+    const sunRayParks = useMemo(
+        () => (currentParkLocation ? [{ coords: currentParkLocation, distance: parkDistance }] : []),
+        [currentParkLocation, parkDistance]
+    );
+
     const savedZoomRef = useRef<number | null>(null);
     const inProximityRef = useRef(false);
     const inProximity = prefetchParks.length > 0;
@@ -361,10 +398,15 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                 onError={handleGeolocationError}
             />
 
-            <LocationStatusOverlay status={locationStatus} error={geolocationError} />
+            <LocationStatusOverlay
+                status={locationStatus}
+                error={geolocationError}
+                accuracyMeters={accuracyMeters}
+                enterDistance={enterDistance}
+            />
 
             <ParkGlowLayer
-                parks={parkFeatures.map(p => ({ name: p.name, coords: p.scaledCoords }))}
+                parks={glowParks}
                 activeParkName={parkName || undefined}
                 activeParkDistance={Math.floor(parkDistance)}
             />
@@ -384,7 +426,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
             />
 
             <SunRayLayer
-                parks={currentParkLocation ? [{ coords: currentParkLocation, distance: parkDistance }] : []}
+                parks={sunRayParks}
                 active={Boolean(parkName)}
             />
 

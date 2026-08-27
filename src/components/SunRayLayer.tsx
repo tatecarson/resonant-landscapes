@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 import { fromLonLat } from "ol/proj";
 import type RenderEvent from "ol/render/Event";
 import { RLayerVector, useOL } from "rlayers";
@@ -23,7 +23,7 @@ const RAY_STAGGER_S = 0.23;       // seconds between each ray's phase start
 const BASE_CYCLE_S = 2.8;         // cycle duration at max distance
 const MIN_CYCLE_S = 0.7;          // cycle duration at closest approach
 
-export default function SunRayLayer({ parks, active }: SunRayLayerProps) {
+function SunRayLayer({ parks, active }: SunRayLayerProps) {
     const { map } = useOL();
 
     const handlePostrender = useCallback((event: RenderEvent) => {
@@ -104,3 +104,9 @@ export default function SunRayLayer({ parks, active }: SunRayLayerProps) {
         />
     );
 }
+
+/**
+ * Redraws on every postrender, so an unmemoised parent re-render rebuilds the
+ * listener and repaints the map even when nothing this layer draws has moved.
+ */
+export default memo(SunRayLayer);

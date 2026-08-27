@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 import { fromLonLat, getPointResolution } from "ol/proj";
 import type RenderEvent from "ol/render/Event";
 import { RLayerVector } from "rlayers";
@@ -20,7 +20,7 @@ interface ProximityRingLayerProps {
     enterDistance: number; // geographic radius (meters) of the boundary circle — rings pulse from its edge
 }
 
-export default function ProximityRingLayer({ parks, active, enterDistance }: ProximityRingLayerProps) {
+function ProximityRingLayer({ parks, active, enterDistance }: ProximityRingLayerProps) {
     const { map } = useOL();
 
     const handlePostrender = useCallback((event: RenderEvent) => {
@@ -77,3 +77,9 @@ export default function ProximityRingLayer({ parks, active, enterDistance }: Pro
         />
     );
 }
+
+/**
+ * Redraws on every postrender, so an unmemoised parent re-render rebuilds the
+ * listener and repaints the map even when nothing this layer draws has moved.
+ */
+export default memo(ProximityRingLayer);
