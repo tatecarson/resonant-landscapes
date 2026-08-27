@@ -33,6 +33,7 @@ interface Window {
     engineError: string | null;
     loadError: string | null;
     lastUnlockError: string | null;
+    needsAudioResume: boolean;
     lastEvent: string | null;
     activeUrls: string[];
     cacheEntries: number;

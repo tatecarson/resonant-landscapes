@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useContext, useRef, useCallb
 import { ResonanceAudio } from "resonance-audio";
 import Omnitone from 'omnitone/build/omnitone.min.esm.js';
 import { useRenderDebug } from "../hooks/useRenderDebug";
+import { usePlaybackWakeLock } from "../hooks/usePlaybackWakeLock";
 import { createBufferCache } from "../audio/bufferCache";
 import { createBufferLoader, getCacheKey, isAbortError } from "../audio/bufferLoader";
 
@@ -9,6 +10,7 @@ import { createBufferLoader, getCacheKey, isAbortError } from "../audio/bufferLo
 // float PCM (~100 MB per minute), so this cap is what keeps a full walk from
 // exhausting mobile Safari.
 const MAX_CACHED_PARKS = 2;
+const KEEP_SCREEN_AWAKE_STORAGE_KEY = "keepScreenAwakeDuringPlayback";
 
 interface AudioEngineContextType {
     audioContext: AudioContext | null;
@@ -21,6 +23,8 @@ interface AudioEngineContextType {
     clearLoadError: () => void;
     cancelPendingLoad: () => void;
     preloadBuffers: (urls: string[]) => Promise<boolean>;
+    resumeInterruptedAudio: () => Promise<boolean>;
+    setKeepScreenAwake: (enabled: boolean) => void;
 }
 
 interface AudioPlaybackStateContextType {
@@ -35,6 +39,11 @@ interface AudioPlaybackStateContextType {
     lastLoadReason: "active-load" | "prefetch" | null;
     lastLoadCacheHit: boolean | null;
     lastLoadDurationMs: number | null;
+    needsAudioResume: boolean;
+    keepScreenAwake: boolean;
+    wakeLockSupported: boolean;
+    wakeLockStatus: "inactive" | "requesting" | "active" | "error";
+    wakeLockError: string | null;
 }
 
 type AudioLoadDebug = {
@@ -57,6 +66,8 @@ const AudioEngineContext = createContext<AudioEngineContextType>({
     clearLoadError: () => {},
     cancelPendingLoad: () => {},
     preloadBuffers: async () => false,
+    resumeInterruptedAudio: async () => false,
+    setKeepScreenAwake: () => {},
 });
 
 const AudioPlaybackStateContext = createContext<AudioPlaybackStateContextType>({
@@ -71,6 +82,11 @@ const AudioPlaybackStateContext = createContext<AudioPlaybackStateContextType>({
     lastLoadReason: null,
     lastLoadCacheHit: null,
     lastLoadDurationMs: null,
+    needsAudioResume: false,
+    keepScreenAwake: true,
+    wakeLockSupported: false,
+    wakeLockStatus: "inactive",
+    wakeLockError: null,
 });
 
 
@@ -86,12 +102,21 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const [loadError, setLoadError] = useState<string | null>(null);
     const [lastUnlockError, setLastUnlockError] = useState<string | null>(null);
     const [lastLoad, setLastLoad] = useState<AudioLoadDebug | null>(null);
+    const [needsAudioResume, setNeedsAudioResume] = useState(false);
+    const [keepScreenAwake, setKeepScreenAwakeState] = useState(() => {
+        try {
+            return window.localStorage.getItem(KEEP_SCREEN_AWAKE_STORAGE_KEY) !== "false";
+        } catch {
+            return true;
+        }
+    });
     const audioInitializedRef = useRef(false);
     const initAudioPromiseRef = useRef<Promise<void> | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
     const resonanceSceneRef = useRef<ResonanceAudio | null>(null);
     const audioPrimedRef = useRef(false);
     const bufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
+    const isPlayingRef = useRef(false);
     const lastAudioEventRef = useRef<string | null>(null);
     const activeLoadRequestIdRef = useRef(0);
     const bufferCacheRef = useRef(createBufferCache({ maxEntries: MAX_CACHED_PARKS }));
@@ -110,11 +135,17 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         engineError: null as string | null,
         loadError: null as string | null,
         lastUnlockError: null as string | null,
+        needsAudioResume: false,
         activeUrls: [] as string[],
         lastLoad: null as AudioLoadDebug | null,
     });
 
     const bufferLoaderRef = useRef<ReturnType<typeof createBufferLoader> | null>(null);
+    const {
+        supported: wakeLockSupported,
+        status: wakeLockStatus,
+        error: wakeLockError,
+    } = usePlaybackWakeLock(keepScreenAwake && isPlaying);
 
     const getBufferLoader = useCallback(() => {
         if (bufferLoaderRef.current) return bufferLoaderRef.current;
@@ -169,6 +200,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         if (nextEvent !== undefined) {
             lastAudioEventRef.current = nextEvent;
         }
+        const uiStatus = window.__audioDebug?.uiStatus ?? null;
 
         const {
             audioContextState,
@@ -180,6 +212,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             engineError: activeEngineError,
             loadError: activeLoadError,
             lastUnlockError: activeUnlockError,
+            needsAudioResume: activeNeedsAudioResume,
             activeUrls,
             lastLoad,
         } = audioDebugStateRef.current;
@@ -196,12 +229,14 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             engineError: activeEngineError,
             loadError: activeLoadError,
             lastUnlockError: activeUnlockError,
+            needsAudioResume: activeNeedsAudioResume,
             lastEvent: lastAudioEventRef.current,
             activeUrls,
             cacheEntries: bufferCacheRef.current.size,
             lastLoadReason: lastLoad?.reason ?? null,
             lastLoadDurationMs: lastLoad?.durationMs ?? null,
             lastLoadCacheHit: lastLoad?.cacheHit ?? null,
+            uiStatus,
         };
     }, []);
 
@@ -370,11 +405,15 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         bufferSource.connect(source.input);
         bufferSource.onended = () => {
             bufferSourceRef.current = null;
+            isPlayingRef.current = false;
             setIsPlaying(false);
+            setNeedsAudioResume(false);
             syncAudioDebug("playback-ended");
         };
         bufferSource.start();
+        isPlayingRef.current = true;
         setIsPlaying(true);
+        setNeedsAudioResume(false);
         syncAudioDebug("playback-started");
     }, [audioContext, buffers, resonanceAudioScene, syncAudioDebug]);
 
@@ -400,6 +439,50 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
 
         audioPrimedRef.current = true;
     }, []);
+
+    const setKeepScreenAwake = useCallback((enabled: boolean) => {
+        setKeepScreenAwakeState(enabled);
+        try {
+            window.localStorage.setItem(KEEP_SCREEN_AWAKE_STORAGE_KEY, String(enabled));
+        } catch {
+            // Keep the in-memory preference usable when browser storage is blocked.
+        }
+    }, []);
+
+    const resumeInterruptedAudio = useCallback(async (): Promise<boolean> => {
+        const context = audioContextRef.current;
+        if (!context || String(context.state) === "closed") {
+            setNeedsAudioResume(false);
+            return false;
+        }
+
+        if (context.state === "running") {
+            setNeedsAudioResume(false);
+            setIsAudioUnlocked(true);
+            return true;
+        }
+
+        setNeedsAudioResume(true);
+        syncAudioDebug("interruption-resume-requested");
+        try {
+            await context.resume();
+            const resumed = String(context.state) === "running";
+            setNeedsAudioResume(!resumed);
+            if (resumed) {
+                setIsAudioUnlocked(true);
+                setLastUnlockError(null);
+                syncAudioDebug("interruption-resumed");
+            } else {
+                syncAudioDebug("interruption-resume-blocked");
+            }
+            return resumed;
+        } catch (error) {
+            console.error("Error resuming interrupted audio:", error);
+            setNeedsAudioResume(true);
+            syncAudioDebug("interruption-resume-blocked");
+            return false;
+        }
+    }, [syncAudioDebug]);
 
     const unlockAudio = useCallback(async (): Promise<boolean> => {
         try {
@@ -470,7 +553,9 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             bufferSourceRef.current.stop();
             bufferSourceRef.current.disconnect();
             bufferSourceRef.current = null;
+            isPlayingRef.current = false;
             setIsPlaying(false);
+            setNeedsAudioResume(false);
             syncAudioDebug("playback-stopped");
         }
     }, [isPlaying, syncAudioDebug]);
@@ -524,6 +609,56 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     useEffect(() => {
+        isPlayingRef.current = isPlaying;
+        if (!isPlaying) {
+            setNeedsAudioResume(false);
+        }
+    }, [isPlaying]);
+
+    useEffect(() => {
+        if (!audioContext) return;
+
+        const handleContextState = () => {
+            const contextState = String(audioContext.state);
+            audioDebugStateRef.current = {
+                ...audioDebugStateRef.current,
+                audioContextState: contextState,
+            };
+            syncAudioDebug("context-state-changed");
+
+            if (!isPlayingRef.current || contextState === "closed") {
+                setNeedsAudioResume(false);
+                return;
+            }
+
+            if (contextState === "running") {
+                setNeedsAudioResume(false);
+                return;
+            }
+
+            setNeedsAudioResume(true);
+            if (document.visibilityState === "visible") {
+                void resumeInterruptedAudio();
+            }
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === "visible" && isPlayingRef.current) {
+                handleContextState();
+            }
+        };
+
+        audioContext.addEventListener("statechange", handleContextState);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        handleContextState();
+
+        return () => {
+            audioContext.removeEventListener("statechange", handleContextState);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
+    }, [audioContext, resumeInterruptedAudio, syncAudioDebug]);
+
+    useEffect(() => {
         audioDebugStateRef.current = {
             audioContextState: audioContext?.state ?? 'unavailable',
             isEngineInitializing,
@@ -534,11 +669,12 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             engineError,
             loadError,
             lastUnlockError,
+            needsAudioResume,
             activeUrls: audioDebugStateRef.current.activeUrls,
             lastLoad: audioDebugStateRef.current.lastLoad,
         };
         syncAudioDebug();
-    }, [audioContext, buffers, engineError, isEngineInitializing, isLoading, isPlaying, isAudioUnlocked, loadError, lastUnlockError, syncAudioDebug]);
+    }, [audioContext, buffers, engineError, isEngineInitializing, isLoading, isPlaying, isAudioUnlocked, loadError, lastUnlockError, needsAudioResume, syncAudioDebug]);
 
 
     const engineValue = useMemo(() => ({
@@ -552,6 +688,8 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         clearLoadError,
         cancelPendingLoad,
         preloadBuffers,
+        resumeInterruptedAudio,
+        setKeepScreenAwake,
     }), [
         audioContext,
         resonanceAudioScene,
@@ -562,6 +700,8 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         clearLoadError,
         cancelPendingLoad,
         preloadBuffers,
+        resumeInterruptedAudio,
+        setKeepScreenAwake,
     ]);
 
     const playbackStateValue = useMemo(() => ({
@@ -576,7 +716,27 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         lastLoadReason: lastLoad?.reason ?? null,
         lastLoadCacheHit: lastLoad?.cacheHit ?? null,
         lastLoadDurationMs: lastLoad?.durationMs ?? null,
-    }), [buffers, engineError, isEngineInitializing, isLoading, isPlaying, isAudioUnlocked, loadError, lastUnlockError, lastLoad]);
+        needsAudioResume,
+        keepScreenAwake,
+        wakeLockSupported,
+        wakeLockStatus,
+        wakeLockError,
+    }), [
+        buffers,
+        engineError,
+        isEngineInitializing,
+        isLoading,
+        isPlaying,
+        isAudioUnlocked,
+        loadError,
+        lastUnlockError,
+        lastLoad,
+        needsAudioResume,
+        keepScreenAwake,
+        wakeLockSupported,
+        wakeLockStatus,
+        wakeLockError,
+    ]);
 
     useRenderDebug("AudioContextProvider", {
         audioContextState: audioContext?.state ?? "unavailable",
@@ -589,6 +749,11 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         engineError,
         loadError,
         lastUnlockError,
+        needsAudioResume,
+        keepScreenAwake,
+        wakeLockSupported,
+        wakeLockStatus,
+        wakeLockError,
         cacheEntries: bufferCacheRef.current.size,
     });
 
