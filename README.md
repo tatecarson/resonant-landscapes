@@ -83,6 +83,18 @@ and multi-megabyte payloads from the CDN.
 Node 22 is required (`engines` in `package.json`, plus `.nvmrc`); run
 `nvm use` before installing.
 
+#### Why `@emnapi/runtime` is a devDependency
+
+Nothing in this repo imports it. It is an optional dependency of the rolldown
+wasm binding, and npm on macOS prunes that subtree — so a lockfile regenerated
+on a Mac silently omits it, and `npm ci` then fails on Linux with a bare
+`Missing: @emnapi/runtime from lock file`. `npm ci` passes locally either way,
+so the breakage only ever appears in CI, with no hint of the cause.
+
+Declaring it directly forces npm to record it whatever platform resolves the
+tree. Do not remove it without checking that `npm ci` still passes on Linux.
+See rl-u7b.
+
 ## BrowserStack Playwright
 
 BrowserStack is configured for real Android Chrome runs through the BrowserStack Node SDK and the root [browserstack.yml](/Users/tate.carson/other_websites/resonant-landscapes/browserstack.yml).

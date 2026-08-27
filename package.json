@@ -52,6 +52,7 @@
     "rlayers": "^2.2.0"
   },
   "devDependencies": {
+    "@emnapi/runtime": "^1.11.3",
     "@playwright/test": "^1.59.1",
     "@types/react": "^18.2.33",
     "@types/react-dom": "^18.2.14",
