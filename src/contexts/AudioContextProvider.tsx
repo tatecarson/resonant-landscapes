@@ -10,6 +10,9 @@ import { createBufferLoader, getCacheKey, isAbortError } from "../audio/bufferLo
 // float PCM (~100 MB per minute), so this cap is what keeps a full walk from
 // exhausting mobile Safari.
 const MAX_CACHED_PARKS = 2;
+// Long enough to remove the click, short enough that crossing the boundary
+// still feels like the park starting and stopping rather than a slow dissolve.
+const FADE_SECONDS = 0.3;
 const KEEP_SCREEN_AWAKE_STORAGE_KEY = "keepScreenAwakeDuringPlayback";
 
 interface AudioEngineContextType {
@@ -116,6 +119,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const resonanceSceneRef = useRef<ResonanceAudio | null>(null);
     const audioPrimedRef = useRef(false);
     const bufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
+    const fadeGainRef = useRef<GainNode | null>(null);
     const isPlayingRef = useRef(false);
     const lastAudioEventRef = useRef<string | null>(null);
     const activeLoadRequestIdRef = useRef(0);
@@ -402,9 +406,29 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         bufferSourceRef.current = bufferSource;
         bufferSource.buffer = buffers;
         bufferSource.loop = true;
-        bufferSource.connect(source.input);
+
+        // Starting a buffer at full amplitude puts a step discontinuity into
+        // the stream — an audible click. Crossing the exit radius used to call
+        // stop() the same way, so GPS jitter at the boundary clicked on every
+        // re-trigger. Fade through a dedicated gain node instead.
+        const fadeGain = audioContext.createGain();
+        fadeGain.gain.setValueAtTime(0, audioContext.currentTime);
+        fadeGain.gain.linearRampToValueAtTime(1, audioContext.currentTime + FADE_SECONDS);
+        fadeGainRef.current = fadeGain;
+
+        bufferSource.connect(fadeGain);
+        fadeGain.connect(source.input);
         bufferSource.onended = () => {
-            bufferSourceRef.current = null;
+            // Disconnect here rather than in stopSound: tearing the graph down
+            // synchronously would cut the fade-out it just scheduled.
+            bufferSource.disconnect();
+            fadeGain.disconnect();
+            if (fadeGainRef.current === fadeGain) {
+                fadeGainRef.current = null;
+            }
+            if (bufferSourceRef.current === bufferSource) {
+                bufferSourceRef.current = null;
+            }
             isPlayingRef.current = false;
             setIsPlaying(false);
             setNeedsAudioResume(false);
@@ -550,8 +574,26 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const stopSound = useCallback(() => {
         if (bufferSourceRef.current && isPlaying) {
             console.log('Stopping sound...');
-            bufferSourceRef.current.stop();
-            bufferSourceRef.current.disconnect();
+            const bufferSource = bufferSourceRef.current;
+            const fadeGain = fadeGainRef.current;
+            const context = audioContextRef.current;
+
+            if (fadeGain && context) {
+                const now = context.currentTime;
+                // Ramp from wherever the fade-in got to, not from 1 — a walker
+                // who crosses back out within the fade would otherwise jump to
+                // full volume before fading.
+                fadeGain.gain.cancelScheduledValues(now);
+                fadeGain.gain.setValueAtTime(fadeGain.gain.value, now);
+                fadeGain.gain.linearRampToValueAtTime(0, now + FADE_SECONDS);
+                bufferSource.stop(now + FADE_SECONDS);
+            } else {
+                bufferSource.stop();
+            }
+
+            // The graph is torn down in onended once the tail has played, but
+            // the app is out of the park now: report it immediately so the UI
+            // and the geolocation loop do not wait on the fade.
             bufferSourceRef.current = null;
             isPlayingRef.current = false;
             setIsPlaying(false);
