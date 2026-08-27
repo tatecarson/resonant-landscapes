@@ -298,6 +298,17 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         setParkModalOpen(Boolean(parkName));
     }, [parkName, stopSound]);
 
+    // memo()'d layers only pay off if their props are stable: both of these
+    // were fresh arrays on every render, which is every GPS frame.
+    const glowParks = useMemo(
+        () => parkFeatures.map((p) => ({ name: p.name, coords: p.scaledCoords })),
+        [parkFeatures]
+    );
+    const sunRayParks = useMemo(
+        () => (currentParkLocation ? [{ coords: currentParkLocation, distance: parkDistance }] : []),
+        [currentParkLocation, parkDistance]
+    );
+
     const savedZoomRef = useRef<number | null>(null);
     const inProximityRef = useRef(false);
     const inProximity = prefetchParks.length > 0;
@@ -364,7 +375,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
             <LocationStatusOverlay status={locationStatus} error={geolocationError} />
 
             <ParkGlowLayer
-                parks={parkFeatures.map(p => ({ name: p.name, coords: p.scaledCoords }))}
+                parks={glowParks}
                 activeParkName={parkName || undefined}
                 activeParkDistance={Math.floor(parkDistance)}
             />
@@ -384,7 +395,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
             />
 
             <SunRayLayer
-                parks={currentParkLocation ? [{ coords: currentParkLocation, distance: parkDistance }] : []}
+                parks={sunRayParks}
                 active={Boolean(parkName)}
             />
 

@@ -36,7 +36,12 @@ interface UseGeolocationTrackingOptions {
 
 const MIN_SMOOTHING_DELAY_MS = 120;
 const MAX_SMOOTHING_DELAY_MS = 420;
-const POSITION_EPSILON = 0.0001;
+// The smoothed position is EPSG:3857 metres in [0] and [1] and a heading in
+// radians in [2], so one epsilon cannot serve both. The old shared 0.0001 was
+// 0.1 mm against metres, so the early-out never fired and every GPS frame
+// re-rendered the whole map tree.
+const POSITION_EPSILON_METERS = 0.5;
+const HEADING_EPSILON_RADIANS = 0.01; // ~0.6 degrees
 const GPS_HEADING_ENTER_MPS = 1.2;
 const GPS_HEADING_EXIT_MPS = 0.6;
 const GPS_SPEED_FRESHNESS_MS = 3000;
@@ -89,8 +94,6 @@ export function useGeolocationTracking({
     const [parkName, setParkName] = useState("");
     const [parkDistance, setParkDistance] = useState(0);
     const [prefetchParkName, setPrefetchParkName] = useState("");
-    const [prefetchParkCoords, setPrefetchParkCoords] = useState<Coordinate | null>(null);
-    const [prefetchParkDistance, setPrefetchParkDistance] = useState(0);
     const [prefetchParks, setPrefetchParks] = useState<{ coords: Coordinate; distance: number }[]>([]);
     const [currentParkLocation, setCurrentParkLocation] = useState<Coordinate | null>(null);
     const [userOrientationEnabled, setUserOrientationEnabled] = useState(false);
@@ -197,7 +200,8 @@ export function useGeolocationTracking({
         return () => window.clearTimeout(timer);
     }, [position, geolocationError]);
 
-    const updateView = useCallback((timestamp = Date.now()) => {
+    /** Returns whether this tick committed a new position. */
+    const updateView = useCallback((timestamp = Date.now()): boolean => {
         let m = timestamp - getSmoothingDelay();
         m = Math.max(m, previousMRef.current);
         previousMRef.current = m;
@@ -208,9 +212,11 @@ export function useGeolocationTracking({
         }
 
         const previousPosition = lastRenderedPositionRef.current;
-        const positionChanged = !previousPosition || [0, 1, 2].some((index) => {
-            return Math.abs(coordinates[index] - previousPosition[index]) > POSITION_EPSILON;
-        });
+        const positionChanged =
+            !previousPosition ||
+            Math.abs(coordinates[0] - previousPosition[0]) > POSITION_EPSILON_METERS ||
+            Math.abs(coordinates[1] - previousPosition[1]) > POSITION_EPSILON_METERS ||
+            Math.abs(coordinates[2] - previousPosition[2]) > HEADING_EPSILON_RADIANS;
 
         if (!positionChanged) {
             return false;
@@ -223,8 +229,6 @@ export function useGeolocationTracking({
         const closest = findClosestPark(userLocation, parkFeatures) as { park: ParkFeature; distance: number } | null;
         const inPrefetchRange = Boolean(closest && closest.distance < prefetchDistance);
         setPrefetchParkName(inPrefetchRange ? closest!.park.name : "");
-        setPrefetchParkCoords(inPrefetchRange ? closest!.park.scaledCoords : null);
-        setPrefetchParkDistance(inPrefetchRange ? closest!.distance : 0);
         setPrefetchParks(findParksInRange(userLocation, parkFeatures, prefetchDistance));
 
         const nearbyPark = selectNearestInRangePark(userLocation, parkFeatures, enterDistance);
@@ -237,7 +241,9 @@ export function useGeolocationTracking({
 
         const activeParkLocation = nextParkLocation ?? currentParkLocation;
         if (!activeParkLocation) {
-            return;
+            // No active park, so there is no exit distance to check — but the
+            // position itself was committed above.
+            return true;
         }
 
         const currentDistance = distanceInMeters(activeParkLocation, userLocation);
@@ -267,6 +273,17 @@ export function useGeolocationTracking({
         return true;
     }, [currentParkLocation, exitDistance, getSmoothingDelay, parkFeatures, parkName, prefetchDistance, resonanceAudioScene, stopSound]);
 
+    // The running tick captures updateView by closure, but updateView is
+    // rebuilt whenever parkName or currentParkLocation changes — exactly when
+    // the walker enters or leaves a park. The animationFrameRef guard below
+    // then stops a fresh loop from starting while the stale one is still
+    // alive, so entry/exit decisions would run against the previous park.
+    // Reading through a ref keeps one loop calling the current logic.
+    const updateViewRef = useRef(updateView);
+    useEffect(() => {
+        updateViewRef.current = updateView;
+    }, [updateView]);
+
     const stopAnimationLoop = useCallback(() => {
         if (animationFrameRef.current !== null) {
             cancelAnimationFrame(animationFrameRef.current);
@@ -281,7 +298,7 @@ export function useGeolocationTracking({
 
         const tick = () => {
             const now = Date.now();
-            updateView(now);
+            updateViewRef.current(now);
 
             const coords = positionsRef.current.getCoordinates();
             const latestFixM = coords[coords.length - 1]?.[3] ?? 0;
@@ -296,7 +313,7 @@ export function useGeolocationTracking({
         };
 
         animationFrameRef.current = requestAnimationFrame(tick);
-    }, [getSmoothingDelay, updateView]);
+    }, [getSmoothingDelay]);
 
     const commitMapHeading = useCallback((radians: number) => {
         const prev = mapHeadingRef.current;
@@ -476,8 +493,6 @@ export function useGeolocationTracking({
         parkFeatures,
         parkName,
         prefetchParkName,
-        prefetchParkCoords,
-        prefetchParkDistance,
         prefetchParks,
         position,
         mapHeading,
