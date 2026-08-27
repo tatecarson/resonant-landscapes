@@ -66,7 +66,7 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                 >
                                     Resonant Landscapes
                                 </Dialog.Title>
-                                <p className="font-space-mono text-[10px] tracking-widest uppercase text-neutral-900/50 mb-7">
+                                <p className="font-space-mono text-[10px] tracking-widest uppercase text-neutral-900/70 mb-7">
                                     a locative sound walk
                                 </p>
 
@@ -81,23 +81,23 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                     <p>Close the menu to load a different recording. Walk away or press stop to end.</p>
                                 </div>
 
-                                <p className="mt-6 font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/55">
+                                <p className="mt-6 font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70">
                                     Use headphones — non-noise-canceling preferred.
                                 </p>
-                                <p className="mt-2 font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/55">
+                                <p className="mt-2 font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70">
                                     Start will request audio access. Rotation access comes later, when you need it.
                                 </p>
 
                                 <div className="mt-8">
                                     <button
                                         type="button"
-                                        className="w-full rounded-full bg-neutral-900 px-6 py-3 font-space-mono text-xs tracking-widest uppercase text-white transition-colors hover:bg-neutral-700"
+                                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-neutral-900 px-6 py-3 font-space-mono text-xs tracking-widest uppercase text-white transition-colors hover:bg-neutral-700"
                                         onClick={() => {
                                             void handleBegin();
                                         }}
                                         ref={cancelButtonRef}
                                     >
-                                        Start 
+                                        Start
                                     </button>
                                 </div>
 
