@@ -35,6 +35,7 @@ import {
 } from "../hooks/useGeolocationTracking";
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
+import { getVariantCenter } from "../utils/scaledParks";
 import {
     CENTER_ROTATION_RADIUS_METERS,
     MAX_ZOOM,
@@ -548,7 +549,7 @@ export default function GeolocationMap({
     return (
         <RMap
             className="map"
-            initial={{ center: fromLonLat([0, 0]), zoom: 19.9999999 }}
+            initial={{ center: fromLonLat(getVariantCenter(variant)), zoom: MAX_ZOOM }}
         >
             <ZoomBoundsController
                 debug={debug}

@@ -9,9 +9,22 @@
        env(safe-area-inset-*) padding already written into the park strip
        resolve above 0 on a notched iPhone. -->
   <meta name="viewport" content="initial-scale=1.0, width=device-width, viewport-fit=cover">
+  <!-- The audio CDN, where the 10-25 MB park payloads live. The connection to
+       it was previously negotiated cold at the moment a walker came into
+       prefetch range — the one moment the bandwidth is already spoken for. -->
+  <link rel="preconnect" href="https://resonant-landscapes.b-cdn.net" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Space+Mono&display=swap" rel="stylesheet">
+  <!-- Loaded without blocking the first render: the walk is legible in the
+       fallback stack, and holding the map back for a webfont is the wrong
+       trade outdoors on cellular. The media/onload swap is the portable form;
+       noscript covers scripting being off. -->
+  <link rel="stylesheet" media="print" onload="this.media='all'"
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Space+Mono&display=swap">
+  <noscript>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Space+Mono&display=swap">
+  </noscript>
   <!-- <script src="https://cdn.jsdelivr.net/npm/react-render-tracker" data-config="inpage:true"></script> -->
   <!-- <script src="http://138.247.242.164:8097"></script> -->
   <!-- <script src="http://localhost:8097"></script> -->
