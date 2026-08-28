@@ -149,8 +149,9 @@ export type SelectedVariant = {
 
 /**
  * The seed is read per call rather than captured at module load, so a reroll
- * takes effect on the next park without a page refresh — and so tests can
- * pass their own.
+ * takes effect on the next park without a page refresh — and so tests can pass
+ * their own. It is memoised for the session inside variantSeed, which is what
+ * keeps prefetch and playback agreeing on the same recording.
  */
 export function selectVariant(
   parkName: string,
