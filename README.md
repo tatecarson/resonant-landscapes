@@ -212,12 +212,15 @@ This cannot test the location permission paths, since `?mock=` bypasses
 geolocation entirely. Drop `&mock=` for those.
 
 **Map tiles come back as "401 Invalid Authentication" images on a deploy
-preview.** `GeolocationMap.tsx` requests Stadia Maps tiles with no API key,
-which works only from origins registered with Stadia, and every PR gets its own
-`deploy-preview-<n>--` subdomain. Expected on previews, not a regression, and
-it does not affect audio, geolocation or orientation testing. It does mean a
-preview is no use for judging anything visual about the map. Tracked separately
-from this workflow.
+preview, and always will.** `GeolocationMap.tsx` requests Stadia Maps tiles
+with no API key, and the Stadia account authorises exactly one origin: the
+production domain. Every PR gets its own `deploy-preview-<n>--` subdomain,
+which is therefore never authorised. This is the account working as configured,
+not a regression, and there is nothing to fix.
+
+It does not affect audio, geolocation, or orientation testing, which is what
+previews are good for. It does mean a preview cannot tell you anything about
+how the map looks. Judge that on `npm run dev`, where localhost is authorised.
 
 ### Tunnel, for testing uncommitted work
 
