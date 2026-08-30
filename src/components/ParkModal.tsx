@@ -6,6 +6,7 @@ import HOARenderer from './HoaRenderer';
 import AmbientGradient from './AmbientGradient';
 import { hasStoredOrientationPermission, requestDeviceOrientationPermission } from "../utils/deviceOrientation";
 import { CENTER_ROTATION_RADIUS_METERS } from "../config/geofence";
+import { debugLog } from "../config/debug";
 import { selectVariant } from "../utils/audioPaths";
 import stateParks from "../data/stateParks.json";
 
@@ -130,7 +131,7 @@ function ParkModal({
     }, [permissionGranted, rotationDismissed, rotationActive, showRotationButton]);
 
     function cancel() {
-        console.log('Cancelling...');
+        debugLog('Cancelling...');
         stopSound();
         setIsOpen(false);
     }

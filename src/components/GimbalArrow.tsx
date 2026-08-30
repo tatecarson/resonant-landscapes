@@ -3,6 +3,7 @@ import React, { useRef, useEffect, useCallback } from 'react';
 import Gimbal from '../utils/Gimbal';
 import { requestDeviceOrientationPermission, watchOrientationAvailability } from '../utils/deviceOrientation';
 import { useAudioEngine } from '../contexts/AudioContextProvider';
+import { isDebugEnabled } from '../config/debug';
 import { useRenderDebug } from "../hooks/useRenderDebug";
 
 interface GimbalArrowProps {
@@ -85,11 +86,13 @@ const GimbalArrow = ({
                 resonanceAudioScene.setListenerOrientation(vectorFwd.x, vectorFwd.y, vectorFwd.z, vectorUp.x, vectorUp.y, vectorUp.z);
             }
 
-            window.__gimbalOrientation = {
-                fwdX: vectorFwd.x, fwdY: vectorFwd.y, fwdZ: vectorFwd.z,
-                upX: vectorUp.x, upY: vectorUp.y, upZ: vectorUp.z,
-                updatedAt: Date.now(),
-            };
+            if (isDebugEnabled()) {
+                window.__gimbalOrientation = {
+                    fwdX: vectorFwd.x, fwdY: vectorFwd.y, fwdZ: vectorFwd.z,
+                    upX: vectorUp.x, upY: vectorUp.y, upZ: vectorUp.z,
+                    updatedAt: Date.now(),
+                };
+            }
 
             if (yawDisplayRef.current) {
                 const deg = Math.round(gimbal.yaw * (180 / Math.PI));

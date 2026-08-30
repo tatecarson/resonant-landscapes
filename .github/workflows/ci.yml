@@ -41,6 +41,11 @@ jobs:
       - name: Playwright (chromium)
         run: npm run test:e2e
 
+      # Separate because it needs a production build: every other spec runs
+      # against the dev server, where the debug gates are invisible.
+      - name: Playwright (production build)
+        run: npm run test:e2e:prod
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
