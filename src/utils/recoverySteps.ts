@@ -55,12 +55,24 @@ const STEPS: Record<BlockedCapability, Record<WalkPlatform, string[]>> = {
             // it would send a walker hunting for a row that is not there, which
             // is what an earlier draft of this copy did. Clearing the site's
             // stored answer is what actually makes Safari ask again.
-            // Ordered lightest first. Reports differ on whether Safari drops a
-            // denied answer on reload or holds it until the app restarts, and
-            // they span iOS 13 to now, so quitting Safari covers both readings
-            // and costs nothing. Website Data is the last resort, not the
-            // opening move: it sits next to a Remove All button that would
-            // sign the walker out of every site they use.
+            // Ordered lightest first, and measured on a real iPhone rather
+            // than inferred. On iOS 26.6.1: the prompt does still appear on a
+            // first ask, and a denied answer survives a page reload — tapping
+            // Enable Rotation after refreshing goes straight back to this
+            // panel with no prompt, because requestPermission returns the
+            // cached "denied" without asking. So reloading is not a remedy and
+            // is deliberately not offered as one.
+            //
+            // That matches the older of the two accounts in the wild (three.js
+            // #17713: cached "even in new tabs, until you restart safari") and
+            // rules out the newer one (a 2022 W3C note claiming reload clears
+            // it). Since the first half of that account now checks out on iOS
+            // 26, its second half is the best next thing to try, and quitting
+            // Safari costs nothing and never leaves the phone.
+            //
+            // Website Data stays last. It sits beside a Remove All button that
+            // would sign the walker out of every site they use, to fix a
+            // compass.
             "There is no iOS setting for this, only the prompt, and Safari remembers your answer. It has to be asked again.",
             "Quit Safari from the app switcher, open the link again, walk to the center of a listening spot, and tap Enable Rotation. Choose Allow this time.",
             "Still not asking? Delete this site's entry under Settings → Apps → Safari → Advanced → Website Data. Do not tap Remove All Website Data. Then tap Enable Rotation again.",
