@@ -21,7 +21,7 @@ whether coverage is emulated or runs on a real device.
 | Platform | Floor | Tested by |
 |---|---|---|
 | iOS Safari | 15 | Playwright WebKit and `iphone-13` emulation, plus a real-iPhone release check against the Netlify deploy preview |
-| Android Chrome | last 2 major versions | Playwright `pixel-7` emulation and BrowserStack on a real Samsung Galaxy S22 |
+| Android Chrome | 109 | Playwright `pixel-7` emulation and BrowserStack on a real Samsung Galaxy S22 |
 
 Desktop Chrome is a **development and test surface**, not a target. The
 Playwright `chromium` project and `npm run sim:*` replays run there because a
@@ -30,7 +30,9 @@ does not make desktop something the piece is for.
 
 iOS 15 is the floor because it is the oldest release with the Web Audio and
 DeviceOrientation behaviour the walk depends on, and iOS 15 devices still take
-OS updates.
+OS updates. Android Chrome 109 is the floor because it is the last version
+Android 6 and 7 devices can install, which is where the still-working-phone
+long tail sits.
 
 Playwright WebKit does not prove that real iOS Safari decodes the same audio.
 Its open-source build lacks the proprietary AAC codec available on iOS. Any
@@ -59,7 +61,11 @@ Three places encode the matrix above, and all three must move together when the
 floor moves:
 
 - `package.json` `browserslist` — read by autoprefixer, so CSS is prefixed for
-  the same browsers the matrix claims.
+  the same browsers the matrix claims. These are fixed floors (`>= 15`,
+  `>= 109`) rather than rolling `last 2 versions` queries on purpose: a rolling
+  window silently raises the floor every time a browser ships, which would drop
+  support for a device this table promises without anyone deciding to. Moving a
+  floor should be an edit, not a side effect.
 - `vite.config.ts` `build.target: ["safari15", "chrome109", "firefox115"]` —
   esbuild refuses to emit syntax these cannot parse.
 - `tsconfig.json` `target`/`lib` set to `ES2021` — the type checker rejects

@@ -357,7 +357,12 @@ const HOARenderer = ({
                         data-testid="spatial-degraded-note"
                     >
                         {compact
-                            ? "Plain mix · no surround"
+                            ? spatialDegradation.reason === "downmixed"
+                                ? "Plain mix · no surround"
+                                // There is no plain mix in this branch: the
+                                // collapsed spatial buffer is all there is, so
+                                // promising one would be the wrong kind of wrong.
+                                : "Surround unavailable · no plain mix"
                             : spatialDegradation.reason === "downmixed"
                                 ? "This browser could not play the surround recording, so you are hearing the plain mix. The volume still follows your distance, but turning will not move the sound."
                                 : "This browser could not play the surround recording, and this park has no plain mix. What you are hearing is not what the recording should sound like."}
