@@ -7,6 +7,7 @@ import { useRenderDebug } from "../hooks/useRenderDebug";
 import { usePlaybackWakeLock } from "../hooks/usePlaybackWakeLock";
 import { createBufferCache } from "../audio/bufferCache";
 import { createBufferLoader, getCacheKey, isAbortError } from "../audio/bufferLoader";
+import type { SpatialDegradation } from "../audio/channelCheck";
 import { mergeBuffersByChannel } from "../audio/mergeBuffers";
 import { debugLog, isDebugEnabled } from "../config/debug";
 
@@ -43,6 +44,12 @@ interface AudioPlaybackStateContextType {
     engineError: string | null;
     loadError: string | null;
     lastUnlockError: string | null;
+    /**
+     * Set once the browser is caught downmixing the 8-channel spatial file.
+     * Sticky by design: a browser that collapses one park collapses them all,
+     * and the UI note should not flicker off on the next cache hit.
+     */
+    spatialDegradation: SpatialDegradation | null;
     lastLoadReason: "active-load" | "prefetch" | null;
     lastLoadCacheHit: boolean | null;
     lastLoadDurationMs: number | null;
@@ -86,6 +93,7 @@ const AudioPlaybackStateContext = createContext<AudioPlaybackStateContextType>({
     engineError: null,
     loadError: null,
     lastUnlockError: null,
+    spatialDegradation: null,
     lastLoadReason: null,
     lastLoadCacheHit: null,
     lastLoadDurationMs: null,
@@ -108,6 +116,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const [engineError, setEngineError] = useState<string | null>(null);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [lastUnlockError, setLastUnlockError] = useState<string | null>(null);
+    const [spatialDegradation, setSpatialDegradation] = useState<SpatialDegradation | null>(null);
     const [lastLoad, setLastLoad] = useState<AudioLoadDebug | null>(null);
     const [needsAudioResume, setNeedsAudioResume] = useState(false);
     const [keepScreenAwake, setKeepScreenAwakeState] = useState(() => {
@@ -184,6 +193,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
                 if (!context) throw new Error("Audio context is not ready yet.");
                 return mergeBuffersByChannel(context, decoded);
             },
+            onSpatialDegraded: setSpatialDegradation,
         });
 
         return bufferLoaderRef.current;
@@ -767,6 +777,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         engineError,
         loadError,
         lastUnlockError,
+        spatialDegradation,
         lastLoadReason: lastLoad?.reason ?? null,
         lastLoadCacheHit: lastLoad?.cacheHit ?? null,
         lastLoadDurationMs: lastLoad?.durationMs ?? null,
@@ -784,6 +795,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         isAudioUnlocked,
         loadError,
         lastUnlockError,
+        spatialDegradation,
         lastLoad,
         needsAudioResume,
         keepScreenAwake,

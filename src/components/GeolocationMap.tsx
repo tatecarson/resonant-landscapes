@@ -45,6 +45,7 @@ import {
 } from "../config/geofence";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
+import { RECOVERY_TITLES, getRecoverySteps } from "../utils/recoverySteps";
 import type { Variant, MockPosition } from "../App";
 import locationIcon from "../assets/geolocation_marker_heading.svg";
 
@@ -54,11 +55,11 @@ function locationStatusMessage(
     error: GeolocationFailure | null,
     accuracyMeters: number | null,
     enterDistance: number
-): { title: string; detail: string } | null {
+): { title: string; detail: string; steps?: string[] } | null {
     if (status === "stale") {
         return {
             title: "Signal lost",
-            detail: "Your position has stopped updating. Move into open sky — parks will not trigger until it does.",
+            detail: "Your position has stopped updating, and parks will not start until it does. Give it a moment.",
         };
     }
 
@@ -70,14 +71,14 @@ function locationStatusMessage(
             title: "GPS is imprecise here",
             detail: radius === null
                 ? `Your position is less accurate than the ${enterDistance} m listening areas, so parks may trigger late or not at all.`
-                : `Your position is accurate to about ${radius} m, wider than the ${enterDistance} m listening areas. Parks may trigger late, early, or not at all — open sky helps.`,
+                : `Your position is accurate to about ${radius} m, wider than the ${enterDistance} m listening areas. Parks may start late, early, or not at all.`,
         };
     }
 
     if (status === "acquiring") {
         return {
             title: "Finding you…",
-            detail: "Step into open sky if this takes more than a moment.",
+            detail: "Step outside if this takes more than a moment.",
         };
     }
 
@@ -86,23 +87,26 @@ function locationStatusMessage(
     }
 
     if (error?.code === GEOLOCATION_PERMISSION_DENIED) {
+        // The only status here the walker can actually fix, so it is the only
+        // one that gets steps. "Allow location in your browser settings" was a
+        // restatement of the problem, read by someone already standing outside.
         return {
-            title: "Location is blocked",
-            detail:
-                "This walk follows where you are. Allow location for this site in your browser settings, then reload the page.",
+            title: RECOVERY_TITLES.location,
+            detail: "The walk uses your location. Nothing will play until you turn it on.",
+            steps: getRecoverySteps("location", navigator.userAgent),
         };
     }
 
     if (error?.code === GEOLOCATION_TIMEOUT) {
         return {
             title: "Can't find your location yet",
-            detail: "This is taking longer than usual. Move away from buildings and tree cover.",
+            detail: "This is taking longer than usual. Stepping outside can help.",
         };
     }
 
     return {
         title: "Can't find your location",
-        detail: "Your device could not get a fix. Move into open sky, then reload the page.",
+        detail: "Your device could not find you. Step outside, then reload the page.",
     };
 }
 
@@ -134,6 +138,16 @@ const LocationStatusOverlay = memo(function LocationStatusOverlay({
                 >
                     <p className="location-status__title">{message.title}</p>
                     <p className="location-status__detail">{message.detail}</p>
+                    {message.steps && (
+                        <ol className="location-status__steps">
+                            {message.steps.map((step, index) => (
+                                <li key={step}>
+                                    <span aria-hidden="true">{index + 1}</span>
+                                    <span>{step}</span>
+                                </li>
+                            ))}
+                        </ol>
+                    )}
                 </div>
             ) : (
                 <></>

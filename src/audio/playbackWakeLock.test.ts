@@ -45,7 +45,7 @@ describe("createPlaybackWakeLockController", () => {
         controller.setDesired(false);
         await flushPromises();
         expect(sentinel.release).toHaveBeenCalledOnce();
-        expect(statuses.at(-1)).toBe("inactive");
+        expect(statuses[statuses.length - 1]).toBe("inactive");
     });
 
     it("releases while hidden and reacquires when visible", async () => {

@@ -1,6 +1,7 @@
-import { useRef, Fragment, useCallback } from 'react'
+import { useRef, Fragment, useCallback, useMemo } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAudioContext } from "../contexts/AudioContextProvider";
+import { readPreflightEnv, runPreflight } from "../utils/capabilities";
 import type { Variant } from "../App";
 
 interface WelcomeModalProps {
@@ -12,6 +13,12 @@ interface WelcomeModalProps {
 function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps) {
     const cancelButtonRef = useRef(null);
     const { unlockAudio, lastUnlockError } = useAudioContext();
+    // Nothing here changes for the life of the page, and the walker should
+    // learn about a missing capability before they leave the house rather
+    // than at the park.
+    const preflight = useMemo(() => runPreflight(readPreflightEnv(window)), []);
+    const onlyNeedsAPhone =
+        preflight.problems.length === 1 && preflight.problems[0].id === "phone";
 
     const handleBegin = useCallback(async () => {
         try {
@@ -70,6 +77,32 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                     a locative sound walk
                                 </p>
 
+                                {preflight.problems.length > 0 && (
+                                    <div
+                                        className="mb-7 rounded-2xl border border-neutral-900/25 bg-white/30 p-4"
+                                        data-testid="capability-preflight"
+                                    >
+                                        <p className="font-space-mono text-[11px] font-semibold uppercase tracking-wider text-neutral-900">
+                                            {preflight.verdict === "blocked"
+                                                ? "The walk will not work here"
+                                                : onlyNeedsAPhone
+                                                    // Nothing is broken on a desktop — it is simply
+                                                    // the wrong device, and saying "will not work"
+                                                    // would read as a fault to go and fix.
+                                                    ? "This walk needs a phone"
+                                                    : "Part of the walk will not work here"}
+                                        </p>
+                                        <ul className="mt-2 font-space-mono space-y-2 text-[10px] leading-relaxed text-neutral-900/75">
+                                            {preflight.problems.map((problem) => (
+                                                <li key={problem.id} className="flex gap-3">
+                                                    <span className="select-none text-neutral-900/40">—</span>
+                                                    <span>{problem.detail}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
                                 <div className="font-space-mono space-y-4 text-[12px] leading-relaxed text-neutral-900/75">
                                     <p>
                                         {variant === "terrace"
@@ -85,7 +118,9 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                     Use headphones — non-noise-canceling preferred.
                                 </p>
                                 <p className="mt-2 font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70">
-                                    Start will request audio access. Rotation access comes later, when you need it.
+                                    {preflight.orientationNeedsPermission
+                                        ? "Start will request audio access. Rotation access comes later, when you need it."
+                                        : "Start will request audio access."}
                                 </p>
 
                                 <div className="mt-8">
@@ -97,7 +132,7 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                         }}
                                         ref={cancelButtonRef}
                                     >
-                                        Start
+                                        {preflight.verdict === "blocked" ? "Start anyway" : "Start"}
                                     </button>
                                 </div>
 

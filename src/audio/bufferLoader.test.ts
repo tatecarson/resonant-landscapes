@@ -1,8 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { createBufferCache } from "./bufferCache";
 import { createBufferLoader } from "./bufferLoader";
+import { EXPECTED_SPATIAL_CHANNELS } from "./channelCheck";
 
 const buffer = (name: string) => ({ name }) as unknown as AudioBuffer;
+
+/** What `decode` hands back — only its channel count is inspected. */
+const decodedBuffer = (numberOfChannels: number) =>
+    ({ name: "decoded", numberOfChannels }) as unknown as AudioBuffer;
 
 /** A promise whose settlement this test controls. */
 const deferred = <T,>() => {
@@ -19,7 +24,7 @@ const deferred = <T,>() => {
  * Builds a loader whose network and decode steps are controllable, so the
  * abort and dedup behavior can be proven without real audio or a real fetch.
  */
-const setup = () => {
+const setup = ({ decodedChannels = EXPECTED_SPATIAL_CHANNELS } = {}) => {
     const cache = createBufferCache({ maxEntries: 2 });
     const pending = new Map<string, ReturnType<typeof deferred<ArrayBuffer>>>();
     const signals: AbortSignal[] = [];
@@ -34,14 +39,17 @@ const setup = () => {
         return control.promise;
     });
 
+    const onSpatialDegraded = vi.fn();
+
     const loader = createBufferLoader({
         cache,
         fetchArrayBuffer,
-        decode: async (_data: ArrayBuffer) => buffer("decoded"),
+        decode: async (_data: ArrayBuffer) => decodedBuffer(decodedChannels),
         merge: (buffers: AudioBuffer[]) => buffer(`merged:${buffers.length}`),
+        onSpatialDegraded,
     });
 
-    return { cache, loader, fetchArrayBuffer, pending, signals };
+    return { cache, loader, fetchArrayBuffer, pending, signals, onSpatialDegraded };
 };
 
 describe("createBufferLoader", () => {
@@ -138,6 +146,47 @@ describe("createBufferLoader", () => {
 
         await expect(retry).resolves.toBeDefined();
         expect(fetchArrayBuffer).toHaveBeenCalledTimes(2);
+    });
+
+    it("merges every buffer and stays quiet when the spatial decode is intact", async () => {
+        const { loader, pending, onSpatialDegraded } = setup();
+
+        const load = loader.load(["a.flac", "a-mono.wav"]);
+        pending.get("a.flac")!.resolve(new ArrayBuffer(8));
+        pending.get("a-mono.wav")!.resolve(new ArrayBuffer(8));
+
+        await expect(load).resolves.toEqual({ name: "merged:2" });
+        expect(onSpatialDegraded).not.toHaveBeenCalled();
+    });
+
+    it("drops a downmixed spatial buffer and reports the degradation", async () => {
+        const { loader, pending, onSpatialDegraded } = setup({ decodedChannels: 2 });
+
+        const load = loader.load(["a.flac", "a-mono.wav"]);
+        pending.get("a.flac")!.resolve(new ArrayBuffer(8));
+        pending.get("a-mono.wav")!.resolve(new ArrayBuffer(8));
+
+        // Only the mono bed reaches merge — the collapsed spatial stream would
+        // have produced a field that plays but points nowhere.
+        await expect(load).resolves.toEqual({ name: "merged:1" });
+        expect(onSpatialDegraded).toHaveBeenCalledWith({
+            decodedChannels: 2,
+            expectedChannels: EXPECTED_SPATIAL_CHANNELS,
+            reason: "downmixed",
+        });
+    });
+
+    it("does not re-report the degradation on a cache hit", async () => {
+        const { loader, pending, onSpatialDegraded } = setup({ decodedChannels: 2 });
+
+        const load = loader.load(["a.flac", "a-mono.wav"]);
+        pending.get("a.flac")!.resolve(new ArrayBuffer(8));
+        pending.get("a-mono.wav")!.resolve(new ArrayBuffer(8));
+        await load;
+
+        await loader.load(["a.flac", "a-mono.wav"]);
+
+        expect(onSpatialDegraded).toHaveBeenCalledTimes(1);
     });
 
     it("reports whether a key is currently loading", async () => {

@@ -98,7 +98,9 @@ export function getParkAudioVariants(
   parksJSON: AudioPark[],
   userAgent = ''
 ): AudioVariant[] | null {
-  if (Object.hasOwn(DEBUG_PARK_AUDIO_VARIANTS, parkName)) {
+  // Not Object.hasOwn: that is ES2022 and lands in Safari 15.4, above the
+  // iOS 15 floor in README.md's support matrix.
+  if (Object.prototype.hasOwnProperty.call(DEBUG_PARK_AUDIO_VARIANTS, parkName)) {
     return DEBUG_PARK_AUDIO_VARIANTS[parkName];
   }
 

@@ -4,6 +4,7 @@ import { useAudioEngine, useAudioPlaybackState } from "../contexts/AudioContextP
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import HOARenderer from './HoaRenderer';
 import AmbientGradient from './AmbientGradient';
+import PermissionRecovery from './PermissionRecovery';
 import { hasStoredOrientationPermission, requestDeviceOrientationPermission } from "../utils/deviceOrientation";
 import { CENTER_ROTATION_RADIUS_METERS } from "../config/geofence";
 import { debugLog } from "../config/debug";
@@ -37,6 +38,11 @@ function ParkModal({
     const [rotationActive, setRotationActive] = useState(false);
     const [permissionGranted, setPermissionGranted] = useState(() => hasStoredOrientationPermission());
     const [rotationDismissed, setRotationDismissed] = useState(false);
+    // Set when the walker asked for rotation and the device said no. Until
+    // now this branch did nothing at all: the button was tapped, the promise
+    // resolved "denied", and the UI did not move — which reads as a broken
+    // button rather than a setting they can go and change.
+    const [rotationBlocked, setRotationBlocked] = useState(false);
     const userAtRotationCenter = parkDistance <= CENTER_ROTATION_RADIUS_METERS;
     const showRotationButton = isPlaying && userAtRotationCenter && userOrientation;
 
@@ -140,10 +146,13 @@ function ParkModal({
         if (!permissionGranted) {
             const granted = await requestDeviceOrientationPermission();
             if (!granted) {
+                setRotationBlocked(true);
                 return;
             }
             setPermissionGranted(true);
         }
+
+        setRotationBlocked(false);
 
         setRotationDismissed(false); // user explicitly re-enabled — clear any prior dismissal
         setRotationActive(true);
@@ -164,6 +173,7 @@ function ParkModal({
             setRotationActive(false);
             setPermissionGranted(false);
             setRotationDismissed(false);
+            setRotationBlocked(true);
         },
     };
 
@@ -227,7 +237,15 @@ function ParkModal({
                                         × stop tracking
                                     </button>
                                 )}
-                                {!rotationActive && showRotationButton && (
+                                {/*
+                                  * Hidden while the recovery panel is up. Once
+                                  * iOS has been told no, requestPermission
+                                  * resolves "denied" without prompting, so the
+                                  * button is a no-op that still looks live —
+                                  * the same dead end the panel exists to fix.
+                                  * "Continue without it" brings it back.
+                                  */}
+                                {!rotationActive && showRotationButton && !rotationBlocked && (
                                     <button
                                         onClick={() => { void enableRotation(); }}
                                         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] rotation-affordance inline-flex min-h-[44px] items-center rounded-full px-2.5 py-1 font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/70 underline underline-offset-2 decoration-neutral-900/40 transition-colors hover:text-neutral-900"
@@ -235,7 +253,10 @@ function ParkModal({
                                         Enable rotation
                                     </button>
                                 )}
-                                {!rotationActive && !showRotationButton && (
+                                {/* Also stands in while the recovery panel has
+                                    taken the button's place, so the row keeps
+                                    its balance instead of going half empty. */}
+                                {!rotationActive && (!showRotationButton || rotationBlocked) && (
                                     <span className="font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/25 select-none">
                                         ✦
                                     </span>
@@ -245,6 +266,15 @@ function ParkModal({
                             {/* Right: audio controls */}
                             <HOARenderer {...hoaRendererProps} compact hideStatusLabel />
                         </div>
+
+                        {rotationBlocked && (
+                            <div className="mt-3">
+                                <PermissionRecovery
+                                    capability="orientation"
+                                    onDismiss={() => setRotationBlocked(false)}
+                                />
+                            </div>
+                        )}
 
                     </div>
                 </div>
@@ -302,7 +332,7 @@ function ParkModal({
                                         <HOARenderer {...hoaRendererProps} />
                                     </div>
 
-                                    {!rotationActive && showRotationButton && (
+                                    {!rotationActive && showRotationButton && !rotationBlocked && (
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -312,6 +342,15 @@ function ParkModal({
                                         >
                                             Enable Rotation
                                         </button>
+                                    )}
+
+                                    {rotationBlocked && (
+                                        <div className="mt-4">
+                                            <PermissionRecovery
+                                                capability="orientation"
+                                                onDismiss={() => setRotationBlocked(false)}
+                                            />
+                                        </div>
                                     )}
 
                                     <div className="mt-4">

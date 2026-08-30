@@ -6,6 +6,15 @@
     "node": ">=22"
   },
   "type": "module",
+  "browserslist": [
+    "iOS >= 15",
+    "Safari >= 15",
+    "Chrome >= 109",
+    "ChromeAndroid >= 109",
+    "Firefox >= 115",
+    "Edge >= 109",
+    "Samsung >= 21"
+  ],
   "scripts": {
     "browserstack:audio:all:android": "RUN_ALL_PARKS_SOAK=1 browserstack-node-sdk playwright test tests/audio-all-parks-mobile.spec.ts",
     "browserstack:audio:worst:android": "browserstack-node-sdk playwright test tests/audio-worst-case-mobile.spec.ts",
@@ -18,7 +27,7 @@
     "audio:convert:wav": "bash scripts/convert-m4a-to-wav-safari.sh",
     "audio:convert:flac": "bash scripts/convert-wav-to-flac.sh",
     "test:e2e:prod": "vite build && playwright test -c playwright.prod.config.ts",
-    "test:e2e": "playwright test tests/park-selection.spec.ts tests/prefetch-proximity.spec.ts tests/gimbal-math.spec.ts tests/approach-ring.spec.ts tests/path-replay.spec.ts tests/geolocation-status.spec.ts tests/accessibility.spec.ts --project=chromium",
+    "test:e2e": "playwright test tests/park-selection.spec.ts tests/prefetch-proximity.spec.ts tests/gimbal-math.spec.ts tests/approach-ring.spec.ts tests/path-replay.spec.ts tests/geolocation-status.spec.ts tests/permission-states.spec.ts tests/accessibility.spec.ts --project=chromium",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "lint": "eslint . --ext js,mjs,cjs,ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",

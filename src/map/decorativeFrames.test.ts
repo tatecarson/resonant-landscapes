@@ -30,7 +30,8 @@ function fakeClock() {
             return pending.size;
         },
         get lastDelay() {
-            return [...pending.values()].at(-1)?.delayMs ?? null;
+            const entries = [...pending.values()];
+            return entries[entries.length - 1]?.delayMs ?? null;
         },
     };
 }

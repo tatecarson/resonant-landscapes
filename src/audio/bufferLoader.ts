@@ -1,10 +1,17 @@
 import type { BufferCache } from "./bufferCache";
+import { planDecodedBuffers, type SpatialDegradation } from "./channelCheck";
 
 export interface BufferLoaderDeps {
     cache: BufferCache;
     fetchArrayBuffer: (url: string, signal: AbortSignal) => Promise<ArrayBuffer>;
     decode: (data: ArrayBuffer) => Promise<AudioBuffer>;
     merge: (buffers: AudioBuffer[]) => AudioBuffer;
+    /**
+     * Called when the spatial file did not decode to its full channel count.
+     * Fires per load, not per cache hit, so the consumer should treat it as
+     * sticky: a browser that downmixes will downmix every time.
+     */
+    onSpatialDegraded?: (degradation: SpatialDegradation) => void;
 }
 
 export interface BufferLoader {
@@ -33,6 +40,7 @@ export const createBufferLoader = ({
     fetchArrayBuffer,
     decode,
     merge,
+    onSpatialDegraded,
 }: BufferLoaderDeps): BufferLoader => {
     interface InFlight {
         promise: Promise<AudioBuffer>;
@@ -65,7 +73,15 @@ export const createBufferLoader = ({
                 throw new DOMException("Aborted", "AbortError");
             }
 
-            const merged = merge(decoded);
+            // Trust nothing about the decode: a browser that quietly collapsed
+            // the 8-channel stream would otherwise produce a walk that plays
+            // and looks right with no spatial field at all.
+            const { buffers, degradation } = planDecodedBuffers(decoded);
+            if (degradation) {
+                onSpatialDegraded?.(degradation);
+            }
+
+            const merged = merge(buffers);
             cache.set(key, merged);
             return merged;
         })();

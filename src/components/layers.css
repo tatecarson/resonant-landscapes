@@ -311,3 +311,29 @@ body {
     line-height: 1.4;
     color: rgba(23, 43, 36, 0.8);
 }
+
+/* Recovery steps under a blocked-location message. Left-aligned against the
+   card's centered title on purpose: these are followed in order, and centered
+   numerals are hard to track back to after leaving for Settings. */
+.location-status__steps {
+    margin: 0.6rem 0 0;
+    padding: 0;
+    list-style: none;
+    text-align: left;
+    display: grid;
+    gap: 0.4rem;
+}
+
+.location-status__steps li {
+    display: grid;
+    grid-template-columns: 0.9rem 1fr;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: rgba(23, 43, 36, 0.8);
+}
+
+.location-status__steps li > span:first-child {
+    font-variant-numeric: tabular-nums;
+    color: rgba(23, 43, 36, 0.45);
+}
