@@ -42,13 +42,21 @@ describe("getRecoverySteps", () => {
         expect(getRecoverySteps("location", ANDROID).join(" ")).toMatch(/Chrome/);
     });
 
-    it("leads iOS walkers to a recovery that survives Apple moving the switch", () => {
-        const steps = getRecoverySteps("orientation", IOS);
+    it("never sends iOS walkers to the switch Apple deleted in iOS 13", () => {
+        const steps = getRecoverySteps("orientation", IOS).join(" ");
 
-        // The Motion & Orientation toggle has moved between iOS versions and is
-        // reportedly gone by iOS 26, so the first step must not depend on it.
-        expect(steps[0]).toMatch(/Website Data/);
-        expect(steps[0]).not.toMatch(/Motion & Orientation Access/);
+        // "Motion & Orientation Access" was a Settings → Safari row on iOS 12
+        // and has not existed since iOS 13, which is four majors below this
+        // app's iOS 15 floor. Clearing the site's stored answer is what makes
+        // Safari prompt again.
+        expect(steps).toMatch(/Website Data/);
+        expect(steps).not.toMatch(/Motion & Orientation Access/);
+    });
+
+    it("tells iOS walkers to keep Precise Location on", () => {
+        // A city-level fix cannot resolve a 15 m listening area, so an allowed
+        // but imprecise site fails in a way that looks like a broken walk.
+        expect(getRecoverySteps("location", IOS).join(" ")).toMatch(/Precise Location/);
     });
 
     it("always ends somewhere the walker can act", () => {
@@ -57,7 +65,7 @@ describe("getRecoverySteps", () => {
             for (const ua of [IOS, ANDROID, DESKTOP]) {
                 const steps = getRecoverySteps(capability, ua);
                 expect(steps.length).toBeGreaterThanOrEqual(2);
-                expect(steps[steps.length - 1]).toMatch(/reload|Enable Rotation|works/i);
+                expect(steps[steps.length - 1]).toMatch(/reload|Enable Rotation|Allow|works/i);
             }
         }
     });

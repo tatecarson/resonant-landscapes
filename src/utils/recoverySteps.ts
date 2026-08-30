@@ -32,7 +32,7 @@ const STEPS: Record<BlockedCapability, Record<WalkPlatform, string[]>> = {
     location: {
         ios: [
             "In Safari, tap AA in the address bar, then Website Settings → Location → Allow.",
-            "Still blocked? Settings → Privacy & Security → Location Services, and turn on both Location Services and Safari Websites.",
+            "Still blocked? Settings → Privacy & Security → Location Services, and turn on Location Services, Safari Websites, and Precise Location.",
             "Come back here and reload the page.",
         ],
         android: [
@@ -48,13 +48,16 @@ const STEPS: Record<BlockedCapability, Record<WalkPlatform, string[]>> = {
     },
     orientation: {
         ios: [
-            // Apple has moved this switch (Settings → Safari, then Settings →
-            // Apps → Safari) and appears to have dropped it entirely by iOS 26,
-            // where a walker reported Location but no Motion & Orientation row.
-            // So this leads with the recovery that does not depend on it.
-            "Safari remembers that you said no to this site. Clear it under Settings → Apps → Safari → Advanced → Website Data, then open the link again.",
-            "Some iOS versions also have a Motion & Orientation Access switch in Safari's settings. If yours has one, turn it on.",
-            "Then walk to the center of a listening spot and tap Enable Rotation again.",
+            // There is no setting for this on any iOS we support. The
+            // "Motion & Orientation Access" switch lived under Settings →
+            // Safari → Privacy & Security on iOS 12 and was removed in iOS 13,
+            // when requestPermission() replaced it; our floor is iOS 15. Naming
+            // it would send a walker hunting for a row that is not there, which
+            // is what an earlier draft of this copy did. Clearing the site's
+            // stored answer is what actually makes Safari ask again.
+            "There is no iOS setting for this, only the prompt. To make Safari ask again, clear this site under Settings → Apps → Safari → Advanced → Website Data.",
+            "Open the link again, then walk to the center of a listening spot and tap Enable Rotation.",
+            "Choose Allow when Safari asks.",
         ],
         android: [
             "Chrome does not ask permission for this. Either this site is blocked, or your phone has no compass.",
