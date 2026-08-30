@@ -34,7 +34,7 @@ import {
     type LocationStatus,
 } from "../hooks/useGeolocationTracking";
 import { useRenderDebug } from "../hooks/useRenderDebug";
-import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
+import { useReduceVisuals } from "../hooks/useReduceVisuals";
 import { getVariantCenter } from "../utils/scaledParks";
 import { debugLog, isDebugEnabled } from "../config/debug";
 import {
@@ -339,7 +339,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         [currentParkLocation, parkDistance]
     );
 
-    const prefersReducedMotion = usePrefersReducedMotion();
+    const prefersReducedMotion = useReduceVisuals();
 
     /**
      * Arriving somewhere is the event of a sound walk, and leaving is the

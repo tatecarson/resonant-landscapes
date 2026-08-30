@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
+import { useReduceVisuals } from "../hooks/useReduceVisuals";
 
 interface AmbientGradientProps {
     active: boolean;
@@ -33,7 +33,7 @@ const REDUCED_MOTION_GRADIENT =
 
 export default function AmbientGradient({ active, headingRadians }: AmbientGradientProps) {
     const divRef = useRef<HTMLDivElement>(null);
-    const prefersReducedMotion = usePrefersReducedMotion();
+    const prefersReducedMotion = useReduceVisuals();
 
     useEffect(() => {
         if (!divRef.current) {
