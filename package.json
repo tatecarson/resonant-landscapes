@@ -14,6 +14,10 @@
     "build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest",
+    "audio:check": "bash scripts/check-audio-variants.sh",
+    "audio:convert:wav": "bash scripts/convert-m4a-to-wav-safari.sh",
+    "audio:convert:flac": "bash scripts/convert-wav-to-flac.sh",
+    "test:e2e:prod": "vite build && playwright test -c playwright.prod.config.ts",
     "test:e2e": "playwright test tests/park-selection.spec.ts tests/prefetch-proximity.spec.ts tests/gimbal-math.spec.ts tests/approach-ring.spec.ts tests/path-replay.spec.ts tests/geolocation-status.spec.ts tests/accessibility.spec.ts --project=chromium",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "lint": "eslint . --ext js,mjs,cjs,ts,tsx --report-unused-disable-directives --max-warnings 0",
@@ -69,6 +73,7 @@
     "eslint-plugin-react-refresh": "^0.4.4",
     "postcss": "^8.4.34",
     "tailwindcss": "^3.4.19",
+    "tsx": "^4.23.13",
     "typescript": "^5.9.3",
     "vite": "^8.0.7",
     "vitest": "^4.1.11"

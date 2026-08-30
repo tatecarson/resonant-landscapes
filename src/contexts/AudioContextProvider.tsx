@@ -8,6 +8,7 @@ import { usePlaybackWakeLock } from "../hooks/usePlaybackWakeLock";
 import { createBufferCache } from "../audio/bufferCache";
 import { createBufferLoader, getCacheKey, isAbortError } from "../audio/bufferLoader";
 import { mergeBuffersByChannel } from "../audio/mergeBuffers";
+import { debugLog, isDebugEnabled } from "../config/debug";
 
 // Active park plus one prefetch. Each merged park buffer is 9 channels of
 // float PCM (~100 MB per minute), so this cap is what keeps a full walk from
@@ -223,6 +224,10 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             activeUrls,
             lastLoad,
         } = audioDebugStateRef.current;
+        if (!isDebugEnabled()) {
+            return;
+        }
+
         window.__audioDebug = {
             contextState: audioContextState,
             isEngineInitializing,
@@ -397,7 +402,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const proceedWithPlayback = useCallback(() => {
         if (!audioContext || !resonanceAudioScene || !buffers) return;
 
-        console.log('Playing sound...', buffers);
+        debugLog('Playing sound...', buffers);
         const source = resonanceAudioScene.createSource();
         // The merged buffer is 9 channels (8ch HOA + 1ch mono). ResonanceAudio's
         // Source.input is a default GainNode (channelInterpretation='speakers'),
@@ -557,7 +562,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         if (audioContext.state === 'suspended') {
             syncAudioDebug("resume-requested");
             audioContext.resume().then(() => {
-                console.log('Audio context resumed.');
+                debugLog('Audio context resumed.');
                 setIsAudioUnlocked(true);
                 setLastUnlockError(null);
                 syncAudioDebug("context-resumed");
@@ -576,7 +581,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
 
     const stopSound = useCallback(() => {
         if (bufferSourceRef.current && isPlaying) {
-            console.log('Stopping sound...');
+            debugLog('Stopping sound...');
             const bufferSource = bufferSourceRef.current;
             const fadeGain = fadeGainRef.current;
             const context = audioContextRef.current;

@@ -36,6 +36,7 @@ import {
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 import { getVariantCenter } from "../utils/scaledParks";
+import { debugLog, isDebugEnabled } from "../config/debug";
 import {
     CENTER_ROTATION_RADIUS_METERS,
     MAX_ZOOM,
@@ -167,7 +168,7 @@ function ZoomBoundsController({
             if (zoom !== undefined && zoom < minZoom) {
                 view.setZoom(minZoom);
                 if (debug) {
-                    console.log("[map zoom]", minZoom, "(clamped)");
+                    debugLog("[map zoom]", minZoom, "(clamped)");
                 }
                 return;
             }
@@ -175,13 +176,13 @@ function ZoomBoundsController({
             if (zoom !== undefined && zoom > maxZoom) {
                 view.setZoom(maxZoom);
                 if (debug) {
-                    console.log("[map zoom]", maxZoom, "(clamped)");
+                    debugLog("[map zoom]", maxZoom, "(clamped)");
                 }
                 return;
             }
 
             if (debug) {
-                console.log("[map zoom]", zoom);
+                debugLog("[map zoom]", zoom);
             }
         };
 
@@ -395,6 +396,9 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         const renderKey = map.once("postrender", () => {
             const markerPixel = map.getPixelFromCoordinate([position[0], position[1]]) ?? null;
             const viewportSize = map.getSize() ?? null;
+            if (!isDebugEnabled()) {
+                return;
+            }
             window.__mapDebug = {
                 center: view.getCenter() as [number, number] | null,
                 position: [position[0], position[1]],

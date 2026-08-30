@@ -12,7 +12,9 @@ export default defineConfig({
   // "Cannot redefine property: Symbol($$jest-matchers-object)" against the
   // matchers Playwright has already installed — taking down collection for
   // every spec, not just that file.
-  testMatch: /.*\.spec\.ts$/,
+  // production-surfaces.spec.ts needs a production build and has its own
+  // config; the dev server this one starts would make it vacuously pass.
+  testMatch: /^(?!.*production-surfaces).*\.spec\.ts$/,
   // Aborts before the first test if something other than this app is serving
   // baseURL — see tests/global-setup.ts for why that is worth checking.
   globalSetup: "./tests/global-setup.ts",
