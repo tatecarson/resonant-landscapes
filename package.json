@@ -6,6 +6,15 @@
     "node": ">=22"
   },
   "type": "module",
+  "browserslist": [
+    "iOS >= 15",
+    "Safari >= 15",
+    "Chrome >= 109",
+    "ChromeAndroid >= 109",
+    "Firefox >= 115",
+    "Edge >= 109",
+    "Samsung >= 21"
+  ],
   "scripts": {
     "browserstack:audio:all:android": "RUN_ALL_PARKS_SOAK=1 browserstack-node-sdk playwright test tests/audio-all-parks-mobile.spec.ts",
     "browserstack:audio:worst:android": "browserstack-node-sdk playwright test tests/audio-worst-case-mobile.spec.ts",

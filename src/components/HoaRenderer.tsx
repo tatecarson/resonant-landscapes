@@ -49,6 +49,7 @@ const HOARenderer = ({
         engineError,
         loadError,
         lastUnlockError,
+        spatialDegradation,
         lastLoadReason,
         lastLoadCacheHit,
         lastLoadDurationMs,
@@ -338,6 +339,29 @@ const HOARenderer = ({
                             Retry audio load
                         </button>
                     </div>
+                )}
+
+                {/*
+                  * The same message on every park for the life of the session,
+                  * so it stays terse in the strip the walker actually carries
+                  * and says the whole thing only in the expanded panel.
+                  */}
+                {spatialDegradation && !activeError && (
+                    <p
+                        className={
+                            compact
+                                ? "w-full font-space-mono text-[10px] uppercase tracking-widest text-amber-800"
+                                : "w-full max-w-sm rounded-2xl border border-amber-300/60 bg-amber-50/80 px-3 py-2 font-space-mono text-[11px] leading-relaxed text-amber-900"
+                        }
+                        role="status"
+                        data-testid="spatial-degraded-note"
+                    >
+                        {compact
+                            ? "Plain mix · no surround"
+                            : spatialDegradation.reason === "downmixed"
+                                ? "This browser flattened the surround recording, so you are hearing the plain mix. Volume still follows your distance, but turning will not move the sound."
+                                : "This browser flattened the surround recording and there is no plain mix for this park, so what you hear is not the intended field."}
+                    </p>
                 )}
 
                 {!activeError && (

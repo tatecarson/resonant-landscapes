@@ -43,12 +43,27 @@ that decoded in every engine measured. This favors compatibility over download
 size, but it cannot guarantee support for an engine we have not tested. There
 is no browser-blocking interstitial and none is planned.
 
-### Not yet enforced mechanically
+### How the floor is enforced
 
-`tsconfig.json` sets `target: ESNext`, `vite.config.ts` sets no `build.target`,
-and `package.json` has no `browserslist` key, so nothing in the build stops a
-feature that iOS 15 cannot parse from shipping. Adding those three remains
-tracked in rl-06c.1. PR #61 has landed, so its edits no longer block that work.
+Three places encode the matrix above, and all three must move together when the
+floor moves:
+
+- `package.json` `browserslist` — read by autoprefixer, so CSS is prefixed for
+  the same browsers the matrix claims.
+- `vite.config.ts` `build.target: ["safari15", "chrome109", "firefox115"]` —
+  esbuild refuses to emit syntax these cannot parse.
+- `tsconfig.json` `target`/`lib` set to `ES2021` — the type checker rejects
+  standard-library calls newer than the floor.
+
+`safari15` is the binding constraint in every case. Turning this on caught two
+real violations: `Object.hasOwn` in `src/utils/audioPaths.ts` and
+`Array.prototype.at` in two tests, all three ES2022 and shipped in Safari 15.4,
+which iOS 15.0-15.3 devices do not have.
+
+Note that `lib: ES2021` bounds the *standard library* only. A DOM API added
+after iOS 15 still type-checks, because `lib.dom.d.ts` carries no version
+information — `navigator.wakeLock` is the existing example, guarded at runtime
+rather than by the compiler. New DOM APIs still need a feature check.
 
 ## Testing
 
