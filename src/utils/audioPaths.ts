@@ -1,5 +1,6 @@
+import { getVariantSeed } from '../audio/variantSeed';
+
 const CDN_BASE = 'https://resonant-landscapes.b-cdn.net/';
-const SESSION_AUDIO_VARIANT_SEED = Math.floor(Math.random() * 0x7fffffff);
 /** [8-channel spatial URL, mono URL] for one recording section. */
 export type AudioVariant = [string, string];
 
@@ -138,17 +139,45 @@ export function getParkAudioVariants(
   return variants.length > 0 ? variants : null;
 }
 
-export function pickSoundPath(
+/** Which recording of a park the walker gets, and how many there are. */
+export type SelectedVariant = {
+  urls: AudioVariant;
+  /** 1-based, for saying "recording 2 of 6" out loud. */
+  number: number;
+  total: number;
+};
+
+/**
+ * The seed is read per call rather than captured at module load, so a reroll
+ * takes effect on the next park without a page refresh — and so tests can pass
+ * their own. It is memoised for the session inside variantSeed, which is what
+ * keeps prefetch and playback agreeing on the same recording.
+ */
+export function selectVariant(
   parkName: string,
   parksJSON: AudioPark[],
-  userAgent = ''
-): AudioVariant | null {
+  userAgent = '',
+  seed: number = getVariantSeed()
+): SelectedVariant | null {
   const variants = getParkAudioVariants(parkName, parksJSON, userAgent);
   if (!variants?.length) {
     return null;
   }
 
-  const selectedIndex = hashString(`${parkName}:${SESSION_AUDIO_VARIANT_SEED}`) % variants.length;
+  const selectedIndex = hashString(`${parkName}:${seed}`) % variants.length;
   const selected = variants[selectedIndex];
-  return selected.every(Boolean) ? selected : null;
+  if (!selected.every(Boolean)) {
+    return null;
+  }
+
+  return { urls: selected, number: selectedIndex + 1, total: variants.length };
+}
+
+export function pickSoundPath(
+  parkName: string,
+  parksJSON: AudioPark[],
+  userAgent = '',
+  seed?: number
+): AudioVariant | null {
+  return selectVariant(parkName, parksJSON, userAgent, seed ?? getVariantSeed())?.urls ?? null;
 }

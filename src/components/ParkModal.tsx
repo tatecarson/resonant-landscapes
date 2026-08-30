@@ -1,4 +1,4 @@
-import { Fragment, useRef, memo, useState, useEffect } from 'react'
+import { Fragment, useRef, memo, useState, useEffect, useMemo } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAudioEngine, useAudioPlaybackState } from "../contexts/AudioContextProvider";
 import { useRenderDebug } from "../hooks/useRenderDebug";
@@ -6,6 +6,8 @@ import HOARenderer from './HoaRenderer';
 import AmbientGradient from './AmbientGradient';
 import { hasStoredOrientationPermission, requestDeviceOrientationPermission } from "../utils/deviceOrientation";
 import { CENTER_ROTATION_RADIUS_METERS } from "../config/geofence";
+import { selectVariant } from "../utils/audioPaths";
+import stateParks from "../data/stateParks.json";
 
 
 interface ParkModalProps {
@@ -47,6 +49,16 @@ function ParkModal({
         rotationActive,
         permissionGranted,
     });
+
+    /**
+     * Which of a park's recordings this walker is hearing. Worth showing now
+     * that the choice persists: it is stable across visits, so "recording 2 of
+     * 6" is a fact about their walk rather than a per-reload accident.
+     */
+    const variant = useMemo(
+        () => (parkName ? selectVariant(parkName, stateParks, navigator.userAgent) : null),
+        [parkName]
+    );
 
     const cancelButtonRef = useRef(null);
 
@@ -189,6 +201,9 @@ function ParkModal({
                             )}
                             <p className="font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/70">
                                 {Math.floor(parkDistance)} m away
+                                {variant && variant.total > 1
+                                    ? ` · recording ${variant.number} of ${variant.total}`
+                                    : ""}
                             </p>
                         </div>
 

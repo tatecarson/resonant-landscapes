@@ -149,6 +149,22 @@ const currentLocationTestPark = {
 const testParks = [testPark, currentLocationTestPark];
 
 // ---- Public API ---------------------------------------------------------
+/**
+ * Where the walk actually is, per variant.
+ *
+ * The map used to open at [0, 0] zoom 20 — the Gulf of Guinea — and fetch a
+ * screenful of ocean tiles before the first GPS fix replaced them. Opening on
+ * the walk's own ground means those first tiles are the ones the walker is
+ * about to need.
+ */
+export function getVariantCenter(variant: 'dsu' | 'terrace' = 'dsu'): Coordinate {
+    if (variant === 'terrace') {
+        const { west, east, north, south } = TERRACE_BOUNDS;
+        return [(west + east) / 2, (north + south) / 2];
+    }
+    return DSU_REFERENCE_POINT;
+}
+
 export function getScaledPoints(variant = 'dsu') {
     return variant === 'terrace' ? terraceScaledPoints() : dsuScaledPoints();
 }
