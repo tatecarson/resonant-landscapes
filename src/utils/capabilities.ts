@@ -5,17 +5,23 @@
  * a matrix cannot stop someone opening the piece in whatever they have. Until
  * now the only thing that told them was a line in the Help modal — read after
  * a failure, if at all — so an unsupported phone meant driving to a park and
- * discovering it there. This checks the four things the walk actually depends
- * on and lets the welcome screen say plainly what will and will not work.
+ * discovering it there. This checks what the walk actually depends on and lets
+ * the welcome screen say plainly what will and will not work.
  *
- * Deliberately feature detection, not user-agent sniffing. Asset selection in
- * audioPaths.ts has to sniff because canPlayType lies about AAC; these four
- * are simple presence checks with no such problem. And what a downmix does to
- * the field cannot be seen from here at all — that is caught after decode by
- * channelCheck.ts, which is why "surround" below is stated as a maybe.
+ * The capability checks are feature detection, not user-agent sniffing. Asset
+ * selection in audioPaths.ts has to sniff because canPlayType lies about AAC;
+ * these are simple presence checks with no such problem. The one exception is
+ * "phone", which is a question about the situation rather than the engine and
+ * has no feature to detect — and it is non-essential, so a wrong guess costs a
+ * paragraph, not the walk.
+ *
+ * What a downmix does to the field cannot be seen from here at all — that is
+ * caught after decode by channelCheck.ts.
  */
 
-export type CapabilityId = "audio" | "decode" | "geolocation" | "orientation";
+import { detectPlatform } from "./recoverySteps";
+
+export type CapabilityId = "phone" | "audio" | "decode" | "geolocation" | "orientation";
 
 export type CapabilityCheck = {
     id: CapabilityId;
@@ -45,6 +51,8 @@ export type Preflight = {
 
 /** The globals the preflight reads, isolated so it can be tested in node. */
 export type PreflightEnv = {
+    /** The piece is a walk; a desk is not a place to take it. */
+    isPhone: boolean;
     audioContextCtor: unknown;
     /** `decodeAudioData` off the AudioContext prototype. */
     decodeAudioData: unknown;
@@ -57,7 +65,7 @@ type PreflightWindow = {
     AudioContext?: unknown;
     webkitAudioContext?: unknown;
     DeviceOrientationEvent?: unknown;
-    navigator?: { geolocation?: unknown };
+    navigator?: { geolocation?: unknown; userAgent?: string };
 };
 
 /**
@@ -71,6 +79,7 @@ export function readPreflightEnv(win: PreflightWindow): PreflightEnv {
         | undefined;
 
     return {
+        isPhone: detectPlatform(win.navigator?.userAgent ?? "") !== "other",
         audioContextCtor,
         // A constructor whose prototype lacks decodeAudioData cannot load a
         // park at all, and the two have shipped separately in the past.
@@ -90,11 +99,21 @@ export function runPreflight(env: PreflightEnv): Preflight {
 
     const checks: CapabilityCheck[] = [
         {
+            id: "phone",
+            label: "A phone",
+            available: env.isPhone,
+            // Not essential in the sense that matters here: a desktop browser
+            // can open the map and the mocked replays run there on purpose.
+            // It is still not the piece.
+            essential: false,
+            detail: "This is a walk — it is made for a phone you carry outdoors. On a computer you can look at the map, but nothing will play as you move.",
+        },
+        {
             id: "audio",
             label: "Sound",
             available: hasAudio,
             essential: true,
-            detail: "This browser has no Web Audio support, so the walk cannot play anything. Open the link in Safari or Chrome instead.",
+            detail: "This browser has no Web Audio support, so the walk cannot play anything. Open this link in Safari on an iPhone, or Chrome on Android.",
         },
         {
             id: "decode",
@@ -104,7 +123,7 @@ export function runPreflight(env: PreflightEnv): Preflight {
             // two lines saying it is worse than one.
             available: !hasAudio || typeof env.decodeAudioData === "function",
             essential: true,
-            detail: "This browser cannot decode the park recordings. Open the link in Safari or Chrome instead.",
+            detail: "This browser cannot decode the park recordings. Open this link in Safari on an iPhone, or Chrome on Android.",
         },
         {
             id: "geolocation",

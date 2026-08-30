@@ -10,6 +10,11 @@ geolocation watch, not by market share.
 
 ### Supported targets
 
+**Phones only.** The piece is a walk: it needs GPS that moves and a compass to
+turn. A desktop browser can open it, but there is no version of the experience
+there, so desktop is not a release target and a desktop-only bug is not a
+release blocker.
+
 These are the release targets. A reported break is a bug. The test column says
 whether coverage is emulated or runs on a real device.
 
@@ -17,7 +22,11 @@ whether coverage is emulated or runs on a real device.
 |---|---|---|
 | iOS Safari | 15 | Playwright WebKit and `iphone-13` emulation, plus a real-iPhone release check against the Netlify deploy preview |
 | Android Chrome | last 2 major versions | Playwright `pixel-7` emulation and BrowserStack on a real Samsung Galaxy S22 |
-| Desktop Chrome | last 2 major versions | Playwright `chromium` project |
+
+Desktop Chrome is a **development and test surface**, not a target. The
+Playwright `chromium` project and `npm run sim:*` replays run there because a
+mocked walk is the only way to exercise this at a desk; that is tooling, and it
+does not make desktop something the piece is for.
 
 iOS 15 is the floor because it is the oldest release with the Web Audio and
 DeviceOrientation behaviour the walk depends on, and iOS 15 devices still take
@@ -30,10 +39,11 @@ check on a real iPhone using the PR's HTTPS Netlify deploy preview.
 
 ### Best effort
 
-Desktop Safari, desktop and Android Firefox, Edge, and Samsung Internet. These
-get the asset family selected for their engine (see `src/utils/audioPaths.js`)
-and should work, but CI does not exercise each browser. Bugs reported here get
-fixed when they are cheap; they do not block a release.
+Android Firefox and Samsung Internet — other phone browsers, in other words.
+These get the asset family selected for their engine (see
+`src/utils/audioPaths.ts`) and should work, but CI does not exercise each
+browser. Bugs reported here get fixed when they are cheap; they do not block a
+release.
 
 ### Unsupported
 

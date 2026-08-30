@@ -4,6 +4,7 @@ import { useAudioEngine, useAudioPlaybackState } from "../contexts/AudioContextP
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import HOARenderer from './HoaRenderer';
 import AmbientGradient from './AmbientGradient';
+import PermissionRecovery from './PermissionRecovery';
 import { hasStoredOrientationPermission, requestDeviceOrientationPermission } from "../utils/deviceOrientation";
 import { CENTER_ROTATION_RADIUS_METERS } from "../config/geofence";
 import { debugLog } from "../config/debug";
@@ -37,6 +38,11 @@ function ParkModal({
     const [rotationActive, setRotationActive] = useState(false);
     const [permissionGranted, setPermissionGranted] = useState(() => hasStoredOrientationPermission());
     const [rotationDismissed, setRotationDismissed] = useState(false);
+    // Set when the walker asked for rotation and the device said no. Until
+    // now this branch did nothing at all: the button was tapped, the promise
+    // resolved "denied", and the UI did not move — which reads as a broken
+    // button rather than a setting they can go and change.
+    const [rotationBlocked, setRotationBlocked] = useState(false);
     const userAtRotationCenter = parkDistance <= CENTER_ROTATION_RADIUS_METERS;
     const showRotationButton = isPlaying && userAtRotationCenter && userOrientation;
 
@@ -140,10 +146,13 @@ function ParkModal({
         if (!permissionGranted) {
             const granted = await requestDeviceOrientationPermission();
             if (!granted) {
+                setRotationBlocked(true);
                 return;
             }
             setPermissionGranted(true);
         }
+
+        setRotationBlocked(false);
 
         setRotationDismissed(false); // user explicitly re-enabled — clear any prior dismissal
         setRotationActive(true);
@@ -164,6 +173,7 @@ function ParkModal({
             setRotationActive(false);
             setPermissionGranted(false);
             setRotationDismissed(false);
+            setRotationBlocked(true);
         },
     };
 
@@ -246,6 +256,15 @@ function ParkModal({
                             <HOARenderer {...hoaRendererProps} compact hideStatusLabel />
                         </div>
 
+                        {rotationBlocked && (
+                            <div className="mt-3">
+                                <PermissionRecovery
+                                    capability="orientation"
+                                    onDismiss={() => setRotationBlocked(false)}
+                                />
+                            </div>
+                        )}
+
                     </div>
                 </div>
             </>
@@ -312,6 +331,15 @@ function ParkModal({
                                         >
                                             Enable Rotation
                                         </button>
+                                    )}
+
+                                    {rotationBlocked && (
+                                        <div className="mt-4">
+                                            <PermissionRecovery
+                                                capability="orientation"
+                                                onDismiss={() => setRotationBlocked(false)}
+                                            />
+                                        </div>
                                     )}
 
                                     <div className="mt-4">

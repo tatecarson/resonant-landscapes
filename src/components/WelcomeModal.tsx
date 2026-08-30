@@ -17,6 +17,8 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
     // learn about a missing capability before they leave the house rather
     // than at the park.
     const preflight = useMemo(() => runPreflight(readPreflightEnv(window)), []);
+    const onlyNeedsAPhone =
+        preflight.problems.length === 1 && preflight.problems[0].id === "phone";
 
     const handleBegin = useCallback(async () => {
         try {
@@ -83,7 +85,12 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                         <p className="font-space-mono text-[11px] font-semibold uppercase tracking-wider text-neutral-900">
                                             {preflight.verdict === "blocked"
                                                 ? "This browser cannot run the walk"
-                                                : "Part of the walk will not work here"}
+                                                : onlyNeedsAPhone
+                                                    // Nothing is broken on a desktop — it is simply
+                                                    // the wrong device, and saying "will not work"
+                                                    // would read as a fault to go and fix.
+                                                    ? "Made to be walked with a phone"
+                                                    : "Part of the walk will not work here"}
                                         </p>
                                         <ul className="mt-2 font-space-mono space-y-2 text-[10px] leading-relaxed text-neutral-900/75">
                                             {preflight.problems.map((problem) => (

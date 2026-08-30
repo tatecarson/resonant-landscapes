@@ -45,6 +45,7 @@ import {
 } from "../config/geofence";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
+import { RECOVERY_TITLES, getRecoverySteps } from "../utils/recoverySteps";
 import type { Variant, MockPosition } from "../App";
 import locationIcon from "../assets/geolocation_marker_heading.svg";
 
@@ -54,7 +55,7 @@ function locationStatusMessage(
     error: GeolocationFailure | null,
     accuracyMeters: number | null,
     enterDistance: number
-): { title: string; detail: string } | null {
+): { title: string; detail: string; steps?: string[] } | null {
     if (status === "stale") {
         return {
             title: "Signal lost",
@@ -86,10 +87,13 @@ function locationStatusMessage(
     }
 
     if (error?.code === GEOLOCATION_PERMISSION_DENIED) {
+        // The only status here the walker can actually fix, so it is the only
+        // one that gets steps. "Allow location in your browser settings" was a
+        // restatement of the problem, read by someone already standing outside.
         return {
-            title: "Location is blocked",
-            detail:
-                "This walk follows where you are. Allow location for this site in your browser settings, then reload the page.",
+            title: RECOVERY_TITLES.location,
+            detail: "This walk follows where you are, so nothing will play until this is on.",
+            steps: getRecoverySteps("location", navigator.userAgent),
         };
     }
 
@@ -134,6 +138,16 @@ const LocationStatusOverlay = memo(function LocationStatusOverlay({
                 >
                     <p className="location-status__title">{message.title}</p>
                     <p className="location-status__detail">{message.detail}</p>
+                    {message.steps && (
+                        <ol className="location-status__steps">
+                            {message.steps.map((step, index) => (
+                                <li key={step}>
+                                    <span aria-hidden="true">{index + 1}</span>
+                                    <span>{step}</span>
+                                </li>
+                            ))}
+                        </ol>
+                    )}
                 </div>
             ) : (
                 <></>

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readPreflightEnv, runPreflight, type PreflightEnv } from "./capabilities";
 
 const capable = (overrides: Partial<PreflightEnv> = {}): PreflightEnv => ({
+    isPhone: true,
     audioContextCtor: function AudioContext() {},
     decodeAudioData: function decodeAudioData() {},
     geolocation: {},
@@ -54,6 +55,15 @@ describe("runPreflight", () => {
         expect(preflight.problems.map((check) => check.id)).toEqual(["orientation"]);
     });
 
+    it("tells a desktop visitor this is a phone piece, without blocking them", () => {
+        const preflight = runPreflight(capable({ isPhone: false }));
+
+        // Non-essential on purpose: the mocked desk replays run here, and
+        // refusing to draw the map would break the way this gets developed.
+        expect(preflight.verdict).toBe("partial");
+        expect(preflight.problems.map((check) => check.id)).toEqual(["phone"]);
+    });
+
     it("reports the iOS permission prompt without calling it a problem", () => {
         const preflight = runPreflight(
             capable({ orientationRequestPermission: function requestPermission() {} })
@@ -72,7 +82,7 @@ describe("readPreflightEnv", () => {
 
         const env = readPreflightEnv({
             webkitAudioContext: WebkitAudioContext,
-            navigator: { geolocation: {} },
+            navigator: { geolocation: {}, userAgent: "iPhone" },
             DeviceOrientationEvent: function DeviceOrientationEvent() {},
         });
 
@@ -90,6 +100,12 @@ describe("readPreflightEnv", () => {
 
         expect(env.decodeAudioData).toBeUndefined();
         expect(runPreflight(env).verdict).toBe("blocked");
+    });
+
+    it("reads the phone question off the user agent", () => {
+        expect(readPreflightEnv({ navigator: { userAgent: "iPhone" } }).isPhone).toBe(true);
+        expect(readPreflightEnv({ navigator: { userAgent: "Android" } }).isPhone).toBe(true);
+        expect(readPreflightEnv({ navigator: { userAgent: "Macintosh" } }).isPhone).toBe(false);
     });
 
     it("survives a window with none of it", () => {

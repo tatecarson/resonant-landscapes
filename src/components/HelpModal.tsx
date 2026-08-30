@@ -76,7 +76,7 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                     </li>
                                     <li className="flex gap-3">
                                         <span className="select-none text-neutral-900/40">—</span>
-                                        <span>Built for iOS Safari and Chrome. The welcome screen flags anything your browser cannot do.</span>
+                                        <span>Made for phones — Safari on iPhone, Chrome on Android. The welcome screen flags what your browser cannot do.</span>
                                     </li>
                                     <li className="flex gap-3">
                                         <span className="select-none text-neutral-900/40">—</span>
