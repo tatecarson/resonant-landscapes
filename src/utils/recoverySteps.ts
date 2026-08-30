@@ -63,16 +63,19 @@ const STEPS: Record<BlockedCapability, Record<WalkPlatform, string[]>> = {
             // cached "denied" without asking. So reloading is not a remedy and
             // is deliberately not offered as one.
             //
+            // Quitting Safari from the app switcher does clear it: the prompt
+            // comes back, and granting it makes rotation work. Also measured on
+            // 26.6.1, so step two is the remedy, not a guess.
+            //
             // That matches the older of the two accounts in the wild (three.js
             // #17713: cached "even in new tabs, until you restart safari") and
             // rules out the newer one (a 2022 W3C note claiming reload clears
-            // it). Since the first half of that account now checks out on iOS
-            // 26, its second half is the best next thing to try, and quitting
-            // Safari costs nothing and never leaves the phone.
+            // it), on both halves.
             //
-            // Website Data stays last. It sits beside a Remove All button that
-            // would sign the walker out of every site they use, to fix a
-            // compass.
+            // Website Data stays last, and is the one step here still unproven,
+            // which is the right place for it: it sits beside a Remove All
+            // button that would sign the walker out of every site they use, to
+            // fix a compass. Nobody who follows step two should reach it.
             "There is no iOS setting for this, only the prompt, and Safari remembers your answer. It has to be asked again.",
             "Quit Safari from the app switcher, open the link again, walk to the center of a listening spot, and tap Enable Rotation. Choose Allow this time.",
             "Still not asking? Delete this site's entry under Settings → Apps → Safari → Advanced → Website Data. Do not tap Remove All Website Data. Then tap Enable Rotation again.",

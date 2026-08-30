@@ -39,6 +39,22 @@ Its open-source build lacks the proprietary AAC codec available on iOS. Any
 change to audio loading, decoding, or asset selection therefore needs a manual
 check on a real iPhone using the PR's HTTPS Netlify deploy preview.
 
+#### Verified on iOS 26.6.1 (2026-08-30)
+
+Motion and orientation behaviour, checked by hand because Playwright's WebKit
+has no motion permission gate to exercise at all:
+
+| Behaviour | Result |
+|---|---|
+| `DeviceOrientationEvent.requestPermission()` prompts on a first ask | Yes |
+| Granting it makes rotation track the phone | Yes |
+| A denied answer survives a page reload | Yes, and re-asking returns the cached "denied" with no prompt |
+| Quitting Safari from the app switcher clears the denial | Yes, the prompt returns |
+
+The reload result is why the app offers no "try again" button: a second
+`requestPermission()` in the same page can only repeat the cached answer. The
+recovery copy in `src/utils/recoverySteps.ts` is built on this table.
+
 ### Best effort
 
 Android Firefox and Samsung Internet — other phone browsers, in other words.
@@ -169,6 +185,29 @@ Notes:
 ## Phone Field Testing (HTTPS)
 
 iOS sensor/audio permissions require a secure context, so use an HTTPS tunnel for phone testing.
+
+### Fastest route: a deploy preview with a spoofed position
+
+A PR's Netlify deploy preview is already HTTPS, so no tunnel is needed to test
+sensor and permission behaviour on a real phone. Production ignores `?mock=`,
+but `?debug` opts back into it:
+
+```text
+https://deploy-preview-<PR>--resonant-landscapes.netlify.app/?debug&mock=44.01320393,-97.11059202
+```
+
+That coordinate is the center of Hartford Beach on the DSU map. Tap Start and
+the walk opens at the park with audio playing and Enable Rotation on screen,
+which is everything needed to exercise the motion permission without walking
+anywhere. `userOrientation` is purely distance-based, so a mocked position is
+enough to unlock the rotation control.
+
+Two caveats. A "Signal lost" banner appears after a moment because the mock
+delivers one fixed position and the app correctly notices it has gone stale;
+the park stays active. And this cannot test the location permission paths,
+since `?mock=` bypasses geolocation entirely — drop `&mock=` for those.
+
+### Tunnel, for testing uncommitted work
 
 ### 1. Install tunnel tool (one-time)
 
