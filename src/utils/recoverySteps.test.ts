@@ -42,10 +42,13 @@ describe("getRecoverySteps", () => {
         expect(getRecoverySteps("location", ANDROID).join(" ")).toMatch(/Chrome/);
     });
 
-    it("points iOS walkers at Motion & Orientation Access", () => {
-        expect(getRecoverySteps("orientation", IOS).join(" ")).toMatch(
-            /Motion & Orientation Access/
-        );
+    it("leads iOS walkers to a recovery that survives Apple moving the switch", () => {
+        const steps = getRecoverySteps("orientation", IOS);
+
+        // The Motion & Orientation toggle has moved between iOS versions and is
+        // reportedly gone by iOS 26, so the first step must not depend on it.
+        expect(steps[0]).toMatch(/Website Data/);
+        expect(steps[0]).not.toMatch(/Motion & Orientation Access/);
     });
 
     it("always ends somewhere the walker can act", () => {

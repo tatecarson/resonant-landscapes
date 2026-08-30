@@ -48,9 +48,13 @@ const STEPS: Record<BlockedCapability, Record<WalkPlatform, string[]>> = {
     },
     orientation: {
         ios: [
-            "Settings → Apps → Safari → Motion & Orientation Access, and turn it on. On older iOS it is Settings → Safari.",
-            "Come back here and reload the page.",
-            "Walk to the center of a listening spot and tap Enable Rotation again.",
+            // Apple has moved this switch (Settings → Safari, then Settings →
+            // Apps → Safari) and appears to have dropped it entirely by iOS 26,
+            // where a walker reported Location but no Motion & Orientation row.
+            // So this leads with the recovery that does not depend on it.
+            "Safari remembers that this site was refused. Clear it under Settings → Apps → Safari → Advanced → Website Data, then open the link again.",
+            "If your iOS still lists Motion & Orientation Access under Safari's settings, turning that on is the quicker fix.",
+            "Then walk to the center of a listening spot and tap Enable Rotation again.",
         ],
         android: [
             "Chrome does not ask permission for this, so turning is either switched off for the site or your phone has no compass.",
