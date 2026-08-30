@@ -305,6 +305,9 @@ test.describe("during the walk: rotation refused", () => {
         // Honest about the stakes: the walk is not over.
         await expect(recovery).toContainText(/everything else still works/i);
         await expect(recovery.locator("ol li")).toHaveCount(3);
+        // The button steps aside while the panel is up. Leaving it would offer
+        // a retry that iOS answers "denied" without ever prompting again.
+        await expect(enable).toHaveCount(0);
         await shot(page, "08-rotation-denied");
     });
 

@@ -237,7 +237,15 @@ function ParkModal({
                                         × stop tracking
                                     </button>
                                 )}
-                                {!rotationActive && showRotationButton && (
+                                {/*
+                                  * Hidden while the recovery panel is up. Once
+                                  * iOS has been told no, requestPermission
+                                  * resolves "denied" without prompting, so the
+                                  * button is a no-op that still looks live —
+                                  * the same dead end the panel exists to fix.
+                                  * "Continue without it" brings it back.
+                                  */}
+                                {!rotationActive && showRotationButton && !rotationBlocked && (
                                     <button
                                         onClick={() => { void enableRotation(); }}
                                         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] rotation-affordance inline-flex min-h-[44px] items-center rounded-full px-2.5 py-1 font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/70 underline underline-offset-2 decoration-neutral-900/40 transition-colors hover:text-neutral-900"
@@ -245,7 +253,10 @@ function ParkModal({
                                         Enable rotation
                                     </button>
                                 )}
-                                {!rotationActive && !showRotationButton && (
+                                {/* Also stands in while the recovery panel has
+                                    taken the button's place, so the row keeps
+                                    its balance instead of going half empty. */}
+                                {!rotationActive && (!showRotationButton || rotationBlocked) && (
                                     <span className="font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/25 select-none">
                                         ✦
                                     </span>
@@ -321,7 +332,7 @@ function ParkModal({
                                         <HOARenderer {...hoaRendererProps} />
                                     </div>
 
-                                    {!rotationActive && showRotationButton && (
+                                    {!rotationActive && showRotationButton && !rotationBlocked && (
                                         <button
                                             type="button"
                                             onClick={() => {
