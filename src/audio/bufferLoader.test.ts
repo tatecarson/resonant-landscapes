@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createBufferCache } from "./bufferCache";
-import { createBufferLoader } from "./bufferLoader";
+import { createBufferLoader, getCacheKey } from "./bufferLoader";
 import { EXPECTED_SPATIAL_CHANNELS } from "./channelCheck";
 
 const buffer = (name: string) => ({ name }) as unknown as AudioBuffer;
@@ -169,11 +169,16 @@ describe("createBufferLoader", () => {
         // Only the mono bed reaches merge — the collapsed spatial stream would
         // have produced a field that plays but points nowhere.
         await expect(load).resolves.toEqual({ name: "merged:1" });
-        expect(onSpatialDegraded).toHaveBeenCalledWith({
-            decodedChannels: 2,
-            expectedChannels: EXPECTED_SPATIAL_CHANNELS,
-            reason: "downmixed",
-        });
+        expect(onSpatialDegraded).toHaveBeenCalledWith(
+            {
+                decodedChannels: 2,
+                expectedChannels: EXPECTED_SPATIAL_CHANNELS,
+                reason: "downmixed",
+            },
+            // The key travels with it so the consumer can tell a prefetch's
+            // report from the active park's.
+            getCacheKey(["a.flac", "a-mono.wav"])
+        );
     });
 
     it("does not re-report the degradation on a cache hit", async () => {
@@ -187,6 +192,21 @@ describe("createBufferLoader", () => {
         await loader.load(["a.flac", "a-mono.wav"]);
 
         expect(onSpatialDegraded).toHaveBeenCalledTimes(1);
+    });
+
+    it("names the load a degradation came from", async () => {
+        const { loader, pending, onSpatialDegraded } = setup({ decodedChannels: 2 });
+
+        const load = loader.load(["b.flac", "b-mono.wav"]);
+        pending.get("b.flac")!.resolve(new ArrayBuffer(8));
+        pending.get("b-mono.wav")!.resolve(new ArrayBuffer(8));
+        await load;
+
+        // Without the key a prefetch's report is indistinguishable from the
+        // active park's, which is how "this park has no plain mix" could end
+        // up over a park that has one.
+        const [, reportedKey] = onSpatialDegraded.mock.calls[0];
+        expect(reportedKey).toBe(getCacheKey(["b.flac", "b-mono.wav"]));
     });
 
     it("reports whether a key is currently loading", async () => {

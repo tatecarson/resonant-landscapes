@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { EXPECTED_SPATIAL_CHANNELS, planDecodedBuffers } from "./channelCheck";
+import {
+    EXPECTED_SPATIAL_CHANNELS,
+    planDecodedBuffers,
+    shouldSurfaceDegradation,
+    type SpatialDegradation,
+} from "./channelCheck";
 
 const buffer = (name: string, numberOfChannels: number) =>
     ({ name, numberOfChannels }) as unknown as AudioBuffer;
@@ -58,5 +63,37 @@ describe("planDecodedBuffers", () => {
 
         expect(plan.buffers).toEqual([]);
         expect(plan.degradation).toBeNull();
+    });
+});
+
+describe("shouldSurfaceDegradation", () => {
+    const downmixed: SpatialDegradation = {
+        decodedChannels: 2,
+        expectedChannels: EXPECTED_SPATIAL_CHANNELS,
+        reason: "downmixed",
+    };
+    const noFallback: SpatialDegradation = { ...downmixed, reason: "no-fallback" };
+
+    it("shows a downmix even when a prefetch reported it", () => {
+        // The browser collapses every park, so which load noticed is irrelevant.
+        expect(shouldSurfaceDegradation(downmixed, "prefetched-park", "active-park")).toBe(true);
+    });
+
+    it("shows a downmix when nothing is active yet", () => {
+        expect(shouldSurfaceDegradation(downmixed, "prefetched-park", null)).toBe(true);
+    });
+
+    it("hides a prefetched park's missing plain mix", () => {
+        // The bug this exists to stop: "this park has no plain mix" over a
+        // park that has one, because a different park was being fetched.
+        expect(shouldSurfaceDegradation(noFallback, "prefetched-park", "active-park")).toBe(false);
+    });
+
+    it("shows the active park's missing plain mix", () => {
+        expect(shouldSurfaceDegradation(noFallback, "active-park", "active-park")).toBe(true);
+    });
+
+    it("hides a missing plain mix when no park is active", () => {
+        expect(shouldSurfaceDegradation(noFallback, "some-park", null)).toBe(false);
     });
 });

@@ -7,7 +7,7 @@ import { useRenderDebug } from "../hooks/useRenderDebug";
 import { usePlaybackWakeLock } from "../hooks/usePlaybackWakeLock";
 import { createBufferCache } from "../audio/bufferCache";
 import { createBufferLoader, getCacheKey, isAbortError } from "../audio/bufferLoader";
-import type { SpatialDegradation } from "../audio/channelCheck";
+import { shouldSurfaceDegradation, type SpatialDegradation } from "../audio/channelCheck";
 import { mergeBuffersByChannel } from "../audio/mergeBuffers";
 import { debugLog, isDebugEnabled } from "../config/debug";
 
@@ -193,7 +193,13 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
                 if (!context) throw new Error("Audio context is not ready yet.");
                 return mergeBuffersByChannel(context, decoded);
             },
-            onSpatialDegraded: setSpatialDegradation,
+            onSpatialDegraded: (degradation, cacheKey) => {
+                const activeKey = activeLoadUrlsRef.current
+                    ? getCacheKey(activeLoadUrlsRef.current)
+                    : null;
+                if (!shouldSurfaceDegradation(degradation, cacheKey, activeKey)) return;
+                setSpatialDegradation(degradation);
+            },
         });
 
         return bufferLoaderRef.current;

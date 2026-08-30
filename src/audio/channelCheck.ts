@@ -80,3 +80,30 @@ export function planDecodedBuffers(decoded: AudioBuffer[]): ChannelPlan {
         },
     };
 }
+
+/**
+ * Whether a degradation report belongs to the park the walker is in.
+ *
+ * The two reasons have different scopes and the difference is easy to lose:
+ *
+ * - `downmixed` is a fact about the browser. An engine that collapses one
+ *   park's 8-channel file collapses every park's, so it applies everywhere and
+ *   should stick once seen, including across cache hits that never re-report.
+ * - `no-fallback` is a fact about one payload. Prefetch loads a park the
+ *   walker has not reached, so crediting its report to the active park would
+ *   claim "this park has no plain mix" over a park that has one.
+ *
+ * Split out as a pure function rather than left inline in the provider,
+ * because the no-fallback path cannot be reached from a test through the app:
+ * every park payload is a spatial file plus a mono bed, so `planDecodedBuffers`
+ * never returns it today. A rule that nothing can exercise is a rule that
+ * quietly stops being true (rl-0p1).
+ */
+export function shouldSurfaceDegradation(
+    degradation: SpatialDegradation,
+    cacheKey: string,
+    activeCacheKey: string | null
+): boolean {
+    if (degradation.reason === "downmixed") return true;
+    return cacheKey === activeCacheKey;
+}

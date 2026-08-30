@@ -8,10 +8,16 @@ export interface BufferLoaderDeps {
     merge: (buffers: AudioBuffer[]) => AudioBuffer;
     /**
      * Called when the spatial file did not decode to its full channel count.
-     * Fires per load, not per cache hit, so the consumer should treat it as
-     * sticky: a browser that downmixes will downmix every time.
+     * Fires per load, not per cache hit.
+     *
+     * The cache key comes with it because the two reasons have different
+     * scopes. A `downmixed` result is a fact about the browser: an engine that
+     * collapses one park's 8-channel file collapses every park's, so the
+     * consumer should treat it as sticky and global. A `no-fallback` result is
+     * a fact about one payload, and a prefetch can report it for a park the
+     * walker is not in, so the consumer has to check the key before showing it.
      */
-    onSpatialDegraded?: (degradation: SpatialDegradation) => void;
+    onSpatialDegraded?: (degradation: SpatialDegradation, cacheKey: string) => void;
 }
 
 export interface BufferLoader {
@@ -78,7 +84,7 @@ export const createBufferLoader = ({
             // and looks right with no spatial field at all.
             const { buffers, degradation } = planDecodedBuffers(decoded);
             if (degradation) {
-                onSpatialDegraded?.(degradation);
+                onSpatialDegraded?.(degradation, key);
             }
 
             const merged = merge(buffers);
