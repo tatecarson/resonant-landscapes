@@ -49,3 +49,21 @@ test("production build ignores ?mock= position spoofing", async ({ page }) => {
 
   await expect(page.locator("p.font-cormorant").first()).toHaveCount(0);
 });
+
+test("production build gates /debug, and ?debug still opens it", async ({ page }) => {
+  const welcomeStart = () => page.getByRole("button", { name: /^\s*start\s*$/i });
+
+  // Gated: these land on the ordinary walk, not the debug tools.
+  for (const gated of ["/debug", "/#/debug"]) {
+    await page.goto(gated);
+    await expect(welcomeStart(), `${gated} should show the walk`).toBeVisible({ timeout: 10_000 });
+  }
+
+  // Opted in: all three spellings work, including the hash carrying its own
+  // query string, which used to fall through to the ordinary app in silence.
+  for (const open of ["/debug?debug", "/#/debug?debug", "/?debug#/debug"]) {
+    await page.goto(open);
+    await page.waitForTimeout(500);
+    await expect(welcomeStart(), `${open} should reach the debug route`).toHaveCount(0);
+  }
+});

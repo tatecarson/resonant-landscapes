@@ -22,7 +22,10 @@ function isDebugLocation(location: Location) {
   if (!isDebugEnabled()) {
     return false;
   }
-  return location.pathname.endsWith("/debug") || location.hash === "#/debug";
+  // startsWith rather than an exact match: the hash carries its own query
+  // string, so #/debug?debug — the natural way to ask for the debug route on a
+  // production build — used to fall through to the ordinary app in silence.
+  return location.pathname.endsWith("/debug") || location.hash.startsWith("#/debug");
 }
 
 function detectVariant(location: Location): Variant {
