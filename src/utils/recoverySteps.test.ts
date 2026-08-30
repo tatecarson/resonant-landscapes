@@ -42,6 +42,17 @@ describe("getRecoverySteps", () => {
         expect(getRecoverySteps("location", ANDROID).join(" ")).toMatch(/Chrome/);
     });
 
+    it("tries the cheap iOS recovery before the destructive one", () => {
+        const steps = getRecoverySteps("orientation", IOS);
+
+        // Clearing Website Data sits beside a Remove All button that would sign
+        // the walker out of everything, so it must never be the opening move.
+        const restart = steps.findIndex((step) => /app switcher/i.test(step));
+        const websiteData = steps.findIndex((step) => /Website Data/i.test(step));
+        expect(restart).toBeGreaterThanOrEqual(0);
+        expect(restart).toBeLessThan(websiteData);
+    });
+
     it("never sends iOS walkers to the switch Apple deleted in iOS 13", () => {
         const steps = getRecoverySteps("orientation", IOS).join(" ");
 

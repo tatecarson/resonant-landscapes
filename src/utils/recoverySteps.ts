@@ -55,9 +55,15 @@ const STEPS: Record<BlockedCapability, Record<WalkPlatform, string[]>> = {
             // it would send a walker hunting for a row that is not there, which
             // is what an earlier draft of this copy did. Clearing the site's
             // stored answer is what actually makes Safari ask again.
-            "There is no iOS setting for this, only the prompt. Safari asks again once this site's saved answer is gone.",
-            "Go to Settings → Apps → Safari → Advanced → Website Data and delete this site's entry. Do not tap Remove All Website Data, which would sign you out of every site.",
-            "Open the link again, walk to the center of a listening spot, tap Enable Rotation, and choose Allow.",
+            // Ordered lightest first. Reports differ on whether Safari drops a
+            // denied answer on reload or holds it until the app restarts, and
+            // they span iOS 13 to now, so quitting Safari covers both readings
+            // and costs nothing. Website Data is the last resort, not the
+            // opening move: it sits next to a Remove All button that would
+            // sign the walker out of every site they use.
+            "There is no iOS setting for this, only the prompt, and Safari remembers your answer. It has to be asked again.",
+            "Quit Safari from the app switcher, open the link again, walk to the center of a listening spot, and tap Enable Rotation. Choose Allow this time.",
+            "Still not asking? Delete this site's entry under Settings → Apps → Safari → Advanced → Website Data. Do not tap Remove All Website Data. Then tap Enable Rotation again.",
         ],
         android: [
             "Chrome does not ask permission for this. Either this site is blocked, or your phone has no compass.",
