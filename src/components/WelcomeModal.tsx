@@ -84,7 +84,7 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                     >
                                         <p className="font-space-mono text-[11px] font-semibold uppercase tracking-wider text-neutral-900">
                                             {preflight.verdict === "blocked"
-                                                ? "This browser cannot run the walk"
+                                                ? "The walk will not work here"
                                                 : onlyNeedsAPhone
                                                     // Nothing is broken on a desktop — it is simply
                                                     // the wrong device, and saying "will not work"

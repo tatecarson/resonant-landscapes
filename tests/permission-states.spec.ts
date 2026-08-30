@@ -187,6 +187,12 @@ const startWalk = async (page: Page) => {
 };
 
 const preflight = (page: Page) => page.getByTestId("capability-preflight");
+/**
+ * The panel's heading. Asserted by exact text rather than substring, because
+ * "Part of the walk will not work here" contains the blocked heading and a
+ * loose match would let the wrong one pass.
+ */
+const preflightHeading = (page: Page) => preflight(page).locator("p").first();
 const locationStatus = (page: Page) => page.getByTestId("location-status");
 
 test.describe("before the walk: the welcome preflight", () => {
@@ -205,7 +211,7 @@ test.describe("before the walk: the welcome preflight", () => {
         await stubFixesAtPark(page);
         await page.goto("/");
 
-        await expect(preflight(page)).toContainText(/part of the walk will not work/i);
+        await expect(preflightHeading(page)).toHaveText("Part of the walk will not work here");
         await expect(preflight(page)).toContainText(/turning will not rotate the sound/i);
         // Still startable: losing rotation costs one feature, not the walk.
         await expect(page.getByRole("button", { name: /^\s*start\s*$/i })).toBeVisible();
@@ -216,7 +222,7 @@ test.describe("before the walk: the welcome preflight", () => {
         await removeCapability(page, "geolocation");
         await page.goto("/");
 
-        await expect(preflight(page)).toContainText(/cannot run the walk/i);
+        await expect(preflightHeading(page)).toHaveText("The walk will not work here");
         await expect(preflight(page)).toContainText(/cannot share your location/i);
         await expect(page.getByRole("button", { name: /start anyway/i })).toBeVisible();
         await shotOf(page, WELCOME_PANEL, "03-preflight-no-geolocation");
@@ -227,7 +233,7 @@ test.describe("before the walk: the welcome preflight", () => {
         await removeCapability(page, "audio");
         await page.goto("/");
 
-        await expect(preflight(page)).toContainText(/cannot run the walk/i);
+        await expect(preflightHeading(page)).toHaveText("The walk will not work here");
         await expect(preflight(page)).toContainText(/no Web Audio support/i);
         // One fault, not two: the decode line must stay quiet when there is
         // no AudioContext for it to hang off.
@@ -247,8 +253,7 @@ test.describe("before the walk: opened on a laptop", () => {
         await stubFixesAtPark(page);
         await page.goto("/");
 
-        await expect(preflight(page)).toContainText(/this walk needs a phone/i);
-        await expect(preflight(page)).not.toContainText(/will not work here/i);
+        await expect(preflightHeading(page)).toHaveText("This walk needs a phone");
         // Never blocked: the mocked desk replays run here on purpose.
         await expect(page.getByRole("button", { name: /^\s*start\s*$/i })).toBeVisible();
         await shotOf(page, WELCOME_PANEL, "05-preflight-desktop");
