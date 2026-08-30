@@ -532,11 +532,25 @@ export function useGeolocationTracking({
     // An error only matters while there is nothing to show. Once a fix has
     // landed the walk continues on the last known position rather than
     // throwing up a banner over a working map.
+    // A coarse fix only matters where it can pick the wrong park. On a cold
+    // start the first fixes are network or cell positions tens of metres wide,
+    // so without this the walker is told GPS is imprecise while standing in
+    // their driveway, nowhere near anything. Warning about a problem that is
+    // not affecting them yet spends the credibility the same banner needs
+    // later, under tree cover, when it explains why a park will not start.
+    //
+    // prefetchParkName is set exactly when the nearest park is inside
+    // PREFETCH_DISTANCE_METERS, which is the range where accuracy starts to
+    // decide anything.
+    const parkWithinRange = prefetchParkName !== "";
+
     const locationStatus: LocationStatus = !position
         ? (geolocationError ? "error" : "acquiring")
         : isFixStale
             ? "stale"
-            : accuracyMeters !== null && accuracyMeters > ENTER_DISTANCE_METERS
+            : accuracyMeters !== null &&
+                accuracyMeters > ENTER_DISTANCE_METERS &&
+                parkWithinRange
                 ? "imprecise"
                 : "tracking";
 
