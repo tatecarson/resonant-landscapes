@@ -59,7 +59,7 @@ function locationStatusMessage(
     if (status === "stale") {
         return {
             title: "Signal lost",
-            detail: "Your position has stopped updating. Move into open sky — parks will not trigger until it does.",
+            detail: "Your position has stopped updating, and parks will not start until it does. Move outside, away from buildings and trees.",
         };
     }
 
@@ -71,14 +71,14 @@ function locationStatusMessage(
             title: "GPS is imprecise here",
             detail: radius === null
                 ? `Your position is less accurate than the ${enterDistance} m listening areas, so parks may trigger late or not at all.`
-                : `Your position is accurate to about ${radius} m, wider than the ${enterDistance} m listening areas. Parks may trigger late, early, or not at all — open sky helps.`,
+                : `Your position is accurate to about ${radius} m, wider than the ${enterDistance} m listening areas. Parks may start late, early, or not at all. Moving away from buildings and trees helps.`,
         };
     }
 
     if (status === "acquiring") {
         return {
             title: "Finding you…",
-            detail: "Step into open sky if this takes more than a moment.",
+            detail: "If this takes more than a moment, move away from buildings and trees.",
         };
     }
 
@@ -106,7 +106,7 @@ function locationStatusMessage(
 
     return {
         title: "Can't find your location",
-        detail: "Your device could not get a fix. Move into open sky, then reload the page.",
+        detail: "Your device could not find you. Move outside, away from buildings and trees, then reload the page.",
     };
 }
 

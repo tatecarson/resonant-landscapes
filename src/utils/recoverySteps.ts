@@ -31,7 +31,10 @@ export function detectPlatform(userAgent = ""): WalkPlatform {
 const STEPS: Record<BlockedCapability, Record<WalkPlatform, string[]>> = {
     location: {
         ios: [
-            "In Safari, tap AA in the address bar, then Website Settings → Location → Allow.",
+            // Not "tap AA": iOS 26 replaced that label with a rectangle icon
+            // beside the address bar, confirmed on 26.6.1. Naming the position
+            // and the destination survives Apple renaming the control again.
+            "In Safari, tap the page menu beside the address bar. It is a small rectangle icon on iOS 26 and reads AA on older versions. Then Website Settings → Location → Allow.",
             "Still blocked? Settings → Privacy & Security → Location Services, and turn on Location Services, Safari Websites, and Precise Location.",
             "Come back here and reload the page.",
         ],

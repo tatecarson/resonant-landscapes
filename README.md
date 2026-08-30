@@ -202,10 +202,22 @@ which is everything needed to exercise the motion permission without walking
 anywhere. `userOrientation` is purely distance-based, so a mocked position is
 enough to unlock the rotation control.
 
-Two caveats. A "Signal lost" banner appears after a moment because the mock
-delivers one fixed position and the app correctly notices it has gone stale;
-the park stays active. And this cannot test the location permission paths,
-since `?mock=` bypasses geolocation entirely — drop `&mock=` for those.
+Three caveats.
+
+A "Signal lost" banner appears after a moment because the mock delivers one
+fixed position and the app correctly notices it has gone stale. The park stays
+active.
+
+This cannot test the location permission paths, since `?mock=` bypasses
+geolocation entirely. Drop `&mock=` for those.
+
+**Map tiles come back as "401 Invalid Authentication" images on a deploy
+preview.** `GeolocationMap.tsx` requests Stadia Maps tiles with no API key,
+which works only from origins registered with Stadia, and every PR gets its own
+`deploy-preview-<n>--` subdomain. Expected on previews, not a regression, and
+it does not affect audio, geolocation or orientation testing. It does mean a
+preview is no use for judging anything visual about the map. Tracked separately
+from this workflow.
 
 ### Tunnel, for testing uncommitted work
 
