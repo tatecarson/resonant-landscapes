@@ -13,6 +13,9 @@ export default defineConfig({
   // matchers Playwright has already installed — taking down collection for
   // every spec, not just that file.
   testMatch: /.*\.spec\.ts$/,
+  // Aborts before the first test if something other than this app is serving
+  // baseURL — see tests/global-setup.ts for why that is worth checking.
+  globalSetup: "./tests/global-setup.ts",
   timeout: 90_000,
   expect: {
     timeout: 10_000,
