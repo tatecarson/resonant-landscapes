@@ -59,7 +59,7 @@ function locationStatusMessage(
     if (status === "stale") {
         return {
             title: "Signal lost",
-            detail: "Your position has stopped updating, and parks will not start until it does. Move outside, away from buildings and trees.",
+            detail: "Your position has stopped updating, and parks will not start until it does. Give it a moment.",
         };
     }
 
@@ -71,14 +71,14 @@ function locationStatusMessage(
             title: "GPS is imprecise here",
             detail: radius === null
                 ? `Your position is less accurate than the ${enterDistance} m listening areas, so parks may trigger late or not at all.`
-                : `Your position is accurate to about ${radius} m, wider than the ${enterDistance} m listening areas. Parks may start late, early, or not at all. Moving away from buildings and trees helps.`,
+                : `Your position is accurate to about ${radius} m, wider than the ${enterDistance} m listening areas. Parks may start late, early, or not at all.`,
         };
     }
 
     if (status === "acquiring") {
         return {
             title: "Finding you…",
-            detail: "If this takes more than a moment, move away from buildings and trees.",
+            detail: "Step outside if this takes more than a moment.",
         };
     }
 
@@ -100,13 +100,13 @@ function locationStatusMessage(
     if (error?.code === GEOLOCATION_TIMEOUT) {
         return {
             title: "Can't find your location yet",
-            detail: "This is taking longer than usual. Move away from buildings and tree cover.",
+            detail: "This is taking longer than usual. Stepping outside can help.",
         };
     }
 
     return {
         title: "Can't find your location",
-        detail: "Your device could not find you. Move outside, away from buildings and trees, then reload the page.",
+        detail: "Your device could not find you. Step outside, then reload the page.",
     };
 }
 
