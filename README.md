@@ -66,20 +66,36 @@ floor moves:
   window silently raises the floor every time a browser ships, which would drop
   support for a device this table promises without anyone deciding to. Moving a
   floor should be an edit, not a side effect.
-- `vite.config.ts` `build.target: ["safari15", "chrome109", "firefox115"]` —
-  esbuild refuses to emit syntax these cannot parse.
+- `vite.config.ts` `build.target: ["safari15", "ios15", "chrome109",
+  "firefox115"]` — the bundle is downleveled until it parses on the floor.
+  Rolldown treats `safari` and `ios` as separate engines, so both are named.
 - `tsconfig.json` `target`/`lib` set to `ES2021` — the type checker rejects
   standard-library calls newer than the floor.
 
-`safari15` is the binding constraint in every case. Turning this on caught two
+Safari 15 is the binding constraint in every case. Turning this on caught two
 real violations: `Object.hasOwn` in `src/utils/audioPaths.ts` and
 `Array.prototype.at` in two tests, all three ES2022 and shipped in Safari 15.4,
 which iOS 15.0-15.3 devices do not have.
 
-Note that `lib: ES2021` bounds the *standard library* only. A DOM API added
-after iOS 15 still type-checks, because `lib.dom.d.ts` carries no version
-information — `navigator.wakeLock` is the existing example, guarded at runtime
-rather than by the compiler. New DOM APIs still need a feature check.
+### What the floor does not catch
+
+Measured against this build, not assumed:
+
+- **`build.target` guarantees parsing, not support.** Newer syntax is
+  downleveled — a class static block comes out as plain assignments — and
+  anything that cannot be downleveled is deferred rather than rejected: a
+  `/v`-flag regex literal is emitted as `RegExp(source, "v")`, which parses on
+  Safari 15 and throws when the line runs. The build does not fail on an
+  unsupported feature, so treat this as a guard against syntax errors rather
+  than a support guarantee.
+- **`lib: ES2021` bounds the standard library only.** A DOM API added after
+  iOS 15 still type-checks, because `lib.dom.d.ts` carries no version
+  information. `navigator.wakeLock` is the existing example, guarded at
+  runtime rather than by the compiler.
+
+Both gaps land in the same place: a new DOM API or an exotic literal still
+needs a feature check, and real-device coverage (rl-06c.6) is what catches the
+rest.
 
 ## Testing
 
