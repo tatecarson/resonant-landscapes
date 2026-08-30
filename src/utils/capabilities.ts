@@ -113,7 +113,7 @@ export function runPreflight(env: PreflightEnv): Preflight {
             label: "Sound",
             available: hasAudio,
             essential: true,
-            detail: "This browser has no Web Audio support, so the walk cannot play anything. Open this link in Safari on an iPhone, or Chrome on Android.",
+            detail: "This browser cannot play sound at all. Open this link in Safari on an iPhone, or Chrome on Android.",
         },
         {
             id: "decode",

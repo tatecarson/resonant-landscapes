@@ -6,6 +6,8 @@ import GimbalArrow from './GimbalArrow';
 
 import stateParks from '../data/stateParks.json';
 import { pickSoundPath } from '../utils/audioPaths';
+import { audio as audioCopy } from '../copy';
+import { isDebugEnabled } from '../config/debug';
 
 interface HOARendererProps {
     parkName: string;
@@ -194,61 +196,61 @@ const HOARenderer = ({
     let statusMessage: string;
 
     if (activeError) {
-        audioStatusLabel = "Audio unavailable";
-        statusMessage = "Fix the audio error below to retry this park.";
+        audioStatusLabel = audioCopy.error.title;
+        statusMessage = audioCopy.error.detail;
     } else {
         switch (audioStatus) {
             case "preparing":
-                audioStatusLabel = "Preparing audio";
+                audioStatusLabel = audioCopy.label.preparing;
                 statusMessage = hasPrefetchedAudio
-                    ? "Finishing the park audio handoff now."
-                    : "Loading this park's recording now.";
+                    ? audioCopy.message.preparingPrefetched
+                    : audioCopy.message.preparingFresh;
                 break;
             case "initializing":
-                audioStatusLabel = "Starting audio";
-                statusMessage = "Initializing the audio engine for this park now.";
+                audioStatusLabel = audioCopy.label.initializing;
+                statusMessage = audioCopy.message.initializing;
                 break;
             case "playing":
-                audioStatusLabel = "Playing automatically";
-                statusMessage = "Audio started when you entered the listening area.";
+                audioStatusLabel = audioCopy.label.playing;
+                statusMessage = audioCopy.message.playing;
                 break;
             case "interrupted":
-                audioStatusLabel = "Audio paused by your phone";
-                statusMessage = "Tap resume audio to continue this park.";
+                audioStatusLabel = audioCopy.label.interrupted;
+                statusMessage = audioCopy.message.interrupted;
                 break;
             case "ready-manual":
-                audioStatusLabel = allowManualRestart ? "Playback stopped" : "Ready to start";
+                audioStatusLabel = allowManualRestart ? audioCopy.label.stopped : audioCopy.label.readyToStart;
                 statusMessage = allowManualRestart
-                    ? "Tap start audio to resume this park."
-                    : "Autoplay was blocked. Tap start audio to begin.";
+                    ? audioCopy.message.stopped
+                    : audioCopy.message.readyToStart;
                 break;
             case "ready":
-                audioStatusLabel = "Audio ready";
-                statusMessage = "Audio is ready and should begin immediately.";
+                audioStatusLabel = audioCopy.label.ready;
+                statusMessage = audioCopy.message.ready;
                 break;
             default:
-                audioStatusLabel = hasPrefetchedAudio ? "Audio warming nearby" : "Entering listening zone";
+                audioStatusLabel = hasPrefetchedAudio ? audioCopy.label.warming : audioCopy.label.entering;
                 statusMessage = hasPrefetchedAudio
-                    ? "A nearby park recording is already warming in the background."
-                    : "Move closer to a park center to begin preparing audio.";
+                    ? audioCopy.message.warming
+                    : audioCopy.message.entering;
                 break;
         }
     }
     const timingHint = lastLoadDurationMs !== null
-        ? `${lastLoadCacheHit ? "Cache hit" : "Loaded"} in ${Math.round(lastLoadDurationMs)} ms`
+        ? audioCopy.timingHint((lastLoadDurationMs / 1000).toFixed(1), lastLoadCacheHit === true)
         : null;
     const getCompactStatusLabel = () => {
         switch (audioStatus) {
             case "playing":
-                return "Playing";
+                return audioCopy.compactLabel.playing;
             case "interrupted":
-                return "Audio paused";
+                return audioCopy.compactLabel.interrupted;
             case "initializing":
-                return "Starting audio";
+                return audioCopy.compactLabel.initializing;
             case "preparing":
-                return "Loading audio";
+                return audioCopy.compactLabel.preparing;
             case "ready-manual":
-                return allowManualRestart ? audioStatusLabel : "Tap to start";
+                return allowManualRestart ? audioStatusLabel : audioCopy.compactLabel.tapToStart;
             default:
                 return audioStatusLabel;
         }
@@ -271,17 +273,17 @@ const HOARenderer = ({
     const audioAnnouncement = (() => {
         switch (audioStatus) {
             case "error":
-                return "Audio unavailable for this park.";
+                return audioCopy.announcement.error;
             case "preparing":
-                return "Loading audio.";
+                return audioCopy.announcement.preparing;
             case "playing":
-                return "Audio playing.";
+                return audioCopy.announcement.playing;
             case "interrupted":
-                return "Audio paused.";
+                return audioCopy.announcement.interrupted;
             case "ready-manual":
                 return allowManualRestart
-                    ? "Playback stopped. Activate start audio to resume."
-                    : "Audio ready. Activate start audio to begin.";
+                    ? audioCopy.announcement.stopped
+                    : audioCopy.announcement.ready;
             default:
                 return "";
         }
@@ -329,14 +331,24 @@ const HOARenderer = ({
 
                 {activeError && (
                     <div className="max-w-sm rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900 shadow-sm">
-                        <p className="font-semibold">Audio unavailable</p>
-                        <p className="mt-1">Failed to load the selected park audio.</p>
-                        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-lg bg-white/70 p-2 text-xs text-rose-800">{activeError}</pre>
+                        <p className="font-semibold">{audioCopy.error.title}</p>
+                        <p className="mt-1">{audioCopy.error.detail}</p>
+                        {/*
+                          * The exception itself is deliberately not here. It
+                          * cannot be acted on by someone standing in a park, and
+                          * a stack of technical text reads as a crash rather
+                          * than a retryable download. It still reaches the
+                          * console and the debug panel, which is where anyone
+                          * who can use it is looking.
+                          */}
+                        {isDebugEnabled() && (
+                            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-lg bg-white/70 p-2 text-xs text-rose-800">{activeError}</pre>
+                        )}
                         <button
                             onClick={retryLoading}
                             className="mt-3 inline-flex items-center rounded-full border border-rose-300 bg-white px-3 py-2 text-sm font-medium text-rose-900 shadow-sm"
                         >
-                            Retry audio load
+                            {audioCopy.error.retry}
                         </button>
                     </div>
                 )}
@@ -358,14 +370,14 @@ const HOARenderer = ({
                     >
                         {compact
                             ? spatialDegradation.reason === "downmixed"
-                                ? "Plain mix · no surround"
+                                ? audioCopy.degraded.compactDownmixed
                                 // There is no plain mix in this branch: the
                                 // collapsed spatial buffer is all there is, so
                                 // promising one would be the wrong kind of wrong.
-                                : "Surround unavailable · no plain mix"
+                                : audioCopy.degraded.compactNoFallback
                             : spatialDegradation.reason === "downmixed"
-                                ? "This browser could not play the surround recording, so you are hearing the plain mix. The volume still follows your distance, but turning will not move the sound."
-                                : "This browser could not play the surround recording, and this park has no plain mix. What you are hearing is not what the recording should sound like."}
+                                ? audioCopy.degraded.downmixed
+                                : audioCopy.degraded.noFallback}
                     </p>
                 )}
 
@@ -389,31 +401,31 @@ const HOARenderer = ({
                         {isPlaying && !needsAudioResume && (
                             <button
                                 onClick={onTogglePlayback}
-                                aria-label="Stop playback"
+                                aria-label={audioCopy.stopAriaLabel}
                                 className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-neutral-700"
                             >
                                 <StopCircleIcon className={compact ? "h-4 w-4" : "h-5 w-5"} aria-hidden="true" />
-                                <span>Stop</span>
+                                <span>{audioCopy.stop}</span>
                             </button>
                         )}
 
                         {needsAudioResume && (
                             <button
                                 onClick={() => { void resumeInterruptedAudio(); }}
-                                aria-label="Resume audio after interruption"
+                                aria-label={audioCopy.resumeAriaLabel}
                                 className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-neutral-700"
                             >
-                                <span>Resume Audio</span>
+                                <span>{audioCopy.resume}</span>
                             </button>
                         )}
 
                         {showFallbackStart && (
                             <button
                                 onClick={onTogglePlayback}
-                                aria-label="Start playback fallback"
+                                aria-label={audioCopy.startAriaLabel}
                                 className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-neutral-900/30 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-neutral-900 transition-colors hover:border-neutral-900 hover:bg-white/30"
                             >
-                                <span>Start Audio</span>
+                                <span>{audioCopy.start}</span>
                             </button>
                         )}
                     </div>

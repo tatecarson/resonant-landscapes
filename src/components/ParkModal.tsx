@@ -5,6 +5,7 @@ import { useRenderDebug } from "../hooks/useRenderDebug";
 import HOARenderer from './HoaRenderer';
 import AmbientGradient from './AmbientGradient';
 import PermissionRecovery from './PermissionRecovery';
+import { park as parkCopy } from '../copy';
 import { hasStoredOrientationPermission, requestDeviceOrientationPermission } from "../utils/deviceOrientation";
 import { CENTER_ROTATION_RADIUS_METERS } from "../config/geofence";
 import { debugLog } from "../config/debug";
@@ -199,9 +200,9 @@ function ParkModal({
                             {rotationActive && (
                                 <span
                                     className="mt-1 flex-shrink-0 font-space-mono text-[8px] uppercase tracking-[0.2em] text-neutral-900/70"
-                                    aria-label="Spatial tracking active"
+                                    aria-label={parkCopy.trackingAriaLabel}
                                 >
-                                    ↻ tracking
+                                    {parkCopy.tracking}
                                 </span>
                             )}
                         </div>
@@ -234,7 +235,7 @@ function ParkModal({
                                         }}
                                         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] rounded-full inline-flex min-h-[44px] items-center px-1 font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/70 transition-colors hover:text-neutral-900"
                                     >
-                                        × stop tracking
+                                        {parkCopy.stopTracking}
                                     </button>
                                 )}
                                 {/*
@@ -250,7 +251,7 @@ function ParkModal({
                                         onClick={() => { void enableRotation(); }}
                                         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] rotation-affordance inline-flex min-h-[44px] items-center rounded-full px-2.5 py-1 font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/70 underline underline-offset-2 decoration-neutral-900/40 transition-colors hover:text-neutral-900"
                                     >
-                                        Enable rotation
+                                        {parkCopy.enableRotation}
                                     </button>
                                 )}
                                 {/* Also stands in while the recovery panel has
@@ -325,7 +326,7 @@ function ParkModal({
                                         {parkName}
                                     </Dialog.Title>
                                     <p className="font-space-mono mt-1 text-[10px] uppercase tracking-widest text-neutral-900/70">
-                                        {Math.floor(parkDistance)} meters away
+                                        {parkCopy.metersAway(Math.floor(parkDistance))}
                                     </p>
 
                                     <div className="mt-6">
@@ -340,7 +341,7 @@ function ParkModal({
                                             }}
                                             className="rotation-affordance mt-4 w-full rounded-full border border-neutral-900/40 bg-transparent px-6 py-2 font-space-mono text-xs tracking-widest uppercase text-neutral-900/70 transition-colors hover:border-neutral-900 hover:text-neutral-900"
                                         >
-                                            Enable Rotation
+                                            {parkCopy.enableRotation}
                                         </button>
                                     )}
 
@@ -360,7 +361,7 @@ function ParkModal({
                                             onClick={cancel}
                                             ref={cancelButtonRef}
                                         >
-                                            Close
+                                            {parkCopy.close}
                                         </button>
                                     </div>
                                 </Dialog.Panel>

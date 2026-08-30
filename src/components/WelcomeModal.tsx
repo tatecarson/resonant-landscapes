@@ -2,6 +2,7 @@ import { useRef, Fragment, useCallback, useMemo } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAudioContext } from "../contexts/AudioContextProvider";
 import { readPreflightEnv, runPreflight } from "../utils/capabilities";
+import { welcome } from "../copy";
 import type { Variant } from "../App";
 
 interface WelcomeModalProps {
@@ -71,10 +72,10 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                     as="h1"
                                     className="font-cormorant text-5xl italic font-light tracking-tight text-neutral-900 mb-1"
                                 >
-                                    Resonant Landscapes
+                                    {welcome.title}
                                 </Dialog.Title>
                                 <p className="font-space-mono text-[10px] tracking-widest uppercase text-neutral-900/70 mb-7">
-                                    a locative sound walk
+                                    {welcome.subtitle}
                                 </p>
 
                                 {preflight.problems.length > 0 && (
@@ -84,13 +85,13 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                     >
                                         <p className="font-space-mono text-[11px] font-semibold uppercase tracking-wider text-neutral-900">
                                             {preflight.verdict === "blocked"
-                                                ? "The walk will not work here"
+                                                ? welcome.preflight.blocked
                                                 : onlyNeedsAPhone
-                                                    // Nothing is broken on a desktop — it is simply
+                                                    // Nothing is broken on a desktop. It is simply
                                                     // the wrong device, and saying "will not work"
                                                     // would read as a fault to go and fix.
-                                                    ? "This walk needs a phone"
-                                                    : "Part of the walk will not work here"}
+                                                    ? welcome.preflight.needsPhone
+                                                    : welcome.preflight.partial}
                                         </p>
                                         <ul className="mt-2 font-space-mono space-y-2 text-[10px] leading-relaxed text-neutral-900/75">
                                             {preflight.problems.map((problem) => (
@@ -104,23 +105,19 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                 )}
 
                                 <div className="font-space-mono space-y-4 text-[12px] leading-relaxed text-neutral-900/75">
-                                    <p>
-                                        {variant === "terrace"
-                                            ? "Walk Terrace Park to hear the soundscapes of South Dakota's 13 state parks."
-                                            : "Walk DSU's campus to hear the soundscapes of South Dakota's 13 state parks."}
-                                    </p>
-                                    <p>As you approach a park, a menu opens. Walk closer to the center icon and the volume increases with proximity.</p>
-                                    <p>At the center of a listening spot, turn with your phone to hear the recording in 360 degrees.</p>
-                                    <p>Close the menu to load a different recording. Walk away or press stop to end.</p>
+                                    <p>{welcome.intro(variant)}</p>
+                                    {welcome.steps.map((step) => (
+                                        <p key={step}>{step}</p>
+                                    ))}
                                 </div>
 
                                 <p className="mt-6 font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70">
-                                    Use headphones — non-noise-canceling preferred.
+                                    {welcome.headphones}
                                 </p>
                                 <p className="mt-2 font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70">
                                     {preflight.orientationNeedsPermission
-                                        ? "Start will request audio access. Rotation access comes later, when you need it."
-                                        : "Start will request audio access."}
+                                        ? welcome.accessWithRotation
+                                        : welcome.accessAudioOnly}
                                 </p>
 
                                 <div className="mt-8">
@@ -132,7 +129,7 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                         }}
                                         ref={cancelButtonRef}
                                     >
-                                        {preflight.verdict === "blocked" ? "Start anyway" : "Start"}
+                                        {preflight.verdict === "blocked" ? welcome.startAnyway : welcome.start}
                                     </button>
                                 </div>
 

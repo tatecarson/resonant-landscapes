@@ -45,7 +45,8 @@ import {
 } from "../config/geofence";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
-import { RECOVERY_TITLES, getRecoverySteps } from "../utils/recoverySteps";
+import { RECOVERY_TITLES, RECOVERY_STAKES, getRecoverySteps } from "../utils/recoverySteps";
+import { location as locationCopy, map as mapCopy } from "../copy";
 import type { Variant, MockPosition } from "../App";
 import locationIcon from "../assets/geolocation_marker_heading.svg";
 
@@ -57,29 +58,19 @@ function locationStatusMessage(
     enterDistance: number
 ): { title: string; detail: string; steps?: string[] } | null {
     if (status === "stale") {
-        return {
-            title: "Signal lost",
-            detail: "Your position has stopped updating, and parks will not start until it does. Give it a moment.",
-        };
+        return locationCopy.stale;
     }
 
     if (status === "imprecise") {
-        // Without the number this reads as a vague apology. With it, the
-        // walker can tell "drifting a little" from "useless under these trees".
         const radius = accuracyMeters === null ? null : Math.round(accuracyMeters);
         return {
-            title: "GPS is imprecise here",
-            detail: radius === null
-                ? `Your position is less accurate than the ${enterDistance} m listening areas, so parks may trigger late or not at all.`
-                : `Your position is accurate to about ${radius} m, wider than the ${enterDistance} m listening areas. Parks may start late, early, or not at all.`,
+            title: locationCopy.imprecise.title,
+            detail: locationCopy.imprecise.detail(radius, enterDistance),
         };
     }
 
     if (status === "acquiring") {
-        return {
-            title: "Finding you…",
-            detail: "Step outside if this takes more than a moment.",
-        };
+        return locationCopy.acquiring;
     }
 
     if (status !== "error") {
@@ -92,22 +83,16 @@ function locationStatusMessage(
         // restatement of the problem, read by someone already standing outside.
         return {
             title: RECOVERY_TITLES.location,
-            detail: "The walk uses your location. Nothing will play until you turn it on.",
+            detail: RECOVERY_STAKES.location,
             steps: getRecoverySteps("location", navigator.userAgent),
         };
     }
 
     if (error?.code === GEOLOCATION_TIMEOUT) {
-        return {
-            title: "Can't find your location yet",
-            detail: "This is taking longer than usual. Stepping outside can help.",
-        };
+        return locationCopy.timeout;
     }
 
-    return {
-        title: "Can't find your location",
-        detail: "Your device could not find you. Step outside, then reload the page.",
-    };
+    return locationCopy.failed;
 }
 
 const LocationStatusOverlay = memo(function LocationStatusOverlay({
@@ -579,8 +564,8 @@ export default function GeolocationMap({
                     type="button"
                     onClick={openHelp}
                     className="map-help-button"
-                    title="Open field guide"
-                    aria-label="Open field guide"
+                    title={mapCopy.helpButtonLabel}
+                    aria-label={mapCopy.helpButtonLabel}
                 >
                     <span className="map-help-button__glyph" aria-hidden="true">?</span>
                 </button>
