@@ -359,8 +359,8 @@ const HOARenderer = ({
                         {compact
                             ? "Plain mix · no surround"
                             : spatialDegradation.reason === "downmixed"
-                                ? "This browser flattened the surround recording, so you are hearing the plain mix. Volume still follows your distance, but turning will not move the sound."
-                                : "This browser flattened the surround recording and there is no plain mix for this park, so what you hear is not the intended field."}
+                                ? "This browser could not play the surround recording, so you are hearing the plain mix. The volume still follows your distance, but turning will not move the sound."
+                                : "This browser could not play the surround recording, and this park has no plain mix. What you are hearing is not what the recording should sound like."}
                     </p>
                 )}
 

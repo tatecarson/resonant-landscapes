@@ -106,7 +106,7 @@ export function runPreflight(env: PreflightEnv): Preflight {
             // can open the map and the mocked replays run there on purpose.
             // It is still not the piece.
             essential: false,
-            detail: "This is a walk — it is made for a phone you carry outdoors. On a computer you can look at the map, but nothing will play as you move.",
+            detail: "This is a walk. It needs a phone you carry outdoors. On a computer you can look at the map, but nothing will play as you move.",
         },
         {
             id: "audio",
@@ -123,7 +123,7 @@ export function runPreflight(env: PreflightEnv): Preflight {
             // two lines saying it is worse than one.
             available: !hasAudio || typeof env.decodeAudioData === "function",
             essential: true,
-            detail: "This browser cannot decode the park recordings. Open this link in Safari on an iPhone, or Chrome on Android.",
+            detail: "This browser cannot play the park recordings. Open this link in Safari on an iPhone, or Chrome on Android.",
         },
         {
             id: "geolocation",
@@ -137,7 +137,7 @@ export function runPreflight(env: PreflightEnv): Preflight {
             label: "Turning",
             available: Boolean(env.deviceOrientationEvent),
             essential: false,
-            detail: "This device does not report which way it is facing, so turning will not rotate the sound. Everything else works: volume still follows your distance.",
+            detail: "This device cannot tell which way it is facing, so turning will not rotate the sound. Everything else works. The volume still follows your distance.",
         },
     ];
 

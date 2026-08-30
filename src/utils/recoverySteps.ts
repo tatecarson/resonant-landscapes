@@ -31,7 +31,7 @@ export function detectPlatform(userAgent = ""): WalkPlatform {
 const STEPS: Record<BlockedCapability, Record<WalkPlatform, string[]>> = {
     location: {
         ios: [
-            "In Safari, tap ᴀA at the edge of the address bar, then Website Settings → Location → Allow.",
+            "In Safari, tap AA in the address bar, then Website Settings → Location → Allow.",
             "Still blocked? Settings → Privacy & Security → Location Services, and turn on both Location Services and Safari Websites.",
             "Come back here and reload the page.",
         ],
@@ -42,7 +42,7 @@ const STEPS: Record<BlockedCapability, Record<WalkPlatform, string[]>> = {
         ],
         other: [
             "Allow location for this site in your browser's site settings.",
-            "Check that location is switched on for your phone as a whole.",
+            "Check that location is turned on for your whole phone.",
             "Come back here and reload the page.",
         ],
     },
@@ -52,14 +52,14 @@ const STEPS: Record<BlockedCapability, Record<WalkPlatform, string[]>> = {
             // Apps → Safari) and appears to have dropped it entirely by iOS 26,
             // where a walker reported Location but no Motion & Orientation row.
             // So this leads with the recovery that does not depend on it.
-            "Safari remembers that this site was refused. Clear it under Settings → Apps → Safari → Advanced → Website Data, then open the link again.",
-            "If your iOS still lists Motion & Orientation Access under Safari's settings, turning that on is the quicker fix.",
+            "Safari remembers that you said no to this site. Clear it under Settings → Apps → Safari → Advanced → Website Data, then open the link again.",
+            "Some iOS versions also have a Motion & Orientation Access switch in Safari's settings. If yours has one, turn it on.",
             "Then walk to the center of a listening spot and tap Enable Rotation again.",
         ],
         android: [
-            "Chrome does not ask permission for this, so turning is either switched off for the site or your phone has no compass.",
+            "Chrome does not ask permission for this. Either this site is blocked, or your phone has no compass.",
             "Reload the page and tap Enable Rotation again.",
-            "If it still does nothing, the rest of the walk works — volume follows your distance.",
+            "If it still does nothing, the rest of the walk works. The volume follows your distance.",
         ],
         other: [
             "Allow motion and orientation access for this site in your browser settings.",
@@ -79,8 +79,8 @@ export const RECOVERY_TITLES: Record<BlockedCapability, string> = {
  * Location is fatal to the walk; orientation is not.
  */
 export const RECOVERY_STAKES: Record<BlockedCapability, string> = {
-    location: "The walk follows where you are, so nothing will play until this is on.",
-    orientation: "Everything else still works — volume follows your distance. Only turning is affected.",
+    location: "The walk uses your location. Nothing will play until you turn it on.",
+    orientation: "Everything else still works. The volume follows your distance. Only turning is affected.",
 };
 
 export function getRecoverySteps(

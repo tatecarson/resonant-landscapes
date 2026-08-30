@@ -92,7 +92,7 @@ function locationStatusMessage(
         // restatement of the problem, read by someone already standing outside.
         return {
             title: RECOVERY_TITLES.location,
-            detail: "This walk follows where you are, so nothing will play until this is on.",
+            detail: "The walk uses your location. Nothing will play until you turn it on.",
             steps: getRecoverySteps("location", navigator.userAgent),
         };
     }

@@ -89,7 +89,7 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                                     // Nothing is broken on a desktop — it is simply
                                                     // the wrong device, and saying "will not work"
                                                     // would read as a fault to go and fix.
-                                                    ? "Made to be walked with a phone"
+                                                    ? "This walk needs a phone"
                                                     : "Part of the walk will not work here"}
                                         </p>
                                         <ul className="mt-2 font-space-mono space-y-2 text-[10px] leading-relaxed text-neutral-900/75">
