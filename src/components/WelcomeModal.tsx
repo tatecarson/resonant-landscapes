@@ -1,8 +1,10 @@
-import { useRef, Fragment, useCallback, useMemo } from 'react'
+import { useRef, Fragment, useCallback, useMemo, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAudioContext } from "../contexts/AudioContextProvider";
 import { readPreflightEnv, runPreflight } from "../utils/capabilities";
+import { isDebugEnabled } from "../config/debug";
 import { welcome } from "../copy";
+import { detectPlatform } from "../utils/recoverySteps";
 import type { Variant } from "../App";
 
 interface WelcomeModalProps {
@@ -20,6 +22,27 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
     const preflight = useMemo(() => runPreflight(readPreflightEnv(window)), []);
     const onlyNeedsAPhone =
         preflight.problems.length === 1 && preflight.problems[0].id === "phone";
+    const inAppBrowser = preflight.webviewHost !== null;
+    // The escape route is the headline when it is the only thing wrong. If
+    // sound is missing too, the blocked wording is the more urgent of the two
+    // and the escape route stays below as a step to take.
+    const onlyInAppBrowser =
+        preflight.problems.length === 1 && preflight.problems[0].id === "browser";
+    const platform = useMemo(() => detectPlatform(navigator.userAgent), []);
+    const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+
+    // There is no way to open Safari from inside a webview, so the link is
+    // put on the clipboard and the walker pastes it. Some webviews refuse
+    // even that, which is why the failure has its own sentence.
+    const handleCopyLink = useCallback(async () => {
+        try {
+            await navigator.clipboard.writeText(window.location.href);
+            setCopyState("copied");
+        } catch (error) {
+            console.error("Could not copy the walk link:", error);
+            setCopyState("failed");
+        }
+    }, []);
 
     const handleBegin = useCallback(async () => {
         try {
@@ -36,7 +59,15 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
-            <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} onClose={setIsOpen}>
+            {/*
+              * onClose does nothing on purpose. This is the app's first screen
+              * rather than a dialog over something: App.tsx does not mount the
+              * map until this closes, so a backdrop tap uncovers an empty page
+              * and drops the walker onto a map with the sound still locked. The
+              * only ways out are Start, and the deliberate one offered below
+              * once Start has failed.
+              */}
+            <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} onClose={() => {}}>
                 <Transition.Child
                     as={Fragment}
                     enter="ease-out duration-300"
@@ -86,6 +117,8 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                         <p className="font-space-mono text-[11px] font-semibold uppercase tracking-wider text-neutral-900">
                                             {preflight.verdict === "blocked"
                                                 ? welcome.preflight.blocked
+                                                : onlyInAppBrowser
+                                                ? welcome.preflight.inAppBrowser
                                                 : onlyNeedsAPhone
                                                     // Nothing is broken on a desktop. It is simply
                                                     // the wrong device, and saying "will not work"
@@ -101,6 +134,34 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                                 </li>
                                             ))}
                                         </ul>
+                                        {inAppBrowser && (
+                                            <div className="mt-3 border-t border-neutral-900/15 pt-3" data-testid="open-in-browser">
+                                                <p className="font-space-mono text-[10px] leading-relaxed text-neutral-900/75">
+                                                    {welcome.openInBrowser.steps[platform]}
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    aria-label={welcome.openInBrowser.copyLinkAriaLabel}
+                                                    className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] mt-3 inline-flex min-h-[44px] items-center justify-center rounded-full border border-neutral-900/40 px-5 py-2 font-space-mono text-[10px] uppercase tracking-widest text-neutral-900 transition-colors hover:bg-neutral-900/10"
+                                                    onClick={() => {
+                                                        void handleCopyLink();
+                                                    }}
+                                                >
+                                                    {welcome.openInBrowser.copyLink}
+                                                </button>
+                                                {copyState !== "idle" && (
+                                                    <p
+                                                        className="mt-2 font-space-mono text-[10px] leading-relaxed text-neutral-900/75"
+                                                        role="status"
+                                                        data-testid="copy-link-status"
+                                                    >
+                                                        {copyState === "copied"
+                                                            ? welcome.openInBrowser.copied
+                                                            : welcome.openInBrowser.copyFailed}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
@@ -134,9 +195,44 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                 </div>
 
                                 {lastUnlockError && (
-                                    <p className="mt-3 font-space-mono text-[10px] uppercase tracking-widest text-rose-700">
-                                        Audio unlock failed: {lastUnlockError}
-                                    </p>
+                                    <div className="mt-3" data-testid="unlock-error">
+                                        <p className="font-space-mono text-[10px] uppercase tracking-widest text-rose-700">
+                                            {welcome.unlockFailed}
+                                        </p>
+                                        {/*
+                                          * The exception itself is deliberately not
+                                          * above, the same way HoaRenderer keeps it out
+                                          * of the park strip. It cannot be acted on by
+                                          * someone about to set off, and it reads as a
+                                          * crash rather than a button to press again.
+                                          */}
+                                        {isDebugEnabled() && (
+                                            <pre
+                                                className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-lg bg-white/70 p-2 text-[10px] text-rose-800"
+                                                data-testid="unlock-error-detail"
+                                            >
+                                                {lastUnlockError}
+                                            </pre>
+                                        )}
+                                        {/*
+                                          * Pressing Start again is the first thing to
+                                          * try, so this sits under it and reads quieter.
+                                          * A phone that will not unlock here sometimes
+                                          * unlocks from the park's own start button, and
+                                          * refusing to let them go and find out would
+                                          * end the walk on the doorstep.
+                                          */}
+                                        <button
+                                            type="button"
+                                            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] mt-3 inline-flex min-h-[44px] items-center rounded-full px-1 font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/60 underline decoration-neutral-900/30 underline-offset-2 transition-colors hover:text-neutral-900"
+                                            data-testid="skip-unlock"
+                                            onClick={() => {
+                                                setIsOpen(false);
+                                            }}
+                                        >
+                                            {welcome.skipUnlock}
+                                        </button>
+                                    </div>
                                 )}
                             </Dialog.Panel>
                         </Transition.Child>

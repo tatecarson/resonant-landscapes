@@ -67,3 +67,31 @@ test("production build gates /debug, and ?debug still opens it", async ({ page }
     await expect(welcomeStart(), `${open} should reach the debug route`).toHaveCount(0);
   }
 });
+
+test("production build keeps the unlock exception off the welcome screen", async ({ page }) => {
+  // WelcomeModal used to render the exception straight into the dialog. It is
+  // now behind the same gate as everything else here, which means the dev
+  // server the rest of the suite runs against cannot prove it is gone.
+  const message = "NotAllowedError: The request is not allowed by the user agent";
+  await page.addInitScript((text) => {
+    Object.defineProperty(window.BaseAudioContext.prototype, "state", {
+      configurable: true,
+      get: () => "suspended",
+    });
+    window.AudioContext.prototype.resume = () => Promise.reject(new Error(text));
+  }, message);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: /^\s*start\s*$/i }).click();
+
+  const failure = page.getByTestId("unlock-error");
+  await expect(failure).toBeVisible();
+  await expect(failure).toContainText(/press start again/i);
+  await expect(failure).not.toContainText(message);
+  await expect(page.getByTestId("unlock-error-detail")).toHaveCount(0);
+
+  // ...and someone debugging a real phone can still opt back in.
+  await page.goto("/?debug");
+  await page.getByRole("button", { name: /^\s*start\s*$/i }).click();
+  await expect(page.getByTestId("unlock-error-detail")).toContainText(message);
+});

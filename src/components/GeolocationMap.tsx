@@ -46,7 +46,7 @@ import {
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
 import { RECOVERY_TITLES, RECOVERY_STAKES, getRecoverySteps } from "../utils/recoverySteps";
-import { location as locationCopy, map as mapCopy } from "../copy";
+import { app, location as locationCopy, map as mapCopy } from "../copy";
 import type { Variant, MockPosition } from "../App";
 import locationIcon from "../assets/geolocation_marker_heading.svg";
 
@@ -492,7 +492,24 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                 active={Boolean(parkName)}
             />
 
-            <ErrorBoundary fallback={<div>Error</div>}>
+            {/*
+              * Not the full-screen fallback: this boundary sits over the map,
+              * and covering it would take away the one thing still working.
+              * A bare "Error" used to render here.
+              */}
+            <ErrorBoundary
+                // The fallback tells the walker to walk away and come back,
+                // and without this it would be a lie: the boundary holds its
+                // fallback until something resets it, so leaving the park and
+                // returning would show the same message forever. parkName is
+                // what changes on that walk.
+                resetKeys={[parkName]}
+                fallback={
+                    <div className="location-status" role="status" data-testid="park-panel-fallback">
+                        <p className="location-status__detail">{app.parkPanelCrashed}</p>
+                    </div>
+                }
+            >
                 {parkModalOpen && (
                     <ParkModal
                         isOpen={parkModalOpen}

@@ -51,11 +51,72 @@ export const welcome = {
     start: "Start",
     /** Shown instead of Start when something essential is missing. */
     startAnyway: "Start anyway",
+    /**
+     * The way out after Start has failed. The welcome screen cannot be
+     * dismissed by tapping beside it, because that only ever happened by
+     * accident and left the walker on a map with no sound and nothing saying
+     * why. This is the deliberate version of the same move, offered only once
+     * there is a reason to want it. A park still offers its own start button,
+     * so this is not a decision to walk in silence.
+     */
+    skipUnlock: "Go to the map anyway",
+    /**
+     * Shown when Start could not turn the sound on.
+     *
+     * Deliberately not the exception, for the same reason audio.error.detail
+     * is not: "NotAllowedError: The request is not allowed by the user agent"
+     * is unreadable to someone standing on a sidewalk, and it reads as a
+     * crash rather than something to press again. The exception still reaches
+     * the console and the debug panel.
+     *
+     * Deliberately not the silent switch either, which is what help.tips
+     * offers and what this first said. The three ways unlockAudio can fail
+     * are a context that is not ready, a browser that refused to resume it,
+     * and a priming node that would not build. None of them are the silent
+     * switch: that decides whether you hear sound already playing, which is a
+     * later problem in a different place. Pressing again is what clears a
+     * refused resume, and a browser that keeps refusing is the real cause, so
+     * those are the two things named.
+     */
+    unlockFailed:
+        "The sound did not start. Press start again. If it still will not start, open this link in Safari on an iPhone, or Chrome on Android.",
     preflight: {
         blocked: "The walk will not work here",
         needsPhone: "This walk needs a phone",
+        inAppBrowser: "Open this in your phone's browser",
         partial: "Part of the walk will not work here",
     },
+    /**
+     * Shown when the page is sitting inside another app's browser. There is
+     * no way to send someone to Safari from in here, so this is the taps they
+     * have to make themselves, plus a copied link for when they cannot find
+     * the menu.
+     */
+    openInBrowser: {
+        steps: {
+            ios: "Tap the arrow or the three dots at the edge of this window, then choose Open in Safari.",
+            android: "Tap the three dots at the top of this window, then choose Open in browser.",
+            other: "Open this link in your phone's own browser. Safari on iPhone, Chrome on Android.",
+        },
+        copyLink: "Copy link",
+        copyLinkAriaLabel: "Copy the link to this walk",
+        copied: "Copied. Paste it into Safari or Chrome.",
+        copyFailed: "This app would not let the link be copied. Use its menu to open this page in your browser.",
+    },
+} as const;
+
+/**
+ * What is left on screen when a piece of the app has crashed or is still
+ * arriving.
+ *
+ * These were inline: a bare "Error" in two error boundaries and "Loading
+ * map...". One word of technical shorthand is not something a walker can act
+ * on, and it was the last thing they would see.
+ */
+export const app = {
+    loadingMap: "Loading the map.",
+    crashed: "Something went wrong. Reload the page to start again.",
+    parkPanelCrashed: "This park did not open. Walk away and back, or reload the page.",
 } as const;
 
 /** The field guide, opened from the map. */
@@ -264,6 +325,10 @@ export const capability = {
     geolocation: {
         label: "Location",
         detail: "This browser cannot share your location, so the walk cannot tell which park you are standing in.",
+    },
+    browser: {
+        label: "Your phone's browser",
+        detail: "This page opened inside another app rather than in Safari or Chrome. Sound and turning often do not work in there.",
     },
     orientation: {
         label: "Turning",

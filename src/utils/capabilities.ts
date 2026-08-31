@@ -10,9 +10,11 @@
  *
  * The capability checks are feature detection, not user-agent sniffing. Asset
  * selection in audioPaths.ts has to sniff because canPlayType lies about AAC;
- * these are simple presence checks with no such problem. The one exception is
- * "phone", which is a question about the situation rather than the engine and
- * has no feature to detect — and it is non-essential, so a wrong guess costs a
+ * these are simple presence checks with no such problem. Two are exceptions,
+ * and both are questions about the situation rather than the engine, with no
+ * feature to detect: "phone", and "browser", which asks whether a shared link
+ * opened inside another app's webview. See webview.ts for why that one cannot
+ * be feature-detected. Both are non-essential, so a wrong guess costs a
  * paragraph, not the walk.
  *
  * What a downmix does to the field cannot be seen from here at all — that is
@@ -20,9 +22,16 @@
  */
 
 import { detectPlatform } from "./recoverySteps";
+import { detectWebview, type WebviewHost } from "./webview";
 import { capability as capabilityCopy } from "../copy";
 
-export type CapabilityId = "phone" | "audio" | "decode" | "geolocation" | "orientation";
+export type CapabilityId =
+    | "phone"
+    | "browser"
+    | "audio"
+    | "decode"
+    | "geolocation"
+    | "orientation";
 
 export type CapabilityCheck = {
     id: CapabilityId;
@@ -48,12 +57,20 @@ export type Preflight = {
      * needed — but the welcome copy mentions it.
      */
     orientationNeedsPermission: boolean;
+    /**
+     * The app this page opened inside, or null in a real browser. Kept even
+     * when the check is not a problem so the welcome screen can offer the
+     * right escape route without sniffing the user agent a second time.
+     */
+    webviewHost: WebviewHost | null;
 };
 
 /** The globals the preflight reads, isolated so it can be tested in node. */
 export type PreflightEnv = {
     /** The piece is a walk; a desk is not a place to take it. */
     isPhone: boolean;
+    /** The app whose webview this is, from the user agent. */
+    webviewHost: WebviewHost | null;
     audioContextCtor: unknown;
     /** `decodeAudioData` off the AudioContext prototype. */
     decodeAudioData: unknown;
@@ -79,8 +96,11 @@ export function readPreflightEnv(win: PreflightWindow): PreflightEnv {
         | { requestPermission?: unknown }
         | undefined;
 
+    const userAgent = win.navigator?.userAgent ?? "";
+
     return {
-        isPhone: detectPlatform(win.navigator?.userAgent ?? "") !== "other",
+        isPhone: detectPlatform(userAgent) !== "other",
+        webviewHost: detectWebview(userAgent),
         audioContextCtor,
         // A constructor whose prototype lacks decodeAudioData cannot load a
         // park at all, and the two have shipped separately in the past.
@@ -108,6 +128,16 @@ export function runPreflight(env: PreflightEnv): Preflight {
             // It is still not the piece.
             essential: false,
             detail: capabilityCopy.phone.detail,
+        },
+        {
+            id: "browser",
+            label: capabilityCopy.browser.label,
+            available: env.webviewHost === null,
+            // Not essential, because it is a guess and because some webviews
+            // do play sound. Saying "the walk will not work" on a guess would
+            // send someone home who could have walked it.
+            essential: false,
+            detail: capabilityCopy.browser.detail,
         },
         {
             id: "audio",
@@ -154,5 +184,6 @@ export function runPreflight(env: PreflightEnv): Preflight {
         verdict,
         problems,
         orientationNeedsPermission: typeof env.orientationRequestPermission === "function",
+        webviewHost: env.webviewHost,
     };
 }
