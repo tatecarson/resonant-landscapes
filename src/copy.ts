@@ -51,11 +51,54 @@ export const welcome = {
     start: "Start",
     /** Shown instead of Start when something essential is missing. */
     startAnyway: "Start anyway",
+    /**
+     * Shown when Start could not turn the sound on.
+     *
+     * Deliberately not the exception, for the same reason audio.error.detail
+     * is not: "NotAllowedError: The request is not allowed by the user agent"
+     * is unreadable to someone standing on a sidewalk, and it reads as a
+     * crash rather than something to press again. The exception still reaches
+     * the console and the debug panel.
+     */
+    unlockFailed:
+        "The sound did not start. Check your phone is not on silent, turn the volume up, then press start again.",
     preflight: {
         blocked: "The walk will not work here",
         needsPhone: "This walk needs a phone",
+        inAppBrowser: "Open this in your phone's browser",
         partial: "Part of the walk will not work here",
     },
+    /**
+     * Shown when the page is sitting inside another app's browser. There is
+     * no way to send someone to Safari from in here, so this is the taps they
+     * have to make themselves, plus a copied link for when they cannot find
+     * the menu.
+     */
+    openInBrowser: {
+        steps: {
+            ios: "Tap the arrow or the three dots at the edge of this window, then choose Open in Safari.",
+            android: "Tap the three dots at the top of this window, then choose Open in browser.",
+            other: "Open this link in your phone's own browser. Safari on iPhone, Chrome on Android.",
+        },
+        copyLink: "Copy link",
+        copyLinkAriaLabel: "Copy the link to this walk",
+        copied: "Copied. Paste it into Safari or Chrome.",
+        copyFailed: "This app would not let the link be copied. Use its menu to open this page in your browser.",
+    },
+} as const;
+
+/**
+ * What is left on screen when a piece of the app has crashed or is still
+ * arriving.
+ *
+ * These were inline: a bare "Error" in two error boundaries and "Loading
+ * map...". One word of technical shorthand is not something a walker can act
+ * on, and it was the last thing they would see.
+ */
+export const app = {
+    loadingMap: "Loading the map.",
+    crashed: "Something went wrong. Reload the page to start again.",
+    parkPanelCrashed: "This park did not open. Walk away and back, or reload the page.",
 } as const;
 
 /** The field guide, opened from the map. */
@@ -264,6 +307,10 @@ export const capability = {
     geolocation: {
         label: "Location",
         detail: "This browser cannot share your location, so the walk cannot tell which park you are standing in.",
+    },
+    browser: {
+        label: "Your phone's browser",
+        detail: "This page opened inside another app rather than in Safari or Chrome. Sound and turning often do not work in there.",
     },
     orientation: {
         label: "Turning",

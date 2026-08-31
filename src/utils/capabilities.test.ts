@@ -3,6 +3,7 @@ import { readPreflightEnv, runPreflight, type PreflightEnv } from "./capabilitie
 
 const capable = (overrides: Partial<PreflightEnv> = {}): PreflightEnv => ({
     isPhone: true,
+    webviewHost: null,
     audioContextCtor: function AudioContext() {},
     decodeAudioData: function decodeAudioData() {},
     geolocation: {},
@@ -64,6 +65,21 @@ describe("runPreflight", () => {
         expect(preflight.problems.map((check) => check.id)).toEqual(["phone"]);
     });
 
+    it("warns inside an in-app browser without blocking the walk", () => {
+        const preflight = runPreflight(capable({ webviewHost: "instagram" }));
+
+        // A guess from the user agent, so it never blocks: some webviews do
+        // play sound, and sending a walker home on a guess is worse than a
+        // paragraph they can ignore.
+        expect(preflight.verdict).toBe("partial");
+        expect(problemIds(capable({ webviewHost: "instagram" }))).toEqual(["browser"]);
+        expect(preflight.webviewHost).toBe("instagram");
+    });
+
+    it("reports no host when the walker opened a real browser", () => {
+        expect(runPreflight(capable()).webviewHost).toBeNull();
+    });
+
     it("reports the iOS permission prompt without calling it a problem", () => {
         const preflight = runPreflight(
             capable({ orientationRequestPermission: function requestPermission() {} })
@@ -75,6 +91,18 @@ describe("runPreflight", () => {
 });
 
 describe("readPreflightEnv", () => {
+    it("reads the host app off the user agent", () => {
+        const env = readPreflightEnv({
+            navigator: {
+                userAgent:
+                    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 331.0.0.37.90 (iPhone14,2; iOS 17_5)",
+            },
+        });
+
+        expect(env.webviewHost).toBe("instagram");
+        expect(env.isPhone).toBe(true);
+    });
+
     it("accepts the prefixed webkitAudioContext", () => {
         class WebkitAudioContext {
             decodeAudioData() {}
@@ -82,7 +110,13 @@ describe("readPreflightEnv", () => {
 
         const env = readPreflightEnv({
             webkitAudioContext: WebkitAudioContext,
-            navigator: { geolocation: {}, userAgent: "iPhone" },
+            // A whole Safari user agent, not just "iPhone": the browser check
+            // reads the Safari token, and a stub without one is a webview.
+            navigator: {
+                geolocation: {},
+                userAgent:
+                    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+            },
             DeviceOrientationEvent: function DeviceOrientationEvent() {},
         });
 

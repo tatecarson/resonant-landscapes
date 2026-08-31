@@ -1,6 +1,8 @@
 import React, { Suspense, lazy, startTransition, useEffect, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import WelcomeModal from "./components/WelcomeModal";
+import AppFallback from "./components/AppFallback";
+import { app } from "./copy";
 import { isDebugEnabled } from "./config/debug";
 import AudioContextProvider from "./contexts/AudioContextProvider";
 // import './App.css'
@@ -115,7 +117,7 @@ function App() {
   }
 
   return (
-    <ErrorBoundary fallback={<div>Error</div>}>
+    <ErrorBoundary fallback={<AppFallback>{app.crashed}</AppFallback>}>
       <AudioContextProvider>
         {isDebugRoute ? (
           <DebugRoute variant={variant} mockPosition={mockPosition} />
@@ -123,7 +125,7 @@ function App() {
           <>
             <WelcomeModal isOpen={isOpen} setIsOpen={setWelcomeOpen} variant={variant} />
             {!isOpen && (
-              <Suspense fallback={<div>Loading map...</div>}>
+              <Suspense fallback={<AppFallback>{app.loadingMap}</AppFallback>}>
                 <MapExperience variant={variant} mockPosition={mockPosition} />
               </Suspense>
             )}

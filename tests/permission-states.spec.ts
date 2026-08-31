@@ -182,6 +182,37 @@ async function stubAudioDecode(page: Page, { channels }: { channels: number }) {
     }, channels);
 }
 
+/**
+ * Make the first Start fail the way an iPhone that refuses the autoplay gate
+ * does: the context stays suspended and resume() rejects. The message is the
+ * kind of string that used to be printed straight onto the welcome screen.
+ */
+const UNLOCK_EXCEPTION = "NotAllowedError: The request is not allowed by the user agent";
+
+async function stubFailingUnlock(page: Page) {
+    await page.addInitScript((message) => {
+        Object.defineProperty(window.BaseAudioContext.prototype, "state", {
+            configurable: true,
+            get: () => "suspended",
+        });
+        window.AudioContext.prototype.resume = () => Promise.reject(new Error(message));
+    }, UNLOCK_EXCEPTION);
+}
+
+/** Replace the clipboard with one that always answers the same way. */
+async function stubClipboard(page: Page, outcome: "works" | "refuses") {
+    await page.addInitScript((mode) => {
+        Object.defineProperty(navigator, "clipboard", {
+            configurable: true,
+            value: {
+                writeText: async () => {
+                    if (mode === "refuses") throw new Error("NotAllowedError: Write permission denied.");
+                },
+            },
+        });
+    }, outcome);
+}
+
 const startWalk = async (page: Page) => {
     await page.getByRole("button", { name: /start/i }).click();
 };
@@ -241,6 +272,85 @@ test.describe("before the walk: the welcome preflight", () => {
         await shotOf(page, WELCOME_PANEL, "04-preflight-no-audio");
     });
 
+});
+
+/**
+ * A link shared in a message opens in that app's own browser far more often
+ * than it opens in Safari, and an in-app browser is the one place the two
+ * things the walk needs, sound from a tap and the motion prompt, quietly fail.
+ * Nothing can send the walker to Safari from inside here, so what is asserted
+ * is that they are told, and given the link to carry across themselves.
+ */
+test.describe("before the walk: opened inside another app", () => {
+    test.use({
+        userAgent:
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 331.0.0.37.90 (iPhone14,2; iOS 17_5; en_US; en; scale=3.00; 1170x2532; 588527267)",
+    });
+
+    test("tells the walker to open the link in their own browser", async ({ page }) => {
+        await stubFixesAtPark(page);
+        await page.goto("/");
+
+        await expect(preflightHeading(page)).toHaveText("Open this in your phone's browser");
+        await expect(preflight(page)).toContainText(/opened inside another app/i);
+        // A guess from the user agent, so it never takes the walk away.
+        await expect(page.getByRole("button", { name: /^\s*start\s*$/i })).toBeVisible();
+
+        const escape = page.getByTestId("open-in-browser");
+        await expect(escape).toBeVisible();
+        // The iPhone taps, not the Android ones: the user agent above is iOS.
+        await expect(escape).toContainText(/Open in Safari/);
+        await expect(escape.getByRole("button", { name: /copy the link/i })).toBeVisible();
+        await shotOf(page, WELCOME_PANEL, "11-preflight-in-app-browser");
+    });
+
+    test("hands over the link when the copy succeeds", async ({ page }) => {
+        await stubClipboard(page, "works");
+        await stubFixesAtPark(page);
+        await page.goto("/");
+
+        await page.getByRole("button", { name: /copy the link/i }).click();
+        await expect(page.getByTestId("copy-link-status")).toContainText(/Paste it into Safari/i);
+        await shotOf(page, WELCOME_PANEL, "12-in-app-browser-link-copied");
+    });
+
+    test("says so when the app will not even allow a copy", async ({ page }) => {
+        // Several in-app browsers refuse clipboard writes outright. Leaving the
+        // button silent would look like the tap did nothing.
+        await stubClipboard(page, "refuses");
+        await stubFixesAtPark(page);
+        await page.goto("/");
+
+        await page.getByRole("button", { name: /copy the link/i }).click();
+        await expect(page.getByTestId("copy-link-status")).toContainText(/would not let the link be copied/i);
+        await shotOf(page, WELCOME_PANEL, "13-in-app-browser-copy-refused");
+    });
+});
+
+test.describe("before the walk: Start could not turn the sound on", () => {
+    test("says what to do instead of printing the exception", async ({ page }) => {
+        await stubFailingUnlock(page);
+        await stubFixesAtPark(page);
+        await page.goto("/");
+        await startWalk(page);
+
+        const failure = page.getByTestId("unlock-error");
+        await expect(failure).toBeVisible();
+        // The sentence the walker reads: something to do, from where they are.
+        const sentence = failure.locator("p").first();
+        await expect(sentence).toContainText(/check your phone is not on silent/i);
+        await expect(sentence).not.toContainText(UNLOCK_EXCEPTION);
+        await expect(sentence).not.toContainText(/NotAllowedError/);
+
+        // The exception is not lost, it is moved: this runs against the dev
+        // server, where the debug surfaces are on. production-surfaces.spec.ts
+        // proves it is gone from a shipped build.
+        await expect(page.getByTestId("unlock-error-detail")).toContainText(UNLOCK_EXCEPTION);
+
+        // Still on the welcome screen, with a button to press again.
+        await expect(page.getByRole("button", { name: /^\s*start\s*$/i })).toBeVisible();
+        await shotOf(page, WELCOME_PANEL, "14-unlock-failed");
+    });
 });
 
 test.describe("before the walk: opened on a laptop", () => {
