@@ -43,7 +43,7 @@ export const welcome = {
         "At the center of a listening spot, turn with your phone to hear the recording in 360 degrees.",
         "Close the menu to load a different recording. Walk away or press stop to end.",
     ],
-    headphones: "Use headphones. The non-noise-canceling kind work best.",
+    headphones: "Use headphones. Non-noise-canceling ones work best.",
     /** iOS asks for motion access separately, and only when rotation is used. */
     accessWithRotation:
         "Start will request audio access. Rotation access comes later, when you need it.",
