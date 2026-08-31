@@ -11,8 +11,21 @@ import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";
 
 const AT_PARK = { latitude: 44.01320393, longitude: -97.11059202 };
-/** 31 m: inside prefetch range, outside the park, which is where rings pulse. */
+/**
+ * The two decorative layers are mutually exclusive, so each needs its own
+ * position. ProximityRingLayer is active in prefetch range and outside the
+ * park; SunRayLayer is active only once inside it.
+ */
+/** 31 m: inside prefetch range, outside the park. Rings pulse here. */
 const APPROACHING = { latitude: 44.01292, longitude: -97.11059202 };
+
+/**
+ * Extra dwell so a recorded run is watchable. The default is 0 because CI
+ * gains nothing from waiting; `npm run demo:calmer` sets it. Same idea as
+ * APPROACH_RING_HOLD_MS in approach-ring.spec.ts.
+ */
+const HOLD_MS = Number(process.env.REDUCE_VISUALS_HOLD_MS ?? 0);
+const hold = (page: Page) => (HOLD_MS ? page.waitForTimeout(HOLD_MS) : Promise.resolve());
 
 /**
  * Count the arcs the decorative layers draw.
@@ -139,14 +152,47 @@ test("calming the visuals stops the decorative layers redrawing", async ({ conte
         await page.waitForTimeout(250);
     }
 
+    await hold(page);
     const whileAnimating = await countArcsOver(page, 2_000);
     expect(whileAnimating, "the rings were not animating to begin with").toBeGreaterThan(50);
 
     await page.getByRole("button", { name: "Open field guide" }).click();
+    await hold(page);
     await calmerSwitch(page).click();
+    await hold(page);
     await page.getByRole("button", { name: /^close$/i }).click();
     await page.waitForTimeout(800);
 
     const whileCalm = await countArcsOver(page, 2_000);
     expect(whileCalm, "the rings kept redrawing after the walker calmed them").toBeLessThan(10);
+    await hold(page);
+});
+
+test("calming the visuals stops the rays inside a park too", async ({ context, page }) => {
+    // SunRayLayer, which the ring test never reaches: it is active only once
+    // parkName is set, and the rings are active only while it is not. Walking
+    // in is the whole difference between the two.
+    await instrumentArcs(page);
+    await context.setGeolocation(AT_PARK);
+    await page.goto("/");
+    await dismissWelcomeModal(page);
+    await walkIntoParkUntilGradient(context, page);
+
+    // The strip is proof the rays are the layer drawing, not the rings.
+    await expect(page.locator("p.font-cormorant").first()).toBeVisible({ timeout: 30_000 });
+    await hold(page);
+
+    const whileAnimating = await countArcsOver(page, 2_000);
+    expect(whileAnimating, "the rays were not animating to begin with").toBeGreaterThan(50);
+
+    await page.getByRole("button", { name: "Open field guide" }).click();
+    await hold(page);
+    await calmerSwitch(page).click();
+    await hold(page);
+    await page.getByRole("button", { name: /^close$/i }).click();
+    await page.waitForTimeout(800);
+
+    const whileCalm = await countArcsOver(page, 2_000);
+    expect(whileCalm, "the rays kept redrawing after the walker calmed them").toBeLessThan(10);
+    await hold(page);
 });
