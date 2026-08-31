@@ -56,7 +56,7 @@ function locationStatusMessage(
     error: GeolocationFailure | null,
     accuracyMeters: number | null,
     enterDistance: number
-): { title: string; detail: string; steps?: string[] } | null {
+): { title: string; detail: string; steps?: readonly string[] } | null {
     if (status === "stale") {
         return locationCopy.stale;
     }

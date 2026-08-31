@@ -22,9 +22,10 @@
  *
  * copy.test.ts enforces the mechanical half of this.
  *
- * Strings whose wording depends on a rule live next to that rule and are
- * imported here rather than duplicated: capability checks in utils/capabilities
- * and permission recovery steps in utils/recoverySteps.
+ * Rules live elsewhere and import from here. utils/capabilities decides which
+ * checks failed and utils/recoverySteps decides which platform's steps apply;
+ * both take their wording from this file, so there is one place to read the
+ * walk's voice and one place to change it.
  */
 
 import type { Variant } from "./App";
@@ -241,4 +242,91 @@ export const rotation = {
 
 export const map = {
     helpButtonLabel: "Open field guide",
+} as const;
+
+/**
+ * What a browser cannot do, in the walker's terms rather than the web's.
+ * utils/capabilities owns the detection; this owns the wording.
+ */
+export const capability = {
+    phone: {
+        label: "A phone",
+        detail: "This is a walk. It needs a phone you carry outdoors. On a computer you can look at the map, but nothing will play as you move.",
+    },
+    audio: {
+        label: "Sound",
+        detail: "This browser cannot play sound at all. Open this link in Safari on an iPhone, or Chrome on Android.",
+    },
+    decode: {
+        label: "Park recordings",
+        detail: "This browser cannot play the park recordings. Open this link in Safari on an iPhone, or Chrome on Android.",
+    },
+    geolocation: {
+        label: "Location",
+        detail: "This browser cannot share your location, so the walk cannot tell which park you are standing in.",
+    },
+    orientation: {
+        label: "Turning",
+        detail: "This device cannot tell which way it is facing, so turning will not rotate the sound. Everything else works. The volume still follows your distance.",
+    },
+} as const;
+
+/**
+ * Getting a refused permission back, per platform. utils/recoverySteps owns
+ * which set applies; this owns what they say.
+ *
+ * Ordered lightest first everywhere. The heaviest step on iOS sits beside a
+ * Remove All Website Data button that would sign the walker out of every site
+ * they use, so it is never the opening move.
+ */
+export const recovery = {
+    titles: {
+        location: "Location is blocked",
+        orientation: "Rotation is blocked",
+    },
+    /** One line on what is lost, so the walker can decide whether to bother. */
+    stakes: {
+        location: "The walk uses your location. Nothing will play until you turn it on.",
+        orientation:
+            "Everything else still works. The volume follows your distance. Only turning is affected.",
+    },
+    steps: {
+        location: {
+            ios: [
+                "In Safari, tap the page menu beside the address bar. It is a small rectangle icon on iOS 26 and reads AA on older versions. Then Website Settings → Location → Allow.",
+                "Still blocked? Settings → Privacy & Security → Location Services, and turn on Location Services, Safari Websites, and Precise Location.",
+                "Come back here and reload the page.",
+            ],
+            android: [
+                "In Chrome, tap the icon to the left of the address bar, then Permissions → Location → Allow.",
+                "Still blocked? Settings → Location, and turn it on.",
+                "Come back here and reload the page.",
+            ],
+            other: [
+                "Allow location for this site in your browser's site settings.",
+                "Check that location is turned on for your whole phone.",
+                "Come back here and reload the page.",
+            ],
+        },
+        orientation: {
+            // Measured on an iPhone running 26.6.1: the prompt still appears
+            // on a first ask, a denied answer survives a page reload, and
+            // quitting Safari clears it. There is no Settings switch on any
+            // supported iOS. See README's verified-behaviour table.
+            ios: [
+                "There is no iOS setting for this, only the prompt, and Safari remembers your answer. It has to be asked again.",
+                "Quit Safari from the app switcher, open the link again, walk to the center of a listening spot, and tap Enable Rotation. Choose Allow this time.",
+                "Still not asking? Delete this site's entry under Settings → Apps → Safari → Advanced → Website Data. Do not tap Remove All Website Data. Then tap Enable Rotation again.",
+            ],
+            android: [
+                "Chrome does not ask permission for this. Either this site is blocked, or your phone has no compass.",
+                "Reload the page and tap Enable Rotation again.",
+                "If it still does nothing, the rest of the walk works. The volume follows your distance.",
+            ],
+            other: [
+                "Allow motion and orientation access for this site in your browser settings.",
+                "Reload the page and tap Enable Rotation again.",
+            ],
+        },
+    },
 } as const;
