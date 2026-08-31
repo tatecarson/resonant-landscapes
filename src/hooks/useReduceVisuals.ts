@@ -78,11 +78,18 @@ export function useReduceVisualsPreference() {
     const prefersReducedMotion = usePrefersReducedMotion();
     const preference = useSyncExternalStore(subscribe, getSnapshot, () => null);
 
-    const setReduceVisuals = useCallback((value: boolean) => {
-        // Turning it back to whatever the system says clears the override, so
-        // a walker who flips their phone setting later is followed again.
-        setReduceVisualsPreference(value);
-    }, []);
+    const setReduceVisuals = useCallback(
+        (value: boolean) => {
+            // Choosing whatever the phone already says clears the override
+            // rather than freezing that answer in. Otherwise the first tap is
+            // a one-way door: there is no other control that returns to
+            // following the system, so a walker who later turns reduce motion
+            // on across their phone would not be followed here, and the line
+            // under the switch would keep claiming an explicit choice.
+            setReduceVisualsPreference(value === prefersReducedMotion ? null : value);
+        },
+        [prefersReducedMotion]
+    );
 
     return {
         reduceVisuals: preference ?? prefersReducedMotion,

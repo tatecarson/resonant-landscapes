@@ -186,11 +186,21 @@ test("stays quiet about a coarse fix when no park is near enough to care", async
   });
   await openMap(page);
 
-  // Given long enough that a banner would have appeared if it were coming.
+  // Prove a fix was actually consumed before asserting silence. toHaveCount(0)
+  // is otherwise satisfied by a page that never registered the watch at all,
+  // which would be a test that passes for the wrong reason.
+  await expect
+    .poll(() => page.evaluate(() => window.__mapDebug?.position ?? null), {
+      timeout: 20_000,
+      message: "the 30 m fix was never processed, so silence proves nothing",
+    })
+    .not.toBeNull();
+
+  // Then long enough that a banner would have appeared if it were coming.
   // Asserting absence rather than "not imprecise": a locator that matches
   // nothing satisfies not.toContainText for the wrong reason, and any banner
   // over an untroubled walk is a problem whatever it says.
-  await page.waitForTimeout(6_000);
+  await page.waitForTimeout(4_000);
   await expect(page.getByTestId("location-status")).toHaveCount(0);
 });
 
