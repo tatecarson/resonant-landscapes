@@ -52,6 +52,15 @@ export const welcome = {
     /** Shown instead of Start when something essential is missing. */
     startAnyway: "Start anyway",
     /**
+     * The way out after Start has failed. The welcome screen cannot be
+     * dismissed by tapping beside it, because that only ever happened by
+     * accident and left the walker on a map with no sound and nothing saying
+     * why. This is the deliberate version of the same move, offered only once
+     * there is a reason to want it. A park still offers its own start button,
+     * so this is not a decision to walk in silence.
+     */
+    skipUnlock: "Go to the map anyway",
+    /**
      * Shown when Start could not turn the sound on.
      *
      * Deliberately not the exception, for the same reason audio.error.detail

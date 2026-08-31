@@ -351,6 +351,48 @@ test.describe("before the walk: Start could not turn the sound on", () => {
         await expect(page.getByRole("button", { name: /^\s*start\s*$/i })).toBeVisible();
         await shotOf(page, WELCOME_PANEL, "14-unlock-failed");
     });
+
+    test("cannot be dismissed by tapping beside it or pressing escape", async ({ page }) => {
+        // The message only helps if the walker is still on the screen to read
+        // it. Both of these used to close the welcome screen and hand them a
+        // map with the sound still locked and nothing saying why.
+        await stubFailingUnlock(page);
+        await stubFixesAtPark(page);
+        await page.goto("/");
+        await startWalk(page);
+        await expect(page.getByTestId("unlock-error")).toBeVisible();
+
+        // Well outside the panel, which is centred.
+        await page.mouse.click(10, 10);
+        await expect(page.getByTestId("unlock-error")).toBeVisible();
+
+        await page.keyboard.press("Escape");
+        await expect(page.getByTestId("unlock-error")).toBeVisible();
+        await expect(page.getByRole("button", { name: /^\s*start\s*$/i })).toBeVisible();
+    });
+
+    test("offers a deliberate way through to the map", async ({ page }) => {
+        // A phone that will not unlock here sometimes unlocks from the park's
+        // own start button, so the walk must not end on the doorstep.
+        await stubFailingUnlock(page);
+        await stubFixesAtPark(page);
+        await page.goto("/");
+        await startWalk(page);
+
+        await page.getByTestId("skip-unlock").click();
+
+        await expect(page.getByTestId("unlock-error")).toHaveCount(0);
+        await expect(page.getByRole("heading", { name: "Resonant Landscapes" })).toHaveCount(0);
+    });
+
+    test("shows no way out before Start has been tried", async ({ page }) => {
+        // It is an answer to a failure, not a second button competing with
+        // Start on a screen where nothing has gone wrong yet.
+        await stubFixesAtPark(page);
+        await page.goto("/");
+
+        await expect(page.getByTestId("skip-unlock")).toHaveCount(0);
+    });
 });
 
 test.describe("before the walk: opened on a laptop", () => {

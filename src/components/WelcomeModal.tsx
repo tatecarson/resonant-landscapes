@@ -59,7 +59,15 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
-            <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} onClose={setIsOpen}>
+            {/*
+              * onClose does nothing on purpose. This is the app's first screen
+              * rather than a dialog over something: App.tsx does not mount the
+              * map until this closes, so a backdrop tap uncovers an empty page
+              * and drops the walker onto a map with the sound still locked. The
+              * only ways out are Start, and the deliberate one offered below
+              * once Start has failed.
+              */}
+            <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} onClose={() => {}}>
                 <Transition.Child
                     as={Fragment}
                     enter="ease-out duration-300"
@@ -206,6 +214,24 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                                 {lastUnlockError}
                                             </pre>
                                         )}
+                                        {/*
+                                          * Pressing Start again is the first thing to
+                                          * try, so this sits under it and reads quieter.
+                                          * A phone that will not unlock here sometimes
+                                          * unlocks from the park's own start button, and
+                                          * refusing to let them go and find out would
+                                          * end the walk on the doorstep.
+                                          */}
+                                        <button
+                                            type="button"
+                                            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] mt-3 inline-flex min-h-[44px] items-center rounded-full px-1 font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/60 underline decoration-neutral-900/30 underline-offset-2 transition-colors hover:text-neutral-900"
+                                            data-testid="skip-unlock"
+                                            onClick={() => {
+                                                setIsOpen(false);
+                                            }}
+                                        >
+                                            {welcome.skipUnlock}
+                                        </button>
                                     </div>
                                 )}
                             </Dialog.Panel>
