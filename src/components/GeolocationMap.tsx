@@ -371,6 +371,25 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     // Reduced motion gets the same destination, arrived at instantly.
     const zoomDurationMs = prefersReducedMotion ? 0 : 800;
 
+    // Debug-only mirror of the view's live zoom, written every frame rather
+    // than once per position like __mapDebug.
+    //
+    // Added to test the reduced-motion zoom and immediately showed there is
+    // nothing to test: the view sits at zoom 19 for an entire walk, far off,
+    // in prefetch range, inside a park and back out again, while
+    // PROXIMITY_ZOOM is also 19. The approach camera move animates from 19 to
+    // 19, so it is a no-op and zoomDurationMs below controls the duration of
+    // nothing. Tracked as rl-13r; this mirror is the instrument that shows it.
+    useEffect(() => {
+        if (!map || !isDebugEnabled()) {
+            return;
+        }
+        const key = map.on("postrender", () => {
+            window.__mapZoom = map.getView().getZoom() ?? null;
+        });
+        return () => unByKey(key);
+    }, [map]);
+
     const savedZoomRef = useRef<number | null>(null);
     const inProximityRef = useRef(false);
     const inProximity = prefetchParks.length > 0;
