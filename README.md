@@ -115,6 +115,25 @@ rest.
 
 ## Testing
 
+### Watching a test instead of reading it
+
+Any spec can be recorded:
+
+```bash
+npm run test:e2e:video
+```
+
+Videos land in `test-results/<test-name>/video.webm`, one per test. Off by
+default because a recording per test is slow and large; the flag is
+`PLAYWRIGHT_VIDEO=1` if you want it for a single file.
+
+This is the answer to "can I see it work" for behaviour that is awkward to
+assert. Note that the map canvas cannot be read back at all — cross-origin
+tiles taint it, so `toDataURL` throws and no test can compare its pixels. Where
+a decorative layer needs proving, count its draw calls instead; see
+`tests/reduce-visuals.spec.ts`.
+
+
 The automated tests are split by intent so each file proves a different behavior:
 
 - `tests/path-replay.spec.ts`: verifies geolocation replay moves the active park from Custer Test to Sica Hollow.
