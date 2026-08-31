@@ -498,6 +498,12 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
               * A bare "Error" used to render here.
               */}
             <ErrorBoundary
+                // The fallback tells the walker to walk away and come back,
+                // and without this it would be a lie: the boundary holds its
+                // fallback until something resets it, so leaving the park and
+                // returning would show the same message forever. parkName is
+                // what changes on that walk.
+                resetKeys={[parkName]}
                 fallback={
                     <div className="location-status" role="status" data-testid="park-panel-fallback">
                         <p className="location-status__detail">{app.parkPanelCrashed}</p>
