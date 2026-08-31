@@ -98,9 +98,14 @@ test("clears the acquiring message once a fix arrives", async ({ page, context }
  */
 async function stubControllableGeolocation(
   page: Page,
-  { accuracy }: { accuracy: number }
+  { accuracy, latitude = 44.013, longitude = -97.110649 }: {
+    accuracy: number;
+    /** Defaults to the DSU walk, next to Hartford Beach. */
+    latitude?: number;
+    longitude?: number;
+  }
 ) {
-  await page.addInitScript((accuracyMeters) => {
+  await page.addInitScript(({ accuracyMeters, originLatitude, originLongitude }) => {
     let watchId = 0;
     let step = 0;
     const callbacks = new Map<number, (position: unknown) => void>();
@@ -112,8 +117,8 @@ async function stubControllableGeolocation(
       for (const callback of callbacks.values()) {
         callback({
           coords: {
-            latitude: 44.013 + step * 0.00001,
-            longitude: -97.110649,
+            latitude: originLatitude + step * 0.00001,
+            longitude: originLongitude,
             accuracy: accuracyMeters,
             altitude: null,
             altitudeAccuracy: null,
@@ -143,7 +148,7 @@ async function stubControllableGeolocation(
     (window as Window & { __stopFixes?: () => void }).__stopFixes = () => {
       window.clearInterval(interval);
     };
-  }, accuracy);
+  }, { accuracyMeters: accuracy, originLatitude: latitude, originLongitude: longitude });
 }
 
 /** Stop delivering fixes without erroring — the tree-cover failure. */
@@ -164,6 +169,39 @@ test("warns when GPS accuracy is wider than the listening areas", async ({ page,
   await expect(status).toContainText(/imprecise/i, { timeout: 20_000 });
   // The number is the point: it separates "drifting" from "useless here".
   await expect(status).toContainText(/30 m/);
+});
+
+test("stays quiet about a coarse fix when no park is near enough to care", async ({ page, context }) => {
+  // rl-u18. A cold start hands back network or cell positions tens of metres
+  // wide, and the walker sees them at home before setting out. Warning there
+  // is warning about nothing, and it spends the credibility the same banner
+  // needs later, under tree cover, when it explains why a park will not start.
+  await context.grantPermissions(["geolocation"]);
+  await stubControllableGeolocation(page, {
+    accuracy: 30,
+    // ~780 m north of the walk: well outside the 40 m prefetch range of every
+    // park, so accuracy cannot decide anything here.
+    latitude: 44.02,
+    longitude: -97.110649,
+  });
+  await openMap(page);
+
+  // Prove a fix was actually consumed before asserting silence. toHaveCount(0)
+  // is otherwise satisfied by a page that never registered the watch at all,
+  // which would be a test that passes for the wrong reason.
+  await expect
+    .poll(() => page.evaluate(() => window.__mapDebug?.position ?? null), {
+      timeout: 20_000,
+      message: "the 30 m fix was never processed, so silence proves nothing",
+    })
+    .not.toBeNull();
+
+  // Then long enough that a banner would have appeared if it were coming.
+  // Asserting absence rather than "not imprecise": a locator that matches
+  // nothing satisfies not.toContainText for the wrong reason, and any banner
+  // over an untroubled walk is a problem whatever it says.
+  await page.waitForTimeout(4_000);
+  await expect(page.getByTestId("location-status")).toHaveCount(0);
 });
 
 test("stays quiet when GPS accuracy is good enough for the geofences", async ({ page, context }) => {

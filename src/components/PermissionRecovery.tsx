@@ -4,6 +4,7 @@ import {
     getRecoverySteps,
     type BlockedCapability,
 } from "../utils/recoverySteps";
+import { rotation as rotationCopy } from "../copy";
 
 interface PermissionRecoveryProps {
     capability: BlockedCapability;
@@ -51,7 +52,7 @@ function PermissionRecovery({ capability, onDismiss }: PermissionRecoveryProps) 
                     onClick={onDismiss}
                     className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] mt-3 inline-flex min-h-[44px] items-center rounded-full px-1 font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/60 underline decoration-neutral-900/30 underline-offset-2 transition-colors hover:text-neutral-900"
                 >
-                    Continue without it
+                    {rotationCopy.continueWithout}
                 </button>
             )}
         </div>

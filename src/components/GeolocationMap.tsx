@@ -34,7 +34,7 @@ import {
     type LocationStatus,
 } from "../hooks/useGeolocationTracking";
 import { useRenderDebug } from "../hooks/useRenderDebug";
-import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
+import { useReduceVisuals } from "../hooks/useReduceVisuals";
 import { getVariantCenter } from "../utils/scaledParks";
 import { debugLog, isDebugEnabled } from "../config/debug";
 import {
@@ -45,7 +45,8 @@ import {
 } from "../config/geofence";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
-import { RECOVERY_TITLES, getRecoverySteps } from "../utils/recoverySteps";
+import { RECOVERY_TITLES, RECOVERY_STAKES, getRecoverySteps } from "../utils/recoverySteps";
+import { location as locationCopy, map as mapCopy } from "../copy";
 import type { Variant, MockPosition } from "../App";
 import locationIcon from "../assets/geolocation_marker_heading.svg";
 
@@ -55,31 +56,21 @@ function locationStatusMessage(
     error: GeolocationFailure | null,
     accuracyMeters: number | null,
     enterDistance: number
-): { title: string; detail: string; steps?: string[] } | null {
+): { title: string; detail: string; steps?: readonly string[] } | null {
     if (status === "stale") {
-        return {
-            title: "Signal lost",
-            detail: "Your position has stopped updating, and parks will not start until it does. Give it a moment.",
-        };
+        return locationCopy.stale;
     }
 
     if (status === "imprecise") {
-        // Without the number this reads as a vague apology. With it, the
-        // walker can tell "drifting a little" from "useless under these trees".
         const radius = accuracyMeters === null ? null : Math.round(accuracyMeters);
         return {
-            title: "GPS is imprecise here",
-            detail: radius === null
-                ? `Your position is less accurate than the ${enterDistance} m listening areas, so parks may trigger late or not at all.`
-                : `Your position is accurate to about ${radius} m, wider than the ${enterDistance} m listening areas. Parks may start late, early, or not at all.`,
+            title: locationCopy.imprecise.title,
+            detail: locationCopy.imprecise.detail(radius, enterDistance),
         };
     }
 
     if (status === "acquiring") {
-        return {
-            title: "Finding you…",
-            detail: "Step outside if this takes more than a moment.",
-        };
+        return locationCopy.acquiring;
     }
 
     if (status !== "error") {
@@ -92,22 +83,16 @@ function locationStatusMessage(
         // restatement of the problem, read by someone already standing outside.
         return {
             title: RECOVERY_TITLES.location,
-            detail: "The walk uses your location. Nothing will play until you turn it on.",
+            detail: RECOVERY_STAKES.location,
             steps: getRecoverySteps("location", navigator.userAgent),
         };
     }
 
     if (error?.code === GEOLOCATION_TIMEOUT) {
-        return {
-            title: "Can't find your location yet",
-            detail: "This is taking longer than usual. Stepping outside can help.",
-        };
+        return locationCopy.timeout;
     }
 
-    return {
-        title: "Can't find your location",
-        detail: "Your device could not find you. Step outside, then reload the page.",
-    };
+    return locationCopy.failed;
 }
 
 const LocationStatusOverlay = memo(function LocationStatusOverlay({
@@ -354,7 +339,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         [currentParkLocation, parkDistance]
     );
 
-    const prefersReducedMotion = usePrefersReducedMotion();
+    const prefersReducedMotion = useReduceVisuals();
 
     /**
      * Arriving somewhere is the event of a sound walk, and leaving is the
@@ -385,6 +370,25 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     // The proximity zoom is an 800 ms camera move over the whole viewport.
     // Reduced motion gets the same destination, arrived at instantly.
     const zoomDurationMs = prefersReducedMotion ? 0 : 800;
+
+    // Debug-only mirror of the view's live zoom, written every frame rather
+    // than once per position like __mapDebug.
+    //
+    // Added to test the reduced-motion zoom and immediately showed there is
+    // nothing to test: the view sits at zoom 19 for an entire walk, far off,
+    // in prefetch range, inside a park and back out again, while
+    // PROXIMITY_ZOOM is also 19. The approach camera move animates from 19 to
+    // 19, so it is a no-op and zoomDurationMs below controls the duration of
+    // nothing. Tracked as rl-13r; this mirror is the instrument that shows it.
+    useEffect(() => {
+        if (!map || !isDebugEnabled()) {
+            return;
+        }
+        const key = map.on("postrender", () => {
+            window.__mapZoom = map.getView().getZoom() ?? null;
+        });
+        return () => unByKey(key);
+    }, [map]);
 
     const savedZoomRef = useRef<number | null>(null);
     const inProximityRef = useRef(false);
@@ -579,8 +583,8 @@ export default function GeolocationMap({
                     type="button"
                     onClick={openHelp}
                     className="map-help-button"
-                    title="Open field guide"
-                    aria-label="Open field guide"
+                    title={mapCopy.helpButtonLabel}
+                    aria-label={mapCopy.helpButtonLabel}
                 >
                     <span className="map-help-button__glyph" aria-hidden="true">?</span>
                 </button>

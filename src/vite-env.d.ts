@@ -38,6 +38,8 @@ interface Window {
     changedKeys: string[];
     lastRenderedAt: number;
   }>;
+  /** Live view zoom, mirrored every frame under debug. */
+  __mapZoom?: number | null;
   __mapDebug?: {
     center: [number, number] | null;
     position: [number, number];

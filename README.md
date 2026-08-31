@@ -115,6 +115,36 @@ rest.
 
 ## Testing
 
+### Watching a test instead of reading it
+
+Any spec can be recorded:
+
+```bash
+npm run test:e2e:video
+```
+
+Videos land in `test-results/<test-name>/video.webm`, one per test. Off by
+default because a recording per test is slow and large; the flag is
+`PLAYWRIGHT_VIDEO=1` if you want it for a single file.
+
+A recording at full speed is hard to follow, so specs that are worth watching
+take a hold from an environment variable, the way `sim:ring` does. `npm run
+demo:calmer` records the calmer-visuals specs with a 2.5 s pause either side of
+each toggle:
+
+```bash
+npm run demo:calmer
+```
+
+Note that the map canvas cannot be read back at all: cross-origin tiles taint
+it, so `toDataURL` throws and no test can compare its pixels. Where a
+decorative layer needs proving, count its draw calls instead. See
+`tests/reduce-visuals.spec.ts`, which counts `arc` calls, and note that the two
+decorative layers are mutually exclusive and so need separate positions:
+`ProximityRingLayer` draws only in prefetch range outside a park, and
+`SunRayLayer` only once inside one.
+
+
 The automated tests are split by intent so each file proves a different behavior:
 
 - `tests/path-replay.spec.ts`: verifies geolocation replay moves the active park from Custer Test to Sica Hollow.

@@ -4,7 +4,7 @@ import type RenderEvent from "ol/render/Event";
 import { RLayerVector, useOL } from "rlayers";
 
 import { useDecorativeLayerFrame } from "../hooks/useDecorativeLayerFrame";
-import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
+import { useReduceVisuals } from "../hooks/useReduceVisuals";
 import { mapRange } from "../utils/math";
 import { PREFETCH_DISTANCE_METERS } from "../config/geofence";
 
@@ -30,7 +30,7 @@ const MIN_CYCLE_S = 0.7;          // cycle duration at closest approach
 
 function SunRayLayer({ parks, active }: SunRayLayerProps) {
     const { map } = useOL();
-    const prefersReducedMotion = usePrefersReducedMotion();
+    const prefersReducedMotion = useReduceVisuals();
     const requestNextFrame = useDecorativeLayerFrame(active && !prefersReducedMotion);
 
     const handlePostrender = useCallback((event: RenderEvent) => {

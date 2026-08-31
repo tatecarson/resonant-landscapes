@@ -5,7 +5,7 @@ import { RLayerVector } from "rlayers";
 import { useOL } from "rlayers";
 
 import { useDecorativeLayerFrame } from "../hooks/useDecorativeLayerFrame";
-import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
+import { useReduceVisuals } from "../hooks/useReduceVisuals";
 import { mapRange } from "../utils/math";
 import { PREFETCH_DISTANCE_METERS } from "../config/geofence";
 
@@ -27,7 +27,7 @@ interface ProximityRingLayerProps {
 
 function ProximityRingLayer({ parks, active, enterDistance }: ProximityRingLayerProps) {
     const { map } = useOL();
-    const prefersReducedMotion = usePrefersReducedMotion();
+    const prefersReducedMotion = useReduceVisuals();
     const requestNextFrame = useDecorativeLayerFrame(active && !prefersReducedMotion);
 
     const handlePostrender = useCallback((event: RenderEvent) => {

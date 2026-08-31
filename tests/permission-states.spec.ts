@@ -234,7 +234,7 @@ test.describe("before the walk: the welcome preflight", () => {
         await page.goto("/");
 
         await expect(preflightHeading(page)).toHaveText("The walk will not work here");
-        await expect(preflight(page)).toContainText(/no Web Audio support/i);
+        await expect(preflight(page)).toContainText(/cannot play sound at all/i);
         // One fault, not two: the decode line must stay quiet when there is
         // no AudioContext for it to hang off.
         await expect(preflight(page)).not.toContainText(/cannot play the park recordings/i);
