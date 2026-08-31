@@ -338,7 +338,7 @@ test.describe("before the walk: Start could not turn the sound on", () => {
         await expect(failure).toBeVisible();
         // The sentence the walker reads: something to do, from where they are.
         const sentence = failure.locator("p").first();
-        await expect(sentence).toContainText(/check your phone is not on silent/i);
+        await expect(sentence).toContainText(/press start again/i);
         await expect(sentence).not.toContainText(UNLOCK_EXCEPTION);
         await expect(sentence).not.toContainText(/NotAllowedError/);
 

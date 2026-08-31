@@ -86,7 +86,7 @@ test("production build keeps the unlock exception off the welcome screen", async
 
   const failure = page.getByTestId("unlock-error");
   await expect(failure).toBeVisible();
-  await expect(failure).toContainText(/check your phone is not on silent/i);
+  await expect(failure).toContainText(/press start again/i);
   await expect(failure).not.toContainText(message);
   await expect(page.getByTestId("unlock-error-detail")).toHaveCount(0);
 

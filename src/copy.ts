@@ -68,9 +68,18 @@ export const welcome = {
      * is unreadable to someone standing on a sidewalk, and it reads as a
      * crash rather than something to press again. The exception still reaches
      * the console and the debug panel.
+     *
+     * Deliberately not the silent switch either, which is what help.tips
+     * offers and what this first said. The three ways unlockAudio can fail
+     * are a context that is not ready, a browser that refused to resume it,
+     * and a priming node that would not build. None of them are the silent
+     * switch: that decides whether you hear sound already playing, which is a
+     * later problem in a different place. Pressing again is what clears a
+     * refused resume, and a browser that keeps refusing is the real cause, so
+     * those are the two things named.
      */
     unlockFailed:
-        "The sound did not start. Check your phone is not on silent, turn the volume up, then press start again.",
+        "The sound did not start. Press start again. If it still will not start, open this link in Safari on an iPhone, or Chrome on Android.",
     preflight: {
         blocked: "The walk will not work here",
         needsPhone: "This walk needs a phone",
