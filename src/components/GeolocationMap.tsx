@@ -265,7 +265,6 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     map: ReturnType<typeof useOL>["map"];
     helpIsOpen: boolean;
 }): JSX.Element {
-    const [parkModalOpen, setParkModalOpen] = useState(false);
     const { preloadBuffers, resonanceAudioScene, stopSound } = useAudioEngine();
     const { audioContext } = useAudioContext();
     const {
@@ -314,7 +313,6 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
 
     useRenderDebug("GeolocationTrackingController", {
         debug,
-        parkModalOpen,
         parkName,
         prefetchParkName,
         hasPosition: Boolean(position),
@@ -331,12 +329,6 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
 
         void preloadBuffers(prefetchUrls);
     }, [audioContext, prefetchUrls, preloadBuffers]);
-
-    useEffect(() => {
-        // Audio is stopped by the tracking hook on the parkName transition
-        // itself; this only follows the park with the modal.
-        setParkModalOpen(Boolean(parkName));
-    }, [parkName]);
 
     // memo()'d layers only pay off if their props are stable: both of these
     // were fresh arrays on every render, which is every GPS frame.
@@ -572,15 +564,12 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                     </div>
                 }
             >
-                {parkModalOpen && (
+                {parkName && (
                     <ParkModal
-                        isOpen={parkModalOpen}
-                        setIsOpen={setParkModalOpen}
                         parkName={parkName}
                         parkDistance={parkDistance}
                         userOrientation={userOrientationEnabled}
                         mapHeading={mapHeading}
-                        compact={true}
                         suppressed={helpIsOpen}
                     />
                 )}

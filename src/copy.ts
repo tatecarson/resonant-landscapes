@@ -204,15 +204,13 @@ export const location = {
     },
 } as const;
 
-/** The park strip and the expanded park panel. */
+/** The park strip. */
 export const park = {
     tracking: "↻ tracking",
     trackingAriaLabel: "Spatial tracking active",
     stopTracking: "× stop tracking",
     enableRotation: "Enable rotation",
-    metersAway: (meters: number) => `${meters} meters away`,
     recordingOf: (number: number, total: number) => `recording ${number} of ${total}`,
-    close: "Close",
 } as const;
 
 /** Audio state, both the visible label and what a screen reader is told. */
@@ -223,35 +221,10 @@ export const audio = {
     stopAriaLabel: "Stop playback",
     resumeAriaLabel: "Resume audio after interruption",
     startAriaLabel: "Start playback fallback",
-    label: {
-        preparing: "Preparing audio",
-        initializing: "Starting audio",
-        playing: "Playing automatically",
-        interrupted: "Audio paused by your phone",
-        stopped: "Playback stopped",
-        readyToStart: "Ready to start",
-        ready: "Audio ready",
-        warming: "Audio warming nearby",
-        entering: "Entering listening zone",
-    },
-    compactLabel: {
-        playing: "Playing",
-        interrupted: "Audio paused",
+    loading: {
         initializing: "Starting audio",
         preparing: "Loading audio",
-        tapToStart: "Tap to start",
-    },
-    message: {
-        preparingPrefetched: "Finishing the download that started as you approached.",
-        preparingFresh: "Downloading this park's recording now.",
-        initializing: "Initializing the audio engine for this park now.",
-        playing: "Audio started when you entered the listening area.",
-        interrupted: "Tap resume audio to continue this park.",
-        stopped: "Tap start audio to play this park again.",
-        readyToStart: "Tap start audio to begin this park.",
-        ready: "Audio is ready and should begin immediately.",
-        warming: "This park's recording is downloading as you approach.",
-        entering: "Getting this park ready.",
+        ready: "Audio ready",
     },
     /**
      * Only the states worth interrupting a screen reader for. "ready" and
@@ -276,18 +249,10 @@ export const audio = {
         detail: "This park's recording did not load. Check your signal, then try again.",
         retry: "Retry audio load",
     },
-    /**
-     * Shown when the browser could not play the 8-channel recording. Terse in
-     * the strip, which is the same message on every park for the whole session,
-     * and complete in the expanded panel.
-     */
+    /** Shown when the browser could not play the 8-channel recording. */
     degraded: {
-        compactDownmixed: "Plain mix · no surround",
-        compactNoFallback: "Surround unavailable · no plain mix",
-        downmixed:
-            "This browser could not play the surround recording, so you are hearing the plain mix. The volume still follows your distance, but turning will not move the sound.",
-        noFallback:
-            "This browser could not play the surround recording, and this park has no plain mix. What you are hearing is not what the recording should sound like.",
+        downmixed: "Plain mix · no surround",
+        noFallback: "Surround unavailable · no plain mix",
     },
     /**
      * Shown while a park is playing, because "Playing automatically" is true
@@ -295,10 +260,9 @@ export const audio = {
      * nothing while the strip reports the recording is running, and the only
      * place that said so was help.tips, behind a tap on the Help modal.
      *
-     * Said rather than detected, because it cannot be detected. iOS exposes
-     * no API for the ringer switch, and nothing in the audio graph can tell:
-     * the signal reaching a muted speaker is full scale, and the audio stays
-     * in its running state throughout. See rl-d2a.
+     * Safari 17 and later can declare a playback audio session, which should
+     * bypass silent mode. Older Safari versions expose no such control and no
+     * API for reading the ringer state, so they still need the old advice.
      *
      * Names the state, not the hardware. Apple's word for the switch is the
      * Ring/Silent switch, but iPhone 15 Pro and later replaced it with the
@@ -307,23 +271,14 @@ export const audio = {
      * produces, and it is what Control Center shows. The long line names both
      * controls because it has room to.
      *
-     * Terse in the strip, which carries it on every park for as long as
-     * audio plays, and complete in the expanded panel.
+     * The strip carries it briefly when each park starts playing. Keeping it
+     * visible throughout playback reads as a false warning when sound works.
      */
     silence: {
-        compact: {
-            ios: "No sound? Turn off silent mode",
-            android: "No sound? Check the media volume",
-            other: "No sound? Check the volume",
-        },
-        full: {
-            ios: "Hearing nothing? Silent mode mutes this walk. Turn it off with the switch or the button on the side of the phone, then turn the volume up.",
-            android: "Hearing nothing? Press the volume up key while a park is playing. That sets the media volume rather than the ringer.",
-            other: "Hearing nothing? Take the phone off silent, then turn the volume up.",
-        },
+        ios: "No sound? Turn off silent mode",
+        android: "No sound? Check the media volume",
+        other: "No sound? Check the volume",
     },
-    timingHint: (seconds: string, cacheHit: boolean) =>
-        cacheHit ? `Ready instantly (cached ${seconds}s)` : `Ready in ${seconds}s`,
 } as const;
 
 /** Rotation, which iOS gates behind its own permission prompt. */

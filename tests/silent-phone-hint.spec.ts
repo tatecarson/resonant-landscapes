@@ -3,14 +3,13 @@
  *
  * A silenced phone plays the recording into a muted speaker: the audio is
  * running, the strip is telling the truth about the app, and the walker is
- * standing in a park in silence. Nothing can detect it. iOS exposes no API
- * for the ringer switch, and the audio graph cannot tell either, so the only
- * fix available is to say so next to the state it qualifies.
+ * standing in a park in silence. Safari exposes neither the ringer state nor
+ * a reliable way for this Web Audio walk to override it. The hint belongs next
+ * to playback, but only long enough to help someone who hears nothing.
  *
  * The whole promise of rl-d2a is that this is readable while standing at a
  * park without opening the Help modal, which is where the advice used to
- * live. So the assertion is on the strip that is visible on arrival, not on
- * the expanded panel behind a tap.
+ * live. So the assertion is on the strip that is visible on arrival.
  */
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";
@@ -32,7 +31,7 @@ const AT_CENTRE = { latitude: 44.01320393, longitude: -97.11059202 };
 const WELL_OUTSIDE = { latitude: 44.01298, longitude: -97.11059202 };
 
 const isPlaying = (page: Page) =>
-    page.evaluate(() => window.__audioDebug?.isPlaying ?? false);
+    page.getByRole("button", { name: "Stop playback" }).isVisible();
 
 async function dwellAt(
     context: BrowserContext,
@@ -79,6 +78,20 @@ test("tells a walker at a park why a silenced phone hears nothing", async ({ con
             ? "android"
             : "other";
     await expect(hint).toContainText(EXPECTED_HINT[platform]);
+});
+
+test("clears the silent-mode hint after the opening moments", async ({ context, page }) => {
+    await page.goto("/");
+    await dismissWelcomeModal(page);
+
+    await dwellAt(context, page, AT_CENTRE, 2_000);
+    await expect
+        .poll(() => isPlaying(page), { timeout: 40_000, message: "audio never started at the centre" })
+        .toBe(true);
+
+    const hint = page.getByTestId("silence-hint").first();
+    await expect(hint).toBeVisible();
+    await expect(hint).toHaveCount(0, { timeout: 10_000 });
 });
 
 test("does not stand there qualifying a park that is not playing", async ({ context, page }) => {

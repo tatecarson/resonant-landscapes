@@ -242,11 +242,9 @@ test("mobile audio loads and plays for every real park on the normal route", asy
 
   for (const park of testParks) {
     const parkStartRequestIndex = observedAudioRequests.length;
-    // The park name renders in the compact strip as a <p>. It was a heading
-    // when this spec was written, but GeolocationMap always passes
-    // compact={true} now and the only Dialog.Title lives in the expanded
-    // branch — so getByRole("heading") could never match, and this spec failed
-    // every park regardless of the code under test.
+    // The park name renders in the strip as a <p>. It was a heading before the
+    // mobile-first redesign, so getByRole("heading") could never match and
+    // this spec failed every park regardless of the code under test.
     const heading = page.locator("p.font-cormorant").filter({ hasText: park.name }).first();
     let loadStartedAt = 0;
     let playStartedAt = 0;
