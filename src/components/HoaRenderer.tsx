@@ -10,6 +10,8 @@ import { audio as audioCopy } from '../copy';
 import { detectPlatform } from '../utils/recoverySteps';
 import { isDebugEnabled } from '../config/debug';
 
+const SILENCE_HINT_DURATION_MS = 8_000;
+
 interface HOARendererProps {
     parkName: string;
     parkDistance: number;
@@ -44,7 +46,6 @@ const HOARenderer = ({
         isLoading,
         isPlaying,
         isAudioUnlocked,
-        playbackAudioSessionDeclared,
         buffers,
         engineError,
         loadError,
@@ -84,6 +85,23 @@ const HOARenderer = ({
      * Mac and the fallback wording is safe anywhere.
      */
     const platform = detectPlatform(navigator.userAgent);
+
+    const [showSilenceHint, setShowSilenceHint] = useState(false);
+
+    useEffect(() => {
+        if (audioStatus !== "playing") {
+            setShowSilenceHint(false);
+            return;
+        }
+
+        setShowSilenceHint(true);
+        const timeoutId = window.setTimeout(
+            () => setShowSilenceHint(false),
+            SILENCE_HINT_DURATION_MS
+        );
+
+        return () => window.clearTimeout(timeoutId);
+    }, [audioStatus]);
 
     useRenderDebug("HOARenderer", {
         parkName,
@@ -346,21 +364,20 @@ const HOARenderer = ({
                   * Sits with the playing state rather than in the Help modal,
                   * because a silenced phone is discovered while standing in a
                   * park and the strip is what is being read there. It cannot
-                  * be detected, so it is a standing caveat on "Playing"
-                  * rather than a warning raised by anything. See rl-d2a.
+                  * be detected, so it appears briefly when playback starts
+                  * rather than pretending to know the phone is muted. See
+                  * rl-d2a and rl-krc.
                   *
                   * After the controls, not before. Above them it took a full
                   * width row out of the strip, pushed Stop down, and read as
                   * a label for the button rather than a note about the sound.
                   */}
-                {audioStatus === "playing" && !activeError && (
+                {showSilenceHint && (
                     <p
                         className="w-full font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70"
                         data-testid="silence-hint"
                     >
-                        {platform === "ios" && playbackAudioSessionDeclared
-                            ? audioCopy.silence.iosPlayback
-                            : audioCopy.silence[platform]}
+                        {audioCopy.silence[platform]}
                     </p>
                 )}
 

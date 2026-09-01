@@ -117,22 +117,3 @@ test("the walk does not claim to be unlocked without resuming", async ({ page })
     const { calls } = await probe(page);
     expect(calls, "reported unlocked without ever resuming").toBeGreaterThan(0);
 });
-
-test("Start declares the walk as playback when the Audio Session API exists", async ({ page }) => {
-    await page.addInitScript(() => {
-        Object.defineProperty(navigator, "audioSession", {
-            configurable: true,
-            value: { type: "auto" },
-        });
-    });
-    await page.goto("/");
-
-    const start = page.getByRole("button", { name: /^\s*start\s*$/i });
-    await expect(start).toBeVisible({ timeout: 15_000 });
-    await start.click();
-
-    const sessionType = await page.evaluate(() => (
-        navigator as Navigator & { audioSession?: { type: string } }
-    ).audioSession?.type);
-    expect(sessionType).toBe("playback");
-});

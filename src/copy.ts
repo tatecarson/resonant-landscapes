@@ -271,11 +271,11 @@ export const audio = {
      * produces, and it is what Control Center shows. The long line names both
      * controls because it has room to.
      *
-     * The strip carries it on every park for as long as audio plays.
+     * The strip carries it briefly when each park starts playing. Keeping it
+     * visible throughout playback reads as a false warning when sound works.
      */
     silence: {
         ios: "No sound? Turn off silent mode",
-        iosPlayback: "No sound? Turn up the volume",
         android: "No sound? Check the media volume",
         other: "No sound? Check the volume",
     },

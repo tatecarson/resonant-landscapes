@@ -3,9 +3,9 @@
  *
  * A silenced phone plays the recording into a muted speaker: the audio is
  * running, the strip is telling the truth about the app, and the walker is
- * standing in a park in silence. Safari 17 and later can opt into a playback
- * audio session, but older supported iPhones expose neither that control nor
- * the ringer state. The fallback still belongs next to the state it qualifies.
+ * standing in a park in silence. Safari exposes neither the ringer state nor
+ * a reliable way for this Web Audio walk to override it. The hint belongs next
+ * to playback, but only long enough to help someone who hears nothing.
  *
  * The whole promise of rl-d2a is that this is readable while standing at a
  * park without opening the Help modal, which is where the advice used to
@@ -78,6 +78,20 @@ test("tells a walker at a park why a silenced phone hears nothing", async ({ con
             ? "android"
             : "other";
     await expect(hint).toContainText(EXPECTED_HINT[platform]);
+});
+
+test("clears the silent-mode hint after the opening moments", async ({ context, page }) => {
+    await page.goto("/");
+    await dismissWelcomeModal(page);
+
+    await dwellAt(context, page, AT_CENTRE, 2_000);
+    await expect
+        .poll(() => isPlaying(page), { timeout: 40_000, message: "audio never started at the centre" })
+        .toBe(true);
+
+    const hint = page.getByTestId("silence-hint").first();
+    await expect(hint).toBeVisible();
+    await expect(hint).toHaveCount(0, { timeout: 10_000 });
 });
 
 test("does not stand there qualifying a park that is not playing", async ({ context, page }) => {
