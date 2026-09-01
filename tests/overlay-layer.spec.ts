@@ -152,6 +152,32 @@ test("the chip comes back once the field guide is closed", async ({ context, pag
  * a refusal is an answer, and asking again is how a hint becomes a nag.
  */
 test.describe("the install offer", () => {
+    test("is not offered on a return visit before the walk has started", async ({ context, page }) => {
+        /*
+         * Reported from a phone: the offer appeared and the location prompt
+         * closed it. The gate was the stored set of heard parks, which is
+         * already full on the first frame of every return visit, so the offer
+         * arrived during start-up with a permission prompt over it and was
+         * pulled away as soon as a fix landed and a park strip took the
+         * bottom of the screen. An offer nobody can answer is worse than no
+         * offer.
+         *
+         * It waits on hearing a park in this session now.
+         */
+        await context.clearPermissions();
+        await page.addInitScript(() => {
+            window.localStorage.setItem(
+                "heardParks",
+                JSON.stringify(["Hartford Beach State Park"])
+            );
+        });
+        await page.goto("/");
+        await dismissWelcomeModal(page);
+        await page.waitForTimeout(2_000);
+
+        await expect(page.getByTestId("install-hint")).toHaveCount(0);
+    });
+
     test("is not offered before the walker has heard anything", async ({ context, page }) => {
         // The banner pattern everyone dismisses without reading is the one
         // that asks before the piece has done anything worth keeping.
@@ -204,10 +230,24 @@ test.describe("the install offer", () => {
         await expect(hint).toHaveCount(0);
         await expect(chip).toBeVisible();
 
-        // Answered once, and answered for good.
+        /*
+         * Answered once, and answered for good. The park has to be heard
+         * again after the reload or this proves nothing: the offer now waits
+         * on hearing something in the current session, so an empty reload
+         * would show no hint whether or not the refusal was remembered.
+         */
         await page.reload();
         await dismissWelcomeModal(page);
-        await dwellAt(context, page, WELL_OUTSIDE, 2_000);
+        await dwellAt(context, page, AT_CENTRE, 2_000);
+        await expect
+            .poll(() => page.evaluate(() => window.__audioDebug?.isPlaying ?? false), {
+                timeout: 40_000,
+                message: "audio never started on the second visit",
+            })
+            .toBe(true);
+        await dwellAt(context, page, WELL_OUTSIDE, 4_000);
+
+        await expect(page.getByTestId("nearest-park-chip")).toBeVisible({ timeout: 10_000 });
         await expect(page.getByTestId("install-hint")).toHaveCount(0);
     });
 

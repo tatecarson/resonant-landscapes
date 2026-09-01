@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { detectPlatform, type WalkPlatform } from "../utils/recoverySteps";
-import { useHeardParks } from "./heardParks";
+import { useHeardThisSession } from "./heardParks";
 
 const STORAGE_KEY = "installHintDismissed";
 
@@ -95,7 +95,7 @@ export interface InstallHint {
  * The trigger costs nothing: rl-1u7.10 already records heard parks.
  */
 export function useInstallHint(): InstallHint {
-    const heardParks = useHeardParks();
+    const heardThisSession = useHeardThisSession();
     const dismissed = useSyncExternalStore(subscribe, () => dismissedStore, () => true);
     const [installed, setInstalled] = useState(alreadyInstalled);
     /*
@@ -150,7 +150,10 @@ export function useInstallHint(): InstallHint {
         : null;
 
     return {
-        show: heardParks.size > 0 && !dismissed && !installed,
+        // This session, not the stored set. The set is already full on the
+        // first frame of a return visit, which put the offer under the
+        // location prompt and then took it away again.
+        show: heardThisSession && !dismissed && !installed,
         platform: detectPlatform(navigator.userAgent),
         install,
         dismiss,
