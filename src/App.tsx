@@ -5,6 +5,7 @@ import AppFallback from "./components/AppFallback";
 import { app } from "./copy";
 import { isDebugEnabled } from "./config/debug";
 import AudioContextProvider from "./contexts/AudioContextProvider";
+import { useReduceVisualsAttribute } from "./hooks/useReduceVisuals";
 // import './App.css'
 
 const MapExperience = lazy(() => import("./components/MapExperience"));
@@ -66,6 +67,11 @@ function DebugRoute({ variant, mockPosition }: { variant: Variant; mockPosition:
 }
 
 function App() {
+  // Here rather than deeper in the tree because it writes to the document
+  // element and has to be mounted for the whole walk, including the debug
+  // route and the welcome screen.
+  useReduceVisualsAttribute();
+
   const [isOpen, setIsOpen] = useState(true)
   const [isDebugRoute, setIsDebugRoute] = useState(() => isDebugLocation(window.location));
   const [variant, setVariant] = useState<Variant>(() => detectVariant(window.location));

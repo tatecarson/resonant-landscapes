@@ -1,4 +1,4 @@
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 const STORAGE_KEY = "reduceVisuals";
@@ -96,4 +96,40 @@ export function useReduceVisualsPreference() {
         followingSystem: preference === null,
         setReduceVisuals,
     };
+}
+
+/**
+ * The attribute stylesheets read to find out whether the walk is calmed.
+ *
+ * "calm" or "full", and authoritative once set: the value already folds the
+ * walker's explicit choice and the system setting together in the right
+ * precedence, so a stylesheet does not have to.
+ */
+export const MOTION_ATTRIBUTE = "data-motion";
+
+/**
+ * Publish the effective preference to the document element, so CSS can see it.
+ *
+ * A media query cannot. It only knows the system setting, and the whole point
+ * of this preference is that a walker's explicit choice beats the system in
+ * both directions. So everything expressed in CSS was deaf to the switch in
+ * the Help modal: the rotation affordance kept breathing, the playing dot kept
+ * pulsing, the modal transitions kept running, and so did the global duration
+ * override that index.css applies on purpose. Only the layers that read this
+ * value in JavaScript ever calmed down, which is why the existing specs passed
+ * while the switch did half of nothing.
+ *
+ * Call once, at the root. The media query blocks are still there, scoped to
+ * :root:not([data-motion]), because they are what covers the frames before
+ * this effect first runs.
+ */
+export function useReduceVisualsAttribute(): void {
+    const reduceVisuals = useReduceVisuals();
+
+    useEffect(() => {
+        document.documentElement.setAttribute(
+            MOTION_ATTRIBUTE,
+            reduceVisuals ? "calm" : "full"
+        );
+    }, [reduceVisuals]);
 }
