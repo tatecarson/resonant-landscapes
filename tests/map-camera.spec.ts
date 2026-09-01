@@ -209,6 +209,27 @@ test.describe("the walker can look around", () => {
         await expect(chip).toHaveAttribute("data-visible", "false");
     });
 
+    test("recenter restores the resting zoom, not just the centre", async ({ page }) => {
+        // The zoom half of recenter is the part that can be silently lost:
+        // setCenter cancels a running animation, which is the same mechanism
+        // that killed the old approach zoom. Panning alone cannot show this,
+        // because the zoom is already at rest.
+        await startWalk(page);
+        await panTheMap(page);
+        await page.locator("button.ol-zoom-out").click();
+        await page.locator("button.ol-zoom-out").click();
+        await page.waitForTimeout(700);
+
+        const zoomedOut = await zoom(page);
+        expect(zoomedOut, "zoom-out did not change the zoom").toBeLessThan(RESTING_ZOOM - 0.5);
+
+        await page.getByTestId("recenter").click();
+        await page.waitForTimeout(1200);
+
+        expect(await zoom(page)).toBeCloseTo(RESTING_ZOOM, 2);
+        expect(await centerOnUser(page)).toBe(true);
+    });
+
     test("recenter takes the map back and resumes following", async ({ page }) => {
         await startWalk(page);
         await panTheMap(page);

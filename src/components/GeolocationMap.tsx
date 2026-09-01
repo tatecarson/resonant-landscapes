@@ -426,13 +426,26 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
             return;
         }
 
-        setFollowSuspended(false);
-        view.animate({
-            center: [position[0], position[1]] as [number, number],
-            zoom: RESTING_ZOOM,
-            // Reduced motion gets the same destination, arrived at instantly.
-            duration: prefersReducedMotion ? 0 : 400,
-        });
+        view.animate(
+            {
+                center: [position[0], position[1]] as [number, number],
+                zoom: RESTING_ZOOM,
+                // Reduced motion gets the same destination, arrived at instantly.
+                duration: prefersReducedMotion ? 0 : 400,
+            },
+            (completed) => {
+                // Following resumes only once the camera has arrived. Clearing
+                // the flag first let the position effect's setCenter cancel
+                // this very animation, which is the same mechanism that killed
+                // the old approach zoom: the map slid back to the walker but
+                // kept whatever zoom they had left it at. If they take hold of
+                // the map again mid-flight the animation does not complete,
+                // and staying suspended is the right answer anyway.
+                if (completed) {
+                    setFollowSuspended(false);
+                }
+            }
+        );
     }, [map, position, prefersReducedMotion]);
 
     const showCenteredGeolocationMarker =
