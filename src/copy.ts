@@ -335,6 +335,12 @@ export const rotation = {
 } as const;
 
 export const map = {
+    /**
+     * Shown only once the walker has dragged the map away from themselves.
+     * Until then the map follows them and there is nothing to undo.
+     */
+    recenter: "Recenter",
+    recenterAriaLabel: "Center the map back on you",
     helpButtonLabel: "Open field guide",
 } as const;
 
