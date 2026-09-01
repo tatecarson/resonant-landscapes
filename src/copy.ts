@@ -348,16 +348,24 @@ export const connection = {
  * Safari has no such API at all: the only route is the walker doing it by
  * hand, so there the hint has to be instructions or it is not an offer.
  *
- * What it promises is only what installing actually buys, which is a full
- * screen and an opening with no signal. Not offline audio: the recordings
- * are not held yet, and rl-1u7.8.2 is where that changes.
+ * What it promises is only what installing buys a walker today: a full
+ * screen, and not having to find the link again.
+ *
+ * It deliberately does not claim the walk opens with no signal, although the
+ * shell is held on the phone and technically does. With no recordings and no
+ * map tiles kept, opening offline gets a blank map that can find you and
+ * cannot play anything, so the claim would be true of the app and false of
+ * the walker. That is the same shape as the strip reporting playback into a
+ * silenced phone, and the offline notice below contradicts it outright.
+ * rl-1u7.8.2 is where offline becomes worth offering, and this copy should
+ * gain the claim then, not before.
  */
 export const install = {
     title: "Keep the walk on your home screen",
     detail: {
-        ios: "Press the share button, then Add to Home Screen. It opens full screen, and it opens without a signal.",
-        android: "It opens full screen, and it opens without a signal.",
-        other: "It opens full screen, and it opens without a signal.",
+        ios: "Press the share button, then Add to Home Screen. It opens full screen, and you do not have to find the link again.",
+        android: "It opens full screen, and you do not have to find the link again.",
+        other: "It opens full screen, and you do not have to find the link again.",
     },
     action: "Add it",
     dismiss: "Not now",
@@ -368,7 +376,7 @@ export const install = {
      */
     helpTitle: "Home screen",
     helpDetail:
-        "The walk can live on your home screen. On iPhone, press share and then Add to Home Screen. It opens full screen, and it opens without a signal.",
+        "The walk can live on your home screen. On iPhone, press share and then Add to Home Screen. It opens full screen, with no browser bars over the map.",
 } as const;
 
 /** Rotation, which iOS gates behind its own permission prompt. */
