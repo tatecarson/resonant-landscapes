@@ -3,14 +3,13 @@
  *
  * A silenced phone plays the recording into a muted speaker: the audio is
  * running, the strip is telling the truth about the app, and the walker is
- * standing in a park in silence. Nothing can detect it. iOS exposes no API
- * for the ringer switch, and the audio graph cannot tell either, so the only
- * fix available is to say so next to the state it qualifies.
+ * standing in a park in silence. Safari 17 and later can opt into a playback
+ * audio session, but older supported iPhones expose neither that control nor
+ * the ringer state. The fallback still belongs next to the state it qualifies.
  *
  * The whole promise of rl-d2a is that this is readable while standing at a
  * park without opening the Help modal, which is where the advice used to
- * live. So the assertion is on the strip that is visible on arrival, not on
- * the expanded panel behind a tap.
+ * live. So the assertion is on the strip that is visible on arrival.
  */
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";

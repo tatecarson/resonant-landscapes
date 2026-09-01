@@ -11,6 +11,7 @@ import { shouldSurfaceDegradation, type SpatialDegradation } from "../audio/chan
 import { mergeBuffersByChannel } from "../audio/mergeBuffers";
 import { createAudioDebugBridge, type AudioLoadDebug } from "../audio/audioDebugBridge";
 import { createAudioGraph, primeAudioContext } from "../audio/audioGraph";
+import { declarePlaybackAudioSession } from "../audio/audioSession";
 import { debugLog } from "../config/debug";
 
 // Active park plus one prefetch. Each merged park buffer is 9 channels of
@@ -42,6 +43,7 @@ interface AudioPlaybackStateContextType {
     isLoading: boolean;
     isPlaying: boolean;
     isAudioUnlocked: boolean;
+    playbackAudioSessionDeclared: boolean;
     buffers: AudioBuffer | null;
     engineError: string | null;
     loadError: string | null;
@@ -82,6 +84,7 @@ const AudioPlaybackStateContext = createContext<AudioPlaybackStateContextType>({
     isLoading: false,
     isPlaying: false,
     isAudioUnlocked: false,
+    playbackAudioSessionDeclared: false,
     buffers: null,
     engineError: null,
     loadError: null,
@@ -106,6 +109,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
+    const [playbackAudioSessionDeclared, setPlaybackAudioSessionDeclared] = useState(false);
     const [engineError, setEngineError] = useState<string | null>(null);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [lastUnlockError, setLastUnlockError] = useState<string | null>(null);
@@ -447,6 +451,11 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
 
     const unlockAudio = useCallback(async (): Promise<boolean> => {
         try {
+            // This is an explicit choice to start a sound walk, so it is the
+            // right moment to override iOS's ambient default. Do it before the
+            // first await so it remains part of the Start gesture.
+            setPlaybackAudioSessionDeclared(declarePlaybackAudioSession(navigator));
+
             if (initAudioPromiseRef.current) {
                 await initAudioPromiseRef.current;
             }
@@ -679,6 +688,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         isLoading,
         isPlaying,
         isAudioUnlocked,
+        playbackAudioSessionDeclared,
         buffers,
         engineError,
         loadError,
@@ -699,6 +709,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         isLoading,
         isPlaying,
         isAudioUnlocked,
+        playbackAudioSessionDeclared,
         loadError,
         lastUnlockError,
         spatialDegradation,
@@ -717,6 +728,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         isLoading,
         isPlaying,
         isAudioUnlocked,
+        playbackAudioSessionDeclared,
         hasBuffers: Boolean(buffers),
         engineError,
         loadError,

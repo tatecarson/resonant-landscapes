@@ -239,9 +239,8 @@ test("announces leaving the listening area, not just arriving", async ({ page, c
 });
 
 test("announces audio state on the strip's own code path", async ({ page, context }) => {
-  // The visible status label's live region is gated behind
-  // !(compact && hideStatusLabel), and the strip passes both — so audio state
-  // used to be announced nowhere at all in production.
+  // The visible strip leaves this label out, so audio state used to be
+  // announced nowhere at all in production.
   await context.grantPermissions(["geolocation"]);
   await context.setGeolocation({ latitude: 44.01271, longitude: -97.11065 });
   await page.addInitScript(() => {

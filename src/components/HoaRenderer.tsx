@@ -14,8 +14,6 @@ interface HOARendererProps {
     parkName: string;
     parkDistance: number;
     userOrientation: boolean;
-    compact?: boolean;
-    hideStatusLabel?: boolean;
     rotationActive: boolean;
     onRotationActiveChange: (next: boolean) => void;
     permissionGranted: boolean;
@@ -27,8 +25,6 @@ const HOARenderer = ({
     parkName,
     parkDistance,
     userOrientation,
-    compact = false,
-    hideStatusLabel = false,
     rotationActive,
     onRotationActiveChange,
     permissionGranted,
@@ -48,6 +44,7 @@ const HOARenderer = ({
         isLoading,
         isPlaying,
         isAudioUnlocked,
+        playbackAudioSessionDeclared,
         buffers,
         engineError,
         loadError,
@@ -55,7 +52,6 @@ const HOARenderer = ({
         spatialDegradation,
         lastLoadReason,
         lastLoadCacheHit,
-        lastLoadDurationMs,
         needsAudioResume,
     } = useAudioPlaybackState();
     const [pathError, setPathError] = useState<string | null>(null);
@@ -93,7 +89,6 @@ const HOARenderer = ({
         parkName,
         parkDistance: Math.floor(parkDistance),
         userOrientation,
-        compact,
         isEngineInitializing,
         isLoading,
         isPlaying,
@@ -155,10 +150,7 @@ const HOARenderer = ({
 
         return () => {
             isCurrent = false;
-            // Cancel the load, but do not stop playback: this cleanup runs on
-            // every layout unmount too (Dialog ↔ strip on rotationActive), and
-            // telling playback apart from layout here needed an isMountedRef
-            // guard that only approximated the question. The tracking hook
+            // Cancel the load, but do not stop playback. The tracking hook
             // stops audio on the parkName transition, which is the real event.
             audioActionsRef.current.cancelPendingLoad();
             audioActionsRef.current.clearLoadError();
@@ -200,79 +192,21 @@ const HOARenderer = ({
         }
     }, [buffers, isPlaying, playSound, stopSound, rotationActive, onRotationActiveChange]);
 
-    let audioStatusLabel: string;
-    let statusMessage: string;
-
-    if (activeError) {
-        audioStatusLabel = audioCopy.error.title;
-        statusMessage = audioCopy.error.detail;
-    } else {
-        switch (audioStatus) {
-            case "preparing":
-                audioStatusLabel = audioCopy.label.preparing;
-                statusMessage = hasPrefetchedAudio
-                    ? audioCopy.message.preparingPrefetched
-                    : audioCopy.message.preparingFresh;
-                break;
-            case "initializing":
-                audioStatusLabel = audioCopy.label.initializing;
-                statusMessage = audioCopy.message.initializing;
-                break;
-            case "playing":
-                audioStatusLabel = audioCopy.label.playing;
-                statusMessage = audioCopy.message.playing;
-                break;
-            case "interrupted":
-                audioStatusLabel = audioCopy.label.interrupted;
-                statusMessage = audioCopy.message.interrupted;
-                break;
-            case "ready-manual":
-                audioStatusLabel = allowManualRestart ? audioCopy.label.stopped : audioCopy.label.readyToStart;
-                statusMessage = allowManualRestart
-                    ? audioCopy.message.stopped
-                    : audioCopy.message.readyToStart;
-                break;
-            case "ready":
-                audioStatusLabel = audioCopy.label.ready;
-                statusMessage = audioCopy.message.ready;
-                break;
-            default:
-                audioStatusLabel = hasPrefetchedAudio ? audioCopy.label.warming : audioCopy.label.entering;
-                statusMessage = hasPrefetchedAudio
-                    ? audioCopy.message.warming
-                    : audioCopy.message.entering;
-                break;
-        }
-    }
-    const timingHint = lastLoadDurationMs !== null
-        ? audioCopy.timingHint((lastLoadDurationMs / 1000).toFixed(1), lastLoadCacheHit === true)
-        : null;
-    const getCompactStatusLabel = () => {
-        switch (audioStatus) {
-            case "playing":
-                return audioCopy.compactLabel.playing;
-            case "interrupted":
-                return audioCopy.compactLabel.interrupted;
-            case "initializing":
-                return audioCopy.compactLabel.initializing;
-            case "preparing":
-                return audioCopy.compactLabel.preparing;
-            case "ready-manual":
-                return allowManualRestart ? audioStatusLabel : audioCopy.compactLabel.tapToStart;
-            default:
-                return audioStatusLabel;
-        }
-    };
-    const compactStatusLabel = getCompactStatusLabel();
+    const loadingLabel = audioStatus === "initializing"
+        ? audioCopy.loading.initializing
+        : audioStatus === "preparing"
+            ? audioCopy.loading.preparing
+            : audioStatus === "ready"
+                ? audioCopy.loading.ready
+                : null;
 
     /**
      * What a screen-reader user is told about the audio.
      *
      * The visible status label carries this for sighted users, but its
-     * aria-live region is behind `!(compact && hideStatusLabel)` and the strip
-     * passes both — so on the real code path audio state was announced
-     * nowhere. Someone walking with VoiceOver or TalkBack got no notice that a
-     * park's audio had started, stopped, or failed.
+     * The visible strip omits this label to leave room for the controls, so
+     * audio state needs its own live region. Someone walking with VoiceOver or
+     * TalkBack should still hear when a park starts, stops, or fails.
      *
      * Only the states worth interrupting for. "ready" and "approaching" are
      * deliberately silent: they change often and say nothing actionable, and a
@@ -296,7 +230,7 @@ const HOARenderer = ({
                 return "";
         }
     })();
-    const showCompactLoadingIndicator = compact && hideStatusLabel && !activeError && (audioStatus === "initializing" || audioStatus === "preparing" || audioStatus === "ready");
+    const showLoadingIndicator = !activeError && loadingLabel !== null;
 
     const retryLoading = useCallback(() => {
         const soundPathList = pickSoundPath(parkName, stateParks, navigator.userAgent);
@@ -318,24 +252,7 @@ const HOARenderer = ({
                 {audioAnnouncement}
             </p>
 
-            <div className={compact ? "flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3" : "space-y-4"}>
-                <div className="min-w-0 space-y-1">
-                    {!(compact && hideStatusLabel) && (
-                        <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70" aria-live="polite">
-                            {compact ? compactStatusLabel : audioStatusLabel}
-                        </p>
-                    )}
-                    {!compact && !activeError && (
-                        <p className="font-space-mono text-[11px] text-neutral-900/70">
-                            {statusMessage}
-                        </p>
-                    )}
-                    {!compact && !activeError && timingHint && (
-                        <p className="font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70">
-                            {timingHint}
-                        </p>
-                    )}
-                </div>
+            <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
 
                 {activeError && (
                     <div className="max-w-sm rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900 shadow-sm">
@@ -361,37 +278,23 @@ const HOARenderer = ({
                     </div>
                 )}
 
-                {/*
-                  * The same message on every park for the life of the session,
-                  * so it stays terse in the strip the walker actually carries
-                  * and says the whole thing only in the expanded panel.
-                  */}
                 {spatialDegradation && !activeError && (
                     <p
-                        className={
-                            compact
-                                ? "w-full font-space-mono text-[10px] uppercase tracking-widest text-amber-800"
-                                : "w-full max-w-sm rounded-2xl border border-amber-300/60 bg-amber-50/80 px-3 py-2 font-space-mono text-[11px] leading-relaxed text-amber-900"
-                        }
+                        className="w-full font-space-mono text-[10px] uppercase tracking-widest text-amber-800"
                         role="status"
                         data-testid="spatial-degraded-note"
                     >
-                        {compact
-                            ? spatialDegradation.reason === "downmixed"
-                                ? audioCopy.degraded.compactDownmixed
-                                // There is no plain mix in this branch: the
-                                // collapsed spatial buffer is all there is, so
-                                // promising one would be the wrong kind of wrong.
-                                : audioCopy.degraded.compactNoFallback
-                            : spatialDegradation.reason === "downmixed"
-                                ? audioCopy.degraded.downmixed
-                                : audioCopy.degraded.noFallback}
+                        {spatialDegradation.reason === "downmixed"
+                            ? audioCopy.degraded.downmixed
+                            // There is no plain mix in this branch. The
+                            // collapsed spatial buffer is all there is.
+                            : audioCopy.degraded.noFallback}
                     </p>
                 )}
 
                 {!activeError && (
-                    <div className={compact ? "flex flex-wrap items-center gap-2" : "flex items-center gap-3"}>
-                        {showCompactLoadingIndicator && (
+                    <div className="flex flex-wrap items-center gap-2">
+                        {showLoadingIndicator && (
                             <div
                                 className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-neutral-900/15 bg-white/35 px-4 py-2 font-space-mono text-[10px] uppercase tracking-[0.18em] text-neutral-900/70"
                                 aria-live="polite"
@@ -402,7 +305,7 @@ const HOARenderer = ({
                                     }`}
                                     aria-hidden="true"
                                 />
-                                <span>{compactStatusLabel}</span>
+                                <span>{loadingLabel}</span>
                             </div>
                         )}
 
@@ -412,7 +315,7 @@ const HOARenderer = ({
                                 aria-label={audioCopy.stopAriaLabel}
                                 className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-neutral-700"
                             >
-                                <StopCircleIcon className={compact ? "h-4 w-4" : "h-5 w-5"} aria-hidden="true" />
+                                <StopCircleIcon className="h-4 w-4" aria-hidden="true" />
                                 <span>{audioCopy.stop}</span>
                             </button>
                         )}
@@ -452,26 +355,21 @@ const HOARenderer = ({
                   */}
                 {audioStatus === "playing" && !activeError && (
                     <p
-                        className={
-                            compact
-                                ? "w-full font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70"
-                                : "w-full max-w-sm font-space-mono text-[11px] leading-relaxed text-neutral-900/70"
-                        }
+                        className="w-full font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70"
                         data-testid="silence-hint"
                     >
-                        {compact
-                            ? audioCopy.silence.compact[platform]
-                            : audioCopy.silence.full[platform]}
+                        {platform === "ios" && playbackAudioSessionDeclared
+                            ? audioCopy.silence.iosPlayback
+                            : audioCopy.silence[platform]}
                     </p>
                 )}
 
-                {/* GimbalArrow runs whenever rotation is active — no !compact guard so audio tracking survives modal collapse */}
                 {isPlaying && rotationActive && (
                     <GimbalArrow
                         permissionGranted={permissionGranted}
                         onPermissionGranted={onPermissionGranted}
                         onOrientationUnavailable={onOrientationUnavailable}
-                        hideUI={compact}
+                        hideUI
                     />
                 )}
             </div>
