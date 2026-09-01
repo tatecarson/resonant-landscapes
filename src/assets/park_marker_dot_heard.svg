@@ -1,0 +1,20 @@
+<svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="heardDotShadow" x="12" y="12" width="48" height="48" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#17312A" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+  <!--
+    The heard park, inverted against park_marker_dot.svg: cream where that is
+    green. Inversion rather than a tint or a tick, because these are read at
+    118 m across a phone screen in daylight, where a small mark disappears and
+    a hue shift reads as the same dot rendered badly.
+
+    The quieter of the two on purpose. The parks worth walking to are the ones
+    not yet heard, so those keep the solid fill and the heavier shadow.
+  -->
+  <g filter="url(#heardDotShadow)">
+    <circle cx="36" cy="36" r="12" fill="#F6F1E7"/>
+    <circle cx="36" cy="36" r="10.5" stroke="#3F7A63" stroke-width="3"/>
+  </g>
+</svg>

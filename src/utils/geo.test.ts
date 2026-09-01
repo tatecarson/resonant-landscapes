@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { distanceInMeters, scaleCoordinates } from "./geo";
+import { bearingDegrees, compassPoint, distanceInMeters, scaleCoordinates } from "./geo";
 
 /**
  * Every proximity decision in the app — park entry at 15 m, exit at 18 m,
@@ -92,5 +92,75 @@ describe("scaleCoordinates", () => {
         const b = scaleCoordinates([-97.5, 43.5], reference, scaleLong, scaleLat) as [number, number];
 
         expect(distanceInMeters(a, b)).toBeLessThan(200);
+    });
+});
+
+/**
+ * The bearing the nearest-park chip points along.
+ *
+ * A sign error here sends a walker the opposite way down a street, which is
+ * worse than showing nothing: the chip exists precisely for the walker who
+ * cannot see the next park on screen and is trusting it.
+ */
+describe("bearingDegrees", () => {
+    const origin: [number, number] = [-97.11059202, 44.01320393];
+
+    it("reads north, east, south and west off the compass", () => {
+        expect(bearingDegrees(origin, [origin[0], origin[1] + 0.01])).toBeCloseTo(0, 1);
+        expect(bearingDegrees(origin, [origin[0] + 0.01, origin[1]])).toBeCloseTo(90, 1);
+        expect(bearingDegrees(origin, [origin[0], origin[1] - 0.01])).toBeCloseTo(180, 1);
+        expect(bearingDegrees(origin, [origin[0] - 0.01, origin[1]])).toBeCloseTo(270, 1);
+    });
+
+    it("always answers between 0 and 360, never negative", () => {
+        // atan2 returns -180..180, and a chip reading "-43 NE" is the bug this
+        // pins. Every quadrant, so a missing wrap cannot hide in one of them.
+        for (const [dLon, dLat] of [[0.01, 0.01], [0.01, -0.01], [-0.01, -0.01], [-0.01, 0.01]]) {
+            const bearing = bearingDegrees(origin, [origin[0] + dLon, origin[1] + dLat]);
+            expect(bearing).toBeGreaterThanOrEqual(0);
+            expect(bearing).toBeLessThan(360);
+        }
+    });
+
+    it("puts the diagonals where a walker would point", () => {
+        expect(bearingDegrees(origin, [origin[0] + 0.01, origin[1] + 0.01])).toBeGreaterThan(0);
+        expect(bearingDegrees(origin, [origin[0] + 0.01, origin[1] + 0.01])).toBeLessThan(90);
+        expect(bearingDegrees(origin, [origin[0] - 0.01, origin[1] - 0.01])).toBeGreaterThan(180);
+        expect(bearingDegrees(origin, [origin[0] - 0.01, origin[1] - 0.01])).toBeLessThan(270);
+    });
+
+    it("is the reverse bearing the other way round", () => {
+        const there = bearingDegrees(origin, [origin[0] + 0.01, origin[1] + 0.005]);
+        const back = bearingDegrees([origin[0] + 0.01, origin[1] + 0.005], origin);
+        const opposed = (((there - back) % 360) + 360) % 360;
+        // Not exactly 180: on a sphere the reverse bearing differs by the
+        // convergence of the meridians, which at this scale is a rounding
+        // error rather than a direction.
+        expect(Math.abs(opposed - 180)).toBeLessThan(0.5);
+    });
+});
+
+describe("compassPoint", () => {
+    it("centres each point on itself rather than starting at it", () => {
+        // North runs 337.5 through 22.5, not 0 through 45. Getting this wrong
+        // rotates every reading by half a sector, which is a whole point out.
+        expect(compassPoint(0)).toBe("N");
+        expect(compassPoint(22)).toBe("N");
+        expect(compassPoint(23)).toBe("NE");
+        expect(compassPoint(338)).toBe("N");
+        expect(compassPoint(337)).toBe("NW");
+    });
+
+    it("names all eight points", () => {
+        expect([0, 45, 90, 135, 180, 225, 270, 315].map(compassPoint)).toEqual([
+            "N", "NE", "E", "SE", "S", "SW", "W", "NW",
+        ]);
+    });
+
+    it("wraps rather than falling off the end", () => {
+        expect(compassPoint(360)).toBe("N");
+        expect(compassPoint(359.9)).toBe("N");
+        expect(compassPoint(-45)).toBe("NW");
+        expect(compassPoint(720 + 90)).toBe("E");
     });
 });

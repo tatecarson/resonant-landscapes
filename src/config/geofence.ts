@@ -46,6 +46,14 @@ export const CENTER_LATCH_RADIUS_METERS = 5;
  *
  * The odd precision is not arbitrary: it is the zoom the view settled at for
  * the scaled debug map, captured rather than chosen.
+ *
+ * PR 84 left the Terrace question here for rl-1u7.10, and rl-1u7.10 is
+ * leaving it alone. Two reasons. Lowering this floor to fit 520 m would also
+ * lower the ceiling, because OpenLayers derives the ceiling from it (see
+ * MAX_ZOOM below), so the walk would trade close zoom for an overview.
+ * And the overview was only ever a way to answer "where do I go next",
+ * which the nearest-park chip now answers directly, with a distance and a
+ * bearing, from wherever the walker is standing.
  */
 export const MIN_ZOOM = 16.72582728647343;
 

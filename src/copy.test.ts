@@ -22,6 +22,8 @@ function collectStrings(value: unknown, path = "copy"): [string, string][] {
             [2, 16],
             ["4.2", true],
             ["4.2", false],
+            ["Hartford Beach State Park", 120, "NE"],
+            ["Hartford Beach State Park", 120, "north east"],
         ];
         const out: [string, string][] = [];
         for (const args of samples) {

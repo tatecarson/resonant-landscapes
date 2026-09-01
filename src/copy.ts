@@ -260,16 +260,18 @@ export const audio = {
      * nothing while the strip reports the recording is running, and the only
      * place that said so was help.tips, behind a tap on the Help modal.
      *
-     * Safari 17 and later can declare a playback audio session, which should
-     * bypass silent mode. Older Safari versions expose no such control and no
-     * API for reading the ringer state, so they still need the old advice.
+     * Said rather than detected, because it cannot be detected and cannot be
+     * worked around. There is no API for the ringer state on any iOS version.
+     * Declaring a playback audio session was the obvious fix and was tried:
+     * on a real iPhone, silent mode on stayed silent, so the experiment was
+     * removed. See rl-8ei before proposing it again.
      *
      * Names the state, not the hardware. Apple's word for the switch is the
      * Ring/Silent switch, but iPhone 15 Pro and later replaced it with the
      * Action button, and the support floor is iOS 15, so both are in a
      * walker's hand. "Silent mode" is Apple's name for the state either
-     * produces, and it is what Control Center shows. The long line names both
-     * controls because it has room to.
+     * produces, and it is what Control Center shows, so it is right for a
+     * walker holding either.
      *
      * The strip carries it briefly when each park starts playing. Keeping it
      * visible throughout playback reads as a false warning when sound works.
@@ -279,6 +281,46 @@ export const audio = {
         android: "No sound? Check the media volume",
         other: "No sound? Check the volume",
     },
+} as const;
+
+/**
+ * Where the next park is, and how much of the walk is left.
+ *
+ * Outside prefetch range the map showed a walker their own dot and nothing
+ * else: no indication that there was anywhere to go, how far, or which way.
+ * That is the state a walk spends most of its time in.
+ *
+ * The bearing is eight points of the compass rather than degrees, because
+ * this is read while moving. Screen readers get the point spelled out, since
+ * "NE" is read as two letters.
+ */
+export const wayfinding = {
+    /**
+     * Rendered beside the park name rather than inside one string, so a long
+     * name truncates and this survives. "Fort Sisseton Historic State Park"
+     * is 33 characters and already overflows a narrow phone; losing the end
+     * of the name costs nothing, and losing the distance and the bearing
+     * costs the walker the only two things they can act on.
+     */
+    nearestMetrics: (meters: number, point: string) => ` · ${meters} m ${point}`,
+    nearestAriaLabel: (park: string, meters: number, spokenPoint: string) =>
+        `Nearest park: ${park}, ${meters} metres to the ${spokenPoint}`,
+    spokenPoints: {
+        N: "north",
+        NE: "north east",
+        E: "east",
+        SE: "south east",
+        S: "south",
+        SW: "south west",
+        W: "west",
+        NW: "north west",
+    },
+    /**
+     * Counted in parks heard rather than parks visited, because walking
+     * through one while the audio was still downloading is not hearing it.
+     */
+    heardCount: (heard: number, total: number) => `${heard} of ${total} heard`,
+    allHeard: "Every park heard",
 } as const;
 
 /** Rotation, which iOS gates behind its own permission prompt. */
