@@ -6,6 +6,7 @@ import { app } from "./copy";
 import { isDebugEnabled } from "./config/debug";
 import AudioContextProvider from "./contexts/AudioContextProvider";
 import { useReduceVisualsAttribute } from "./hooks/useReduceVisuals";
+import OfflineNotice from "./components/OfflineNotice";
 // import './App.css'
 
 const MapExperience = lazy(() => import("./components/MapExperience"));
@@ -124,6 +125,13 @@ function App() {
 
   return (
     <ErrorBoundary fallback={<AppFallback>{app.crashed}</AppFallback>}>
+      {/*
+        * Above everything, including the welcome screen and the debug route.
+        * Losing signal on the welcome screen is the worst moment to lose it,
+        * because Start is about to try to download a park, and it was the one
+        * screen a map-mounted notice could never reach.
+        */}
+      <OfflineNotice />
       <AudioContextProvider>
         {isDebugRoute ? (
           <DebugRoute variant={variant} mockPosition={mockPosition} />

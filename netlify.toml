@@ -20,6 +20,23 @@
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
+# The service worker decides which build everyone else is running, so it is
+# the one file that must never be served from a cache. Modern browsers already
+# revalidate a worker script on their own, but this is not a place to rely on
+# that: a worker held for a day is a deploy that reaches nobody for a day, and
+# the failure is silent because the stale build works fine.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Same reasoning, smaller stakes: a stale manifest means a home screen icon or
+# a name that no longer matches the walk.
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

@@ -13,7 +13,13 @@ const baseURL = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
   testDir: "./tests",
-  testMatch: /production-surfaces\.spec\.ts$/,
+  /*
+   * offline-shell joins production-surfaces here because the service worker
+   * only exists in a built bundle: vite-plugin-pwa leaves it out of dev, so
+   * a spec about offline behaviour run against `npm run dev` would assert
+   * nothing and pass.
+   */
+  testMatch: /(production-surfaces|offline-shell)\.spec\.ts$/,
   globalSetup: "./tests/global-setup.ts",
   timeout: 60_000,
   use: {

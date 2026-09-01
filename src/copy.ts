@@ -323,6 +323,23 @@ export const wayfinding = {
     allHeard: "Every park heard",
 } as const;
 
+/**
+ * What is true with no signal.
+ *
+ * Deliberately modest about what still works. The walk opens without a
+ * connection because its own files are held on the phone, but the park
+ * recordings are not, and neither is any part of the map the walker has not
+ * already looked at. A notice promising an offline walk would be the same
+ * class of lie as the strip reporting playback into a silenced phone.
+ */
+export const connection = {
+    offline: {
+        title: "No signal",
+        detail:
+            "The walk stays open, but park recordings will not download and new parts of the map will not appear. It picks up again when the signal does.",
+    },
+} as const;
+
 /** Rotation, which iOS gates behind its own permission prompt. */
 export const rotation = {
     allowAccess: "Allow Orientation Access",
