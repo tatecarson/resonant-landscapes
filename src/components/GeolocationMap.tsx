@@ -35,6 +35,8 @@ import {
 } from "../hooks/useGeolocationTracking";
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import { useReduceVisuals } from "../hooks/useReduceVisuals";
+import { markParkHeard, useHeardParks } from "../hooks/heardParks";
+import NearestParkChip from "./NearestParkChip";
 import { getVariantCenter } from "../utils/scaledParks";
 import { debugLog, isDebugEnabled } from "../config/debug";
 import {
@@ -266,7 +268,8 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     helpIsOpen: boolean;
 }): JSX.Element {
     const { preloadBuffers, resonanceAudioScene, stopSound } = useAudioEngine();
-    const { audioContext } = useAudioContext();
+    const { audioContext, isPlaying } = useAudioContext();
+    const heardParks = useHeardParks();
     const {
         accuracy,
         accuracyMeters,
@@ -294,7 +297,10 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         stopSound,
     });
 
-    const debugPosition = position ? toLonLat(position.slice(0, 2)) as [number, number] : null;
+    // Was debugPosition, back when the debug panel was the only thing that
+    // needed the walker in lon/lat. The wayfinding chip needs it too, and it
+    // ships.
+    const userLonLat = position ? toLonLat(position.slice(0, 2)) as [number, number] : null;
     const prefetchUrls = useMemo(() => {
         if (!prefetchParkName) {
             return null;
@@ -354,6 +360,18 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
      * rather than interpolating the live distance also stops it re-announcing
      * every single metre walked.
      */
+    /**
+     * A park counts as heard when its audio starts, not when the walker
+     * crosses the boundary. Someone can walk through a listening area with
+     * the recording still downloading, or failing outright, and marking that
+     * heard would tell them they had listened to something they never did.
+     */
+    useEffect(() => {
+        if (isPlaying && parkName) {
+            markParkHeard(parkName);
+        }
+    }, [isPlaying, parkName]);
+
     const [parkAnnouncement, setParkAnnouncement] = useState("");
     const announcedParkRef = useRef("");
     useEffect(() => {
@@ -505,7 +523,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                 activeParkName={parkName || undefined}
                 activeParkDistance={Math.floor(parkDistance)}
             />
-            <ParkFeatureLayers parkFeatures={parkFeatures} />
+            <ParkFeatureLayers parkFeatures={parkFeatures} heardParks={heardParks} />
 
             <GeolocationPositionLayer
                 position={position}
@@ -575,9 +593,21 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                 )}
             </ErrorBoundary>
 
+            {/*
+              * Shares the bottom of the display with the park strip, so it
+              * stands down whenever one is up. A walker standing in a park
+              * does not need to be told where the nearest park is.
+              */}
+            <NearestParkChip
+                userLonLat={userLonLat}
+                parks={parkFeatures}
+                heardParks={heardParks}
+                active={!parkName}
+            />
+
             {debug && (
                 <GeolocationDebugPanel
-                    position={debugPosition}
+                    position={userLonLat}
                     parkName={parkName}
                     debugPermission={debugPermission}
                 />
