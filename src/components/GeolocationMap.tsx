@@ -49,6 +49,8 @@ import { RECOVERY_TITLES, RECOVERY_STAKES, getRecoverySteps } from "../utils/rec
 import { app, location as locationCopy, map as mapCopy } from "../copy";
 import type { Variant, MockPosition } from "../App";
 import locationIcon from "../assets/geolocation_marker_heading.svg";
+import { getScaledPoints } from "../utils/scaledParks";
+import { distanceInMeters } from "../utils/geo";
 
 
 function locationStatusMessage(
@@ -392,6 +394,60 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
 
     const savedZoomRef = useRef<number | null>(null);
     const inProximityRef = useRef(false);
+    // PROTOTYPE (rl-13r / rl-1u7.9). Four camera behaviours behind ?zoomMode=,
+    // built to be filmed and chosen between. Not production code.
+    const zoomMode = useMemo(() => {
+        const raw = new URLSearchParams(window.location.search).get("zoomMode");
+        return (raw ?? "a") as "a" | "b" | "c" | "d";
+    }, []);
+    const restingZoom = useMemo(
+        () => ({ a: 19.72582728647343, b: 17.5, c: 18.5, d: 18 })[zoomMode],
+        [zoomMode]
+    );
+    const approachZoom = useMemo(
+        () => ({ a: PROXIMITY_ZOOM, b: PROXIMITY_ZOOM, c: null, d: 19.5 })[zoomMode],
+        [zoomMode]
+    );
+
+    // Auto-follow suspends on a manual pan or pinch, the way every comparable
+    // walking app does (37/38 in the Roth et al. survey allow pan).
+    const [followSuspended, setFollowSuspended] = useState(false);
+    useEffect(() => {
+        if (!map) return;
+        const onDrag = () => setFollowSuspended(true);
+        const onWheel = () => setFollowSuspended(true);
+        const dragKey = map.on("pointerdrag", onDrag);
+        map.getViewport().addEventListener("wheel", onWheel, { passive: true });
+        return () => {
+            unByKey(dragKey);
+            map.getViewport().removeEventListener("wheel", onWheel);
+        };
+    }, [map]);
+
+    const recenter = useCallback(() => {
+        const view = map?.getView();
+        if (!view || !position) return;
+        setFollowSuspended(false);
+        view.animate({
+            center: [position[0], position[1]] as [number, number],
+            zoom: restingZoom,
+            duration: 400,
+        });
+    }, [map, position, restingZoom]);
+
+    // parkDistance is 0 until a park is engaged, so it cannot drive a camera
+    // that is supposed to react while still far away. Prototype only.
+    const nearestParkDistance = useMemo(() => {
+        if (!position) return Number.POSITIVE_INFINITY;
+        const here = toLonLat(position.slice(0, 2)) as [number, number];
+        let best = Number.POSITIVE_INFINITY;
+        for (const park of getScaledPoints(variant)) {
+            const d = distanceInMeters(here, park.scaledCoords as [number, number]);
+            if (d < best) best = d;
+        }
+        return best;
+    }, [position, variant]);
+
     const inProximity = prefetchParks.length > 0;
     const showCenteredGeolocationMarker =
         Boolean(position) &&
@@ -405,8 +461,14 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         }
 
         const rotation = -mapHeading;
-        view.setCenter([position[0], position[1]] as [number, number]);
-        view.setRotation(rotation);
+        // The trample fix. setCenter/setRotation resolve OpenLayers constraints
+        // with duration 0 while the view is animating, which kills the approach
+        // zoom within a frame. Leave a running animation alone; it centres on
+        // the walker itself.
+        if (!followSuspended && !view.getAnimating()) {
+            view.setCenter([position[0], position[1]] as [number, number]);
+            view.setRotation(rotation);
+        }
 
         // OpenLayers updates its coordinate-to-pixel transform during render.
         // Reading it immediately after setCenter/setRotation uses the previous
@@ -421,22 +483,27 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                 center: view.getCenter() as [number, number] | null,
                 position: [position[0], position[1]],
                 rotation,
-                centerOnUser: true,
+                centerOnUser: !followSuspended,
                 markerPixel: markerPixel as [number, number] | null,
                 viewportSize: viewportSize as [number, number] | null,
             };
         });
 
         return () => unByKey(renderKey);
-    }, [map, position, mapHeading]);
+    }, [map, position, mapHeading, followSuspended]);
 
     useEffect(() => {
         const view = map?.getView();
         if (!view) return;
 
+        if (approachZoom === null || followSuspended) {
+            inProximityRef.current = inProximity;
+            return;
+        }
+
         if (inProximity && !inProximityRef.current) {
-            savedZoomRef.current = view.getZoom() ?? null;
-            view.animate({ zoom: PROXIMITY_ZOOM, duration: zoomDurationMs });
+            savedZoomRef.current = restingZoom;
+            view.animate({ zoom: approachZoom, duration: zoomDurationMs });
         } else if (!inProximity && inProximityRef.current) {
             if (savedZoomRef.current !== null) {
                 view.animate({ zoom: savedZoomRef.current, duration: zoomDurationMs });
@@ -444,7 +511,27 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         }
 
         inProximityRef.current = inProximity;
-    }, [map, inProximity, zoomDurationMs]);
+    }, [map, inProximity, zoomDurationMs, approachZoom, restingZoom, followSuspended]);
+
+    // Variant D eases zoom with distance instead of stepping at the boundary.
+    useEffect(() => {
+        const view = map?.getView();
+        if (!view || zoomMode !== "d" || followSuspended || !position) return;
+        const far = 120;
+        const t = Math.max(0, Math.min(1, 1 - nearestParkDistance / far));
+        const target = 18 + (19.5 - 18) * t;
+        if (Math.abs((view.getZoom() ?? target) - target) > 0.01) {
+            view.animate({ zoom: target, duration: 300 });
+        }
+    }, [map, zoomMode, nearestParkDistance, followSuspended, position]);
+
+    // Set the resting zoom once the map exists, so each variant starts where
+    // it means to rather than at whatever the bounds controller settled on.
+    useEffect(() => {
+        const view = map?.getView();
+        if (!view) return;
+        view.setZoom(restingZoom);
+    }, [map, restingZoom]);
 
 
     return (
@@ -491,6 +578,30 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                 parks={sunRayParks}
                 active={Boolean(parkName)}
             />
+
+            {/*
+              * Always mounted. Conditionally rendering an RCustom makes rlayers
+              * throw "removeChild ... is not a child of this node", which is the
+              * same crash noted at the top of this file, so visibility is done
+              * with CSS instead of by unmounting.
+              */}
+            <RControl.RCustom className="recenter-control">
+                    <button
+                        type="button"
+                        onClick={recenter}
+                        data-testid="recenter"
+                        style={{
+                            visibility: followSuspended ? "visible" : "hidden",
+                            pointerEvents: followSuspended ? "auto" : "none",
+                            minHeight: 44, padding: "0 18px", borderRadius: 999,
+                            background: "#171717", color: "#fff", border: "none",
+                            fontFamily: "'Space Mono', monospace", fontSize: 11,
+                            letterSpacing: "0.18em", textTransform: "uppercase",
+                        }}
+                    >
+                        Recenter
+                    </button>
+            </RControl.RCustom>
 
             {/*
               * Not the full-screen fallback: this boundary sits over the map,
