@@ -41,7 +41,7 @@ import {
     CENTER_ROTATION_RADIUS_METERS,
     MAX_ZOOM,
     MIN_ZOOM,
-    PROXIMITY_ZOOM,
+    RESTING_ZOOM,
 } from "../config/geofence";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
@@ -160,6 +160,16 @@ function ZoomBoundsController({
         const view = map.getView();
         view.setMinZoom(minZoom);
         view.setMaxZoom(maxZoom);
+
+        if (isDebugEnabled()) {
+            // What the view will actually honour, which is not what was just
+            // set: OpenLayers derives the ceiling as minZoom plus the floored
+            // log2 span, so a fractional minZoom loses the fraction.
+            window.__mapZoomBounds = {
+                minZoom: view.getMinZoom(),
+                maxZoom: view.getMaxZoom(),
+            };
+        }
 
         const enforceZoomBounds = () => {
             const zoom = view.getZoom();
@@ -367,19 +377,10 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
             setParkAnnouncement("Left the listening area");
         }
     }, [parkName, parkDistance]);
-    // The proximity zoom is an 800 ms camera move over the whole viewport.
-    // Reduced motion gets the same destination, arrived at instantly.
-    const zoomDurationMs = prefersReducedMotion ? 0 : 800;
-
     // Debug-only mirror of the view's live zoom, written every frame rather
-    // than once per position like __mapDebug.
-    //
-    // Added to test the reduced-motion zoom and immediately showed there is
-    // nothing to test: the view sits at zoom 19 for an entire walk, far off,
-    // in prefetch range, inside a park and back out again, while
-    // PROXIMITY_ZOOM is also 19. The approach camera move animates from 19 to
-    // 19, so it is a no-op and zoomDurationMs below controls the duration of
-    // nothing. Tracked as rl-13r; this mirror is the instrument that shows it.
+    // than once per position like __mapDebug. It is the instrument that showed
+    // the old approach zoom was being cancelled, and it now guards the promise
+    // that the scale never changes on its own. See map-camera.spec.ts.
     useEffect(() => {
         if (!map || !isDebugEnabled()) {
             return;
@@ -390,9 +391,50 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         return () => unByKey(key);
     }, [map]);
 
-    const savedZoomRef = useRef<number | null>(null);
-    const inProximityRef = useRef(false);
-    const inProximity = prefetchParks.length > 0;
+    /**
+     * The map follows the walker until they drag or pinch it, and then stops
+     * until they ask for it back.
+     *
+     * It used to call setCenter on every position fix with nothing able to
+     * interrupt it, so a pan snapped back within a second and the map could
+     * not be used to look anywhere but at your own feet. Every comparable
+     * piece allows this: 37 of the 38 locative audio tours surveyed by Roth et
+     * al. (LBS 2023) support pan, and 38 of 38 support zoom.
+     */
+    const [followSuspended, setFollowSuspended] = useState(false);
+
+    useEffect(() => {
+        if (!map) {
+            return;
+        }
+
+        const suspend = () => setFollowSuspended(true);
+        const dragKey = map.on("pointerdrag", suspend);
+        // Wheel and pinch never reach pointerdrag; both arrive here.
+        const viewport = map.getViewport();
+        viewport.addEventListener("wheel", suspend, { passive: true });
+
+        return () => {
+            unByKey(dragKey);
+            viewport.removeEventListener("wheel", suspend);
+        };
+    }, [map]);
+
+    const recenter = useCallback(() => {
+        const view = map?.getView();
+        if (!view || !position) {
+            return;
+        }
+
+        setFollowSuspended(false);
+        view.animate({
+            center: [position[0], position[1]] as [number, number],
+            zoom: RESTING_ZOOM,
+            // Reduced motion gets the same destination, arrived at instantly.
+            duration: prefersReducedMotion ? 0 : 400,
+        });
+    }, [map, position, prefersReducedMotion]);
+
     const showCenteredGeolocationMarker =
         Boolean(position) &&
         userOrientationEnabled &&
@@ -405,8 +447,10 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         }
 
         const rotation = -mapHeading;
-        view.setCenter([position[0], position[1]] as [number, number]);
-        view.setRotation(rotation);
+        if (!followSuspended) {
+            view.setCenter([position[0], position[1]] as [number, number]);
+            view.setRotation(rotation);
+        }
 
         // OpenLayers updates its coordinate-to-pixel transform during render.
         // Reading it immediately after setCenter/setRotation uses the previous
@@ -421,30 +465,14 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                 center: view.getCenter() as [number, number] | null,
                 position: [position[0], position[1]],
                 rotation,
-                centerOnUser: true,
+                centerOnUser: !followSuspended,
                 markerPixel: markerPixel as [number, number] | null,
                 viewportSize: viewportSize as [number, number] | null,
             };
         });
 
         return () => unByKey(renderKey);
-    }, [map, position, mapHeading]);
-
-    useEffect(() => {
-        const view = map?.getView();
-        if (!view) return;
-
-        if (inProximity && !inProximityRef.current) {
-            savedZoomRef.current = view.getZoom() ?? null;
-            view.animate({ zoom: PROXIMITY_ZOOM, duration: zoomDurationMs });
-        } else if (!inProximity && inProximityRef.current) {
-            if (savedZoomRef.current !== null) {
-                view.animate({ zoom: savedZoomRef.current, duration: zoomDurationMs });
-            }
-        }
-
-        inProximityRef.current = inProximity;
-    }, [map, inProximity, zoomDurationMs]);
+    }, [map, position, mapHeading, followSuspended]);
 
 
     return (
@@ -491,6 +519,27 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                 parks={sunRayParks}
                 active={Boolean(parkName)}
             />
+
+            {/*
+              * Always mounted, hidden with CSS rather than by unmounting.
+              * Conditionally rendering an RCustom makes rlayers throw
+              * "removeChild ... is not a child of this node", which is the same
+              * crash described at the top of this file.
+              */}
+            <RControl.RCustom className="recenter-control">
+                <button
+                    type="button"
+                    onClick={recenter}
+                    className="recenter-button"
+                    data-testid="recenter"
+                    aria-label={mapCopy.recenterAriaLabel}
+                    aria-hidden={!followSuspended}
+                    tabIndex={followSuspended ? 0 : -1}
+                    data-visible={followSuspended ? "true" : "false"}
+                >
+                    {mapCopy.recenter}
+                </button>
+            </RControl.RCustom>
 
             {/*
               * Not the full-screen fallback: this boundary sits over the map,
@@ -588,13 +637,14 @@ export default function GeolocationMap({
     return (
         <RMap
             className="map"
-            initial={{ center: fromLonLat(getVariantCenter(variant)), zoom: MAX_ZOOM }}
+            initial={{ center: fromLonLat(getVariantCenter(variant)), zoom: RESTING_ZOOM }}
         >
-            <ZoomBoundsController
-                debug={debug}
-                minZoom={16.72582728647343}
-                maxZoom={19.9999999}
-            />
+            {/*
+              * The constants, not copies of them. These were written out as
+              * literals here, so the bounds and the config could drift apart
+              * silently.
+              */}
+            <ZoomBoundsController debug={debug} minZoom={MIN_ZOOM} maxZoom={MAX_ZOOM} />
             <RControl.RCustom className="example-control">
                 <button
                     type="button"

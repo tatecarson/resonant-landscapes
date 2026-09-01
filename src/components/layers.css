@@ -337,3 +337,45 @@ body {
     font-variant-numeric: tabular-nums;
     color: rgba(23, 43, 36, 0.45);
 }
+
+/*
+ * The recenter control. Hidden rather than unmounted: rlayers throws
+ * "removeChild ... is not a child of this node" when an RCustom is
+ * conditionally rendered.
+ */
+.recenter-control {
+    bottom: 5.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    position: absolute;
+}
+
+.recenter-button {
+    min-height: 44px;
+    padding: 0 1.25rem;
+    border: none;
+    border-radius: 999px;
+    background: rgb(23 23 23 / 0.92);
+    color: #fff;
+    font-family: "Space Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    box-shadow: 0 2px 12px rgb(0 0 0 / 0.25);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+}
+
+.recenter-button[data-visible="true"] {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .recenter-button {
+        transition: none;
+    }
+}

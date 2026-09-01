@@ -40,14 +40,39 @@ export const CENTER_ROTATION_RADIUS_METERS = 3;
 export const CENTER_LATCH_RADIUS_METERS = 5;
 
 /**
- * Zoom floor. The odd precision is not arbitrary: it is the zoom the view
- * settles at for the scaled debug map, captured rather than chosen, and
- * rounding it visibly shifts the first frame.
+ * Zoom floor: how far out a walker may pinch. About 405 m across a phone
+ * screen, which covers the whole 293 m DSU site. The 520 m Terrace site does
+ * not fit at once and has to be panned.
+ *
+ * The odd precision is not arbitrary: it is the zoom the view settled at for
+ * the scaled debug map, captured rather than chosen.
  */
 export const MIN_ZOOM = 16.72582728647343;
 
-/** Zoom ceiling, just under 20 so the view never sits exactly on the stop. */
+/**
+ * Zoom ceiling, just under 20 so the view never sits exactly on the stop.
+ *
+ * Note that this is not the ceiling you get. OpenLayers derives the constraint
+ * as minZoom + Math.floor(log2(maxResolution / minResolution)), so the
+ * fractional MIN_ZOOM above floors the 3.274 span to 3 and the view actually
+ * stops at MIN_ZOOM + 3 = 19.7258 (about 51 m across a screen). That is a fine
+ * place to stop, so it is left alone rather than tuned, but it is measured and
+ * pinned by map-camera.spec.ts so it cannot drift unnoticed.
+ */
 export const MAX_ZOOM = 19.9999999;
 
-/** Zoom the map animates to when a park comes into prefetch range. */
-export const PROXIMITY_ZOOM = 19;
+/**
+ * The one scale the walk is read at. About 118 m across a phone screen, which
+ * holds the walker and a few neighbouring parks at once (they sit 16 to 63 m
+ * apart on the DSU site).
+ *
+ * There used to be a second zoom the map animated to when a park came into
+ * range, and it never worked: the per-fix setCenter cancelled the animation
+ * within a frame. Restoring it was one option; not having it is the other, and
+ * that is what this is. Of the 38 locative audio tours surveyed by Roth et al.
+ * (LBS 2023) only 9 tie zoom to a geofence, and they note that a scale change
+ * on arrival at a point of interest can disorient. Arrival here is already
+ * marked by the ring, the strip and the sound starting, none of which move the
+ * ground under the walker.
+ */
+export const RESTING_ZOOM = 18.5;
