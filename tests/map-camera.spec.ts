@@ -178,6 +178,37 @@ test.describe("the walker can look around", () => {
         expect(await centerOnUser(page)).toBe(false);
     });
 
+    test("the recenter control is reachable while a park panel is open", async ({ page }) => {
+        // It was bottom centre, under the park strip: present, visible to a
+        // test that only checked the attribute, and impossible to press at the
+        // one moment a walker is standing in a park with the map panned away.
+        await startWalk(page);
+        await walkTo(page, 2);
+        await panTheMap(page);
+
+        const chip = page.getByTestId("recenter");
+        await expect(chip).toHaveAttribute("data-visible", "true");
+
+        const box = await chip.boundingBox();
+        expect(box, "recenter has no box").not.toBeNull();
+        // Wide enough for its label rather than squeezed into OpenLayers' own
+        // control width, and tappable.
+        expect(box!.width).toBeGreaterThan(80);
+        expect(box!.height).toBeGreaterThanOrEqual(44);
+
+        // Nothing is on top of it.
+        const topmost = await page.evaluate(([x, y]) => {
+            const el = document.elementFromPoint(x, y);
+            return el?.getAttribute("data-testid") ?? el?.tagName ?? null;
+        }, [box!.x + box!.width / 2, box!.y + box!.height / 2]);
+        expect(topmost).toBe("recenter");
+
+        // And it actually works from there.
+        await chip.click();
+        await page.waitForTimeout(900);
+        await expect(chip).toHaveAttribute("data-visible", "false");
+    });
+
     test("recenter takes the map back and resumes following", async ({ page }) => {
         await startWalk(page);
         await panTheMap(page);
