@@ -34,10 +34,18 @@ import type { Variant } from "./App";
 export const welcome = {
     title: "Resonant Landscapes",
     subtitle: "a locative sound walk",
+    /**
+     * One line per site, as a record rather than a chain of ternaries. Two
+     * sites fit in a ternary; three is where it stops reading as a sentence
+     * and starts reading as a puzzle, and there will be a fourth.
+     */
     intro: (variant: Variant) =>
-        variant === "terrace"
-            ? "Walk Terrace Park to hear the soundscapes of South Dakota's 13 state parks."
-            : "Walk DSU's campus to hear the soundscapes of South Dakota's 13 state parks.",
+        ({
+            dsu: "Walk DSU's campus to hear the soundscapes of South Dakota's 13 state parks.",
+            terrace: "Walk Terrace Park to hear the soundscapes of South Dakota's 13 state parks.",
+            chatham:
+                "Walk Chatham's campus to hear the soundscapes of South Dakota's 13 state parks.",
+        })[variant],
     steps: [
         "As you approach a park, a menu opens. Walk closer to the center icon and the volume increases with proximity.",
         "At the center of a listening spot, turn with your phone to hear the recording in 360 degrees.",

@@ -2,7 +2,9 @@ import { point } from '@turf/helpers';
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
 
 import stateParks from '../data/stateParks.json';
-import noGoPolygons from '../data/terraceNoGoPolygons.json';
+import terraceNoGoPolygons from '../data/terraceNoGoPolygons.json';
+import chathamNoGoPolygons from '../data/chathamNoGoPolygons.json';
+import chathamCampus from '../data/chathamCampus.json';
 import { scaleCoordinates, type Coordinate } from './geo';
 import type { Feature, MultiPolygon, Point, Polygon } from 'geojson';
 
@@ -63,8 +65,10 @@ function findBoundingBoxXY(points: PlanePoint[]) {
     return { minX, maxX, minY, maxY };
 }
 
-function isPointInNoGo(candidate: Feature<Point>) {
-    return noGoPolygons.features.some(f => {
+type NoGoSet = { features: unknown[] };
+
+function isPointInNoGo(candidate: Feature<Point>, noGo: NoGoSet) {
+    return noGo.features.some(f => {
         try {
             return booleanPointInPolygon(candidate, f as Feature<Polygon | MultiPolygon>);
         } catch {
@@ -75,9 +79,77 @@ function isPointInNoGo(candidate: Feature<Point>) {
 
 // Spiral the point outward in a square pattern until it clears every no-go
 // polygon. Cap iterations so a buggy polygon never freezes the page.
-function snapOutOfNoGo(start: Feature<Point>): Feature<Point> {
+/**
+ * Where a point is allowed to end up.
+ *
+ * Two questions, not one. Not in a building, a road or a car park, and also
+ * on the site itself where a site polygon is given. The bounds are a
+ * rectangle and a campus is not, so the first eleven Chatham points passed
+ * every no-go test while standing in residential Shadyside.
+ */
+function isAcceptable(candidate: Feature<Point>, noGo: NoGoSet, inside: Feature<Polygon> | null) {
+    if (isPointInNoGo(candidate, noGo)) return false;
+    if (!inside) return true;
+    try {
+        return booleanPointInPolygon(candidate, inside);
+    } catch {
+        return true;
+    }
+}
+
+/**
+ * Walk a point that landed off-site back towards the middle of it.
+ *
+ * The spiral below is the wrong tool for this. It expands outward from where
+ * it starts, so a point that begins outside the campus wanders further out
+ * looking for somewhere legal, and two of the thirteen walked off the bottom
+ * of Pittsburgh doing exactly that. Heading for the centroid always arrives,
+ * because every polygon contains ground between its edge and its middle.
+ *
+ * Only then is the spiral useful, for the last few metres off a building.
+ */
+function pullOntoSite(start: Feature<Point>, inside: Feature<Polygon>): Feature<Point> {
+    const current = start;
+    try {
+        if (booleanPointInPolygon(current, inside)) return current;
+    } catch {
+        return current;
+    }
+
+    const ring = inside.geometry.coordinates[0];
+    let sumLon = 0;
+    let sumLat = 0;
+    for (const [lon, lat] of ring) {
+        sumLon += lon;
+        sumLat += lat;
+    }
+    const centroid: Coordinate = [sumLon / ring.length, sumLat / ring.length];
+
+    // 40 steps from wherever it is to the middle: fine enough that it stops
+    // just inside the edge rather than marching to the centre and bunching
+    // every stray point in the same place.
+    const [lon, lat] = current.geometry.coordinates as Coordinate;
+    for (let step = 1; step <= 40; step += 1) {
+        const t = step / 40;
+        const candidate = point([lon + (centroid[0] - lon) * t, lat + (centroid[1] - lat) * t]);
+        try {
+            if (booleanPointInPolygon(candidate, inside)) return candidate;
+        } catch {
+            return current;
+        }
+    }
+    return current;
+}
+
+function snapToAcceptable(
+    start: Feature<Point>,
+    noGo: NoGoSet,
+    inside: Feature<Polygon> | null
+): Feature<Point> {
     const stepDeg = 0.00008; // ~ 9 m east, ~ 9 m north (good lab/walking resolution)
-    const maxIterations = 240;
+    // Wide enough to cross a campus. The old cap of 240 was sized for nudging
+    // a pin off a building; pulling one back from off-site is a longer walk.
+    const maxIterations = 2000;
     const dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]]; // E, N, W, S
 
     let current = start;
@@ -86,7 +158,7 @@ function snapOutOfNoGo(start: Feature<Point>): Feature<Point> {
     let stepsThisLeg = 0;
     let iter = 0;
 
-    while (isPointInNoGo(current) && iter < maxIterations) {
+    while (!isAcceptable(current, noGo, inside) && iter < maxIterations) {
         const [dx, dy] = dirs[dirIndex];
         const [lon, lat] = current.geometry.coordinates as Coordinate;
         current = point([lon + dx * stepDeg, lat + dy * stepDeg]);
@@ -102,17 +174,36 @@ function snapOutOfNoGo(start: Feature<Point>): Feature<Point> {
     }
 
     if (iter >= maxIterations) {
-        console.warn('[scaledParks] snapOutOfNoGo hit iteration cap; returning last position', current.geometry.coordinates);
+        console.warn('[scaledParks] snapToAcceptable hit iteration cap; returning last position', current.geometry.coordinates);
     }
     return current;
 }
 
-function terraceScaledPoints() {
-    const { west, east, north, south } = TERRACE_BOUNDS;
-    const W = west + TERRACE_BUFFER;
-    const E = east - TERRACE_BUFFER;
-    const N = north - TERRACE_BUFFER;
-    const S = south + TERRACE_BUFFER;
+type SiteBounds = { west: number; east: number; north: number; south: number };
+
+/**
+ * Remap the South Dakota parks into a site rectangle, then move anything that
+ * landed somewhere unwalkable.
+ *
+ * Shared by Terrace Park and Chatham because they are the same problem: a
+ * site threaded with things to dodge. DSU does not use it and does not need
+ * to, being open green with nothing in the way.
+ *
+ * The rotation is what keeps the parks' relationships intact. South Dakota
+ * spans about 7 degrees east to west and 3 north to south, so its shape is
+ * wide; both of these sites are tall. Turning the shape a quarter before
+ * fitting it stretches it far less than squashing it would.
+ */
+function remapIntoSite(
+    bounds: SiteBounds,
+    buffer: number,
+    noGo: NoGoSet,
+    inside: Feature<Polygon> | null = null
+) {
+    const W = bounds.west + buffer;
+    const E = bounds.east - buffer;
+    const N = bounds.north - buffer;
+    const S = bounds.south + buffer;
 
     const rotated = stateParks.map(p => rotateSD(p.cords as Coordinate));
     const { minX, maxX, minY, maxY } = findBoundingBoxXY(rotated);
@@ -124,9 +215,55 @@ function terraceScaledPoints() {
         const scaledLon = W + (rx - minX) * xScale;
         const scaledLat = S + (ry - minY) * yScale;
         let pt = point([scaledLon, scaledLat]);
-        if (isPointInNoGo(pt)) pt = snapOutOfNoGo(pt);
+        // Onto the site first, then off whatever it landed on.
+        if (inside) pt = pullOntoSite(pt, inside);
+        if (!isAcceptable(pt, noGo, inside)) pt = snapToAcceptable(pt, noGo, inside);
         return { ...park, scaledCoords: pt.geometry.coordinates as Coordinate };
     });
+}
+
+function terraceScaledPoints() {
+    return remapIntoSite(TERRACE_BOUNDS, TERRACE_BUFFER, terraceNoGoPolygons);
+}
+
+// ---- Chatham University, Shadyside campus (Pittsburgh) ------------------
+// Third site, opening 5 October 2026. Built like Terrace rather than DSU:
+// this campus is threaded with roads, parking and buildings, so points are
+// remapped and then snapped clear of them.
+//
+// Bounds are OSM way 172206707, the Chatham University campus polygon, which
+// runs about 786 m north to south and 473 m east to west. Bigger than DSU's
+// 293 m, so the 13 listening areas have room.
+//
+// One thing the polygons cannot do: the Anne Putnam Mallinson pond is absent
+// from OpenStreetMap entirely, so nothing here keeps a point out of the
+// water. That is on rl-wc3.3 to catch on foot.
+const CHATHAM_BOUNDS: SiteBounds = {
+    west: -79.9277955,
+    east: -79.9222085,
+    north: 40.4510886,
+    south: 40.4440242,
+};
+// Wider than Terrace's, and chosen by measuring rather than by taste. The
+// campus boundary runs along Fifth Avenue and Murray Hill Avenue, so a pin on
+// the boundary is a pin on a pavement beside traffic even once the road
+// polygon is cleared.
+//
+// Swept at 0.00025, 0.00045, 0.00065 and 0.00090: every value puts all 13
+// points on campus and out of the no-go set, and the closest pair comes out
+// at 5.8, 10.0, 7.6 and 9.1 m. This is the best of them, and it is still
+// short of the 16 m that DSU's tightest pair sits at. See rl-wc3.1: whether
+// 13 points belong on this campus at all is a question for the site, not a
+// number to keep tuning.
+const CHATHAM_BUFFER = 0.00045;
+
+function chathamScaledPoints() {
+    return remapIntoSite(
+        CHATHAM_BOUNDS,
+        CHATHAM_BUFFER,
+        chathamNoGoPolygons,
+        chathamCampus as Feature<Polygon>
+    );
 }
 
 // ---- Test parks (debug route) ------------------------------------------
@@ -157,16 +294,18 @@ const testParks = [testPark, currentLocationTestPark];
  * the walk's own ground means those first tiles are the ones the walker is
  * about to need.
  */
-export function getVariantCenter(variant: 'dsu' | 'terrace' = 'dsu'): Coordinate {
-    if (variant === 'terrace') {
-        const { west, east, north, south } = TERRACE_BOUNDS;
-        return [(west + east) / 2, (north + south) / 2];
+export function getVariantCenter(variant: 'dsu' | 'terrace' | 'chatham' = 'dsu'): Coordinate {
+    const bounds = variant === 'terrace' ? TERRACE_BOUNDS : variant === 'chatham' ? CHATHAM_BOUNDS : null;
+    if (bounds) {
+        return [(bounds.west + bounds.east) / 2, (bounds.north + bounds.south) / 2];
     }
     return DSU_REFERENCE_POINT;
 }
 
 export function getScaledPoints(variant = 'dsu') {
-    return variant === 'terrace' ? terraceScaledPoints() : dsuScaledPoints();
+    if (variant === 'terrace') return terraceScaledPoints();
+    if (variant === 'chatham') return chathamScaledPoints();
+    return dsuScaledPoints();
 }
 
 export { currentLocationTestPark, testPark, testParks };

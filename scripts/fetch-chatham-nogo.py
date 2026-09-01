@@ -1,0 +1,281 @@
+#!/usr/bin/env python3
+"""
+Build the Chatham no-go polygons from OpenStreetMap.
+
+The Terrace Park set was committed as data with osm_ids and no way to
+regenerate it, so nobody can tell what was asked for or refresh it when the
+site changes. This is the query, written down.
+
+    python3 scripts/fetch-chatham-nogo.py
+
+Writes src/data/chathamNoGoPolygons.json in the same shape as the Terrace
+file: a FeatureCollection of Polygons, each with name, kind and osm_id.
+
+Why roads are in here, and buffered. scaledParks snaps a pin out of a no-go
+polygon by walking an expanding square spiral until it clears, so a pin is
+only ever pushed somewhere that is NOT in this set. Leave the roads out and
+the spiral will push a point off a building and into Woodland Road. And OSM
+highways are ways, not areas, so a centreline would only be avoided by a pin
+sitting exactly on it: they are buffered to a carriageway width instead.
+
+Accessible here means not dangerous to walk to, which is the bar Tate set for
+this site. It does not mean wheelchair accessible; the campus is on a hill.
+"""
+
+import json
+import math
+import pathlib
+import sys
+import time
+import subprocess
+
+# The campus, from OSM way 172206707 ("Chatham University"), plus about 30 m
+# so a road or lot running along the boundary is captured rather than clipped.
+#
+# Tight on purpose. A wider box swept in most of residential Shadyside: 460
+# building footprints for a campus with a few dozen, and a file that shipped
+# in the bundle. Nothing outside this margin can ever be reached, because
+# points are placed inside the campus bounds and the snap moves in 9 m steps.
+CAMPUS_WAY = 172206707
+CAMPUS = (40.4440242, -79.9277955, 40.4510886, -79.9222085)
+MARGIN_DEG = 0.0003  # ~33 m north-south, ~25 m east-west at this latitude
+BBOX = (
+    CAMPUS[0] - MARGIN_DEG,
+    CAMPUS[1] - MARGIN_DEG,
+    CAMPUS[2] + MARGIN_DEG,
+    CAMPUS[3] + MARGIN_DEG,
+)
+
+# About 11 cm. The walk decides things at 15 m, so more than this is noise
+# that ships to a phone on cellular for nothing.
+COORD_DP = 6
+
+MIRRORS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+]
+
+# Half-widths in metres, applied either side of a road centreline. Generous on
+# purpose: the cost of an over-wide road is a pin nudged a few metres onto
+# grass, and the cost of an under-wide one is a walker standing in traffic.
+ROAD_HALF_WIDTH = {
+    "motorway": 12.0,
+    "trunk": 12.0,
+    "primary": 10.0,
+    "secondary": 9.0,
+    "tertiary": 8.0,
+    "residential": 7.0,
+    "unclassified": 7.0,
+    "service": 5.0,
+}
+
+QUERY = """[out:json][timeout:90];
+(
+  way["building"]({bbox});
+  way["amenity"="parking"]({bbox});
+  way["natural"="water"]({bbox});
+  way["leisure"~"pitch|playground|swimming_pool"]({bbox});
+  way["highway"~"{roads}"]({bbox});
+);
+out geom;"""
+
+
+def fetch(query: str) -> dict:
+    """
+    Overpass rate-limits hard, so back off and alternate mirrors.
+
+    Through curl rather than urllib: Python here has no root certificates and
+    every https call fails verification, while curl uses the system store.
+    One less thing for whoever runs this next to debug.
+    """
+    last = None
+    for attempt in range(6):
+        url = MIRRORS[attempt % len(MIRRORS)]
+        try:
+            result = subprocess.run(
+                [
+                    "curl", "-s", "--fail", "--max-time", "120",
+                    "-A", "resonant-landscapes/nogo-builder",
+                    url, "--data-urlencode", f"data={query}",
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            payload = json.loads(result.stdout)
+            if payload.get("remark"):
+                raise RuntimeError(f"overpass remark: {payload['remark']}")
+            return payload
+        except Exception as error:  # noqa: BLE001 - report and retry
+            last = error
+            wait = 15 * (attempt + 1)
+            print(f"  attempt {attempt + 1} failed ({error}); waiting {wait}s", file=sys.stderr)
+            time.sleep(wait)
+    raise SystemExit(f"could not reach Overpass: {last}")
+
+
+def round_ring(ring: list[list[float]]) -> list[list[float]]:
+    return [[round(lon, COORD_DP), round(lat, COORD_DP)] for lon, lat in ring]
+
+
+def classify(tags: dict) -> str | None:
+    if "building" in tags:
+        return "building"
+    if tags.get("amenity") == "parking":
+        return "parking"
+    if tags.get("natural") == "water":
+        return "water"
+    if tags.get("leisure") in {"pitch", "playground", "swimming_pool"}:
+        return tags["leisure"]
+    if "highway" in tags:
+        return "road"
+    return None
+
+
+def buffer_line(geometry: list[dict], half_width_m: float, latitude: float) -> list[list[float]]:
+    """
+    A rectangle per segment, unioned by simply listing them as one ring.
+
+    Not a real geometric buffer: no library here does one, and a proper union
+    is not needed. Each segment becomes its own quad and each quad is its own
+    polygon, which is enough for a point-in-polygon test. Corners are left
+    unmitred, so the join between two segments has a small notch; the
+    half-widths above are wide enough that the notch never reaches walkable
+    ground.
+    """
+    # Degrees per metre at this latitude.
+    lat_per_m = 1.0 / 111_320.0
+    lon_per_m = 1.0 / (111_320.0 * math.cos(math.radians(latitude)))
+
+    quads: list[list[list[float]]] = []
+    for start, end in zip(geometry, geometry[1:]):
+        x1, y1 = start["lon"], start["lat"]
+        x2, y2 = end["lon"], end["lat"]
+        dx = (x2 - x1) / lon_per_m
+        dy = (y2 - y1) / lat_per_m
+        length = math.hypot(dx, dy)
+        if length < 0.01:
+            continue
+        # Unit normal, in metres, then back to degrees.
+        nx = -dy / length * half_width_m
+        ny = dx / length * half_width_m
+        ox, oy = nx * lon_per_m, ny * lat_per_m
+        quads.append(
+            [
+                [x1 + ox, y1 + oy],
+                [x2 + ox, y2 + oy],
+                [x2 - ox, y2 - oy],
+                [x1 - ox, y1 - oy],
+                [x1 + ox, y1 + oy],
+            ]
+        )
+    return quads
+
+
+def main() -> None:
+    south, west, north, east = BBOX
+    bbox = f"{south},{west},{north},{east}"
+    query = QUERY.format(bbox=bbox, roads="|".join(ROAD_HALF_WIDTH))
+
+    print(f"querying Overpass for {bbox}")
+    payload = fetch(query)
+    elements = payload.get("elements", [])
+    print(f"  {len(elements)} elements")
+
+    mid_latitude = (south + north) / 2
+    features = []
+    counts: dict[str, int] = {}
+
+    for element in elements:
+        tags = element.get("tags", {})
+        kind = classify(tags)
+        geometry = element.get("geometry")
+        if kind is None or not geometry or len(geometry) < 2:
+            continue
+
+        name = tags.get("name")
+        osm_id = element["id"]
+
+        if kind == "road":
+            half = ROAD_HALF_WIDTH.get(tags["highway"], 6.0)
+            rings = buffer_line(geometry, half, mid_latitude)
+            for index, ring in enumerate(rings):
+                features.append(
+                    {
+                        "type": "Feature",
+                        "properties": {
+                            "name": name,
+                            "kind": "road",
+                            "highway": tags["highway"],
+                            "osm_id": osm_id,
+                            "segment": index,
+                        },
+                        "geometry": {"type": "Polygon", "coordinates": [round_ring(ring)]},
+                    }
+                )
+            counts["road"] = counts.get("road", 0) + 1
+            continue
+
+        ring = [[node["lon"], node["lat"]] for node in geometry]
+        if ring[0] != ring[-1]:
+            ring.append(ring[0])
+        if len(ring) < 4:
+            continue
+
+        features.append(
+            {
+                "type": "Feature",
+                "properties": {"name": name, "kind": kind, "osm_id": osm_id},
+                "geometry": {"type": "Polygon", "coordinates": [round_ring(ring)]},
+            }
+        )
+        counts[kind] = counts.get(kind, 0) + 1
+
+    # The campus itself, as a positive constraint.
+    #
+    # Without it the walk placed 11 of its 13 points on residential Shadyside:
+    # not in any building, road or car park, so every no-go assertion passed,
+    # and on land that is not Chatham's. The bounds are a rectangle and the
+    # campus is not, so "inside the bounds" was never the same question as
+    # "on the campus".
+    print(f"querying Overpass for campus way {CAMPUS_WAY}")
+    campus_payload = fetch(f"[out:json][timeout:60];way({CAMPUS_WAY});out geom;")
+    campus_element = campus_payload["elements"][0]
+    campus_ring = [[n["lon"], n["lat"]] for n in campus_element["geometry"]]
+    if campus_ring[0] != campus_ring[-1]:
+        campus_ring.append(campus_ring[0])
+
+    campus_out = pathlib.Path(__file__).resolve().parent.parent / "src" / "data" / "chathamCampus.json"
+    campus_out.write_text(
+        json.dumps(
+            {
+                "type": "Feature",
+                "properties": {
+                    "name": campus_element.get("tags", {}).get("name", "Chatham University"),
+                    "osm_id": CAMPUS_WAY,
+                },
+                "geometry": {"type": "Polygon", "coordinates": [round_ring(campus_ring)]},
+            },
+            separators=(",", ":"),
+        )
+        + "\n"
+    )
+    print(f"wrote {campus_out.name}: {len(campus_ring)} nodes")
+
+    out = pathlib.Path(__file__).resolve().parent.parent / "src" / "data" / "chathamNoGoPolygons.json"
+    # Compact, not pretty. This file is imported by the app and ships to a
+    # phone; indentation was a third of its weight.
+    out.write_text(
+        json.dumps(
+            {"type": "FeatureCollection", "features": features}, separators=(",", ":")
+        )
+        + "\n"
+    )
+
+    print(f"wrote {out.relative_to(out.parent.parent.parent)}: {len(features)} polygons")
+    for kind, count in sorted(counts.items()):
+        print(f"  {kind}: {count}")
+
+
+if __name__ == "__main__":
+    main()
