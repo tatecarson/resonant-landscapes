@@ -48,7 +48,18 @@ function NearestParkChip({ userLonLat, parks, heardParks, active }: NearestParkC
 
     return (
         <div
-            className="pointer-events-auto flex max-w-full flex-col items-center gap-0.5 rounded-2xl bg-[#8ecdc0] px-4 py-2.5 shadow-[0_6px_20px_rgba(23,43,36,0.22)]"
+            /*
+             * Nothing in here can be pressed, so nothing in here takes
+             * presses. It is a name, a distance and a count. An auto here
+             * made the card a hit-test target, and a drag beginning on it
+             * never reached the map, so the walker could not pan from the
+             * bottom of the screen.
+             *
+             * The same rule as the offline notice and the location card, and
+             * this PR wrote it down three times while leaving the chip
+             * breaking it. Caught in review.
+             */
+            className="pointer-events-none flex max-w-full flex-col items-center gap-0.5 rounded-2xl bg-[#8ecdc0] px-4 py-2.5 shadow-[0_6px_20px_rgba(23,43,36,0.22)]"
             data-testid="nearest-park-chip"
         >
             <div className="flex max-w-full flex-col items-center gap-0.5">

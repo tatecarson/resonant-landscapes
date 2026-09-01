@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { detectPlatform, type WalkPlatform } from "../utils/recoverySteps";
 import { useHeardParks } from "./heardParks";
@@ -98,14 +98,25 @@ export function useInstallHint(): InstallHint {
     const heardParks = useHeardParks();
     const dismissed = useSyncExternalStore(subscribe, () => dismissedStore, () => true);
     const [installed, setInstalled] = useState(alreadyInstalled);
-    const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+    /*
+     * The event lives in a ref and the boolean drives rendering.
+     *
+     * prompt() may be called once per event: a second call rejects. With the
+     * event in state alone, two taps in the same tick would both see it and
+     * the second would throw, unhandled, because the button fires this as
+     * void install(). Clearing a ref is synchronous, so the second tap finds
+     * nothing to consume.
+     */
+    const promptEventRef = useRef<BeforeInstallPromptEvent | null>(null);
+    const [canInstall, setCanInstall] = useState(false);
 
     useEffect(() => {
         const capture = (event: Event) => {
             // Chrome shows its own banner unless this is cancelled, and its
             // timing is the one this hook exists to avoid.
             event.preventDefault();
-            setPromptEvent(event as BeforeInstallPromptEvent);
+            promptEventRef.current = event as BeforeInstallPromptEvent;
+            setCanInstall(true);
         };
         const onInstalled = () => setInstalled(true);
 
@@ -119,9 +130,20 @@ export function useInstallHint(): InstallHint {
 
     const dismiss = useCallback(() => setDismissedStore(true), []);
 
-    const install = promptEvent
+    const install = canInstall
         ? async () => {
-              await promptEvent.prompt();
+              const event = promptEventRef.current;
+              if (!event) return;
+              // Consumed before awaiting, so a double tap cannot reach it.
+              promptEventRef.current = null;
+              setCanInstall(false);
+
+              try {
+                  await event.prompt();
+              } catch {
+                  // An exhausted or refused prompt is not an error worth
+                  // showing anyone: the offer simply does not reopen.
+              }
               // Whatever they chose, do not ask again: a refusal is an answer.
               dismiss();
           }
