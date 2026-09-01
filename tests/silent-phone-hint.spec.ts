@@ -22,7 +22,7 @@ import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-fl
  * TypeScript program for one string.
  */
 const EXPECTED_HINT = {
-    ios: /silent switch/i,
+    ios: /silent mode/i,
     android: /media volume/i,
     other: /volume/i,
 };

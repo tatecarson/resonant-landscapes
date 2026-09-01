@@ -300,17 +300,24 @@ export const audio = {
      * the signal reaching a muted speaker is full scale, and the audio stays
      * in its running state throughout. See rl-d2a.
      *
+     * Names the state, not the hardware. Apple's word for the switch is the
+     * Ring/Silent switch, but iPhone 15 Pro and later replaced it with the
+     * Action button, and the support floor is iOS 15, so both are in a
+     * walker's hand. "Silent mode" is Apple's name for the state either
+     * produces, and it is what Control Center shows. The long line names both
+     * controls because it has room to.
+     *
      * Terse in the strip, which carries it on every park for as long as
      * audio plays, and complete in the expanded panel.
      */
     silence: {
         compact: {
-            ios: "No sound? Check the silent switch",
+            ios: "No sound? Turn off silent mode",
             android: "No sound? Check the media volume",
             other: "No sound? Check the volume",
         },
         full: {
-            ios: "Hearing nothing? Silent mode mutes this walk. Check the switch or button on the side of the phone, then turn the volume up.",
+            ios: "Hearing nothing? Silent mode mutes this walk. Turn it off with the switch or the button on the side of the phone, then turn the volume up.",
             android: "Hearing nothing? Press the volume up key while a park is playing. That sets the media volume rather than the ringer.",
             other: "Hearing nothing? Take the phone off silent, then turn the volume up.",
         },
