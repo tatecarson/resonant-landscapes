@@ -232,6 +232,33 @@ test.describe("the install offer", () => {
         await expect(closeButton(page)).toHaveCount(0, { timeout: 10_000 });
     });
 
+    test("the field guide opens while the location banner is up", async ({ context, page }) => {
+        /*
+         * Found by CI rather than by design. This spec opened the guide with
+         * no position fix, which is the state a runner is always in and a
+         * walker is in indoors or under cover, and the click never landed:
+         * the location status card spans the top of the screen and the help
+         * button sits under its right-hand end.
+         *
+         * That is worse than the chip bug it was written for. The card
+         * appears exactly when something is wrong with the walker's
+         * location, and the button it covered opens the field guide, which
+         * is where the instructions for fixing that live.
+         */
+        // Forced rather than waited for. With permission granted the banner
+        // clears as soon as a fix arrives, which is immediate locally and
+        // slow on CI: that timing difference is the only reason this bug
+        // reached main. Refusing location holds the banner up deterministically.
+        await context.clearPermissions();
+        await page.goto("/");
+        await dismissWelcomeModal(page);
+        await expect(page.getByTestId("location-status")).toBeVisible({ timeout: 30_000 });
+
+        await openHelp(page);
+
+        await expect(page.getByTestId("help-install")).toBeVisible();
+    });
+
     test("the field guide explains it permanently, for anyone who said no", async ({ page }) => {
         await page.goto("/");
         await dismissWelcomeModal(page);

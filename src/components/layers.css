@@ -276,8 +276,24 @@ body {
 /* Location status: shown only while there is no fix to render, so it sits
    above the map rather than beside the park strip. */
 .location-status-control {
-    /* Never block map gestures; only the card itself is interactive. */
-    pointer-events: none;
+    /*
+     * !important, which is not decoration here. rlayers writes
+     * style="pointer-events: auto" directly onto the control element, and an
+     * inline declaration beats every selector in this file no matter how
+     * specific. So the plain rule that used to sit here was dead: the
+     * comment said the control never blocked map gestures while it quietly
+     * swallowed everything underneath, including the field guide button
+     * under its right-hand end.
+     *
+     * That mattered more than it sounds. The card appears when something is
+     * wrong with the walker's location, and the button it covered opens the
+     * guide, which is where the instructions for fixing that live. Found by
+     * CI, which is slow enough to still be acquiring a position when a spec
+     * reached for the button; a fast machine never sees the card at all.
+     *
+     * Nothing in the card can be pressed, so nothing in it takes presses.
+     */
+    pointer-events: none !important;
     position: absolute;
     top: max(1rem, env(safe-area-inset-top));
     left: 50%;
@@ -290,7 +306,17 @@ body {
 }
 
 .location-status {
-    pointer-events: auto;
+    /*
+     * Not interactive, despite the wrapper's comment claiming the card is.
+     * There is nothing in here to press: a title, a line of detail, and a
+     * list of steps to follow. The auto that used to be here bought nothing
+     * and cost the field guide, because the card spans the top of the screen
+     * and the help button sits under its right-hand end. So a walker whose
+     * location was failing could not open the guide, which is precisely
+     * where the instructions for fixing it are. Same rule as the offline
+     * notice: an overlay with nothing to press does not take presses.
+     */
+    pointer-events: none;
     background: #8ecdc0;
     border-radius: 0.75rem;
     padding: 0.85rem 1rem;
