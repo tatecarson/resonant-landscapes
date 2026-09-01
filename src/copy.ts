@@ -289,6 +289,32 @@ export const audio = {
         noFallback:
             "This browser could not play the surround recording, and this park has no plain mix. What you are hearing is not what the recording should sound like.",
     },
+    /**
+     * Shown while a park is playing, because "Playing automatically" is true
+     * of the app and can be false of the walker. A silenced phone hears
+     * nothing while the strip reports the recording is running, and the only
+     * place that said so was help.tips, behind a tap on the Help modal.
+     *
+     * Said rather than detected, because it cannot be detected. iOS exposes
+     * no API for the ringer switch, and nothing in the audio graph can tell:
+     * the signal reaching a muted speaker is full scale, and the audio stays
+     * in its running state throughout. See rl-d2a.
+     *
+     * Terse in the strip, which carries it on every park for as long as
+     * audio plays, and complete in the expanded panel.
+     */
+    silence: {
+        compact: {
+            ios: "No sound? Check the silent switch",
+            android: "No sound? Check the media volume",
+            other: "No sound? Check the volume",
+        },
+        full: {
+            ios: "Hearing nothing? Silent mode mutes this walk. Check the switch or button on the side of the phone, then turn the volume up.",
+            android: "Hearing nothing? Press the volume up key while a park is playing. That sets the media volume rather than the ringer.",
+            other: "Hearing nothing? Take the phone off silent, then turn the volume up.",
+        },
+    },
     timingHint: (seconds: string, cacheHit: boolean) =>
         cacheHit ? `Ready instantly (cached ${seconds}s)` : `Ready in ${seconds}s`,
 } as const;

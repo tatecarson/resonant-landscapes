@@ -7,6 +7,7 @@ import GimbalArrow from './GimbalArrow';
 import stateParks from '../data/stateParks.json';
 import { pickSoundPath } from '../utils/audioPaths';
 import { audio as audioCopy } from '../copy';
+import { detectPlatform } from '../utils/recoverySteps';
 import { isDebugEnabled } from '../config/debug';
 
 interface HOARendererProps {
@@ -80,6 +81,13 @@ const HOARenderer = ({
                     : hasPrefetchedAudio
                         ? "approaching"
                         : "idle";
+
+    /**
+     * Copy only. Which phone is being held decides how the silent-switch
+     * hint is worded, and nothing is gated on it: iPadOS reports itself as a
+     * Mac and the fallback wording is safe anywhere.
+     */
+    const platform = detectPlatform(navigator.userAgent);
 
     useRenderDebug("HOARenderer", {
         parkName,
@@ -378,6 +386,28 @@ const HOARenderer = ({
                             : spatialDegradation.reason === "downmixed"
                                 ? audioCopy.degraded.downmixed
                                 : audioCopy.degraded.noFallback}
+                    </p>
+                )}
+
+                {/*
+                  * Sits with the playing state rather than in the Help modal,
+                  * because a silenced phone is discovered while standing in a
+                  * park and the strip is what is being read there. It cannot
+                  * be detected, so it is a standing caveat on "Playing"
+                  * rather than a warning raised by anything. See rl-d2a.
+                  */}
+                {audioStatus === "playing" && !activeError && (
+                    <p
+                        className={
+                            compact
+                                ? "w-full font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70"
+                                : "w-full max-w-sm font-space-mono text-[11px] leading-relaxed text-neutral-900/70"
+                        }
+                        data-testid="silence-hint"
+                    >
+                        {compact
+                            ? audioCopy.silence.compact[platform]
+                            : audioCopy.silence.full[platform]}
                     </p>
                 )}
 

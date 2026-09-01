@@ -9,7 +9,9 @@ import { createBufferCache } from "../audio/bufferCache";
 import { createBufferLoader, getCacheKey, isAbortError } from "../audio/bufferLoader";
 import { shouldSurfaceDegradation, type SpatialDegradation } from "../audio/channelCheck";
 import { mergeBuffersByChannel } from "../audio/mergeBuffers";
-import { debugLog, isDebugEnabled } from "../config/debug";
+import { createAudioDebugBridge, type AudioLoadDebug } from "../audio/audioDebugBridge";
+import { createAudioGraph, primeAudioContext } from "../audio/audioGraph";
+import { debugLog } from "../config/debug";
 
 // Active park plus one prefetch. Each merged park buffer is 9 channels of
 // float PCM (~100 MB per minute), so this cap is what keeps a full walk from
@@ -59,15 +61,6 @@ interface AudioPlaybackStateContextType {
     wakeLockStatus: "inactive" | "requesting" | "active" | "error";
     wakeLockError: string | null;
 }
-
-type AudioLoadDebug = {
-    urls: string[];
-    reason: "active-load" | "prefetch";
-    startedAt: number;
-    completedAt: number | null;
-    durationMs: number | null;
-    cacheHit: boolean;
-};
 
 const AudioEngineContext = createContext<AudioEngineContextType>({
     audioContext: null,
@@ -134,7 +127,6 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const bufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
     const fadeGainRef = useRef<GainNode | null>(null);
     const isPlayingRef = useRef(false);
-    const lastAudioEventRef = useRef<string | null>(null);
     const activeLoadRequestIdRef = useRef(0);
     const bufferCacheRef = useRef(createBufferCache({ maxEntries: MAX_CACHED_PARKS }));
     // Key of the buffer currently pinned for playback, and the keys of the
@@ -142,20 +134,13 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const pinnedKeyRef = useRef<string | null>(null);
     const activeLoadUrlsRef = useRef<string[] | null>(null);
     const prefetchUrlsRef = useRef<string[] | null>(null);
-    const audioDebugStateRef = useRef({
-        audioContextState: 'unavailable',
-        isEngineInitializing: true,
-        isLoading: false,
-        isPlaying: false,
-        isAudioUnlocked: false,
-        buffers: null as AudioBuffer | null,
-        engineError: null as string | null,
-        loadError: null as string | null,
-        lastUnlockError: null as string | null,
-        needsAudioResume: false,
-        activeUrls: [] as string[],
-        lastLoad: null as AudioLoadDebug | null,
-    });
+    // Stable for the life of the provider: the getters read refs, so the
+    // bridge never needs rebuilding and never lands in a dependency array as
+    // a changing value.
+    const audioDebug = useRef(createAudioDebugBridge({
+        getSourceNode: () => bufferSourceRef.current,
+        getCacheSize: () => bufferCacheRef.current.size,
+    })).current;
 
     const bufferLoaderRef = useRef<ReturnType<typeof createBufferLoader> | null>(null);
     const {
@@ -220,62 +205,10 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, []);
 
-    const syncAudioDebug = useCallback((nextEvent?: string | null) => {
-        if (nextEvent !== undefined) {
-            lastAudioEventRef.current = nextEvent;
-        }
-        const uiStatus = window.__audioDebug?.uiStatus ?? null;
-
-        const {
-            audioContextState,
-            isEngineInitializing,
-            isLoading: loading,
-            isPlaying: playing,
-            isAudioUnlocked: unlocked,
-            buffers: activeBuffers,
-            engineError: activeEngineError,
-            loadError: activeLoadError,
-            lastUnlockError: activeUnlockError,
-            needsAudioResume: activeNeedsAudioResume,
-            activeUrls,
-            lastLoad,
-        } = audioDebugStateRef.current;
-        if (!isDebugEnabled()) {
-            return;
-        }
-
-        window.__audioDebug = {
-            contextState: audioContextState,
-            isEngineInitializing,
-            isLoading: loading,
-            isPlaying: playing,
-            isAudioUnlocked: unlocked,
-            hasBuffers: Boolean(activeBuffers),
-            bufferDuration: activeBuffers?.duration ?? null,
-            bufferChannels: activeBuffers?.numberOfChannels ?? null,
-            hasSourceNode: Boolean(bufferSourceRef.current),
-            engineError: activeEngineError,
-            loadError: activeLoadError,
-            lastUnlockError: activeUnlockError,
-            needsAudioResume: activeNeedsAudioResume,
-            lastEvent: lastAudioEventRef.current,
-            activeUrls,
-            cacheEntries: bufferCacheRef.current.size,
-            lastLoadReason: lastLoad?.reason ?? null,
-            lastLoadDurationMs: lastLoad?.durationMs ?? null,
-            lastLoadCacheHit: lastLoad?.cacheHit ?? null,
-            uiStatus,
-        };
-    }, []);
-
     const recordLoadDebug = useCallback((load: AudioLoadDebug) => {
         setLastLoad(load);
-        audioDebugStateRef.current = {
-            ...audioDebugStateRef.current,
-            activeUrls: load.urls,
-            lastLoad: load,
-        };
-    }, []);
+        audioDebug.update({ activeUrls: load.urls, lastLoad: load });
+    }, [audioDebug]);
 
     const clearLoadError = useCallback(() => {
         setLoadError(null);
@@ -294,14 +227,9 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(false);
         setBuffers(null);
         setLastLoad(null);
-        audioDebugStateRef.current = {
-            ...audioDebugStateRef.current,
-            activeUrls: [],
-            lastLoad: null,
-        };
-        lastAudioEventRef.current = "load-cancelled";
-        syncAudioDebug();
-    }, [getBufferLoader, pinActiveBuffer, syncAudioDebug]);
+        audioDebug.update({ activeUrls: [], lastLoad: null });
+        audioDebug.sync("load-cancelled");
+    }, [audioDebug, getBufferLoader, pinActiveBuffer]);
 
     const ensureBuffers = useCallback(async (
         urls: string[],
@@ -339,7 +267,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(true);
         setLoadError(null);
         setBuffers(null);
-        syncAudioDebug("load-start");
+        audioDebug.sync("load-start");
 
         try {
             // Claim the key before any await. While this is unset, a prefetch
@@ -353,31 +281,31 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             }
             const contentBuffer = await ensureBuffers(urls, "active-load");
             if (requestId !== activeLoadRequestIdRef.current) {
-                lastAudioEventRef.current = "load-stale-ignored";
+                audioDebug.recordEvent("load-stale-ignored");
                 return false;
             }
 
             // Protect this buffer for as long as it is the active park.
             pinActiveBuffer(getCacheKey(urls));
             setBuffers(contentBuffer);
-            lastAudioEventRef.current = "buffers-loaded";
+            audioDebug.recordEvent("buffers-loaded");
             return true;
         } catch (error) {
             if (requestId !== activeLoadRequestIdRef.current || isAbortError(error)) {
-                lastAudioEventRef.current = "load-stale-ignored";
+                audioDebug.recordEvent("load-stale-ignored");
                 return false;
             }
             console.error("Error loading buffers:", error);
             setLoadError(error instanceof Error ? error.message : String(error));
             setBuffers(null);
-            lastAudioEventRef.current = "load-error";
+            audioDebug.recordEvent("load-error");
             return false;
         } finally {
             if (requestId === activeLoadRequestIdRef.current) {
                 setIsLoading(false);
             }
         }
-    }, [ensureBuffers, pinActiveBuffer, syncAudioDebug]);
+    }, [ensureBuffers, pinActiveBuffer, audioDebug]);
 
     const preloadBuffers = useCallback(async (urls: string[]): Promise<boolean> => {
         const key = getCacheKey(urls);
@@ -398,22 +326,22 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
                 await initAudioPromiseRef.current;
             }
             await ensureBuffers(urls, "prefetch");
-            syncAudioDebug("prefetch-complete");
+            audioDebug.sync("prefetch-complete");
             return true;
         } catch (error) {
             if (isAbortError(error)) {
-                syncAudioDebug("prefetch-aborted");
+                audioDebug.sync("prefetch-aborted");
                 return false;
             }
             console.error("Error preloading buffers:", error);
-            syncAudioDebug("prefetch-error");
+            audioDebug.sync("prefetch-error");
             return false;
         } finally {
             if (prefetchUrlsRef.current && getCacheKey(prefetchUrlsRef.current) === key) {
                 prefetchUrlsRef.current = null;
             }
         }
-    }, [ensureBuffers, getBufferLoader, syncAudioDebug]);
+    }, [ensureBuffers, getBufferLoader, audioDebug]);
 
     const proceedWithPlayback = useCallback(() => {
         if (!audioContext || !resonanceAudioScene || !buffers) return;
@@ -456,35 +384,20 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             isPlayingRef.current = false;
             setIsPlaying(false);
             setNeedsAudioResume(false);
-            syncAudioDebug("playback-ended");
+            audioDebug.sync("playback-ended");
         };
         bufferSource.start();
         isPlayingRef.current = true;
         setIsPlaying(true);
         setNeedsAudioResume(false);
-        syncAudioDebug("playback-started");
-    }, [audioContext, buffers, resonanceAudioScene, syncAudioDebug]);
+        audioDebug.sync("playback-started");
+    }, [audioContext, buffers, resonanceAudioScene, audioDebug]);
 
-    const primeAudioContext = useCallback((context: AudioContext) => {
+    const primeOnce = useCallback((context: AudioContext) => {
         if (audioPrimedRef.current) {
             return;
         }
-
-        const silentGain = context.createGain();
-        silentGain.gain.value = 0;
-        silentGain.connect(context.destination);
-
-        const buffer = context.createBuffer(1, 1, context.sampleRate);
-        const source = context.createBufferSource();
-        source.buffer = buffer;
-        source.connect(silentGain);
-        source.onended = () => {
-            source.disconnect();
-            silentGain.disconnect();
-        };
-        source.start(0);
-        source.stop(context.currentTime + 0.001);
-
+        primeAudioContext(context);
         audioPrimedRef.current = true;
     }, []);
 
@@ -511,7 +424,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         setNeedsAudioResume(true);
-        syncAudioDebug("interruption-resume-requested");
+        audioDebug.sync("interruption-resume-requested");
         try {
             await context.resume();
             const resumed = String(context.state) === "running";
@@ -519,18 +432,18 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             if (resumed) {
                 setIsAudioUnlocked(true);
                 setLastUnlockError(null);
-                syncAudioDebug("interruption-resumed");
+                audioDebug.sync("interruption-resumed");
             } else {
-                syncAudioDebug("interruption-resume-blocked");
+                audioDebug.sync("interruption-resume-blocked");
             }
             return resumed;
         } catch (error) {
             console.error("Error resuming interrupted audio:", error);
             setNeedsAudioResume(true);
-            syncAudioDebug("interruption-resume-blocked");
+            audioDebug.sync("interruption-resume-blocked");
             return false;
         }
-    }, [syncAudioDebug]);
+    }, [audioDebug]);
 
     const unlockAudio = useCallback(async (): Promise<boolean> => {
         try {
@@ -545,55 +458,55 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
 
             setLastUnlockError(null);
             if (context.state === 'suspended') {
-                syncAudioDebug("resume-requested");
+                audioDebug.sync("resume-requested");
                 await context.resume();
             }
 
-            primeAudioContext(context);
+            primeOnce(context);
 
             setIsAudioUnlocked(true);
-            syncAudioDebug("audio-unlocked");
+            audioDebug.sync("audio-unlocked");
             return true;
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             console.error('Error unlocking audio:', error);
             setIsAudioUnlocked(false);
             setLastUnlockError(message);
-            syncAudioDebug("unlock-error");
+            audioDebug.sync("unlock-error");
             return false;
         }
-    }, [primeAudioContext, syncAudioDebug]);
+    }, [primeOnce, audioDebug]);
 
     const playSound = useCallback(() => {
         if (!audioContext || !resonanceAudioScene || isPlaying) {
-            syncAudioDebug("play-ignored");
+            audioDebug.sync("play-ignored");
             return;
         }
         if (!buffers) {
             console.error("Cannot play: buffers are not loaded.");
-            syncAudioDebug("play-no-buffers");
+            audioDebug.sync("play-no-buffers");
             return;
         }
 
         if (audioContext.state === 'suspended') {
-            syncAudioDebug("resume-requested");
+            audioDebug.sync("resume-requested");
             audioContext.resume().then(() => {
                 debugLog('Audio context resumed.');
                 setIsAudioUnlocked(true);
                 setLastUnlockError(null);
-                syncAudioDebug("context-resumed");
+                audioDebug.sync("context-resumed");
                 proceedWithPlayback();
             }).catch((error) => {
                 console.error('Error resuming AudioContext:', error);
                 setLastUnlockError(error instanceof Error ? error.message : String(error));
-                syncAudioDebug("resume-error");
+                audioDebug.sync("resume-error");
             });
         } else {
             setIsAudioUnlocked(true);
             setLastUnlockError(null);
             proceedWithPlayback();
         }
-    }, [audioContext, buffers, isPlaying, proceedWithPlayback, resonanceAudioScene, syncAudioDebug]);
+    }, [audioContext, buffers, isPlaying, proceedWithPlayback, resonanceAudioScene, audioDebug]);
 
     const stopSound = useCallback(() => {
         if (bufferSourceRef.current && isPlaying) {
@@ -622,9 +535,9 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             isPlayingRef.current = false;
             setIsPlaying(false);
             setNeedsAudioResume(false);
-            syncAudioDebug("playback-stopped");
+            audioDebug.sync("playback-stopped");
         }
-    }, [isPlaying, syncAudioDebug]);
+    }, [isPlaying, audioDebug]);
 
     useEffect(() => {
         if (audioInitializedRef.current) return;
@@ -649,34 +562,23 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
                 resonanceSceneRef.current = scene;
                 scene.setAmbisonicOrder(2);
                 setResonanceAudioScene(scene);
-                // Master gain: ~+3 dB bump so park center is perceptibly louder
-                // on mobile. The rl-52o limiter downstream catches any peaks
-                // this pushes above -1 dBFS.
-                const masterGain = context.createGain();
-                masterGain.gain.value = 1.413;
-                // Safety limiter: catches peaks only so the master-gain bump or
-                // an unusually hot park recording can't clip mobile speakers.
-                // Field recordings must keep their dynamic range, so this must
-                // stay effectively inaudible on the natural signal.
-                const limiter = context.createDynamicsCompressor();
-                limiter.threshold.value = -1;
-                limiter.knee.value = 0;
-                limiter.ratio.value = 20;
-                limiter.attack.value = 0.005;
-                limiter.release.value = 0.15;
-                scene.output.connect(masterGain);
-                masterGain.connect(limiter);
-                limiter.connect(context.destination);
-                lastAudioEventRef.current = "audio-initialized";
+                // Master gain and the rl-52o safety limiter, on the way to the
+                // speakers. The tuning lives in audioGraph.ts.
+                const outputChain = createAudioGraph(context);
+                scene.output.connect(outputChain.input);
+                audioDebug.recordEvent("audio-initialized");
             } catch (error) {
                 console.error('Error initializing audio:', error);
                 setEngineError(error instanceof Error ? error.message : String(error));
-                lastAudioEventRef.current = "audio-init-error";
+                audioDebug.recordEvent("audio-init-error");
             } finally {
                 setIsEngineInitializing(false);
             }
         })();
-    }, []);
+        // audioDebug is stable for the life of the provider, so listing it
+        // does not re-run an effect that must build exactly one AudioContext;
+        // audioInitializedRef guards that either way.
+    }, [audioDebug]);
 
     useEffect(() => {
         isPlayingRef.current = isPlaying;
@@ -690,11 +592,8 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
 
         const handleContextState = () => {
             const contextState = String(audioContext.state);
-            audioDebugStateRef.current = {
-                ...audioDebugStateRef.current,
-                audioContextState: contextState,
-            };
-            syncAudioDebug("context-state-changed");
+            audioDebug.update({ audioContextState: contextState });
+            audioDebug.sync("context-state-changed");
 
             if (!isPlayingRef.current || contextState === "closed") {
                 setNeedsAudioResume(false);
@@ -726,10 +625,13 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             audioContext.removeEventListener("statechange", handleContextState);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
-    }, [audioContext, resumeInterruptedAudio, syncAudioDebug]);
+    }, [audioContext, audioDebug, resumeInterruptedAudio]);
 
     useEffect(() => {
-        audioDebugStateRef.current = {
+        // activeUrls and lastLoad are deliberately absent: they are owned by
+        // the load path, not by React state, and re-stating them here would
+        // clobber a load that completed since the last render.
+        audioDebug.update({
             audioContextState: audioContext?.state ?? 'unavailable',
             isEngineInitializing,
             isLoading,
@@ -740,11 +642,9 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             loadError,
             lastUnlockError,
             needsAudioResume,
-            activeUrls: audioDebugStateRef.current.activeUrls,
-            lastLoad: audioDebugStateRef.current.lastLoad,
-        };
-        syncAudioDebug();
-    }, [audioContext, buffers, engineError, isEngineInitializing, isLoading, isPlaying, isAudioUnlocked, loadError, lastUnlockError, needsAudioResume, syncAudioDebug]);
+        });
+        audioDebug.sync();
+    }, [audioDebug, audioContext, buffers, engineError, isEngineInitializing, isLoading, isPlaying, isAudioUnlocked, loadError, lastUnlockError, needsAudioResume]);
 
 
     const engineValue = useMemo(() => ({
