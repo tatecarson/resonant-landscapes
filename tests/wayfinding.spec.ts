@@ -18,6 +18,14 @@ const AT_CENTRE = { latitude: 44.01320393, longitude: -97.11059202 };
 /** 24.9 m out: past the exit radius, so no park is active and the chip is up. */
 const WELL_OUTSIDE = { latitude: 44.01298, longitude: -97.11059202 };
 
+/**
+ * Extra dwell so a recorded run is watchable. Default 0 because CI gains
+ * nothing from waiting; `npm run demo:wayfinding` sets it. Same idea as
+ * REDUCE_VISUALS_HOLD_MS and APPROACH_RING_HOLD_MS.
+ */
+const HOLD_MS = Number(process.env.WAYFINDING_HOLD_MS ?? 0);
+const hold = (page: Page) => (HOLD_MS ? page.waitForTimeout(HOLD_MS) : Promise.resolve());
+
 const chip = (page: Page) => page.getByTestId("nearest-park-chip");
 const nearestLine = (page: Page) => page.getByTestId("nearest-park-line");
 const heardCount = (page: Page) => page.getByTestId("heard-count");
@@ -84,16 +92,19 @@ test("counts a park as heard once its audio has actually played", async ({ conte
     await dismissWelcomeModal(page);
     await dwellAt(context, page, WELL_OUTSIDE, 1_500);
     await expect(heardCount(page)).toHaveText(/^0 of \d+ heard$/);
+    await hold(page);
 
     await dwellAt(context, page, AT_CENTRE, 2_000);
     await expect
         .poll(() => isPlaying(page), { timeout: 40_000, message: "audio never started" })
         .toBe(true);
+    await hold(page);
 
     await dwellAt(context, page, WELL_OUTSIDE, 4_000);
 
     await expect(chip(page)).toBeVisible();
     await expect(heardCount(page)).toHaveText(/^1 of \d+ heard$/);
+    await hold(page);
 });
 
 test("remembers what was heard across a reload", async ({ context, page }) => {

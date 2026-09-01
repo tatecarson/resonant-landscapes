@@ -26,6 +26,7 @@
     "audio:check": "bash scripts/check-audio-variants.sh",
     "audio:convert:wav": "bash scripts/convert-m4a-to-wav-safari.sh",
     "audio:convert:flac": "bash scripts/convert-wav-to-flac.sh",
+    "demo:wayfinding": "PLAYWRIGHT_VIDEO=1 WAYFINDING_HOLD_MS=2500 playwright test tests/wayfinding.spec.ts --project=chromium -g \"counts a park as heard\"",
     "demo:calmer": "PLAYWRIGHT_VIDEO=1 REDUCE_VISUALS_HOLD_MS=2500 playwright test tests/reduce-visuals.spec.ts --project=chromium",
     "test:e2e:video": "PLAYWRIGHT_VIDEO=1 playwright test --project=chromium",
     "test:e2e:prod": "vite build && playwright test -c playwright.prod.config.ts",
