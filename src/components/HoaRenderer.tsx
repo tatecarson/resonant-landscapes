@@ -389,28 +389,6 @@ const HOARenderer = ({
                     </p>
                 )}
 
-                {/*
-                  * Sits with the playing state rather than in the Help modal,
-                  * because a silenced phone is discovered while standing in a
-                  * park and the strip is what is being read there. It cannot
-                  * be detected, so it is a standing caveat on "Playing"
-                  * rather than a warning raised by anything. See rl-d2a.
-                  */}
-                {audioStatus === "playing" && !activeError && (
-                    <p
-                        className={
-                            compact
-                                ? "w-full font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70"
-                                : "w-full max-w-sm font-space-mono text-[11px] leading-relaxed text-neutral-900/70"
-                        }
-                        data-testid="silence-hint"
-                    >
-                        {compact
-                            ? audioCopy.silence.compact[platform]
-                            : audioCopy.silence.full[platform]}
-                    </p>
-                )}
-
                 {!activeError && (
                     <div className={compact ? "flex flex-wrap items-center gap-2" : "flex items-center gap-3"}>
                         {showCompactLoadingIndicator && (
@@ -459,6 +437,32 @@ const HOARenderer = ({
                             </button>
                         )}
                     </div>
+                )}
+
+                {/*
+                  * Sits with the playing state rather than in the Help modal,
+                  * because a silenced phone is discovered while standing in a
+                  * park and the strip is what is being read there. It cannot
+                  * be detected, so it is a standing caveat on "Playing"
+                  * rather than a warning raised by anything. See rl-d2a.
+                  *
+                  * After the controls, not before. Above them it took a full
+                  * width row out of the strip, pushed Stop down, and read as
+                  * a label for the button rather than a note about the sound.
+                  */}
+                {audioStatus === "playing" && !activeError && (
+                    <p
+                        className={
+                            compact
+                                ? "w-full font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70"
+                                : "w-full max-w-sm font-space-mono text-[11px] leading-relaxed text-neutral-900/70"
+                        }
+                        data-testid="silence-hint"
+                    >
+                        {compact
+                            ? audioCopy.silence.compact[platform]
+                            : audioCopy.silence.full[platform]}
+                    </p>
                 )}
 
                 {/* GimbalArrow runs whenever rotation is active — no !compact guard so audio tracking survives modal collapse */}
