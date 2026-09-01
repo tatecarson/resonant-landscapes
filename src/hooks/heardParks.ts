@@ -71,9 +71,31 @@ function persist() {
 
 /** Record a park as heard. No-op if it already was, so markers do not churn. */
 export function markParkHeard(parkName: string) {
-    if (!parkName || heard.has(parkName)) return;
-    heard = new Set(heard).add(parkName);
+    if (!parkName) return;
+
+    /*
+     * The session flag is set for a park already in the record, not only for
+     * a new one. Hearing a park is hearing a park; whether it was also heard
+     * on some previous visit is a different fact.
+     *
+     * Getting this wrong broke the case it was written for. The early return
+     * on a known park meant a walker coming back and hearing one they had
+     * heard before never set the flag, so the install offer never appeared
+     * for them: thirteen parks and a walk done more than once makes that
+     * nearly everyone.
+     */
+    const sessionJustStarted = !heardThisSession;
     heardThisSession = true;
+
+    if (heard.has(parkName)) {
+        // Nothing to store, but the session flag changing is worth a render.
+        if (sessionJustStarted) {
+            for (const listener of listeners) listener();
+        }
+        return;
+    }
+
+    heard = new Set(heard).add(parkName);
     persist();
     for (const listener of listeners) listener();
 }

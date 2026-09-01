@@ -251,6 +251,44 @@ test.describe("the install offer", () => {
         await expect(page.getByTestId("install-hint")).toHaveCount(0);
     });
 
+    test("is offered to a returning walker who hears a park they already know", async ({
+        context,
+        page,
+    }) => {
+        /*
+         * The case the session gate broke on its first attempt. markParkHeard
+         * returned early for a park already in the stored record, so the
+         * session flag was never set and a returning walker was never
+         * offered anything. Thirteen parks and a walk done more than once
+         * makes that nearly everyone, and it fails silently: no error, just
+         * an offer that never comes.
+         */
+        await page.addInitScript(() => {
+            window.localStorage.setItem(
+                "heardParks",
+                JSON.stringify(["Hartford Beach State Park"])
+            );
+        });
+        await page.goto("/");
+        await dismissWelcomeModal(page);
+
+        // Nothing yet: the record is old, this session has heard nothing.
+        await dwellAt(context, page, WELL_OUTSIDE, 1_500);
+        await expect(page.getByTestId("install-hint")).toHaveCount(0);
+
+        // The same park again, which is the whole point.
+        await dwellAt(context, page, AT_CENTRE, 2_000);
+        await expect
+            .poll(() => page.evaluate(() => window.__audioDebug?.isPlaying ?? false), {
+                timeout: 40_000,
+                message: "audio never started",
+            })
+            .toBe(true);
+        await dwellAt(context, page, WELL_OUTSIDE, 4_000);
+
+        await expect(page.getByTestId("install-hint")).toBeVisible({ timeout: 10_000 });
+    });
+
     test("stands down for the field guide, as the chip does", async ({ context, page }) => {
         await page.goto("/");
         await dismissWelcomeModal(page);
