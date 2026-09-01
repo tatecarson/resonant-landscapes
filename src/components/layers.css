@@ -337,3 +337,66 @@ body {
     font-variant-numeric: tabular-nums;
     color: rgba(23, 43, 36, 0.45);
 }
+
+/*
+ * The recenter control.
+ *
+ * Top left, which is the only corner nothing else claims: the help button and
+ * the zoom buttons are on the right, the location status is top centre, and
+ * the park strip owns the bottom. It was bottom centre first, and testing on a
+ * deploy preview put it underneath the park strip, unreachable at exactly the
+ * moment a walker is standing in a park with the map panned away.
+ *
+ * Hidden rather than unmounted: rlayers throws "removeChild ... is not a child
+ * of this node" when an RCustom is conditionally rendered.
+ */
+.map .recenter-control.ol-control {
+    top: max(1rem, env(safe-area-inset-top));
+    left: max(1rem, env(safe-area-inset-left));
+    right: auto;
+    bottom: auto;
+    z-index: 1100;
+    background: none;
+    border: none;
+    padding: 0;
+    width: auto;
+}
+
+/*
+ * Specificity matters here: OpenLayers ships `.ol-control button { width:
+ * 1.375em }`, which beat a plain `.recenter-button` rule and squeezed the
+ * label into a 22px column.
+ */
+.map .recenter-control.ol-control .recenter-button {
+    min-height: 44px;
+    padding: 0 1.25rem;
+    border: none;
+    border-radius: 999px;
+    background: rgb(23 23 23 / 0.92);
+    color: #fff;
+    font-family: "Space Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    /* The label is two syllables and must never wrap into the 22px column
+     * OpenLayers' own control width gave it. */
+    white-space: nowrap;
+    width: max-content;
+    box-shadow: 0 2px 12px rgb(0 0 0 / 0.25);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+}
+
+.map .recenter-control.ol-control .recenter-button[data-visible="true"] {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .map .recenter-control.ol-control .recenter-button {
+        transition: none;
+    }
+}

@@ -40,6 +40,12 @@ interface Window {
   }>;
   /** Live view zoom, mirrored every frame under debug. */
   __mapZoom?: number | null;
+  /**
+   * The zoom bounds OpenLayers actually applied, which are not the ones asked
+   * for: it floors the span between them. Mirrored so a test can assert the
+   * real stops rather than the requested ones. See MAX_ZOOM in geofence.ts.
+   */
+  __mapZoomBounds?: { minZoom: number; maxZoom: number } | null;
   __mapDebug?: {
     center: [number, number] | null;
     position: [number, number];
