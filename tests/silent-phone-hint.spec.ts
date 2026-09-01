@@ -31,7 +31,7 @@ const AT_CENTRE = { latitude: 44.01320393, longitude: -97.11059202 };
 const WELL_OUTSIDE = { latitude: 44.01298, longitude: -97.11059202 };
 
 const isPlaying = (page: Page) =>
-    page.evaluate(() => window.__audioDebug?.isPlaying ?? false);
+    page.getByRole("button", { name: "Stop playback" }).isVisible();
 
 async function dwellAt(
     context: BrowserContext,
