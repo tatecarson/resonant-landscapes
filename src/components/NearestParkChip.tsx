@@ -48,10 +48,10 @@ function NearestParkChip({ userLonLat, parks, heardParks, active }: NearestParkC
 
     return (
         <div
-            className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+            className="pointer-events-auto flex max-w-full flex-col items-center gap-0.5 rounded-2xl bg-[#8ecdc0] px-4 py-2.5 shadow-[0_6px_20px_rgba(23,43,36,0.22)]"
             data-testid="nearest-park-chip"
         >
-            <div className="pointer-events-auto flex max-w-full flex-col items-center gap-0.5 rounded-2xl bg-[#8ecdc0] px-4 py-2.5 shadow-[0_6px_20px_rgba(23,43,36,0.22)]">
+            <div className="flex max-w-full flex-col items-center gap-0.5">
                 <p
                     className="flex max-w-full items-baseline font-space-mono text-[11px] uppercase tracking-[0.16em] text-neutral-900/80"
                     data-testid="nearest-park-line"

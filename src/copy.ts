@@ -340,6 +340,37 @@ export const connection = {
     },
 } as const;
 
+/**
+ * Keeping the walk on the home screen.
+ *
+ * Two wordings because there are two mechanisms. Chromium can be asked to
+ * install and will show its own dialog, so there the hint is a button. iOS
+ * Safari has no such API at all: the only route is the walker doing it by
+ * hand, so there the hint has to be instructions or it is not an offer.
+ *
+ * What it promises is only what installing actually buys, which is a full
+ * screen and an opening with no signal. Not offline audio: the recordings
+ * are not held yet, and rl-1u7.8.2 is where that changes.
+ */
+export const install = {
+    title: "Keep the walk on your home screen",
+    detail: {
+        ios: "Press the share button, then Add to Home Screen. It opens full screen, and it opens without a signal.",
+        android: "It opens full screen, and it opens without a signal.",
+        other: "It opens full screen, and it opens without a signal.",
+    },
+    action: "Add it",
+    dismiss: "Not now",
+    /**
+     * The permanent version, for anyone who dismissed the hint, who wants it
+     * before their first park, or who is reading the guide to find out what
+     * the walk can do.
+     */
+    helpTitle: "Home screen",
+    helpDetail:
+        "The walk can live on your home screen. On iPhone, press share and then Add to Home Screen. It opens full screen, and it opens without a signal.",
+} as const;
+
 /** Rotation, which iOS gates behind its own permission prompt. */
 export const rotation = {
     allowAccess: "Allow Orientation Access",

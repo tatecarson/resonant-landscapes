@@ -1,7 +1,7 @@
 import { useRef, Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAudioEngine, useAudioPlaybackState } from '../contexts/AudioContextProvider';
-import { help } from '../copy';
+import { help, install as installCopy } from '../copy';
 import { useReduceVisualsPreference } from '../hooks/useReduceVisuals';
 
 interface HelpModalProps {
@@ -175,6 +175,26 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                             : reduceVisuals
                                                 ? help.reduceVisuals.on
                                                 : help.reduceVisuals.off}
+                                    </p>
+                                </div>
+
+                                {/*
+                                  * The permanent version of the install hint.
+                                  * That hint appears once and can be
+                                  * dismissed, and the field guide is where
+                                  * someone looks to find out what the walk
+                                  * can do, so the offer has to survive being
+                                  * refused. Prose rather than a control: iOS
+                                  * cannot be asked to install from a button,
+                                  * and a button that worked on one phone and
+                                  * not another would be worse than neither.
+                                  */}
+                                <div className="mt-6 rounded-2xl bg-white/25 p-4" data-testid="help-install">
+                                    <p className="font-space-mono text-[11px] uppercase tracking-[0.16em] text-neutral-900/85">
+                                        {installCopy.helpTitle}
+                                    </p>
+                                    <p className="mt-2 font-space-mono text-[12px] leading-relaxed text-neutral-900/75">
+                                        {installCopy.helpDetail}
                                     </p>
                                 </div>
 
