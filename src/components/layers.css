@@ -395,8 +395,17 @@ body {
     pointer-events: auto;
 }
 
+/*
+ * Both spellings of the same preference: the system setting until the walk
+ * publishes data-motion, and the attribute once it has. See
+ * useReduceVisualsAttribute for why the media query alone is not enough.
+ */
 @media (prefers-reduced-motion: reduce) {
-    .map .recenter-control.ol-control .recenter-button {
+    :root:not([data-motion]) .map .recenter-control.ol-control .recenter-button {
         transition: none;
     }
+}
+
+:root[data-motion="calm"] .map .recenter-control.ol-control .recenter-button {
+    transition: none;
 }

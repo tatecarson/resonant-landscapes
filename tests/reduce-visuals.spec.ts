@@ -196,3 +196,115 @@ test("calming the visuals stops the rays inside a park too", async ({ context, p
     expect(whileCalm, "the rays kept redrawing after the walker calmed them").toBeLessThan(10);
     await hold(page);
 });
+
+/**
+ * The half of the switch that was doing nothing.
+ *
+ * The specs above all assert on layers that read the preference in
+ * JavaScript, and they passed while everything expressed in CSS ignored the
+ * switch entirely: the rotation affordance kept breathing, the playing dot
+ * kept pulsing, the modal transitions kept running. A media query only knows
+ * the system setting, and this preference is explicitly allowed to beat the
+ * system in both directions, so nothing in a stylesheet could see it.
+ *
+ * Asserted through a probe carrying the real .rotation-affordance class
+ * rather than the button itself, because that button needs a walker standing
+ * at a rotation centre with orientation granted. The rule under test is the
+ * shipped one either way, and what is being checked is whether the ancestor
+ * attribute reaches it.
+ */
+async function animationOfProbe(page: Page) {
+    return page.evaluate(() => {
+        let probe = document.getElementById("motion-probe");
+        if (!probe) {
+            probe = document.createElement("div");
+            probe.id = "motion-probe";
+            probe.className = "rotation-affordance";
+            document.body.appendChild(probe);
+        }
+        const style = window.getComputedStyle(probe);
+        return {
+            name: style.animationName,
+            duration: style.animationDuration,
+            motion: document.documentElement.getAttribute("data-motion"),
+        };
+    });
+}
+
+test("calming the visuals reaches the CSS animations too, not just the canvas", async ({ page }) => {
+    const animating = await animationOfProbe(page);
+    expect(animating.motion, "the effective preference never reached the document").toBe("full");
+    expect(animating.name, "the affordance was not animating to begin with").toBe(
+        "rotation-affordance-breathe"
+    );
+
+    await calmerSwitch(page).click();
+    await expect(calmerSwitch(page)).toHaveAttribute("aria-checked", "true");
+
+    await expect
+        .poll(async () => (await animationOfProbe(page)).motion, { timeout: 5_000 })
+        .toBe("calm");
+    const calmed = await animationOfProbe(page);
+    expect(calmed.name, "the rotation affordance kept breathing after the walker calmed it").toBe(
+        "none"
+    );
+});
+
+test("the global duration override follows the switch as well", async ({ page }) => {
+    // index.css calms every animation and transition, not only the ones it
+    // names, because this is a screen held at walking pace outdoors. That
+    // block was behind the media query too, so a walker who set the
+    // preference here and nowhere else got none of it.
+    const duration = () =>
+        page.evaluate(() => {
+            let probe = document.getElementById("duration-probe");
+            if (!probe) {
+                probe = document.createElement("div");
+                probe.id = "duration-probe";
+                probe.style.animation = "spin 4s linear infinite";
+                document.body.appendChild(probe);
+            }
+            // Parsed rather than compared as a string: browsers serialise
+            // 0.01ms differently (Chromium says "1e-05s"), and the promise
+            // here is that the animation is over before it is seen, not that
+            // it is spelled a particular way.
+            return Number.parseFloat(window.getComputedStyle(probe).animationDuration);
+        });
+
+    expect(await duration()).toBeCloseTo(4);
+
+    await calmerSwitch(page).click();
+    await expect(calmerSwitch(page)).toHaveAttribute("aria-checked", "true");
+
+    await expect.poll(duration, { timeout: 5_000 }).toBeLessThan(0.001);
+});
+
+test("an explicit choice for the full visuals beats the phone", async ({ page }) => {
+    // The direction a media query cannot express, and the reason the attribute
+    // has to be authoritative rather than OR'd with the query. Someone with
+    // reduce motion on everywhere can still ask for the whole piece here,
+    // which is what useReduceVisuals promises in prose.
+    //
+    // The system setting is turned on mid-walk rather than at launch, because
+    // Playwright's reducedMotion fixture does not reach matchMedia in this
+    // setup. That is the better test anyway: iOS and Android both expose this
+    // as a toggle someone flips precisely because something on screen has
+    // started bothering them, and the app claims to follow it live.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+
+    await expect(calmerSwitch(page)).toHaveAttribute("aria-checked", "true");
+    await expect
+        .poll(async () => (await animationOfProbe(page)).motion, { timeout: 5_000 })
+        .toBe("calm");
+
+    await calmerSwitch(page).click();
+
+    await expect(calmerSwitch(page)).toHaveAttribute("aria-checked", "false");
+    await expect
+        .poll(async () => (await animationOfProbe(page)).motion, { timeout: 5_000 })
+        .toBe("full");
+    expect(
+        (await animationOfProbe(page)).name,
+        "the walker asked for the full visuals and the stylesheet kept obeying the phone"
+    ).toBe("rotation-affordance-breathe");
+});
