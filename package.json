@@ -2,7 +2,19 @@
   "name": "sandbox",
   "private": true,
   "version": "0.0.0",
+  "engines": {
+    "node": ">=22"
+  },
   "type": "module",
+  "browserslist": [
+    "iOS >= 15",
+    "Safari >= 15",
+    "Chrome >= 109",
+    "ChromeAndroid >= 109",
+    "Firefox >= 115",
+    "Edge >= 109",
+    "Samsung >= 21"
+  ],
   "scripts": {
     "browserstack:audio:all:android": "RUN_ALL_PARKS_SOAK=1 browserstack-node-sdk playwright test tests/audio-all-parks-mobile.spec.ts",
     "browserstack:audio:worst:android": "browserstack-node-sdk playwright test tests/audio-worst-case-mobile.spec.ts",
@@ -11,8 +23,15 @@
     "build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "audio:check": "bash scripts/check-audio-variants.sh",
+    "audio:convert:wav": "bash scripts/convert-m4a-to-wav-safari.sh",
+    "audio:convert:flac": "bash scripts/convert-wav-to-flac.sh",
+    "demo:calmer": "PLAYWRIGHT_VIDEO=1 REDUCE_VISUALS_HOLD_MS=2500 playwright test tests/reduce-visuals.spec.ts --project=chromium",
+    "test:e2e:video": "PLAYWRIGHT_VIDEO=1 playwright test --project=chromium",
+    "test:e2e:prod": "vite build && playwright test -c playwright.prod.config.ts",
+    "test:e2e": "playwright test tests/map-camera.spec.ts tests/park-selection.spec.ts tests/prefetch-proximity.spec.ts tests/gimbal-math.spec.ts tests/approach-ring.spec.ts tests/path-replay.spec.ts tests/geolocation-status.spec.ts tests/permission-states.spec.ts tests/geofence-hysteresis.spec.ts tests/audio-unlock.spec.ts tests/silent-phone-hint.spec.ts tests/reduce-visuals.spec.ts tests/accessibility.spec.ts --project=chromium",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "lint": "eslint . --ext js,mjs,cjs,ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "sim:path": "playwright test tests/path-replay.spec.ts --project=chromium --headed",
     "sim:path:iphone": "playwright test tests/path-replay.spec.ts --project=iphone-13 --headed",
@@ -38,19 +57,19 @@
   "dependencies": {
     "@headlessui/react": "^1.7.18",
     "@heroicons/react": "^2.1.1",
+    "@turf/boolean-point-in-polygon": "^6.5.0",
     "@turf/helpers": "^6.5.0",
-    "@turf/turf": "^6.5.0",
     "ol": "^8.2.0",
-    "omnitone": "^1.3.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-error-boundary": "^4.0.13",
     "resonance-audio": "^1.0.0",
-    "rlayers": "^2.2.0",
-    "three": "^0.161.0"
+    "rlayers": "^2.2.0"
   },
   "devDependencies": {
+    "@emnapi/runtime": "^1.11.3",
     "@playwright/test": "^1.59.1",
+    "@types/geojson": "^7946.0.16",
     "@types/react": "^18.2.33",
     "@types/react-dom": "^18.2.14",
     "@typescript-eslint/eslint-plugin": "^6.9.1",
@@ -65,7 +84,8 @@
     "eslint-plugin-react-refresh": "^0.4.4",
     "postcss": "^8.4.34",
     "tailwindcss": "^3.4.19",
-    "typescript": "^5.2.2",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3",
     "vite": "^8.0.7",
     "vitest": "^4.1.11"
   }

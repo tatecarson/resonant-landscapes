@@ -19,6 +19,10 @@ redirect
 # These files are machine-specific and should not be shared across clones
 .sync.lock
 export-state/
+export-state.json
+
+# Local credential material — must never be committed.
+.beads-credential-key
 
 # Ephemeral store (SQLite - wisps/molecules, intentionally not versioned)
 ephemeral.sqlite3
@@ -50,3 +54,6 @@ bd.db
 # They would override fork protection in .git/info/exclude.
 # Config files (metadata.json, config.yaml) are tracked by git by default
 # since no pattern above ignores them.
+
+# Runtime state written by bd bootstrap/push; not shared between checkouts.
+push-state.json

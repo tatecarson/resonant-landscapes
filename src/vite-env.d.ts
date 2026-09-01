@@ -5,15 +5,6 @@ type IOSDeviceOrientationEvent = typeof DeviceOrientationEvent & {
   requestPermission?: () => Promise<'granted' | 'denied'>;
 };
 
-// Declare Omnitone module (no bundled types)
-declare module 'omnitone/build/omnitone.min.esm.js' {
-  const Omnitone: {
-    createBufferList(context: AudioContext, urls: string[]): Promise<AudioBuffer[]>;
-    mergeBufferListByChannel(context: AudioContext, buffers: AudioBuffer[]): AudioBuffer;
-  };
-  export default Omnitone;
-}
-
 interface Window {
   __gimbalOrientation?: {
     fwdX: number; fwdY: number; fwdZ: number;
@@ -47,6 +38,14 @@ interface Window {
     changedKeys: string[];
     lastRenderedAt: number;
   }>;
+  /** Live view zoom, mirrored every frame under debug. */
+  __mapZoom?: number | null;
+  /**
+   * The zoom bounds OpenLayers actually applied, which are not the ones asked
+   * for: it floors the span between them. Mirrored so a test can assert the
+   * real stops rather than the requested ones. See MAX_ZOOM in geofence.ts.
+   */
+  __mapZoomBounds?: { minZoom: number; maxZoom: number } | null;
   __mapDebug?: {
     center: [number, number] | null;
     position: [number, number];

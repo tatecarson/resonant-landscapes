@@ -10,30 +10,58 @@ geolocation watch, not by market share.
 
 ### Supported targets
 
+**Phones only.** The piece is a walk: it needs GPS that moves and a compass to
+turn. A desktop browser can open it, but there is no version of the experience
+there, so desktop is not a release target and a desktop-only bug is not a
+release blocker.
+
 These are the release targets. A reported break is a bug. The test column says
 whether coverage is emulated or runs on a real device.
 
 | Platform | Floor | Tested by |
 |---|---|---|
 | iOS Safari | 15 | Playwright WebKit and `iphone-13` emulation, plus a real-iPhone release check against the Netlify deploy preview |
-| Android Chrome | last 2 major versions | Playwright `pixel-7` emulation and BrowserStack on a real Samsung Galaxy S22 |
-| Desktop Chrome | last 2 major versions | Playwright `chromium` project |
+| Android Chrome | 109 | Playwright `pixel-7` emulation and BrowserStack on a real Samsung Galaxy S22 |
+
+Desktop Chrome is a **development and test surface**, not a target. The
+Playwright `chromium` project and `npm run sim:*` replays run there because a
+mocked walk is the only way to exercise this at a desk; that is tooling, and it
+does not make desktop something the piece is for.
 
 iOS 15 is the floor because it is the oldest release with the Web Audio and
 DeviceOrientation behaviour the walk depends on, and iOS 15 devices still take
-OS updates.
+OS updates. Android Chrome 109 is the floor because it is the last version
+Android 6 and 7 devices can install, which is where the still-working-phone
+long tail sits.
 
 Playwright WebKit does not prove that real iOS Safari decodes the same audio.
 Its open-source build lacks the proprietary AAC codec available on iOS. Any
 change to audio loading, decoding, or asset selection therefore needs a manual
 check on a real iPhone using the PR's HTTPS Netlify deploy preview.
 
+#### Verified on iOS 26.6.1 (2026-08-30)
+
+Motion and orientation behaviour, checked by hand because Playwright's WebKit
+has no motion permission gate to exercise at all:
+
+| Behaviour | Result |
+|---|---|
+| `DeviceOrientationEvent.requestPermission()` prompts on a first ask | Yes |
+| Granting it makes rotation track the phone | Yes |
+| A denied answer survives a page reload | Yes, and re-asking returns the cached "denied" with no prompt |
+| Quitting Safari from the app switcher clears the denial | Yes, the prompt returns |
+
+The reload result is why the app offers no "try again" button: a second
+`requestPermission()` in the same page can only repeat the cached answer. The
+recovery copy in `src/utils/recoverySteps.ts` is built on this table.
+
 ### Best effort
 
-Desktop Safari, desktop and Android Firefox, Edge, and Samsung Internet. These
-get the asset family selected for their engine (see `src/utils/audioPaths.js`)
-and should work, but CI does not exercise each browser. Bugs reported here get
-fixed when they are cheap; they do not block a release.
+Android Firefox and Samsung Internet — other phone browsers, in other words.
+These get the asset family selected for their engine (see
+`src/utils/audioPaths.ts`) and should work, but CI does not exercise each
+browser. Bugs reported here get fixed when they are cheap; they do not block a
+release.
 
 ### Unsupported
 
@@ -43,14 +71,79 @@ that decoded in every engine measured. This favors compatibility over download
 size, but it cannot guarantee support for an engine we have not tested. There
 is no browser-blocking interstitial and none is planned.
 
-### Not yet enforced mechanically
+### How the floor is enforced
 
-`tsconfig.json` sets `target: ESNext`, `vite.config.ts` sets no `build.target`,
-and `package.json` has no `browserslist` key, so nothing in the build stops a
-feature that iOS 15 cannot parse from shipping. Adding those three remains
-tracked in rl-06c.1. PR #61 has landed, so its edits no longer block that work.
+Three places encode the matrix above, and all three must move together when the
+floor moves:
+
+- `package.json` `browserslist` — read by autoprefixer, so CSS is prefixed for
+  the same browsers the matrix claims. These are fixed floors (`>= 15`,
+  `>= 109`) rather than rolling `last 2 versions` queries on purpose: a rolling
+  window silently raises the floor every time a browser ships, which would drop
+  support for a device this table promises without anyone deciding to. Moving a
+  floor should be an edit, not a side effect.
+- `vite.config.ts` `build.target: ["safari15", "ios15", "chrome109",
+  "firefox115"]` — the bundle is downleveled until it parses on the floor.
+  Rolldown treats `safari` and `ios` as separate engines, so both are named.
+- `tsconfig.json` `target`/`lib` set to `ES2021` — the type checker rejects
+  standard-library calls newer than the floor.
+
+Safari 15 is the binding constraint in every case. Turning this on caught two
+real violations: `Object.hasOwn` in `src/utils/audioPaths.ts` and
+`Array.prototype.at` in two tests, all three ES2022 and shipped in Safari 15.4,
+which iOS 15.0-15.3 devices do not have.
+
+### What the floor does not catch
+
+Measured against this build, not assumed:
+
+- **`build.target` guarantees parsing, not support.** Newer syntax is
+  downleveled — a class static block comes out as plain assignments — and
+  anything that cannot be downleveled is deferred rather than rejected: a
+  `/v`-flag regex literal is emitted as `RegExp(source, "v")`, which parses on
+  Safari 15 and throws when the line runs. The build does not fail on an
+  unsupported feature, so treat this as a guard against syntax errors rather
+  than a support guarantee.
+- **`lib: ES2021` bounds the standard library only.** A DOM API added after
+  iOS 15 still type-checks, because `lib.dom.d.ts` carries no version
+  information. `navigator.wakeLock` is the existing example, guarded at
+  runtime rather than by the compiler.
+
+Both gaps land in the same place: a new DOM API or an exotic literal still
+needs a feature check, and real-device coverage (rl-06c.6) is what catches the
+rest.
 
 ## Testing
+
+### Watching a test instead of reading it
+
+Any spec can be recorded:
+
+```bash
+npm run test:e2e:video
+```
+
+Videos land in `test-results/<test-name>/video.webm`, one per test. Off by
+default because a recording per test is slow and large; the flag is
+`PLAYWRIGHT_VIDEO=1` if you want it for a single file.
+
+A recording at full speed is hard to follow, so specs that are worth watching
+take a hold from an environment variable, the way `sim:ring` does. `npm run
+demo:calmer` records the calmer-visuals specs with a 2.5 s pause either side of
+each toggle:
+
+```bash
+npm run demo:calmer
+```
+
+Note that the map canvas cannot be read back at all: cross-origin tiles taint
+it, so `toDataURL` throws and no test can compare its pixels. Where a
+decorative layer needs proving, count its draw calls instead. See
+`tests/reduce-visuals.spec.ts`, which counts `arc` calls, and note that the two
+decorative layers are mutually exclusive and so need separate positions:
+`ProximityRingLayer` draws only in prefetch range outside a park, and
+`SunRayLayer` only once inside one.
+
 
 The automated tests are split by intent so each file proves a different behavior:
 
@@ -61,6 +154,39 @@ The automated tests are split by intent so each file proves a different behavior
 - `tests/audio-paths.test.mjs`: unit coverage for CDN slug and audio URL generation logic.
 
 See `docs/testing.md` for the longer explanation of what each test is supposed to catch and when to run it.
+
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request:
+
+```bash
+npm ci
+npm run lint       # eslint over src, tests, scripts and config (react-hooks included)
+npm run typecheck  # tsc --noEmit for src, then for tests via tsconfig.test.json
+npm test           # vitest unit tests
+npm run build
+npm run test:e2e   # the fast chromium Playwright specs
+```
+
+`npm run test:e2e` deliberately covers only the specs that run headless in a
+few seconds. The mobile projects (`iphone-13`, `pixel-7`), the audio soaks, and
+the BrowserStack runs stay manual — they need real devices, throttled networks,
+and multi-megabyte payloads from the CDN.
+
+Node 22 is required (`engines` in `package.json`, plus `.nvmrc`); run
+`nvm use` before installing.
+
+#### Why `@emnapi/runtime` is a devDependency
+
+Nothing in this repo imports it. It is an optional dependency of the rolldown
+wasm binding, and npm on macOS prunes that subtree — so a lockfile regenerated
+on a Mac silently omits it, and `npm ci` then fails on Linux with a bare
+`Missing: @emnapi/runtime from lock file`. `npm ci` passes locally either way,
+so the breakage only ever appears in CI, with no hint of the cause.
+
+Declaring it directly forces npm to record it whatever platform resolves the
+tree. Do not remove it without checking that `npm ci` still passes on Linux.
+See rl-u7b.
 
 ## BrowserStack Playwright
 
@@ -89,6 +215,44 @@ Notes:
 ## Phone Field Testing (HTTPS)
 
 iOS sensor/audio permissions require a secure context, so use an HTTPS tunnel for phone testing.
+
+### Fastest route: a deploy preview with a spoofed position
+
+A PR's Netlify deploy preview is already HTTPS, so no tunnel is needed to test
+sensor and permission behaviour on a real phone. Production ignores `?mock=`,
+but `?debug` opts back into it:
+
+```text
+https://deploy-preview-<PR>--resonant-landscapes.netlify.app/?debug&mock=44.01320393,-97.11059202
+```
+
+That coordinate is the center of Hartford Beach on the DSU map. Tap Start and
+the walk opens at the park with audio playing and Enable Rotation on screen,
+which is everything needed to exercise the motion permission without walking
+anywhere. `userOrientation` is purely distance-based, so a mocked position is
+enough to unlock the rotation control.
+
+Three caveats.
+
+A "Signal lost" banner appears after a moment because the mock delivers one
+fixed position and the app correctly notices it has gone stale. The park stays
+active.
+
+This cannot test the location permission paths, since `?mock=` bypasses
+geolocation entirely. Drop `&mock=` for those.
+
+**Map tiles come back as "401 Invalid Authentication" images on a deploy
+preview, and always will.** `GeolocationMap.tsx` requests Stadia Maps tiles
+with no API key, and the Stadia account authorises exactly one origin: the
+production domain. Every PR gets its own `deploy-preview-<n>--` subdomain,
+which is therefore never authorised. This is the account working as configured,
+not a regression, and there is nothing to fix.
+
+It does not affect audio, geolocation, or orientation testing, which is what
+previews are good for. It does mean a preview cannot tell you anything about
+how the map looks. Judge that on `npm run dev`, where localhost is authorised.
+
+### Tunnel, for testing uncommitted work
 
 ### 1. Install tunnel tool (one-time)
 
@@ -233,3 +397,5 @@ Build command: npm run build
 Publish directory: dist
 Node version: 22
 ```
+
+`netlify.toml` pins `NODE_VERSION = "22"` so the deploy matches `.nvmrc`.

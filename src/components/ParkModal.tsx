@@ -1,12 +1,17 @@
-import { Fragment, useRef, memo, useState, useEffect } from 'react'
+import { Fragment, useRef, memo, useState, useEffect, useMemo } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAudioEngine, useAudioPlaybackState } from "../contexts/AudioContextProvider";
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import HOARenderer from './HoaRenderer';
 import AmbientGradient from './AmbientGradient';
+import PermissionRecovery from './PermissionRecovery';
+import { park as parkCopy } from '../copy';
 import { hasStoredOrientationPermission, requestDeviceOrientationPermission } from "../utils/deviceOrientation";
+import { CENTER_ROTATION_RADIUS_METERS } from "../config/geofence";
+import { debugLog } from "../config/debug";
+import { selectVariant } from "../utils/audioPaths";
+import stateParks from "../data/stateParks.json";
 
-const CENTER_ROTATION_RADIUS_METERS = 3;
 
 interface ParkModalProps {
     setIsOpen: (value: boolean) => void;
@@ -34,6 +39,11 @@ function ParkModal({
     const [rotationActive, setRotationActive] = useState(false);
     const [permissionGranted, setPermissionGranted] = useState(() => hasStoredOrientationPermission());
     const [rotationDismissed, setRotationDismissed] = useState(false);
+    // Set when the walker asked for rotation and the device said no. Until
+    // now this branch did nothing at all: the button was tapped, the promise
+    // resolved "denied", and the UI did not move — which reads as a broken
+    // button rather than a setting they can go and change.
+    const [rotationBlocked, setRotationBlocked] = useState(false);
     const userAtRotationCenter = parkDistance <= CENTER_ROTATION_RADIUS_METERS;
     const showRotationButton = isPlaying && userAtRotationCenter && userOrientation;
 
@@ -48,7 +58,44 @@ function ParkModal({
         permissionGranted,
     });
 
+    /**
+     * Which of a park's recordings this walker is hearing. Worth showing now
+     * that the choice persists: it is stable across visits, so "recording 2 of
+     * 6" is a fact about their walk rather than a per-reload accident.
+     */
+    const variant = useMemo(
+        () => (parkName ? selectVariant(parkName, stateParks, navigator.userAgent) : null),
+        [parkName]
+    );
+
     const cancelButtonRef = useRef(null);
+
+    /**
+     * aria-hidden on a container whose Stop and rotation buttons stay
+     * focusable is undefined behaviour: the ARIA spec says hidden subtrees
+     * leave the accessibility tree, but a focusable element inside one is a
+     * contradiction assistive tech resolves differently. On a phone that
+     * reaches iOS Switch Control and Android Switch Access, which step through
+     * focusable elements — the mobile equivalent of tabbing — and a paired
+     * keyboard with Full Keyboard Access.
+     *
+     * `inert` resolves it properly by removing the subtree from focus order
+     * as well. React 18 does not forward the attribute, so it is set on the
+     * node directly.
+     */
+    const suppressedStripRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const strip = suppressedStripRef.current;
+        if (!strip) {
+            return;
+        }
+
+        if (suppressed) {
+            strip.setAttribute("inert", "");
+        } else {
+            strip.removeAttribute("inert");
+        }
+    }, [suppressed]);
 
     // Reset rotation state when park changes
     useEffect(() => {
@@ -91,7 +138,7 @@ function ParkModal({
     }, [permissionGranted, rotationDismissed, rotationActive, showRotationButton]);
 
     function cancel() {
-        console.log('Cancelling...');
+        debugLog('Cancelling...');
         stopSound();
         setIsOpen(false);
     }
@@ -100,10 +147,13 @@ function ParkModal({
         if (!permissionGranted) {
             const granted = await requestDeviceOrientationPermission();
             if (!granted) {
+                setRotationBlocked(true);
                 return;
             }
             setPermissionGranted(true);
         }
+
+        setRotationBlocked(false);
 
         setRotationDismissed(false); // user explicitly re-enabled — clear any prior dismissal
         setRotationActive(true);
@@ -117,6 +167,15 @@ function ParkModal({
         onRotationActiveChange: setRotationActive,
         permissionGranted,
         onPermissionGranted: () => setPermissionGranted(true),
+        // iOS only accepts requestPermission() during a user gesture, so
+        // "re-prompt" means putting the Enable Rotation button back rather
+        // than prompting from here — which would throw NotAllowedError.
+        onOrientationUnavailable: () => {
+            setRotationActive(false);
+            setPermissionGranted(false);
+            setRotationDismissed(false);
+            setRotationBlocked(true);
+        },
     };
 
     if (compact || rotationActive) {
@@ -124,15 +183,8 @@ function ParkModal({
             <>
                 <AmbientGradient active={rotationActive && !suppressed} headingRadians={mapHeading} />
 
-                {/* Arriving somewhere is the event of a sound walk, and until
-                    now it was conveyed only by the strip appearing on screen.
-                    Announced separately from the visual layout so it survives
-                    the strip being visually suppressed. */}
-                <p className="sr-only" data-testid="park-announcement" role="status" aria-live="polite">
-                    {parkName ? `${parkName}, ${Math.floor(parkDistance)} metres away` : ""}
-                </p>
-
                 <div
+                    ref={suppressedStripRef}
                     className={`fixed bottom-0 left-0 right-0 z-50 bg-[#8ecdc0] shadow-[0_-1px_0_rgba(0,0,0,0.10),0_-12px_32px_rgba(0,0,0,0.08)] transition-opacity duration-150 ${
                         suppressed ? "pointer-events-none opacity-0" : "opacity-100"
                     }`}
@@ -148,9 +200,9 @@ function ParkModal({
                             {rotationActive && (
                                 <span
                                     className="mt-1 flex-shrink-0 font-space-mono text-[8px] uppercase tracking-[0.2em] text-neutral-900/70"
-                                    aria-label="Spatial tracking active"
+                                    aria-label={parkCopy.trackingAriaLabel}
                                 >
-                                    ↻ tracking
+                                    {parkCopy.tracking}
                                 </span>
                             )}
                         </div>
@@ -161,6 +213,9 @@ function ParkModal({
                             )}
                             <p className="font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/70">
                                 {Math.floor(parkDistance)} m away
+                                {variant && variant.total > 1
+                                    ? ` · recording ${variant.number} of ${variant.total}`
+                                    : ""}
                             </p>
                         </div>
 
@@ -180,18 +235,29 @@ function ParkModal({
                                         }}
                                         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] rounded-full inline-flex min-h-[44px] items-center px-1 font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/70 transition-colors hover:text-neutral-900"
                                     >
-                                        × stop tracking
+                                        {parkCopy.stopTracking}
                                     </button>
                                 )}
-                                {!rotationActive && showRotationButton && (
+                                {/*
+                                  * Hidden while the recovery panel is up. Once
+                                  * iOS has been told no, requestPermission
+                                  * resolves "denied" without prompting, so the
+                                  * button is a no-op that still looks live —
+                                  * the same dead end the panel exists to fix.
+                                  * "Continue without it" brings it back.
+                                  */}
+                                {!rotationActive && showRotationButton && !rotationBlocked && (
                                     <button
                                         onClick={() => { void enableRotation(); }}
                                         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] rotation-affordance inline-flex min-h-[44px] items-center rounded-full px-2.5 py-1 font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/70 underline underline-offset-2 decoration-neutral-900/40 transition-colors hover:text-neutral-900"
                                     >
-                                        Enable rotation
+                                        {parkCopy.enableRotation}
                                     </button>
                                 )}
-                                {!rotationActive && !showRotationButton && (
+                                {/* Also stands in while the recovery panel has
+                                    taken the button's place, so the row keeps
+                                    its balance instead of going half empty. */}
+                                {!rotationActive && (!showRotationButton || rotationBlocked) && (
                                     <span className="font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/25 select-none">
                                         ✦
                                     </span>
@@ -201,6 +267,15 @@ function ParkModal({
                             {/* Right: audio controls */}
                             <HOARenderer {...hoaRendererProps} compact hideStatusLabel />
                         </div>
+
+                        {rotationBlocked && (
+                            <div className="mt-3">
+                                <PermissionRecovery
+                                    capability="orientation"
+                                    onDismiss={() => setRotationBlocked(false)}
+                                />
+                            </div>
+                        )}
 
                     </div>
                 </div>
@@ -251,14 +326,14 @@ function ParkModal({
                                         {parkName}
                                     </Dialog.Title>
                                     <p className="font-space-mono mt-1 text-[10px] uppercase tracking-widest text-neutral-900/70">
-                                        {Math.floor(parkDistance)} meters away
+                                        {parkCopy.metersAway(Math.floor(parkDistance))}
                                     </p>
 
                                     <div className="mt-6">
                                         <HOARenderer {...hoaRendererProps} />
                                     </div>
 
-                                    {!rotationActive && showRotationButton && (
+                                    {!rotationActive && showRotationButton && !rotationBlocked && (
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -266,8 +341,17 @@ function ParkModal({
                                             }}
                                             className="rotation-affordance mt-4 w-full rounded-full border border-neutral-900/40 bg-transparent px-6 py-2 font-space-mono text-xs tracking-widest uppercase text-neutral-900/70 transition-colors hover:border-neutral-900 hover:text-neutral-900"
                                         >
-                                            Enable Rotation
+                                            {parkCopy.enableRotation}
                                         </button>
+                                    )}
+
+                                    {rotationBlocked && (
+                                        <div className="mt-4">
+                                            <PermissionRecovery
+                                                capability="orientation"
+                                                onDismiss={() => setRotationBlocked(false)}
+                                            />
+                                        </div>
                                     )}
 
                                     <div className="mt-4">
@@ -277,7 +361,7 @@ function ParkModal({
                                             onClick={cancel}
                                             ref={cancelButtonRef}
                                         >
-                                            Close
+                                            {parkCopy.close}
                                         </button>
                                     </div>
                                 </Dialog.Panel>

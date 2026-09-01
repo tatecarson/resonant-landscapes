@@ -3,15 +3,24 @@ import React, { useRef, useEffect, useCallback } from 'react';
 import Gimbal from '../utils/Gimbal';
 import { requestDeviceOrientationPermission, watchOrientationAvailability } from '../utils/deviceOrientation';
 import { useAudioEngine } from '../contexts/AudioContextProvider';
+import { isDebugEnabled } from '../config/debug';
+import { rotation as rotationCopy } from '../copy';
 import { useRenderDebug } from "../hooks/useRenderDebug";
 
 interface GimbalArrowProps {
     permissionGranted: boolean;
     onPermissionGranted: () => void;
+    /** Fired when the grant is stale: enabled, but no orientation event ever arrived. */
+    onOrientationUnavailable?: () => void;
     hideUI?: boolean;
 }
 
-const GimbalArrow = ({ permissionGranted, onPermissionGranted, hideUI = false }: GimbalArrowProps) => {
+const GimbalArrow = ({
+    permissionGranted,
+    onPermissionGranted,
+    onOrientationUnavailable,
+    hideUI = false,
+}: GimbalArrowProps) => {
     // Lazily constructed: useRef(new Gimbal()) built and discarded a Gimbal
     // on every render.
     const gimbalRef = useRef<Gimbal | null>(null);
@@ -25,6 +34,14 @@ const GimbalArrow = ({ permissionGranted, onPermissionGranted, hideUI = false }:
         permissionGranted,
         hasResonanceScene: Boolean(resonanceAudioScene),
     });
+
+    // Held in a ref: this callback is recreated on every ParkModal render, and
+    // taking it as an effect dependency would tear down and re-enable the
+    // gimbal — recalibrating the walker's heading — on unrelated renders.
+    const onOrientationUnavailableRef = useRef(onOrientationUnavailable);
+    useEffect(() => {
+        onOrientationUnavailableRef.current = onOrientationUnavailable;
+    }, [onOrientationUnavailable]);
 
     const requestPermission = useCallback(async () => {
         const granted = await requestDeviceOrientationPermission();
@@ -41,9 +58,13 @@ const GimbalArrow = ({ permissionGranted, onPermissionGranted, hideUI = false }:
         gimbal.enable();
         gimbal.recalibrate();
 
-        // A stored grant can be stale; if no orientation event arrives the
-        // flag is cleared so the next session re-prompts.
-        const stopWatching = watchOrientationAvailability();
+        // A stored grant can be stale. watchOrientationAvailability clears the
+        // flag, but on its own that only helps the *next* session: this one
+        // keeps showing "rotation tracking" over spatial audio that no longer
+        // moves. Report it so the current session can recover too.
+        const stopWatching = watchOrientationAvailability(() => {
+            onOrientationUnavailableRef.current?.();
+        });
 
         return () => {
             stopWatching();
@@ -66,11 +87,13 @@ const GimbalArrow = ({ permissionGranted, onPermissionGranted, hideUI = false }:
                 resonanceAudioScene.setListenerOrientation(vectorFwd.x, vectorFwd.y, vectorFwd.z, vectorUp.x, vectorUp.y, vectorUp.z);
             }
 
-            window.__gimbalOrientation = {
-                fwdX: vectorFwd.x, fwdY: vectorFwd.y, fwdZ: vectorFwd.z,
-                upX: vectorUp.x, upY: vectorUp.y, upZ: vectorUp.z,
-                updatedAt: Date.now(),
-            };
+            if (isDebugEnabled()) {
+                window.__gimbalOrientation = {
+                    fwdX: vectorFwd.x, fwdY: vectorFwd.y, fwdZ: vectorFwd.z,
+                    upX: vectorUp.x, upY: vectorUp.y, upZ: vectorUp.z,
+                    updatedAt: Date.now(),
+                };
+            }
 
             if (yawDisplayRef.current) {
                 const deg = Math.round(gimbal.yaw * (180 / Math.PI));
@@ -96,7 +119,7 @@ const GimbalArrow = ({ permissionGranted, onPermissionGranted, hideUI = false }:
                     onClick={requestPermission}
                     className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] inline-flex min-h-[44px] items-center rounded-full border border-neutral-900/30 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-neutral-900 transition-colors hover:border-neutral-900 hover:bg-white/30"
                 >
-                    Allow Orientation Access
+                    {rotationCopy.allowAccess}
                 </button>
             </div>
         );
@@ -106,7 +129,7 @@ const GimbalArrow = ({ permissionGranted, onPermissionGranted, hideUI = false }:
 
     return (
         <p className="text-xs text-slate-400 tabular-nums">
-            heading <span ref={yawDisplayRef}>—</span>
+            {rotationCopy.heading} <span ref={yawDisplayRef}>—</span>
         </p>
     );
 };

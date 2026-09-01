@@ -1,10 +1,21 @@
+import { getVariantSeed } from '../audio/variantSeed';
+
 const CDN_BASE = 'https://resonant-landscapes.b-cdn.net/';
-const SESSION_AUDIO_VARIANT_SEED = Math.floor(Math.random() * 0x7fffffff);
-const PARK_SLUG_OVERRIDES = {
+/** [8-channel spatial URL, mono URL] for one recording section. */
+export type AudioVariant = [string, string];
+
+/** The park shape audioPaths needs from stateParks.json. */
+export type AudioPark = {
+  name: string;
+  recordingsCount?: number;
+  sectionsCount?: number;
+};
+
+const PARK_SLUG_OVERRIDES: Record<string, string> = {
   'Custer State Park': 'Custer-State',
   'Palisades State Park': 'Palisades-State',
 };
-const DEBUG_PARK_AUDIO_VARIANTS = {
+const DEBUG_PARK_AUDIO_VARIANTS: Record<string, AudioVariant[]> = {
   'Custer Test': [[
     `${CDN_BASE}sounds/Custer-Test-1-001_8ch.wav`,
     `${CDN_BASE}sounds/Custer-Test-1-001_mono.wav`
@@ -15,7 +26,7 @@ const DEBUG_PARK_AUDIO_VARIANTS = {
   ]],
 };
 
-function hashString(value) {
+function hashString(value: string): number {
   let hash = 0;
 
   for (let index = 0; index < value.length; index += 1) {
@@ -25,7 +36,7 @@ function hashString(value) {
   return Math.abs(hash);
 }
 
-export function formatParkSlug(parkName) {
+export function formatParkSlug(parkName: string): string {
   if (PARK_SLUG_OVERRIDES[parkName]) {
     return PARK_SLUG_OVERRIDES[parkName];
   }
@@ -77,15 +88,19 @@ const AAC_CAPABLE_ENGINES = /Chrome|Chromium|Firefox|SamsungBrowser|Edg\//;
  * engine tested. An unrecognised browser now gets larger files rather than
  * silence.
  *
- * @param {string} userAgent
- * @returns {'aac' | 'lossless'}
  */
-export function pickAssetFamily(userAgent = '') {
+export function pickAssetFamily(userAgent = ''): 'aac' | 'lossless' {
   return AAC_CAPABLE_ENGINES.test(userAgent) ? 'aac' : 'lossless';
 }
 
-export function getParkAudioVariants(parkName, parksJSON, userAgent = '') {
-  if (Object.hasOwn(DEBUG_PARK_AUDIO_VARIANTS, parkName)) {
+export function getParkAudioVariants(
+  parkName: string,
+  parksJSON: AudioPark[],
+  userAgent = ''
+): AudioVariant[] | null {
+  // Not Object.hasOwn: that is ES2022 and lands in Safari 15.4, above the
+  // iOS 15 floor in README.md's support matrix.
+  if (Object.prototype.hasOwnProperty.call(DEBUG_PARK_AUDIO_VARIANTS, parkName)) {
     return DEBUG_PARK_AUDIO_VARIANTS[parkName];
   }
 
@@ -110,7 +125,7 @@ export function getParkAudioVariants(parkName, parksJSON, userAgent = '') {
   const spatialExtension = family === 'aac' ? 'm4a' : 'flac';
   const monoFolder = family === 'aac' ? 'sounds' : 'sounds-wav-mono';
   const monoExtension = family === 'aac' ? 'm4a' : 'wav';
-  const variants = [];
+  const variants: AudioVariant[] = [];
 
   for (let recording = 1; recording <= recordingsCount; recording += 1) {
     for (let section = 1; section <= sectionsCount; section += 1) {
@@ -126,13 +141,45 @@ export function getParkAudioVariants(parkName, parksJSON, userAgent = '') {
   return variants.length > 0 ? variants : null;
 }
 
-export function pickSoundPath(parkName, parksJSON, userAgent = '') {
+/** Which recording of a park the walker gets, and how many there are. */
+export type SelectedVariant = {
+  urls: AudioVariant;
+  /** 1-based, for saying "recording 2 of 6" out loud. */
+  number: number;
+  total: number;
+};
+
+/**
+ * The seed is read per call rather than captured at module load, so a reroll
+ * takes effect on the next park without a page refresh — and so tests can pass
+ * their own. It is memoised for the session inside variantSeed, which is what
+ * keeps prefetch and playback agreeing on the same recording.
+ */
+export function selectVariant(
+  parkName: string,
+  parksJSON: AudioPark[],
+  userAgent = '',
+  seed: number = getVariantSeed()
+): SelectedVariant | null {
   const variants = getParkAudioVariants(parkName, parksJSON, userAgent);
   if (!variants?.length) {
     return null;
   }
 
-  const selectedIndex = hashString(`${parkName}:${SESSION_AUDIO_VARIANT_SEED}`) % variants.length;
+  const selectedIndex = hashString(`${parkName}:${seed}`) % variants.length;
   const selected = variants[selectedIndex];
-  return selected.every(Boolean) ? selected : null;
+  if (!selected.every(Boolean)) {
+    return null;
+  }
+
+  return { urls: selected, number: selectedIndex + 1, total: variants.length };
+}
+
+export function pickSoundPath(
+  parkName: string,
+  parksJSON: AudioPark[],
+  userAgent = '',
+  seed?: number
+): AudioVariant | null {
+  return selectVariant(parkName, parksJSON, userAgent, seed ?? getVariantSeed())?.urls ?? null;
 }

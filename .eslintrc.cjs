@@ -1,4 +1,5 @@
 module.exports = {
+    "root": true,
     "env": {
         "browser": true,
         "es2021": true
@@ -6,7 +7,14 @@ module.exports = {
     "extends": [
         "eslint:recommended",
         "plugin:@typescript-eslint/recommended",
-        "plugin:react/recommended"
+        "plugin:react/recommended",
+        "plugin:react-hooks/recommended"
+    ],
+    "ignorePatterns": [
+        "dist",
+        "node_modules",
+        "playwright-report",
+        "test-results"
     ],
     "overrides": [
         {
@@ -19,6 +27,19 @@ module.exports = {
             "parserOptions": {
                 "sourceType": "script"
             }
+        },
+        {
+            // Playwright specs and helpers run in Node and drive the browser;
+            // both globals are in scope.
+            "env": {
+                "node": true
+            },
+            "files": [
+                "tests/**/*.{js,mjs,ts,tsx}",
+                "playwright.config.ts",
+                "vite.config.ts",
+                "scripts/**/*.{js,mjs}"
+            ]
         }
     ],
     "parser": "@typescript-eslint/parser",
@@ -39,6 +60,14 @@ module.exports = {
         "react/react-in-jsx-scope": "off",
         "react/prop-types": "off",
         "react/no-unescaped-entities": "off",
-        "@typescript-eslint/no-unused-vars": "off"
+        "no-unused-vars": "off",
+        "@typescript-eslint/no-unused-vars": [
+            "warn",
+            {
+                "argsIgnorePattern": "^_",
+                "varsIgnorePattern": "^_",
+                "caughtErrorsIgnorePattern": "^_"
+            }
+        ]
     }
 }

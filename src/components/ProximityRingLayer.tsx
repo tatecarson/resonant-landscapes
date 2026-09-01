@@ -1,11 +1,16 @@
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 import { fromLonLat, getPointResolution } from "ol/proj";
 import type RenderEvent from "ol/render/Event";
 import { RLayerVector } from "rlayers";
 import { useOL } from "rlayers";
 
+import { useDecorativeLayerFrame } from "../hooks/useDecorativeLayerFrame";
+import { useReduceVisuals } from "../hooks/useReduceVisuals";
 import { mapRange } from "../utils/math";
-import { PREFETCH_DISTANCE } from "../utils/parkSelection";
+import { PREFETCH_DISTANCE_METERS } from "../config/geofence";
+
+/** Mid-pulse: visible, and the same on every render. */
+const REDUCED_MOTION_PHASE_S = 0.5;
 
 type Coordinate = [number, number];
 
@@ -20,8 +25,10 @@ interface ProximityRingLayerProps {
     enterDistance: number; // geographic radius (meters) of the boundary circle — rings pulse from its edge
 }
 
-export default function ProximityRingLayer({ parks, active, enterDistance }: ProximityRingLayerProps) {
+function ProximityRingLayer({ parks, active, enterDistance }: ProximityRingLayerProps) {
     const { map } = useOL();
+    const prefersReducedMotion = useReduceVisuals();
+    const requestNextFrame = useDecorativeLayerFrame(active && !prefersReducedMotion);
 
     const handlePostrender = useCallback((event: RenderEvent) => {
         if (!active || !parks.length || !map) {
@@ -37,7 +44,9 @@ export default function ProximityRingLayer({ parks, active, enterDistance }: Pro
         const view = map.getView();
         const projection = view.getProjection();
         const viewResolution = view.getResolution() ?? 1;
-        const t = Date.now() / 1000;
+        // Under reduced motion the pulse holds still at a fixed phase rather
+        // than being frozen wherever the clock happened to be.
+        const t = prefersReducedMotion ? REDUCED_MOTION_PHASE_S : Date.now() / 1000;
 
         ctx.save();
         for (const { coords, distance } of parks) {
@@ -50,8 +59,8 @@ export default function ProximityRingLayer({ parks, active, enterDistance }: Pro
             const pointResolution = getPointResolution(projection, viewResolution, projectedCoords);
             const boundaryRadius = enterDistance / pointResolution;
 
-            const speed = mapRange(distance, PREFETCH_DISTANCE, 5, 0.18, 1.4);
-            const maxAlpha = mapRange(distance, PREFETCH_DISTANCE, 5, 0.12, 0.65);
+            const speed = mapRange(distance, PREFETCH_DISTANCE_METERS, 5, 0.18, 1.4);
+            const maxAlpha = mapRange(distance, PREFETCH_DISTANCE_METERS, 5, 0.12, 0.65);
             const phases = [(t * speed) % 1, (t * speed + 0.5) % 1];
 
             for (const phase of phases) {
@@ -67,8 +76,8 @@ export default function ProximityRingLayer({ parks, active, enterDistance }: Pro
         }
         ctx.restore();
 
-        event.target?.changed();
-    }, [active, parks, enterDistance, map]);
+        requestNextFrame(event.target);
+    }, [active, parks, enterDistance, map, requestNextFrame, prefersReducedMotion]);
 
     return (
         <RLayerVector
@@ -77,3 +86,9 @@ export default function ProximityRingLayer({ parks, active, enterDistance }: Pro
         />
     );
 }
+
+/**
+ * Redraws on every postrender, so an unmemoised parent re-render rebuilds the
+ * listener and repaints the map even when nothing this layer draws has moved.
+ */
+export default memo(ProximityRingLayer);

@@ -78,7 +78,7 @@ test("welcome copy meets AA contrast against its panel", async ({ page }) => {
   await page.goto("/");
   await page.addScriptTag({ content: CONTRAST_HELPER });
 
-  const failures = await page.evaluate(() => {
+  const failures = await page.evaluate((minRatio) => {
     const panel = document.querySelector("[role=dialog]") ?? document.body;
     const results: { text: string; ratio: number }[] = [];
     for (const el of Array.from(panel.querySelectorAll("p, li, span, h1, h2"))) {
@@ -88,10 +88,10 @@ test("welcome copy meets AA contrast against its panel", async ({ page }) => {
       if (el.querySelector("p, li, span, h1, h2")) continue;
       const ratio = (window as unknown as { __contrastOf: (e: Element) => number })
         .__contrastOf(el);
-      if (ratio < 4.5) results.push({ text: text.slice(0, 40), ratio: Math.round(ratio * 100) / 100 });
+      if (ratio < minRatio) results.push({ text: text.slice(0, 40), ratio: Math.round(ratio * 100) / 100 });
     }
     return results;
-  });
+  }, AA_NORMAL);
 
   expect(failures, `low-contrast copy: ${JSON.stringify(failures, null, 2)}`).toEqual([]);
 });
@@ -133,4 +133,126 @@ test("entering a park is announced to screen readers", async ({ page, context })
   const announcement = page.getByTestId("park-announcement");
   await expect(announcement).toBeAttached();
   await expect(announcement).toContainText(/state park|custer|sica/i);
+});
+
+/**
+ * Walk the user into a park and wait for the strip. Positions come from the
+ * approach-ring spec's scaled debug map; the fix is nudged repeatedly because
+ * the app interpolates over a position history and a single fix never renders.
+ */
+async function walkIntoPark(page: Page, context: import("@playwright/test").BrowserContext) {
+  const strip = page.locator("p.font-cormorant").first();
+  await expect(async () => {
+    await context.setGeolocation({
+      latitude: 44.01308 + Math.random() * 1e-5,
+      longitude: -97.11062,
+    });
+    await expect(strip).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
+}
+
+test.describe("reduced motion", () => {
+  // Emulated per-test rather than through test.use: the reducedMotion fixture
+  // is not in this Playwright version's typed options.
+  test.beforeEach(async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+  });
+
+  test("holds the compass gradient still instead of sweeping it with heading", async ({ page, context }) => {
+    // A full-screen wash at 0.75 alpha whose hue tracks the compass is the
+    // vestibular and photosensitivity concern in a walking piece — it moves
+    // whenever the walker turns.
+    await context.grantPermissions(["geolocation"]);
+    await context.setGeolocation({ latitude: 44.01271, longitude: -97.11065 });
+    await page.addInitScript(() => {
+      window.localStorage.setItem("deviceOrientationPermission", "granted");
+    });
+
+    await page.goto("/");
+    await startWalk(page);
+    await walkIntoPark(page, context);
+
+    const gradient = page.getByTestId("ambient-gradient");
+    await expect(gradient).toBeAttached();
+
+    const read = () => gradient.evaluate((el) => getComputedStyle(el).backgroundImage);
+    const before = await read();
+    await page.waitForTimeout(1_500);
+    const after = await read();
+
+    expect(after).toBe(before);
+    // And it must be the quiet form, not the full-strength wash held still.
+    if (before !== "none") {
+      expect(before).not.toContain("0.75");
+    }
+  });
+
+  test("stops the CSS animations that run on their own", async ({ page }) => {
+    await page.goto("/");
+
+    const durations = await page.evaluate(() => {
+      const probe = document.createElement("div");
+      probe.className = "rotation-affordance";
+      document.body.appendChild(probe);
+      const style = getComputedStyle(probe);
+      const result = {
+        animation: style.animationName,
+        duration: style.animationDuration,
+      };
+      probe.remove();
+      return result;
+    });
+
+    // Either the name is cleared or the duration is collapsed; both count as
+    // "not animating", and which one applies depends on rule order.
+    expect(durations.animation === "none" || parseFloat(durations.duration) < 0.05).toBe(true);
+  });
+});
+
+test("announces leaving the listening area, not just arriving", async ({ page, context }) => {
+  // The exit announcement cannot live in ParkModal: that unmounts on exit, so
+  // the message would leave the DOM before it could be spoken.
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({ latitude: 44.01271, longitude: -97.11065 });
+  await page.addInitScript(() => {
+    window.localStorage.setItem("deviceOrientationPermission", "granted");
+  });
+
+  await page.goto("/");
+  await startWalk(page);
+  await walkIntoPark(page, context);
+
+  const announcement = page.getByTestId("park-announcement");
+  await expect(announcement).toContainText(/entering/i);
+
+  // Back to the starting position, which the approach-ring spec establishes is
+  // outside every park. The debug map packs the parks metres apart, so walking
+  // an arbitrary distance away lands inside a different one — which announces
+  // "Entering ..." rather than leaving, correctly.
+  await expect(async () => {
+    await context.setGeolocation({
+      latitude: 44.01271 + Math.random() * 1e-5,
+      longitude: -97.11065,
+    });
+    await expect(announcement).toContainText(/left the listening area/i, { timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
+});
+
+test("announces audio state on the strip's own code path", async ({ page, context }) => {
+  // The visible status label's live region is gated behind
+  // !(compact && hideStatusLabel), and the strip passes both — so audio state
+  // used to be announced nowhere at all in production.
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({ latitude: 44.01271, longitude: -97.11065 });
+  await page.addInitScript(() => {
+    window.localStorage.setItem("deviceOrientationPermission", "granted");
+  });
+
+  await page.goto("/");
+  await startWalk(page);
+  await walkIntoPark(page, context);
+
+  const announcement = page.getByTestId("audio-announcement");
+  await expect(announcement).toBeAttached();
+  await expect(announcement).toContainText(/loading audio|audio playing/i, { timeout: 30_000 });
 });

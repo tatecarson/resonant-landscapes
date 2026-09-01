@@ -311,3 +311,101 @@ body {
     line-height: 1.4;
     color: rgba(23, 43, 36, 0.8);
 }
+
+/* Recovery steps under a blocked-location message. Left-aligned against the
+   card's centered title on purpose: these are followed in order, and centered
+   numerals are hard to track back to after leaving for Settings. */
+.location-status__steps {
+    margin: 0.6rem 0 0;
+    padding: 0;
+    list-style: none;
+    text-align: left;
+    display: grid;
+    gap: 0.4rem;
+}
+
+.location-status__steps li {
+    display: grid;
+    grid-template-columns: 0.9rem 1fr;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: rgba(23, 43, 36, 0.8);
+}
+
+.location-status__steps li > span:first-child {
+    font-variant-numeric: tabular-nums;
+    color: rgba(23, 43, 36, 0.45);
+}
+
+/*
+ * The recenter control.
+ *
+ * Top left, which is the only corner nothing else claims: the help button and
+ * the zoom buttons are on the right, the location status is top centre, and
+ * the park strip owns the bottom. It was bottom centre first, and testing on a
+ * deploy preview put it underneath the park strip, unreachable at exactly the
+ * moment a walker is standing in a park with the map panned away.
+ *
+ * Hidden rather than unmounted: rlayers throws "removeChild ... is not a child
+ * of this node" when an RCustom is conditionally rendered.
+ */
+.map .recenter-control.ol-control {
+    top: max(1rem, env(safe-area-inset-top));
+    left: max(1rem, env(safe-area-inset-left));
+    right: auto;
+    bottom: auto;
+    z-index: 1100;
+    background: none;
+    border: none;
+    padding: 0;
+    width: auto;
+}
+
+/*
+ * Specificity matters here: OpenLayers ships `.ol-control button { width:
+ * 1.375em }`, which beat a plain `.recenter-button` rule and squeezed the
+ * label into a 22px column.
+ */
+.map .recenter-control.ol-control .recenter-button {
+    min-height: 44px;
+    padding: 0 1.25rem;
+    border: none;
+    border-radius: 999px;
+    background: rgb(23 23 23 / 0.92);
+    color: #fff;
+    font-family: "Space Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    /* The label is two syllables and must never wrap into the 22px column
+     * OpenLayers' own control width gave it. */
+    white-space: nowrap;
+    width: max-content;
+    box-shadow: 0 2px 12px rgb(0 0 0 / 0.25);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+}
+
+.map .recenter-control.ol-control .recenter-button[data-visible="true"] {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/*
+ * Both spellings of the same preference: the system setting until the walk
+ * publishes data-motion, and the attribute once it has. See
+ * useReduceVisualsAttribute for why the media query alone is not enough.
+ */
+@media (prefers-reduced-motion: reduce) {
+    :root:not([data-motion]) .map .recenter-control.ol-control .recenter-button {
+        transition: none;
+    }
+}
+
+:root[data-motion="calm"] .map .recenter-control.ol-control .recenter-button {
+    transition: none;
+}

@@ -28,10 +28,61 @@
   }
 }
 
+/*
+ * The calm treatment, written once and applied from two places below: the
+ * system setting while the walk is still starting up, and the data-motion
+ * attribute once JavaScript has published the walker's effective preference.
+ *
+ * The attribute is what makes the switch in the Help modal reach any of this.
+ * A media query only knows the system setting, and an explicit choice is meant
+ * to beat the system in both directions, so everything here used to be deaf to
+ * the switch. See useReduceVisualsAttribute.
+ */
 @media (prefers-reduced-motion: reduce) {
-  .rotation-affordance {
+  /*
+   * Only until the attribute exists. After that the attribute is
+   * authoritative, including when it says "full" on a phone whose system
+   * setting says otherwise, which is a walker who asked for the full visuals
+   * here and nowhere else.
+   */
+  :root:not([data-motion]) .rotation-affordance {
     animation: none;
     background-color: rgb(23 23 23 / 0.06);
     box-shadow: 0 0 0 2px rgb(23 23 23 / 0.28);
   }
+
+  :root:not([data-motion]),
+  :root:not([data-motion]) *,
+  :root:not([data-motion]) *::before,
+  :root:not([data-motion]) *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:root[data-motion="calm"] .rotation-affordance {
+  animation: none;
+  background-color: rgb(23 23 23 / 0.06);
+  box-shadow: 0 0 0 2px rgb(23 23 23 / 0.28);
+}
+
+/*
+ * Everything else that moves on its own. Guarding only the affordance left
+ * the pulsing "audio playing" dots, the modal transitions and the ambient
+ * fade running - and this is a screen held at walking pace outdoors, where
+ * large-area motion is the thing people turn this setting on to avoid.
+ *
+ * The canvas layers and the map's zoom cannot be reached from CSS; they read
+ * the same preference through useReduceVisuals.
+ */
+:root[data-motion="calm"],
+:root[data-motion="calm"] *,
+:root[data-motion="calm"] *::before,
+:root[data-motion="calm"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }

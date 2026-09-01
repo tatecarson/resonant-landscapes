@@ -34,22 +34,43 @@ import {
     type LocationStatus,
 } from "../hooks/useGeolocationTracking";
 import { useRenderDebug } from "../hooks/useRenderDebug";
+import { useReduceVisuals } from "../hooks/useReduceVisuals";
+import { getVariantCenter } from "../utils/scaledParks";
+import { debugLog, isDebugEnabled } from "../config/debug";
+import {
+    CENTER_ROTATION_RADIUS_METERS,
+    MAX_ZOOM,
+    MIN_ZOOM,
+    RESTING_ZOOM,
+} from "../config/geofence";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
+import { RECOVERY_TITLES, RECOVERY_STAKES, getRecoverySteps } from "../utils/recoverySteps";
+import { app, location as locationCopy, map as mapCopy } from "../copy";
 import type { Variant, MockPosition } from "../App";
 import locationIcon from "../assets/geolocation_marker_heading.svg";
 
-const CENTER_ROTATION_RADIUS_METERS = 3;
 
 function locationStatusMessage(
     status: LocationStatus,
-    error: GeolocationFailure | null
-): { title: string; detail: string } | null {
-    if (status === "acquiring") {
+    error: GeolocationFailure | null,
+    accuracyMeters: number | null,
+    enterDistance: number
+): { title: string; detail: string; steps?: readonly string[] } | null {
+    if (status === "stale") {
+        return locationCopy.stale;
+    }
+
+    if (status === "imprecise") {
+        const radius = accuracyMeters === null ? null : Math.round(accuracyMeters);
         return {
-            title: "Finding you…",
-            detail: "Step into open sky if this takes more than a moment.",
+            title: locationCopy.imprecise.title,
+            detail: locationCopy.imprecise.detail(radius, enterDistance),
         };
+    }
+
+    if (status === "acquiring") {
+        return locationCopy.acquiring;
     }
 
     if (status !== "error") {
@@ -57,34 +78,35 @@ function locationStatusMessage(
     }
 
     if (error?.code === GEOLOCATION_PERMISSION_DENIED) {
+        // The only status here the walker can actually fix, so it is the only
+        // one that gets steps. "Allow location in your browser settings" was a
+        // restatement of the problem, read by someone already standing outside.
         return {
-            title: "Location is blocked",
-            detail:
-                "This walk follows where you are. Allow location for this site in your browser settings, then reload the page.",
+            title: RECOVERY_TITLES.location,
+            detail: RECOVERY_STAKES.location,
+            steps: getRecoverySteps("location", navigator.userAgent),
         };
     }
 
     if (error?.code === GEOLOCATION_TIMEOUT) {
-        return {
-            title: "Can't find your location yet",
-            detail: "This is taking longer than usual. Move away from buildings and tree cover.",
-        };
+        return locationCopy.timeout;
     }
 
-    return {
-        title: "Can't find your location",
-        detail: "Your device could not get a fix. Move into open sky, then reload the page.",
-    };
+    return locationCopy.failed;
 }
 
 const LocationStatusOverlay = memo(function LocationStatusOverlay({
     status,
     error,
+    accuracyMeters,
+    enterDistance,
 }: {
     status: LocationStatus;
     error: GeolocationFailure | null;
+    accuracyMeters: number | null;
+    enterDistance: number;
 }): JSX.Element {
-    const message = locationStatusMessage(status, error);
+    const message = locationStatusMessage(status, error, accuracyMeters, enterDistance);
 
     // The control stays mounted and only its contents toggle. Unmounting an
     // RCustom throws "removeChild ... is not a child of this node" from
@@ -101,6 +123,16 @@ const LocationStatusOverlay = memo(function LocationStatusOverlay({
                 >
                     <p className="location-status__title">{message.title}</p>
                     <p className="location-status__detail">{message.detail}</p>
+                    {message.steps && (
+                        <ol className="location-status__steps">
+                            {message.steps.map((step, index) => (
+                                <li key={step}>
+                                    <span aria-hidden="true">{index + 1}</span>
+                                    <span>{step}</span>
+                                </li>
+                            ))}
+                        </ol>
+                    )}
                 </div>
             ) : (
                 <></>
@@ -111,8 +143,8 @@ const LocationStatusOverlay = memo(function LocationStatusOverlay({
 
 function ZoomBoundsController({
     debug = false,
-    minZoom = 16.72582728647343,
-    maxZoom = 19.9999999,
+    minZoom = MIN_ZOOM,
+    maxZoom = MAX_ZOOM,
 }: {
     debug?: boolean;
     minZoom?: number;
@@ -129,13 +161,23 @@ function ZoomBoundsController({
         view.setMinZoom(minZoom);
         view.setMaxZoom(maxZoom);
 
+        if (isDebugEnabled()) {
+            // What the view will actually honour, which is not what was just
+            // set: OpenLayers derives the ceiling as minZoom plus the floored
+            // log2 span, so a fractional minZoom loses the fraction.
+            window.__mapZoomBounds = {
+                minZoom: view.getMinZoom(),
+                maxZoom: view.getMaxZoom(),
+            };
+        }
+
         const enforceZoomBounds = () => {
             const zoom = view.getZoom();
 
             if (zoom !== undefined && zoom < minZoom) {
                 view.setZoom(minZoom);
                 if (debug) {
-                    console.log("[map zoom]", minZoom, "(clamped)");
+                    debugLog("[map zoom]", minZoom, "(clamped)");
                 }
                 return;
             }
@@ -143,13 +185,13 @@ function ZoomBoundsController({
             if (zoom !== undefined && zoom > maxZoom) {
                 view.setZoom(maxZoom);
                 if (debug) {
-                    console.log("[map zoom]", maxZoom, "(clamped)");
+                    debugLog("[map zoom]", maxZoom, "(clamped)");
                 }
                 return;
             }
 
             if (debug) {
-                console.log("[map zoom]", zoom);
+                debugLog("[map zoom]", zoom);
             }
         };
 
@@ -228,6 +270,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     const { audioContext } = useAudioContext();
     const {
         accuracy,
+        accuracyMeters,
         currentParkLocation,
         debugPermission,
         enterDistance,
@@ -290,17 +333,121 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     }, [audioContext, prefetchUrls, preloadBuffers]);
 
     useEffect(() => {
-        // Stop sound when user walks out of range — HOARenderer no longer stops
-        // on unmount so we need to handle the "left the park" case here.
-        if (!parkName) {
-            stopSound();
-        }
+        // Audio is stopped by the tracking hook on the parkName transition
+        // itself; this only follows the park with the modal.
         setParkModalOpen(Boolean(parkName));
-    }, [parkName, stopSound]);
+    }, [parkName]);
 
-    const savedZoomRef = useRef<number | null>(null);
-    const inProximityRef = useRef(false);
-    const inProximity = prefetchParks.length > 0;
+    // memo()'d layers only pay off if their props are stable: both of these
+    // were fresh arrays on every render, which is every GPS frame.
+    const glowParks = useMemo(
+        () => parkFeatures.map((p) => ({ name: p.name, coords: p.scaledCoords })),
+        [parkFeatures]
+    );
+    const sunRayParks = useMemo(
+        () => (currentParkLocation ? [{ coords: currentParkLocation, distance: parkDistance }] : []),
+        [currentParkLocation, parkDistance]
+    );
+
+    const prefersReducedMotion = useReduceVisuals();
+
+    /**
+     * Arriving somewhere is the event of a sound walk, and leaving is the
+     * other one. Both were conveyed only by the strip appearing and
+     * disappearing on screen.
+     *
+     * This lives here rather than in ParkModal because the modal unmounts on
+     * exit — an exit announcement inside it would be removed from the DOM
+     * before any screen reader could speak it. Announcing on transitions
+     * rather than interpolating the live distance also stops it re-announcing
+     * every single metre walked.
+     */
+    const [parkAnnouncement, setParkAnnouncement] = useState("");
+    const announcedParkRef = useRef("");
+    useEffect(() => {
+        const previous = announcedParkRef.current;
+        if (parkName === previous) {
+            return;
+        }
+        announcedParkRef.current = parkName;
+
+        if (parkName) {
+            setParkAnnouncement(`Entering ${parkName}, ${Math.floor(parkDistance)} metres away`);
+        } else if (previous) {
+            setParkAnnouncement("Left the listening area");
+        }
+    }, [parkName, parkDistance]);
+    // Debug-only mirror of the view's live zoom, written every frame rather
+    // than once per position like __mapDebug. It is the instrument that showed
+    // the old approach zoom was being cancelled, and it now guards the promise
+    // that the scale never changes on its own. See map-camera.spec.ts.
+    useEffect(() => {
+        if (!map || !isDebugEnabled()) {
+            return;
+        }
+        const key = map.on("postrender", () => {
+            window.__mapZoom = map.getView().getZoom() ?? null;
+        });
+        return () => unByKey(key);
+    }, [map]);
+
+    /**
+     * The map follows the walker until they drag or pinch it, and then stops
+     * until they ask for it back.
+     *
+     * It used to call setCenter on every position fix with nothing able to
+     * interrupt it, so a pan snapped back within a second and the map could
+     * not be used to look anywhere but at your own feet. Every comparable
+     * piece allows this: 37 of the 38 locative audio tours surveyed by Roth et
+     * al. (LBS 2023) support pan, and 38 of 38 support zoom.
+     */
+    const [followSuspended, setFollowSuspended] = useState(false);
+
+    useEffect(() => {
+        if (!map) {
+            return;
+        }
+
+        const suspend = () => setFollowSuspended(true);
+        const dragKey = map.on("pointerdrag", suspend);
+        // Wheel and pinch never reach pointerdrag; both arrive here.
+        const viewport = map.getViewport();
+        viewport.addEventListener("wheel", suspend, { passive: true });
+
+        return () => {
+            unByKey(dragKey);
+            viewport.removeEventListener("wheel", suspend);
+        };
+    }, [map]);
+
+    const recenter = useCallback(() => {
+        const view = map?.getView();
+        if (!view || !position) {
+            return;
+        }
+
+        view.animate(
+            {
+                center: [position[0], position[1]] as [number, number],
+                zoom: RESTING_ZOOM,
+                // Reduced motion gets the same destination, arrived at instantly.
+                duration: prefersReducedMotion ? 0 : 400,
+            },
+            (completed) => {
+                // Following resumes only once the camera has arrived. Clearing
+                // the flag first let the position effect's setCenter cancel
+                // this very animation, which is the same mechanism that killed
+                // the old approach zoom: the map slid back to the walker but
+                // kept whatever zoom they had left it at. If they take hold of
+                // the map again mid-flight the animation does not complete,
+                // and staying suspended is the right answer anyway.
+                if (completed) {
+                    setFollowSuspended(false);
+                }
+            }
+        );
+    }, [map, position, prefersReducedMotion]);
+
     const showCenteredGeolocationMarker =
         Boolean(position) &&
         userOrientationEnabled &&
@@ -313,8 +460,10 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         }
 
         const rotation = -mapHeading;
-        view.setCenter([position[0], position[1]] as [number, number]);
-        view.setRotation(rotation);
+        if (!followSuspended) {
+            view.setCenter([position[0], position[1]] as [number, number]);
+            view.setRotation(rotation);
+        }
 
         // OpenLayers updates its coordinate-to-pixel transform during render.
         // Reading it immediately after setCenter/setRotation uses the previous
@@ -322,34 +471,21 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         const renderKey = map.once("postrender", () => {
             const markerPixel = map.getPixelFromCoordinate([position[0], position[1]]) ?? null;
             const viewportSize = map.getSize() ?? null;
+            if (!isDebugEnabled()) {
+                return;
+            }
             window.__mapDebug = {
                 center: view.getCenter() as [number, number] | null,
                 position: [position[0], position[1]],
                 rotation,
-                centerOnUser: true,
+                centerOnUser: !followSuspended,
                 markerPixel: markerPixel as [number, number] | null,
                 viewportSize: viewportSize as [number, number] | null,
             };
         });
 
         return () => unByKey(renderKey);
-    }, [map, position, mapHeading]);
-
-    useEffect(() => {
-        const view = map?.getView();
-        if (!view) return;
-
-        if (inProximity && !inProximityRef.current) {
-            savedZoomRef.current = view.getZoom() ?? null;
-            view.animate({ zoom: 19, duration: 800 });
-        } else if (!inProximity && inProximityRef.current) {
-            if (savedZoomRef.current !== null) {
-                view.animate({ zoom: savedZoomRef.current, duration: 800 });
-            }
-        }
-
-        inProximityRef.current = inProximity;
-    }, [map, inProximity]);
+    }, [map, position, mapHeading, followSuspended]);
 
 
     return (
@@ -361,10 +497,19 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                 onError={handleGeolocationError}
             />
 
-            <LocationStatusOverlay status={locationStatus} error={geolocationError} />
+            <p className="sr-only" data-testid="park-announcement" role="status" aria-live="polite">
+                {parkAnnouncement}
+            </p>
+
+            <LocationStatusOverlay
+                status={locationStatus}
+                error={geolocationError}
+                accuracyMeters={accuracyMeters}
+                enterDistance={enterDistance}
+            />
 
             <ParkGlowLayer
-                parks={parkFeatures.map(p => ({ name: p.name, coords: p.scaledCoords }))}
+                parks={glowParks}
                 activeParkName={parkName || undefined}
                 activeParkDistance={Math.floor(parkDistance)}
             />
@@ -384,11 +529,49 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
             />
 
             <SunRayLayer
-                parks={currentParkLocation ? [{ coords: currentParkLocation, distance: parkDistance }] : []}
+                parks={sunRayParks}
                 active={Boolean(parkName)}
             />
 
-            <ErrorBoundary fallback={<div>Error</div>}>
+            {/*
+              * Always mounted, hidden with CSS rather than by unmounting.
+              * Conditionally rendering an RCustom makes rlayers throw
+              * "removeChild ... is not a child of this node", which is the same
+              * crash described at the top of this file.
+              */}
+            <RControl.RCustom className="recenter-control">
+                <button
+                    type="button"
+                    onClick={recenter}
+                    className="recenter-button"
+                    data-testid="recenter"
+                    aria-label={mapCopy.recenterAriaLabel}
+                    aria-hidden={!followSuspended}
+                    tabIndex={followSuspended ? 0 : -1}
+                    data-visible={followSuspended ? "true" : "false"}
+                >
+                    {mapCopy.recenter}
+                </button>
+            </RControl.RCustom>
+
+            {/*
+              * Not the full-screen fallback: this boundary sits over the map,
+              * and covering it would take away the one thing still working.
+              * A bare "Error" used to render here.
+              */}
+            <ErrorBoundary
+                // The fallback tells the walker to walk away and come back,
+                // and without this it would be a lie: the boundary holds its
+                // fallback until something resets it, so leaving the park and
+                // returning would show the same message forever. parkName is
+                // what changes on that walk.
+                resetKeys={[parkName]}
+                fallback={
+                    <div className="location-status" role="status" data-testid="park-panel-fallback">
+                        <p className="location-status__detail">{app.parkPanelCrashed}</p>
+                    </div>
+                }
+            >
                 {parkModalOpen && (
                     <ParkModal
                         isOpen={parkModalOpen}
@@ -467,20 +650,21 @@ export default function GeolocationMap({
     return (
         <RMap
             className="map"
-            initial={{ center: fromLonLat([0, 0]), zoom: 19.9999999 }}
+            initial={{ center: fromLonLat(getVariantCenter(variant)), zoom: RESTING_ZOOM }}
         >
-            <ZoomBoundsController
-                debug={debug}
-                minZoom={16.72582728647343}
-                maxZoom={19.9999999}
-            />
+            {/*
+              * The constants, not copies of them. These were written out as
+              * literals here, so the bounds and the config could drift apart
+              * silently.
+              */}
+            <ZoomBoundsController debug={debug} minZoom={MIN_ZOOM} maxZoom={MAX_ZOOM} />
             <RControl.RCustom className="example-control">
                 <button
                     type="button"
                     onClick={openHelp}
                     className="map-help-button"
-                    title="Open field guide"
-                    aria-label="Open field guide"
+                    title={mapCopy.helpButtonLabel}
+                    aria-label={mapCopy.helpButtonLabel}
                 >
                     <span className="map-help-button__glyph" aria-hidden="true">?</span>
                 </button>

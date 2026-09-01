@@ -1,6 +1,8 @@
 import { useRef, Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAudioEngine, useAudioPlaybackState } from '../contexts/AudioContextProvider';
+import { help } from '../copy';
+import { useReduceVisualsPreference } from '../hooks/useReduceVisuals';
 
 interface HelpModalProps {
     isOpen: boolean;
@@ -16,6 +18,7 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
         wakeLockStatus,
         wakeLockError,
     } = useAudioPlaybackState();
+    const { reduceVisuals, followingSystem, setReduceVisuals } = useReduceVisualsPreference();
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
@@ -55,38 +58,28 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                     as="h2"
                                     className="font-cormorant text-5xl italic font-light tracking-tight text-neutral-900 mb-1"
                                 >
-                                    Help &amp; About
+                                    {help.title}
                                 </Dialog.Title>
                                 <p className="font-space-mono text-[10px] tracking-widest uppercase text-neutral-900/70 mb-7">
-                                    troubleshooting · credits
+                                    {help.subtitle}
                                 </p>
 
                                 <ul className="font-space-mono space-y-3 text-[12px] leading-relaxed text-neutral-900/75">
-                                    <li className="flex gap-3">
-                                        <span className="select-none text-neutral-900/40">—</span>
-                                        <span>Turn WiFi off for best results.</span>
-                                    </li>
-                                    <li className="flex gap-3">
-                                        <span className="select-none text-neutral-900/40">—</span>
-                                        <span>No sound? Refresh the page or reopen the browser.</span>
-                                    </li>
-                                    <li className="flex gap-3">
-                                        <span className="select-none text-neutral-900/40">—</span>
-                                        <span>Enable geolocation in your phone and browser settings.</span>
-                                    </li>
-                                    <li className="flex gap-3">
-                                        <span className="select-none text-neutral-900/40">—</span>
-                                        <span>Tested on iOS with Safari — other devices may not work.</span>
-                                    </li>
+                                    {help.tips.map((tip) => (
+                                        <li key={tip} className="flex gap-3">
+                                            <span className="select-none text-neutral-900/40">—</span>
+                                            <span>{tip}</span>
+                                        </li>
+                                    ))}
                                     <li className="flex gap-3">
                                         <span className="select-none text-neutral-900/40">—</span>
                                         <span>
-                                            Questions?{' '}
+                                            {help.questionsLabel}{' '}
                                             <a
-                                                href="mailto:tate.carson@dsu.edu"
+                                                href={help.authorEmail}
                                                 className="text-neutral-900 underline decoration-neutral-900/40 underline-offset-2 transition-colors hover:decoration-neutral-900"
                                             >
-                                                Tate Carson
+                                                {help.author}
                                             </a>
                                         </span>
                                     </li>
@@ -96,17 +89,17 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
                                             <p className="font-space-mono text-[11px] font-semibold uppercase tracking-wider text-neutral-900">
-                                                Keep screen awake
+                                                {help.keepAwake.title}
                                             </p>
                                             <p className="mt-1 font-space-mono text-[10px] leading-relaxed text-neutral-900/70">
-                                                Prevents screen lock while park audio plays. Uses more battery.
+                                                {help.keepAwake.detail}
                                             </p>
                                         </div>
                                         <button
                                             type="button"
                                             role="switch"
                                             aria-checked={wakeLockSupported && keepScreenAwake}
-                                            aria-label="Keep screen awake while audio plays"
+                                            aria-label={help.keepAwake.ariaLabel}
                                             disabled={!wakeLockSupported}
                                             onClick={() => setKeepScreenAwake(!keepScreenAwake)}
                                             className={`relative mt-0.5 inline-flex h-7 w-12 flex-none rounded-full border border-neutral-900/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] ${
@@ -123,14 +116,65 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                     </div>
                                     <p className="mt-2 font-space-mono text-[9px] uppercase tracking-wider text-neutral-900/55" aria-live="polite">
                                         {!wakeLockSupported
-                                            ? 'Screen wake lock is not supported by this browser.'
+                                            ? help.keepAwake.unsupported
                                             : wakeLockError
-                                                ? 'The phone refused the wake lock. Playback recovery remains active.'
+                                                ? help.keepAwake.refused
                                                 : wakeLockStatus === 'active'
-                                                    ? 'Screen wake lock active.'
+                                                    ? help.keepAwake.active
                                                     : keepScreenAwake
-                                                        ? 'Turns on when audio starts.'
-                                                        : 'Off.'}
+                                                        ? help.keepAwake.armed
+                                                        : help.keepAwake.off}
+                                    </p>
+                                </div>
+
+                                {/*
+                                  * Built as a sibling of the switch above, down
+                                  * to the class list. Two preference controls in
+                                  * one panel that looked different would read as
+                                  * a bug rather than a pair.
+                                  */}
+                                <div className="mt-4 rounded-2xl border border-neutral-900/15 bg-white/20 p-4">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div>
+                                            <p className="font-space-mono text-[11px] font-semibold uppercase tracking-wider text-neutral-900">
+                                                {help.reduceVisuals.title}
+                                            </p>
+                                            <p className="mt-1 font-space-mono text-[10px] leading-relaxed text-neutral-900/70">
+                                                {help.reduceVisuals.detail}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            role="switch"
+                                            aria-checked={reduceVisuals}
+                                            aria-label={help.reduceVisuals.ariaLabel}
+                                            onClick={() => setReduceVisuals(!reduceVisuals)}
+                                            className={`relative mt-0.5 inline-flex h-7 w-12 flex-none cursor-pointer rounded-full border border-neutral-900/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] ${
+                                                reduceVisuals ? 'bg-neutral-900' : 'bg-white/40'
+                                            }`}
+                                        >
+                                            <span
+                                                className={`mt-0.5 inline-block h-5 w-5 rounded-full bg-[#8ecdc0] shadow transition-transform ${
+                                                    reduceVisuals ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
+                                                aria-hidden="true"
+                                            />
+                                        </button>
+                                    </div>
+                                    {/*
+                                      * The preference has three states and a
+                                      * switch shows two, so the switch reflects
+                                      * what is actually happening and this line
+                                      * says where that came from. Without it the
+                                      * control looks untouched while the phone
+                                      * is quietly deciding.
+                                      */}
+                                    <p className="mt-2 font-space-mono text-[9px] uppercase tracking-wider text-neutral-900/55" aria-live="polite">
+                                        {followingSystem
+                                            ? help.reduceVisuals.followingSystem
+                                            : reduceVisuals
+                                                ? help.reduceVisuals.on
+                                                : help.reduceVisuals.off}
                                     </p>
                                 </div>
 
@@ -141,32 +185,32 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                 </div>
 
                                 <p className="font-space-mono text-[10px] tracking-widest uppercase text-neutral-900/70 mb-3">
-                                    about
+                                    {help.aboutLabel}
                                 </p>
                                 <div className="font-space-mono space-y-3 text-[12px] leading-relaxed text-neutral-900/75">
                                     <p>
-                                        By Tate Carson and Carter Gordon. Support from Dakota State University Faculty and Student Research Initiative Grants. 
+                                        {help.credits}
                                     </p>
                                     <p>
                                         <a
-                                            href="https://dl.acm.org/doi/10.1145/3678299.3678354"
+                                            href={help.paperUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            aria-label="Read the paper (AM '24) — opens in new tab"
+                                            aria-label={help.paperAriaLabel}
                                             className="text-neutral-900 underline decoration-neutral-900/40 underline-offset-2 transition-colors hover:decoration-neutral-900"
                                         >
-                                            Read the paper (AM '24) <span aria-hidden="true">↗</span>
+                                            {help.paperLabel} <span aria-hidden="true">↗</span>
                                         </a>
                                     </p>
                                     <p>
                                         <a
-                                            href="https://www.tatecarson.com/blog/2024-09-29-resonant-landscapes"
+                                            href={help.projectUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            aria-label="Project page — photos, code, and more — opens in new tab"
+                                            aria-label={help.projectAriaLabel}
                                             className="text-neutral-900 underline decoration-neutral-900/40 underline-offset-2 transition-colors hover:decoration-neutral-900"
                                         >
-                                            Project page — photos, code, and more <span aria-hidden="true">↗</span>
+                                            {help.projectLabel} <span aria-hidden="true">↗</span>
                                         </a>
                                     </p>
                                 </div>
@@ -178,7 +222,7 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                         onClick={() => setIsOpen(false)}
                                         ref={cancelButtonRef}
                                     >
-                                        Close
+                                        {help.close}
                                     </button>
                                 </div>
                             </Dialog.Panel>

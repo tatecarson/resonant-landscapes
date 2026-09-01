@@ -12,7 +12,12 @@ export default defineConfig({
   // "Cannot redefine property: Symbol($$jest-matchers-object)" against the
   // matchers Playwright has already installed — taking down collection for
   // every spec, not just that file.
-  testMatch: /.*\.spec\.ts$/,
+  // production-surfaces.spec.ts needs a production build and has its own
+  // config; the dev server this one starts would make it vacuously pass.
+  testMatch: /^(?!.*production-surfaces).*\.spec\.ts$/,
+  // Aborts before the first test if something other than this app is serving
+  // baseURL — see tests/global-setup.ts for why that is worth checking.
+  globalSetup: "./tests/global-setup.ts",
   timeout: 90_000,
   expect: {
     timeout: 10_000,
@@ -20,6 +25,10 @@ export default defineConfig({
   use: {
     baseURL,
     trace: "on-first-retry",
+    // Off by default because a video per test is slow and large. Turned on by
+    // `npm run test:e2e:video`, which is how you watch a behaviour rather than
+    // read an assertion about it: the recordings land in test-results/.
+    video: process.env.PLAYWRIGHT_VIDEO === "1" ? "on" : "off",
   },
   webServer: useExternalServer
     ? undefined

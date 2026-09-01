@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 import { fromLonLat, getPointResolution } from "ol/proj";
 import type RenderEvent from "ol/render/Event";
 import { RLayerVector, useOL } from "rlayers";
@@ -12,7 +12,7 @@ interface ParkGlowLayerProps {
     activeParkDistance?: number; // meters, Math.floor'd
 }
 
-export default function ParkGlowLayer({
+function ParkGlowLayer({
     parks,
     glowRadius = 25,
     activeParkName,
@@ -73,3 +73,9 @@ export default function ParkGlowLayer({
 
     return <RLayerVector zIndex={8} onPostRender={handlePostrender} />;
 }
+
+/**
+ * Redraws on every postrender, so an unmemoised parent re-render rebuilds the
+ * listener and repaints the map even when nothing this layer draws has moved.
+ */
+export default memo(ParkGlowLayer);

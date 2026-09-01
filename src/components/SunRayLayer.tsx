@@ -1,10 +1,15 @@
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 import { fromLonLat } from "ol/proj";
 import type RenderEvent from "ol/render/Event";
 import { RLayerVector, useOL } from "rlayers";
 
+import { useDecorativeLayerFrame } from "../hooks/useDecorativeLayerFrame";
+import { useReduceVisuals } from "../hooks/useReduceVisuals";
 import { mapRange } from "../utils/math";
-import { PREFETCH_DISTANCE } from "../utils/parkSelection";
+import { PREFETCH_DISTANCE_METERS } from "../config/geofence";
+
+/** Mid-pulse: visible, and the same on every render. */
+const REDUCED_MOTION_PHASE_S = 0.5;
 
 type Coordinate = [number, number];
 
@@ -23,8 +28,10 @@ const RAY_STAGGER_S = 0.23;       // seconds between each ray's phase start
 const BASE_CYCLE_S = 2.8;         // cycle duration at max distance
 const MIN_CYCLE_S = 0.7;          // cycle duration at closest approach
 
-export default function SunRayLayer({ parks, active }: SunRayLayerProps) {
+function SunRayLayer({ parks, active }: SunRayLayerProps) {
     const { map } = useOL();
+    const prefersReducedMotion = useReduceVisuals();
+    const requestNextFrame = useDecorativeLayerFrame(active && !prefersReducedMotion);
 
     const handlePostrender = useCallback((event: RenderEvent) => {
         if (!active || !parks.length || !map) return;
@@ -32,7 +39,9 @@ export default function SunRayLayer({ parks, active }: SunRayLayerProps) {
 
         const ctx = event.context;
         const dpr = event.frameState?.pixelRatio ?? window.devicePixelRatio ?? 1;
-        const now = Date.now() / 1000;
+        // Under reduced motion the pulse holds still at a fixed phase rather
+        // than being frozen wherever the clock happened to be.
+        const now = prefersReducedMotion ? REDUCED_MOTION_PHASE_S : Date.now() / 1000;
 
         ctx.save();
 
@@ -45,7 +54,7 @@ export default function SunRayLayer({ parks, active }: SunRayLayerProps) {
             const cy = pixel[1] * dpr;
 
             // Faster pulse as user closes in
-            const cycleS = mapRange(distance, PREFETCH_DISTANCE, 5, BASE_CYCLE_S, MIN_CYCLE_S);
+            const cycleS = mapRange(distance, PREFETCH_DISTANCE_METERS, 5, BASE_CYCLE_S, MIN_CYCLE_S);
 
             for (let i = 0; i < RAY_COUNT; i++) {
                 const angleDeg = i * 30;
@@ -94,8 +103,8 @@ export default function SunRayLayer({ parks, active }: SunRayLayerProps) {
         ctx.setLineDash([]);
         ctx.restore();
 
-        event.target?.changed();
-    }, [active, parks, map]);
+        requestNextFrame(event.target);
+    }, [active, parks, map, requestNextFrame, prefersReducedMotion]);
 
     return (
         <RLayerVector
@@ -104,3 +113,9 @@ export default function SunRayLayer({ parks, active }: SunRayLayerProps) {
         />
     );
 }
+
+/**
+ * Redraws on every postrender, so an unmemoised parent re-render rebuilds the
+ * listener and repaints the map even when nothing this layer draws has moved.
+ */
+export default memo(SunRayLayer);

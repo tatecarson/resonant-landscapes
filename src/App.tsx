@@ -1,15 +1,34 @@
 import React, { Suspense, lazy, startTransition, useEffect, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import WelcomeModal from "./components/WelcomeModal";
+import AppFallback from "./components/AppFallback";
+import { app } from "./copy";
+import { isDebugEnabled } from "./config/debug";
 import AudioContextProvider from "./contexts/AudioContextProvider";
+import { useReduceVisualsAttribute } from "./hooks/useReduceVisuals";
 // import './App.css'
 
 const MapExperience = lazy(() => import("./components/MapExperience"));
 
 export type Variant = "dsu" | "terrace";
 
+/**
+ * The debug route and the ?mock= position spoof are development affordances,
+ * and both shipped in the production bundle — so anyone could reach the debug
+ * tools, or place themselves inside a park without walking to it. A walk that
+ * can be faked from a sofa is not the piece.
+ *
+ * Still reachable in a production build with ?debug, which is what lets the
+ * mobile suites drive a deploy preview.
+ */
 function isDebugLocation(location: Location) {
-  return location.pathname.endsWith("/debug") || location.hash === "#/debug";
+  if (!isDebugEnabled()) {
+    return false;
+  }
+  // startsWith rather than an exact match: the hash carries its own query
+  // string, so #/debug?debug — the natural way to ask for the debug route on a
+  // production build — used to fall through to the ordinary app in silence.
+  return location.pathname.endsWith("/debug") || location.hash.startsWith("#/debug");
 }
 
 function detectVariant(location: Location): Variant {
@@ -23,6 +42,9 @@ function detectVariant(location: Location): Variant {
 export type MockPosition = [number, number]; // [lon, lat]
 
 function detectMockPosition(location: Location): MockPosition | null {
+  if (!isDebugEnabled()) {
+    return null;
+  }
   // Dev shim: parse `?mock=lat,lon` from either the search string or the
   // post-? portion of the hash (e.g. `#/terrace?mock=43.5548,-96.7419`).
   const hashQuery = location.hash.includes("?") ? location.hash.split("?")[1] : "";
@@ -45,6 +67,11 @@ function DebugRoute({ variant, mockPosition }: { variant: Variant; mockPosition:
 }
 
 function App() {
+  // Here rather than deeper in the tree because it writes to the document
+  // element and has to be mounted for the whole walk, including the debug
+  // route and the welcome screen.
+  useReduceVisualsAttribute();
+
   const [isOpen, setIsOpen] = useState(true)
   const [isDebugRoute, setIsDebugRoute] = useState(() => isDebugLocation(window.location));
   const [variant, setVariant] = useState<Variant>(() => detectVariant(window.location));
@@ -96,7 +123,7 @@ function App() {
   }
 
   return (
-    <ErrorBoundary fallback={<div>Error</div>}>
+    <ErrorBoundary fallback={<AppFallback>{app.crashed}</AppFallback>}>
       <AudioContextProvider>
         {isDebugRoute ? (
           <DebugRoute variant={variant} mockPosition={mockPosition} />
@@ -104,7 +131,7 @@ function App() {
           <>
             <WelcomeModal isOpen={isOpen} setIsOpen={setWelcomeOpen} variant={variant} />
             {!isOpen && (
-              <Suspense fallback={<div>Loading map...</div>}>
+              <Suspense fallback={<AppFallback>{app.loadingMap}</AppFallback>}>
                 <MapExperience variant={variant} mockPosition={mockPosition} />
               </Suspense>
             )}

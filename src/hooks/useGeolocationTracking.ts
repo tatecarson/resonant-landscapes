@@ -7,7 +7,13 @@ import type { ResonanceAudio } from "resonance-audio";
 import { getScaledPoints, testParks } from "../utils/scaledParks";
 import type { Variant, MockPosition } from "../App";
 import { distanceInMeters } from "../utils/geo";
-import { findClosestPark, findParksInRange, PREFETCH_DISTANCE, selectNearestInRangePark } from "../utils/parkSelection";
+import { scanParks } from "../utils/parkSelection";
+import {
+    CENTER_LATCH_RADIUS_METERS,
+    ENTER_DISTANCE_METERS,
+    EXIT_DISTANCE_METERS,
+    PREFETCH_DISTANCE_METERS,
+} from "../config/geofence";
 
 type Coordinate = [number, number];
 
@@ -36,7 +42,12 @@ interface UseGeolocationTrackingOptions {
 
 const MIN_SMOOTHING_DELAY_MS = 120;
 const MAX_SMOOTHING_DELAY_MS = 420;
-const POSITION_EPSILON = 0.0001;
+// The smoothed position is EPSG:3857 metres in [0] and [1] and a heading in
+// radians in [2], so one epsilon cannot serve both. The old shared 0.0001 was
+// 0.1 mm against metres, so the early-out never fired and every GPS frame
+// re-rendered the whole map tree.
+const POSITION_EPSILON_METERS = 0.5;
+const HEADING_EPSILON_RADIANS = 0.01; // ~0.6 degrees
 const GPS_HEADING_ENTER_MPS = 1.2;
 const GPS_HEADING_EXIT_MPS = 0.6;
 const GPS_SPEED_FRESHNESS_MS = 3000;
@@ -51,7 +62,12 @@ export type GeolocationFailure = {
     message: string;
 };
 
-export type LocationStatus = "acquiring" | "tracking" | "error";
+export type LocationStatus =
+    | "acquiring"
+    | "tracking"
+    | "imprecise"
+    | "stale"
+    | "error";
 
 /**
  * How long to wait for a first fix before telling the walker something is
@@ -61,6 +77,11 @@ export type LocationStatus = "acquiring" | "tracking" | "error";
  * at all, only silence.
  */
 const ACQUIRING_TIMEOUT_MS = 12_000;
+// Under tree cover a phone can report a fix that is minutes old without ever
+// erroring, so a fix that has stopped arriving is reported separately from one
+// that never arrived.
+const STALE_FIX_MS = 10_000;
+const STALE_FIX_POLL_MS = 1_000;
 
 function mod(n: number) {
     return ((n % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
@@ -86,11 +107,12 @@ export function useGeolocationTracking({
     const [position, setPosition] = useState<number[] | null>(null);
     const [geolocationError, setGeolocationError] = useState<GeolocationFailure | null>(null);
     const [accuracy, setAccuracy] = useState<LineString | null>(null);
+    const [accuracyMeters, setAccuracyMeters] = useState<number | null>(null);
+    const [isFixStale, setIsFixStale] = useState(false);
+    const lastFixAtRef = useRef<number | null>(null);
     const [parkName, setParkName] = useState("");
     const [parkDistance, setParkDistance] = useState(0);
     const [prefetchParkName, setPrefetchParkName] = useState("");
-    const [prefetchParkCoords, setPrefetchParkCoords] = useState<Coordinate | null>(null);
-    const [prefetchParkDistance, setPrefetchParkDistance] = useState(0);
     const [prefetchParks, setPrefetchParks] = useState<{ coords: Coordinate; distance: number }[]>([]);
     const [currentParkLocation, setCurrentParkLocation] = useState<Coordinate | null>(null);
     const [userOrientationEnabled, setUserOrientationEnabled] = useState(false);
@@ -111,9 +133,6 @@ export function useGeolocationTracking({
     const userOrientationEnabledRef = useRef(false);
     const [mapHeading, setMapHeading] = useState(0);
 
-    const enterDistance = 15;
-    const exitDistance = 18;
-    const prefetchDistance = PREFETCH_DISTANCE;
     const parkFeatures = useMemo<ParkFeature[]>(
         () => {
             const pts = getScaledPoints(variant);
@@ -181,6 +200,25 @@ export function useGeolocationTracking({
         };
     }, []);
 
+    // A watch that stops calling back does not error, so nothing else notices.
+    // Polling a timestamp is enough: the walker needs to know the blue dot has
+    // stopped meaning anything, not the exact moment it happened.
+    useEffect(() => {
+        if (!position) {
+            return;
+        }
+
+        const timer = window.setInterval(() => {
+            const lastFixAt = lastFixAtRef.current;
+            if (lastFixAt === null) {
+                return;
+            }
+            setIsFixStale(Date.now() - lastFixAt > STALE_FIX_MS);
+        }, STALE_FIX_POLL_MS);
+
+        return () => window.clearInterval(timer);
+    }, [position]);
+
     // Backstop for a watch that never calls back at all.
     useEffect(() => {
         if (position || geolocationError) {
@@ -197,7 +235,8 @@ export function useGeolocationTracking({
         return () => window.clearTimeout(timer);
     }, [position, geolocationError]);
 
-    const updateView = useCallback((timestamp = Date.now()) => {
+    /** Returns whether this tick committed a new position. */
+    const updateView = useCallback((timestamp = Date.now()): boolean => {
         let m = timestamp - getSmoothingDelay();
         m = Math.max(m, previousMRef.current);
         previousMRef.current = m;
@@ -208,9 +247,11 @@ export function useGeolocationTracking({
         }
 
         const previousPosition = lastRenderedPositionRef.current;
-        const positionChanged = !previousPosition || [0, 1, 2].some((index) => {
-            return Math.abs(coordinates[index] - previousPosition[index]) > POSITION_EPSILON;
-        });
+        const positionChanged =
+            !previousPosition ||
+            Math.abs(coordinates[0] - previousPosition[0]) > POSITION_EPSILON_METERS ||
+            Math.abs(coordinates[1] - previousPosition[1]) > POSITION_EPSILON_METERS ||
+            Math.abs(coordinates[2] - previousPosition[2]) > HEADING_EPSILON_RADIANS;
 
         if (!positionChanged) {
             return false;
@@ -220,35 +261,49 @@ export function useGeolocationTracking({
         setPosition(coordinates);
 
         const userLocation = toLonLat([coordinates[0], coordinates[1]]) as Coordinate;
-        const closest = findClosestPark(userLocation, parkFeatures) as { park: ParkFeature; distance: number } | null;
-        const inPrefetchRange = Boolean(closest && closest.distance < prefetchDistance);
-        setPrefetchParkName(inPrefetchRange ? closest!.park.name : "");
-        setPrefetchParkCoords(inPrefetchRange ? closest!.park.scaledCoords : null);
-        setPrefetchParkDistance(inPrefetchRange ? closest!.distance : 0);
-        setPrefetchParks(findParksInRange(userLocation, parkFeatures, prefetchDistance));
+        // One pass for all three answers: this runs on every GPS frame.
+        // No cast: scanParks is generic over the park type, so closest.park is
+        // a ParkFeature here rather than something to assert about.
+        const scan = scanParks(userLocation, parkFeatures, {
+            prefetchDistance: PREFETCH_DISTANCE_METERS,
+            enterDistance: ENTER_DISTANCE_METERS,
+        });
+        const closest = scan.closest;
+        const inPrefetchRange = Boolean(closest && closest.distance < PREFETCH_DISTANCE_METERS);
+        setPrefetchParkName(inPrefetchRange && closest ? closest.park.name : "");
+        setPrefetchParks(scan.inPrefetchRange);
 
-        const nearbyPark = selectNearestInRangePark(userLocation, parkFeatures, enterDistance);
+        const nearbyPark = scan.nearestInEnterRange;
         const nextParkLocation = nearbyPark?.scaledCoords ?? null;
 
         if (nearbyPark && nearbyPark.name !== parkName) {
+            // Park-to-park without passing through the exit branch. On the
+            // scaled debug map the parks sit metres apart, so this is a normal
+            // walk, not an edge case — and the outgoing park's audio has to
+            // stop before the incoming one loads.
+            if (parkName) {
+                stopSound();
+            }
             setParkName(nearbyPark.name);
             setCurrentParkLocation(nextParkLocation);
         }
 
         const activeParkLocation = nextParkLocation ?? currentParkLocation;
         if (!activeParkLocation) {
-            return;
+            // No active park, so there is no exit distance to check — but the
+            // position itself was committed above.
+            return true;
         }
 
         const currentDistance = distanceInMeters(activeParkLocation, userLocation);
-        if (currentDistance <= exitDistance) {
+        if (currentDistance <= EXIT_DISTANCE_METERS) {
             setParkDistance(currentDistance);
             resonanceAudioScene?.setListenerPosition(currentDistance, currentDistance, 0);
             // Keep center-mode latched while the user remains in the active park so
             // minor GPS drift does not drop map centering after rotation has started.
             const nextUserOrientationEnabled =
-                currentDistance < 5 ||
-                (userOrientationEnabledRef.current && currentDistance <= exitDistance);
+                currentDistance < CENTER_LATCH_RADIUS_METERS ||
+                (userOrientationEnabledRef.current && currentDistance <= EXIT_DISTANCE_METERS);
 
             if (userOrientationEnabledRef.current !== nextUserOrientationEnabled) {
                 userOrientationEnabledRef.current = nextUserOrientationEnabled;
@@ -256,7 +311,9 @@ export function useGeolocationTracking({
             }
         }
 
-        if (currentDistance > exitDistance) {
+        if (currentDistance > EXIT_DISTANCE_METERS) {
+            // The one place audio stops on leaving. GeolocationMap and
+            // HoaRenderer used to duplicate this from their own lifecycles.
             setParkName("");
             setParkDistance(0);
             setCurrentParkLocation(null);
@@ -265,7 +322,18 @@ export function useGeolocationTracking({
             stopSound();
         }
         return true;
-    }, [currentParkLocation, exitDistance, getSmoothingDelay, parkFeatures, parkName, prefetchDistance, resonanceAudioScene, stopSound]);
+    }, [currentParkLocation, getSmoothingDelay, parkFeatures, parkName, resonanceAudioScene, stopSound]);
+
+    // The running tick captures updateView by closure, but updateView is
+    // rebuilt whenever parkName or currentParkLocation changes — exactly when
+    // the walker enters or leaves a park. The animationFrameRef guard below
+    // then stops a fresh loop from starting while the stale one is still
+    // alive, so entry/exit decisions would run against the previous park.
+    // Reading through a ref keeps one loop calling the current logic.
+    const updateViewRef = useRef(updateView);
+    useEffect(() => {
+        updateViewRef.current = updateView;
+    }, [updateView]);
 
     const stopAnimationLoop = useCallback(() => {
         if (animationFrameRef.current !== null) {
@@ -281,7 +349,7 @@ export function useGeolocationTracking({
 
         const tick = () => {
             const now = Date.now();
-            updateView(now);
+            updateViewRef.current(now);
 
             const coords = positionsRef.current.getCoordinates();
             const latestFixM = coords[coords.length - 1]?.[3] ?? 0;
@@ -296,7 +364,7 @@ export function useGeolocationTracking({
         };
 
         animationFrameRef.current = requestAnimationFrame(tick);
-    }, [getSmoothingDelay, updateView]);
+    }, [getSmoothingDelay]);
 
     const commitMapHeading = useCallback((radians: number) => {
         const prev = mapHeadingRef.current;
@@ -386,6 +454,14 @@ export function useGeolocationTracking({
         const [x, y] = nextPosition;
         setAccuracy(new LineString([nextPosition]));
 
+        // Accuracy is a radius in metres. Compared against the 15 m enter
+        // distance it is the difference between "you are at the park" and
+        // "you are somewhere in a circle that happens to contain it".
+        const reportedAccuracy = geoloc.getAccuracy();
+        setAccuracyMeters(typeof reportedAccuracy === "number" ? reportedAccuracy : null);
+        lastFixAtRef.current = Date.now();
+        setIsFixStale(false);
+
         const m = Date.now();
         const features = positionsRef.current.getCoordinates();
         const previous = features[features.length - 1];
@@ -430,7 +506,7 @@ export function useGeolocationTracking({
 
         updateView(m);
         startAnimationLoop();
-    }, [startAnimationLoop, updateView]);
+    }, [commitMapHeading, startAnimationLoop, updateView]);
 
     useEffect(() => {
         return () => {
@@ -456,28 +532,43 @@ export function useGeolocationTracking({
     // An error only matters while there is nothing to show. Once a fix has
     // landed the walk continues on the last known position rather than
     // throwing up a banner over a working map.
-    const locationStatus: LocationStatus = position
-        ? "tracking"
-        : geolocationError
-            ? "error"
-            : "acquiring";
+    // A coarse fix only matters where it can pick the wrong park. On a cold
+    // start the first fixes are network or cell positions tens of metres wide,
+    // so without this the walker is told GPS is imprecise while standing in
+    // their driveway, nowhere near anything. Warning about a problem that is
+    // not affecting them yet spends the credibility the same banner needs
+    // later, under tree cover, when it explains why a park will not start.
+    //
+    // prefetchParkName is set exactly when the nearest park is inside
+    // PREFETCH_DISTANCE_METERS, which is the range where accuracy starts to
+    // decide anything.
+    const parkWithinRange = prefetchParkName !== "";
+
+    const locationStatus: LocationStatus = !position
+        ? (geolocationError ? "error" : "acquiring")
+        : isFixStale
+            ? "stale"
+            : accuracyMeters !== null &&
+                accuracyMeters > ENTER_DISTANCE_METERS &&
+                parkWithinRange
+                ? "imprecise"
+                : "tracking";
 
     return {
         accuracy,
+        accuracyMeters,
         currentParkLocation,
         debugPermission,
         geolocationError,
         locationStatus,
         onGeolocationError,
-        enterDistance,
-        exitDistance,
+        enterDistance: ENTER_DISTANCE_METERS,
+        exitDistance: EXIT_DISTANCE_METERS,
         onGeolocationChange,
         parkDistance,
         parkFeatures,
         parkName,
         prefetchParkName,
-        prefetchParkCoords,
-        prefetchParkDistance,
         prefetchParks,
         position,
         mapHeading,

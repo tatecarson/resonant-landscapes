@@ -1,10 +1,15 @@
 const EARTH_RADIUS_METERS = 6371008.8;
 
-function toRadians(value) {
+export type Coordinate = [number, number];
+
+function toRadians(value: number) {
   return (value * Math.PI) / 180;
 }
 
-export function distanceInMeters([lon1, lat1], [lon2, lat2]) {
+export function distanceInMeters(
+  [lon1, lat1]: Coordinate,
+  [lon2, lat2]: Coordinate
+): number {
   const latDelta = toRadians(lat2 - lat1);
   const lonDelta = toRadians(lon2 - lon1);
   const lat1Radians = toRadians(lat1);
@@ -20,11 +25,11 @@ export function distanceInMeters([lon1, lat1], [lon2, lat2]) {
 }
 
 export function scaleCoordinates(
-  [lon, lat],
-  [referenceLon, referenceLat],
-  scaleLong,
-  scaleLat
-) {
+  [lon, lat]: Coordinate,
+  [referenceLon, referenceLat]: Coordinate,
+  scaleLong: number,
+  scaleLat: number
+): Coordinate {
   const scaledLong = (lon - referenceLon) * scaleLong;
   const scaledLat = (lat - referenceLat) * scaleLat;
 

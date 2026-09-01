@@ -1,10 +1,23 @@
 import type { BufferCache } from "./bufferCache";
+import { planDecodedBuffers, type SpatialDegradation } from "./channelCheck";
 
 export interface BufferLoaderDeps {
     cache: BufferCache;
     fetchArrayBuffer: (url: string, signal: AbortSignal) => Promise<ArrayBuffer>;
     decode: (data: ArrayBuffer) => Promise<AudioBuffer>;
     merge: (buffers: AudioBuffer[]) => AudioBuffer;
+    /**
+     * Called when the spatial file did not decode to its full channel count.
+     * Fires per load, not per cache hit.
+     *
+     * The cache key comes with it because the two reasons have different
+     * scopes. A `downmixed` result is a fact about the browser: an engine that
+     * collapses one park's 8-channel file collapses every park's, so the
+     * consumer should treat it as sticky and global. A `no-fallback` result is
+     * a fact about one payload, and a prefetch can report it for a park the
+     * walker is not in, so the consumer has to check the key before showing it.
+     */
+    onSpatialDegraded?: (degradation: SpatialDegradation, cacheKey: string) => void;
 }
 
 export interface BufferLoader {
@@ -33,6 +46,7 @@ export const createBufferLoader = ({
     fetchArrayBuffer,
     decode,
     merge,
+    onSpatialDegraded,
 }: BufferLoaderDeps): BufferLoader => {
     interface InFlight {
         promise: Promise<AudioBuffer>;
@@ -65,7 +79,15 @@ export const createBufferLoader = ({
                 throw new DOMException("Aborted", "AbortError");
             }
 
-            const merged = merge(decoded);
+            // Trust nothing about the decode: a browser that quietly collapsed
+            // the 8-channel stream would otherwise produce a walk that plays
+            // and looks right with no spatial field at all.
+            const { buffers, degradation } = planDecodedBuffers(decoded);
+            if (degradation) {
+                onSpatialDegraded?.(degradation, key);
+            }
+
+            const merged = merge(buffers);
             cache.set(key, merged);
             return merged;
         })();
