@@ -37,6 +37,7 @@ import { useRenderDebug } from "../hooks/useRenderDebug";
 import { useReduceVisuals } from "../hooks/useReduceVisuals";
 import { markParkHeard, useHeardParks } from "../hooks/heardParks";
 import NearestParkChip from "./NearestParkChip";
+import InstallHint from "./InstallHint";
 import { getVariantCenter } from "../utils/scaledParks";
 import { debugLog, isDebugEnabled } from "../config/debug";
 import {
@@ -594,16 +595,43 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
             </ErrorBoundary>
 
             {/*
-              * Shares the bottom of the display with the park strip, so it
-              * stands down whenever one is up. A walker standing in a park
-              * does not need to be told where the nearest park is.
+              * Two reasons to stand down, and they are different.
+              *
+              * A park strip is up: they share the bottom of the display, and
+              * a walker standing in a park does not need to be told where the
+              * nearest park is.
+              *
+              * The Help modal is up: this is a fixed element in ordinary DOM,
+              * and the modal is a Headless UI Dialog inside a relative z-10
+              * stacking context, so the chip paints over the whole modal
+              * including its close button. That trapped a walker in the field
+              * guide with no way out of it (rl-1u7.15). The park strip already
+              * takes helpIsOpen for the same reason; the chip was written
+              * without it.
               */}
-            <NearestParkChip
-                userLonLat={userLonLat}
-                parks={parkFeatures}
-                heardParks={heardParks}
-                active={!parkName}
-            />
+            {/*
+              * One stack owns the bottom of the display, so its two cards can
+              * never overlap each other and the safe-area padding is written
+              * once. Both stand down for the field guide: they are fixed
+              * elements in ordinary DOM and the guide is a Dialog inside a
+              * relative z-10 context, so anything left here paints over its
+              * close button (rl-1u7.15).
+              *
+              * The install offer sits above the chip rather than replacing
+              * it. Suppressing the chip while the offer was up cost the
+              * walker their only sense of where to go next at exactly the
+              * moment they had heard a park and were choosing the next one,
+              * which is the wrong thing to trade for a prompt.
+              */}
+            <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-center gap-2 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                <InstallHint active={!parkName && !helpIsOpen} />
+                <NearestParkChip
+                    userLonLat={userLonLat}
+                    parks={parkFeatures}
+                    heardParks={heardParks}
+                    active={!parkName && !helpIsOpen}
+                />
+            </div>
 
             {debug && (
                 <GeolocationDebugPanel
