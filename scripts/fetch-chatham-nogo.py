@@ -114,6 +114,48 @@ def fetch(query: str) -> dict:
     raise SystemExit(f"could not reach Overpass: {last}")
 
 
+def point_in_ring(x: float, y: float, ring: list[list[float]]) -> bool:
+    """Ray casting. Small enough to write, and this is the only place it runs."""
+    inside = False
+    for (x1, y1), (x2, y2) in zip(ring, ring[1:]):
+        if (y1 > y) != (y2 > y):
+            crossing = x1 + (y - y1) / (y2 - y1) * (x2 - x1)
+            if crossing > x:
+                inside = not inside
+    return inside
+
+
+def segments_cross(a, b, c, d) -> bool:
+    def orient(p, q, r):
+        return (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1])
+
+    o1, o2, o3, o4 = orient(a, b, c), orient(a, b, d), orient(c, d, a), orient(c, d, b)
+    return (o1 > 0) != (o2 > 0) and (o3 > 0) != (o4 > 0)
+
+
+def touches_campus(ring: list[list[float]], campus: list[list[float]]) -> bool:
+    """
+    Whether a polygon can ever matter.
+
+    Points are constrained to the campus polygon, so anything that does not
+    overlap it is unreachable and only costs bytes on a phone. Without this
+    the set carried 363 buildings, most of them Shadyside houses across the
+    road from a campus a walker never leaves.
+
+    Three ways to overlap, and a road crossing a corner needs the third: it
+    can have both ends outside the campus and still run through it.
+    """
+    if any(point_in_ring(x, y, campus) for x, y in ring):
+        return True
+    if any(point_in_ring(x, y, ring) for x, y in campus):
+        return True
+    for edge in zip(ring, ring[1:]):
+        for campus_edge in zip(campus, campus[1:]):
+            if segments_cross(edge[0], edge[1], campus_edge[0], campus_edge[1]):
+                return True
+    return False
+
+
 def round_ring(ring: list[list[float]]) -> list[list[float]]:
     return [[round(lon, COORD_DP), round(lat, COORD_DP)] for lon, lat in ring]
 
@@ -177,6 +219,14 @@ def main() -> None:
     bbox = f"{south},{west},{north},{east}"
     query = QUERY.format(bbox=bbox, roads="|".join(ROAD_HALF_WIDTH))
 
+    print(f"querying Overpass for campus way {CAMPUS_WAY}")
+    campus_payload = fetch(f"[out:json][timeout:60];way({CAMPUS_WAY});out geom;")
+    campus_element = campus_payload["elements"][0]
+    campus_ring = [[n["lon"], n["lat"]] for n in campus_element["geometry"]]
+    if campus_ring[0] != campus_ring[-1]:
+        campus_ring.append(campus_ring[0])
+    print(f"  campus polygon: {len(campus_ring)} nodes")
+
     print(f"querying Overpass for {bbox}")
     payload = fetch(query)
     elements = payload.get("elements", [])
@@ -185,6 +235,7 @@ def main() -> None:
     mid_latitude = (south + north) / 2
     features = []
     counts: dict[str, int] = {}
+    skipped = 0
 
     for element in elements:
         tags = element.get("tags", {})
@@ -198,7 +249,10 @@ def main() -> None:
 
         if kind == "road":
             half = ROAD_HALF_WIDTH.get(tags["highway"], 6.0)
-            rings = buffer_line(geometry, half, mid_latitude)
+            rings = [r for r in buffer_line(geometry, half, mid_latitude) if touches_campus(r, campus_ring)]
+            if not rings:
+                skipped += 1
+                continue
             for index, ring in enumerate(rings):
                 features.append(
                     {
@@ -221,6 +275,9 @@ def main() -> None:
             ring.append(ring[0])
         if len(ring) < 4:
             continue
+        if not touches_campus(ring, campus_ring):
+            skipped += 1
+            continue
 
         features.append(
             {
@@ -238,13 +295,6 @@ def main() -> None:
     # and on land that is not Chatham's. The bounds are a rectangle and the
     # campus is not, so "inside the bounds" was never the same question as
     # "on the campus".
-    print(f"querying Overpass for campus way {CAMPUS_WAY}")
-    campus_payload = fetch(f"[out:json][timeout:60];way({CAMPUS_WAY});out geom;")
-    campus_element = campus_payload["elements"][0]
-    campus_ring = [[n["lon"], n["lat"]] for n in campus_element["geometry"]]
-    if campus_ring[0] != campus_ring[-1]:
-        campus_ring.append(campus_ring[0])
-
     campus_out = pathlib.Path(__file__).resolve().parent.parent / "src" / "data" / "chathamCampus.json"
     campus_out.write_text(
         json.dumps(
@@ -273,6 +323,7 @@ def main() -> None:
     )
 
     print(f"wrote {out.relative_to(out.parent.parent.parent)}: {len(features)} polygons")
+    print(f"  ({skipped} dropped for not touching the campus)")
     for kind, count in sorted(counts.items()):
         print(f"  {kind}: {count}")
 
