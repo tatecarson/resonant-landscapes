@@ -67,6 +67,18 @@ function findBoundingBoxXY(points: PlanePoint[]) {
 
 type NoGoSet = { features: unknown[] };
 
+/**
+ * How much room a listening point should have around it, in metres.
+ *
+ * Not the full 15 m enter radius: on a real site that is often unobtainable,
+ * and insisting on it would push points a long way from where the remap
+ * wanted them, which is what carries the shape of South Dakota. Eight metres
+ * is enough that a walker is standing in a space rather than against a wall.
+ */
+const CLEARANCE_TARGET_METERS = 8;
+/** Compass points probed when measuring room. Sixteen is every 22.5 degrees. */
+const CLEARANCE_PROBES = 16;
+
 function isPointInNoGo(candidate: Feature<Point>, noGo: NoGoSet) {
     return noGo.features.some(f => {
         try {
@@ -141,16 +153,64 @@ function pullOntoSite(start: Feature<Point>, inside: Feature<Polygon>): Feature<
     return current;
 }
 
+/**
+ * How much room a spot has: the largest legal circle around it, in metres,
+ * stopping once it reaches `want` because more than that is not interesting.
+ */
+function clearanceMeters(
+    candidate: Feature<Point>,
+    noGo: NoGoSet,
+    inside: Feature<Polygon> | null,
+    want: number
+): number {
+    if (!isAcceptable(candidate, noGo, inside)) return -1;
+
+    const [lon, lat] = candidate.geometry.coordinates as Coordinate;
+    const lonPerMetre = 1 / (111_320 * Math.cos((lat * Math.PI) / 180));
+    const latPerMetre = 1 / 111_320;
+
+    let clear = 0;
+    for (let radius = 2; radius <= want; radius += 2) {
+        let ringIsClear = true;
+        for (let i = 0; i < CLEARANCE_PROBES; i += 1) {
+            const angle = (i / CLEARANCE_PROBES) * 2 * Math.PI;
+            const probe = point([
+                lon + Math.cos(angle) * radius * lonPerMetre,
+                lat + Math.sin(angle) * radius * latPerMetre,
+            ]);
+            if (!isAcceptable(probe, noGo, inside)) {
+                ringIsClear = false;
+                break;
+            }
+        }
+        if (!ringIsClear) break;
+        clear = radius;
+    }
+    return clear;
+}
+
+/**
+ * Move a point to somewhere it can actually be stood in.
+ *
+ * The old version stopped at the first position that was not inside a no-go
+ * polygon, and the first position outside an obstacle is against its edge. So
+ * every rescued point ended up hard against a wall or a kerb with most of its
+ * listening area inside the building it had just escaped. Measured on the
+ * live Terrace walk, eight of thirteen points sat in a pocket smaller than
+ * their own 15 m radius and two had no room at all. See rl-wc3.4.
+ *
+ * This looks for room instead. It spirals out the same way, but keeps going
+ * until it finds a spot with real clearance, and settles for the roomiest it
+ * saw if it never finds one.
+ */
 function snapToAcceptable(
     start: Feature<Point>,
     noGo: NoGoSet,
     inside: Feature<Polygon> | null
 ): Feature<Point> {
-    const stepDeg = 0.00008; // ~ 9 m east, ~ 9 m north (good lab/walking resolution)
-    // Wide enough to cross a campus. The old cap of 240 was sized for nudging
-    // a pin off a building; pulling one back from off-site is a longer walk.
+    const stepDeg = 0.00008; // ~ 9 m east, ~ 9 m north
     const maxIterations = 2000;
-    const dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]]; // E, N, W, S
+    const dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 
     let current = start;
     let leg = 1;
@@ -158,25 +218,36 @@ function snapToAcceptable(
     let stepsThisLeg = 0;
     let iter = 0;
 
-    while (!isAcceptable(current, noGo, inside) && iter < maxIterations) {
+    let best = start;
+    let bestClearance = clearanceMeters(start, noGo, inside, CLEARANCE_TARGET_METERS);
+    if (bestClearance >= CLEARANCE_TARGET_METERS) return start;
+
+    while (iter < maxIterations) {
         const [dx, dy] = dirs[dirIndex];
         const [lon, lat] = current.geometry.coordinates as Coordinate;
         current = point([lon + dx * stepDeg, lat + dy * stepDeg]);
+
+        const clearance = clearanceMeters(current, noGo, inside, CLEARANCE_TARGET_METERS);
+        if (clearance > bestClearance) {
+            bestClearance = clearance;
+            best = current;
+        }
+        if (clearance >= CLEARANCE_TARGET_METERS) return current;
+
         stepsThisLeg += 1;
         iter += 1;
         if (stepsThisLeg >= leg) {
             stepsThisLeg = 0;
             dirIndex = (dirIndex + 1) % 4;
-            // Every other turn the leg length grows by one — produces an
-            // expanding square spiral around the original point.
             if (dirIndex % 2 === 0) leg += 1;
         }
     }
 
-    if (iter >= maxIterations) {
-        console.warn('[scaledParks] snapToAcceptable hit iteration cap; returning last position', current.geometry.coordinates);
+    if (bestClearance < 0) {
+        console.warn('[scaledParks] no legal position found; leaving the point where it was', start.geometry.coordinates);
+        return start;
     }
-    return current;
+    return best;
 }
 
 type SiteBounds = { west: number; east: number; north: number; south: number };
