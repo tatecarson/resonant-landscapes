@@ -2,16 +2,71 @@ userName: ${BROWSERSTACK_USERNAME}
 accessKey: ${BROWSERSTACK_ACCESS_KEY}
 framework: playwright
 
+# The real-device matrix (rl-06c.6). One run of this file covers every
+# platform below; each is a real device on BrowserStack's cloud, driven by
+# playwright.browserstack.config.ts against the URL in PLAYWRIGHT_BASE_URL.
+#
+# What the emulated projects cannot answer, and these can:
+#   - real iOS Safari decodes the 8-channel asset with AudioToolbox, the
+#     proprietary codec path open-source WebKit does not have
+#   - Samsung Internet is the default browser on the Samsung hardware most
+#     Android walkers actually hold
+#   - Firefox on real Android exercises the third engine on the third tier
+#
+# What these deliberately do not do: geolocation. The geoLocation capability
+# is unsupported for Playwright on real iOS devices, so nothing here depends
+# on position spoofing — the walk-in-a-park mechanic stays with the emulated
+# profiles and the headed simulators, and field behaviour stays with field
+# walking (rl-1u7.8.3, rl-wc3.3).
+#
+# Seven platforms at parallelsPerPlatform 1 is seven sequential sessions per
+# build; scheduled weekly, that is a deliberate, bounded spend.
 platforms:
+  # Android: Chrome, the engine most walkers already carry. The original
+  # platform of this file, kept verbatim.
   - browserName: chrome
     deviceName: Samsung Galaxy S22
     osVersion: 13
+
+  # Samsung Internet: the default browser on the very device above, and
+  # per BrowserStack's API the real-device browserName is "samsung".
+  - browserName: samsung
+    deviceName: Samsung Galaxy S22
+    osVersion: 13
+
+  # A non-Samsung OEM, so vendor WebView/browser quirks do not hide behind
+  # one manufacturer.
+  - browserName: chrome
+    deviceName: Google Pixel 7
+    osVersion: 13
+
+  # Firefox on real Android devices is supported per BrowserStack's docs
+  # but is still absent from their capability generator, so treat this
+  # platform as provisional until the first run lists it on the dashboard.
+  - browserName: firefox
+    deviceName: Samsung Galaxy S23
+    osVersion: 14
+
+  # Real iOS. The floor of the support matrix (README), then the two most
+  # recent majors: what an installed walker on an un-updated phone runs,
+  # and what a current one runs. Device/OS pairs from BrowserStack's
+  # Playwright-for-iOS documentation; adjust on their dashboard's word if
+  # a pair is retired.
+  - browserName: safari
+    deviceName: iPhone 12 Pro
+    osVersion: 15
+  - browserName: safari
+    deviceName: iPhone 15 Pro Max
+    osVersion: 17
+  - browserName: safari
+    deviceName: iPhone 14
+    osVersion: 18
 
 parallelsPerPlatform: 1
 browserstackLocal: false
 
 projectName: Resonant-Landscapes
-buildName: BrowserStack-Android-Chrome
+buildName: BrowserStack-Real-Devices
 
 debug: true
 networkLogs: true

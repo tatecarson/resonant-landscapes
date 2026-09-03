@@ -14,7 +14,11 @@ export default defineConfig({
   // every spec, not just that file.
   // production-surfaces.spec.ts needs a production build and has its own
   // config; the dev server this one starts would make it vacuously pass.
-  testMatch: /^(?!.*production-surfaces).*\.spec\.ts$/,
+  // real-device.spec.ts runs only under playwright.browserstack.config.ts on
+  // BrowserStack's real devices (rl-06c.6): it pulls ~10-25 MB of real CDN
+  // audio per project run, which is the real-device build's budget to
+  // spend, not CI's.
+  testMatch: /^(?!.*production-surfaces)(?!.*real-device).*\.spec\.ts$/,
   // Aborts before the first test if something other than this app is serving
   // baseURL — see tests/global-setup.ts for why that is worth checking.
   globalSetup: "./tests/global-setup.ts",
