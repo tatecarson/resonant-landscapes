@@ -334,17 +334,20 @@ export const wayfinding = {
 /**
  * What is true with no signal.
  *
- * Deliberately modest about what still works. The walk opens without a
- * connection because its own files are held on the phone, but the park
- * recordings are not, and neither is any part of the map the walker has not
- * already looked at. A notice promising an offline walk would be the same
- * class of lie as the strip reporting playback into a silenced phone.
+ * Still modest, but about the right things now. The walk opens without a
+ * connection because its own files are held on the phone, and recordings it
+ * has already fetched are held too — so a park the walk has saved plays
+ * again with no signal at all. What stays impossible offline is anything
+ * the walk has not already paid for: a recording it has never downloaded,
+ * and parts of the map the walker has never looked at. The notice says both
+ * halves, because the second half is what stops the first from reading as a
+ * promise about the whole walk.
  */
 export const connection = {
     offline: {
         title: "No signal",
         detail:
-            "The walk stays open, but park recordings will not download and new parts of the map will not appear. It picks up again when the signal does.",
+            "The walk stays open. Recordings the walk has already saved will still play; new ones will not download, and parts of the map you have not looked at will not appear until the signal returns.",
     },
 } as const;
 
@@ -356,24 +359,25 @@ export const connection = {
  * Safari has no such API at all: the only route is the walker doing it by
  * hand, so there the hint has to be instructions or it is not an offer.
  *
- * What it promises is only what installing buys a walker today: a full
- * screen, and not having to find the link again.
+ * What it promises is what installing buys a walker: a full screen, not
+ * having to find the link again, and now the real argument — recordings the
+ * walk has saved stay on the phone, so parks still play where the signal is
+ * thin. This is the claim the install affordance was waiting for: before
+ * rl-1u7.8.2 cached recordings and tiles, an installed walk opened offline
+ * to a blank map that could find you and play nothing, and promising it
+ * would have been true of the app and false of the walker.
  *
- * It deliberately does not claim the walk opens with no signal, although the
- * shell is held on the phone and technically does. With no recordings and no
- * map tiles kept, opening offline gets a blank map that can find you and
- * cannot play anything, so the claim would be true of the app and false of
- * the walker. That is the same shape as the strip reporting playback into a
- * silenced phone, and the offline notice below contradicts it outright.
- * rl-1u7.8.2 is where offline becomes worth offering, and this copy should
- * gain the claim then, not before.
+ * What the copy still does not say: that the walk "works offline" outright.
+ * A park plays with no signal only if its recording was saved while there
+ * was signal, and a first visit held entirely offline plays nothing. The
+ * phrasing keeps the condition in the sentence.
  */
 export const install = {
     title: "Keep the walk on your home screen",
     detail: {
-        ios: "Press the share button, then Add to Home Screen. It opens full screen, and you do not have to find the link again.",
-        android: "It opens full screen, and you do not have to find the link again.",
-        other: "It opens full screen, and you do not have to find the link again.",
+        ios: "Press the share button, then Add to Home Screen. It opens full screen, and parks the walk has saved still play where the signal is thin.",
+        android: "It opens full screen, and parks the walk has saved still play where the signal is thin.",
+        other: "It opens full screen, and parks the walk has saved still play where the signal is thin.",
     },
     action: "Add it",
     dismiss: "Not now",
@@ -384,7 +388,7 @@ export const install = {
      */
     helpTitle: "Home screen",
     helpDetail:
-        "The walk can live on your home screen. On iPhone, press share and then Add to Home Screen. It opens full screen, with no browser bars over the map.",
+        "The walk can live on your home screen. On iPhone, press share and then Add to Home Screen. It opens full screen, with no browser bars over the map, and recordings you hear are saved to the phone so they play again where the signal is thin.",
 } as const;
 
 /** Rotation, which iOS gates behind its own permission prompt. */

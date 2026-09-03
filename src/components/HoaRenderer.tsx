@@ -5,7 +5,9 @@ import { useRenderDebug } from "../hooks/useRenderDebug";
 import GimbalArrow from './GimbalArrow';
 
 import stateParks from '../data/stateParks.json';
-import { pickSoundPath } from '../utils/audioPaths';
+import { getParkAudioVariants, pickSoundPath } from '../utils/audioPaths';
+import { findCachedVariantForPark } from '../audio/offlineAudioCache';
+import { clearActiveReplay, setActiveReplay } from '../hooks/activeReplay';
 import { audio as audioCopy } from '../copy';
 import { detectPlatform } from '../utils/recoverySteps';
 import { isDebugEnabled } from '../config/debug';
@@ -133,6 +135,15 @@ const HOARenderer = ({
         cancelPendingLoad,
     });
 
+    /**
+     * The park the load effect below is currently working for, null between
+     * parks. A retry has no effect lifetime of its own to hang an `isCurrent`
+     * flag on, so it reads this instead: a retry for a park the walker has
+     * since left must not come back from its cache lookup and win the load
+     * race against the park they are standing in now.
+     */
+    const activeParkNameRef = useRef<string | null>(null);
+
     useEffect(() => {
         audioActionsRef.current = {
             loadBuffers,
@@ -142,38 +153,84 @@ const HOARenderer = ({
         };
     }, [cancelPendingLoad, clearLoadError, loadBuffers, stopSound]);
 
+    /**
+     * Load the park's audio, with one fallback: if the recording the seed
+     * drew cannot be fetched — no signal, or a signal too thin to carry
+     * ~10 MB — and the walk already holds a recording of this park, replay
+     * that instead of dead-ending. This is the whole point of keeping the
+     * bytes: an offline visit is allowed to replay what it holds rather
+     * than draw a new recording it cannot download.
+     *
+     * The replay is a different recording of the same park, so the strip's
+     * "recording N of M" is corrected through the active-replay store; the
+     * seed is untouched and the next online visit draws fresh as always.
+     */
+    const loadParkAudio = useCallback(async (parkName: string, isCurrent: () => boolean) => {
+        const soundPathList = pickSoundPath(parkName, stateParks, navigator.userAgent);
+        if (!soundPathList) {
+            if (isCurrent()) {
+                setPathError(`No valid sound path is configured for "${parkName}".`);
+            }
+            return;
+        }
+
+        if (isCurrent()) {
+            setPathError(null);
+            clearActiveReplay(parkName);
+            audioActionsRef.current.clearLoadError();
+        }
+
+        const result = await audioActionsRef.current.loadBuffers(soundPathList);
+        if (result !== "error" || !isCurrent()) {
+            return;
+        }
+
+        const held = await findCachedVariantForPark(parkName);
+        if (!held || !isCurrent()) {
+            return;
+        }
+        if (held[0] === soundPathList[0] && held[1] === soundPathList[1]) {
+            // The seeded recording is the held one; the seam's cache fallback
+            // already served it. A second load could only race the first.
+            return;
+        }
+
+        const variants = getParkAudioVariants(parkName, stateParks, navigator.userAgent);
+        const heldNumber = variants
+            ? variants.findIndex((variant) => variant[0] === held[0] && variant[1] === held[1]) + 1
+            : 0;
+        if (heldNumber < 1) {
+            // A held pair this browser cannot number is one the strip cannot
+            // describe — findCachedVariantForPark searches both asset
+            // families, and only one of them is this browser's. Playing it
+            // would leave "recording N of M" pointing at the seed's choice
+            // while something else sounds, which is the sentence the replay
+            // store exists to prevent. Dead-end honestly instead.
+            return;
+        }
+        setActiveReplay(parkName, heldNumber);
+        audioActionsRef.current.clearLoadError();
+        await audioActionsRef.current.loadBuffers(held);
+    }, []);
+
     useEffect(() => {
         let isCurrent = true;
+        activeParkNameRef.current = parkName;
         setShouldAutoPlay(true);
         setAllowManualRestart(false);
 
-        const load = async () => {
-            const soundPathList = pickSoundPath(parkName, stateParks, navigator.userAgent);
-            if (!soundPathList) {
-                if (isCurrent) {
-                    setPathError(`No valid sound path is configured for "${parkName}".`);
-                }
-                return;
-            }
-
-            if (isCurrent) {
-                setPathError(null);
-                audioActionsRef.current.clearLoadError();
-            }
-
-            await audioActionsRef.current.loadBuffers(soundPathList);
-        };
-
-        void load();
+        void loadParkAudio(parkName, () => isCurrent);
 
         return () => {
             isCurrent = false;
+            activeParkNameRef.current = null;
             // Cancel the load, but do not stop playback. The tracking hook
             // stops audio on the parkName transition, which is the real event.
             audioActionsRef.current.cancelPendingLoad();
             audioActionsRef.current.clearLoadError();
+            clearActiveReplay(parkName);
         };
-    }, [parkName]);
+    }, [parkName, loadParkAudio]);
 
     useEffect(() => {
         if (!shouldAutoPlay || !isAudioUnlocked || isLoading || isPlaying || activeError || buffers === null) {
@@ -251,18 +308,16 @@ const HOARenderer = ({
     const showLoadingIndicator = !activeError && loadingLabel !== null;
 
     const retryLoading = useCallback(() => {
-        const soundPathList = pickSoundPath(parkName, stateParks, navigator.userAgent);
-        if (!soundPathList) {
-            setPathError(`No valid sound path is configured for "${parkName}".`);
-            return;
-        }
-
         setPathError(null);
         setShouldAutoPlay(true);
         clearLoadError();
         cancelPendingLoad();
-        void loadBuffers(soundPathList);
-    }, [cancelPendingLoad, clearLoadError, loadBuffers, parkName]);
+        // The same load-with-fallback as entry: a retry with no signal walks
+        // into the held recording rather than failing twice at the same URL,
+        // and under the same guard, so a walker who leaves mid-retry does not
+        // get this park's held recording playing in the next one.
+        void loadParkAudio(parkName, () => activeParkNameRef.current === parkName);
+    }, [cancelPendingLoad, clearLoadError, loadParkAudio, parkName]);
 
     return (
         <div id="secSource">

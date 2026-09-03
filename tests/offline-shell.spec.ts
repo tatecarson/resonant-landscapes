@@ -5,10 +5,11 @@
  * exist in dev: vite-plugin-pwa leaves it out, so the same assertions run
  * against `npm run dev` would pass while proving nothing.
  *
- * What is deliberately NOT asserted here: that a park plays offline. It does
- * not, and it is not meant to yet. Audio caching is rl-1u7.8.2, and a spec
- * that quietly expected it would either fail for the wrong reason or, worse,
- * be written loosely enough to pass once and mislead later.
+ * Since rl-1u7.8.2 the walk holds recordings it has fetched, and the
+ * offline-replay spec (offline-audio.spec.ts) asserts that a park it holds
+ * actually plays with no signal. This file keeps asserting the copy: the
+ * promise stays conditional — what was saved replays, what was never
+ * downloaded does not — and never widens into "works offline".
  */
 import { expect, test, type Page } from "@playwright/test";
 
@@ -84,10 +85,13 @@ test("says what is actually true with no signal", async ({ page, context }) => {
     const notice = page.getByTestId("offline-notice");
     await expect(notice).toBeVisible({ timeout: 10_000 });
 
-    // The promise this holds: it never claims the recordings are available.
-    // Saying the walk works offline while no audio is held would be the same
-    // class of lie as the strip reporting playback into a silenced phone.
+    // The promise this holds: saved recordings replay, nothing is claimed
+    // about recordings the walk never downloaded, and the claim never
+    // widens into a blanket "works offline". An unconditional promise would
+    // be the same class of lie as the strip reporting playback into a
+    // silenced phone — a first visit held entirely offline plays nothing.
     await expect(notice).toContainText(/no signal/i);
+    await expect(notice).toContainText(/already saved/i);
     await expect(notice).toContainText(/will not download/i);
     await expect(notice).not.toContainText(/works offline|available offline|fully offline/i);
 

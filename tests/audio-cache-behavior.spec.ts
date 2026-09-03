@@ -103,6 +103,23 @@ test("returning to a recent park replays it from cache", async ({ context, page 
   expect(cacheEntries).toBeLessThanOrEqual(3);
 });
 
+test("bytes the walk fetches land in the disk cache for offline replay", async ({ context, page }) => {
+  await startWalk(context, page, FAR_AWAY);
+
+  await walkTo(context, page, HARTFORD, 2000);
+  await expect.poll(async () => (await audioDebug(page))?.hasBuffers, { timeout: 60_000 }).toBe(true);
+
+  // Both files of the drawn recording are on disk, under the cache name the
+  // offline replay reads. The prefetch and the active load agree on the
+  // same recording, so two URLs is the whole pair.
+  const heldPaths = await page.evaluate(async () => {
+    const cache = await caches.open("resonant-audio-v1");
+    return (await cache.keys()).map((request) => new URL(request.url).pathname);
+  });
+  expect(heldPaths.length).toBeGreaterThanOrEqual(2);
+  expect(heldPaths.some((path) => /Hartford-Beach/.test(path))).toBe(true);
+});
+
 test("audio stops when the walker leaves the park", async ({
   context,
   page,
