@@ -1,0 +1,18 @@
+<svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="cachedHeardDotShadow" x="8" y="8" width="56" height="56" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#17312A" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+  <!--
+    The heard park with the held marker: the inverted dot plus its outer
+    ring in the same green as the dot's stroke. Same shape language as
+    park_marker_dot_cached.svg, in the heard palette, so the two states
+    compose instead of competing.
+  -->
+  <g filter="url(#cachedHeardDotShadow)">
+    <circle cx="36" cy="36" r="22" stroke="#3F7A63" stroke-width="3" opacity="0.9"/>
+    <circle cx="36" cy="36" r="12" fill="#F6F1E7"/>
+    <circle cx="36" cy="36" r="10.5" stroke="#3F7A63" stroke-width="3"/>
+  </g>
+</svg>

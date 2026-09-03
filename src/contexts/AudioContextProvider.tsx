@@ -11,6 +11,7 @@ import { shouldSurfaceDegradation, type SpatialDegradation } from "../audio/chan
 import { mergeBuffersByChannel } from "../audio/mergeBuffers";
 import { createAudioDebugBridge, type AudioLoadDebug } from "../audio/audioDebugBridge";
 import { createAudioGraph, primeAudioContext } from "../audio/audioGraph";
+import { fetchAudioBytes, setOfflineCacheEventSink } from "../audio/offlineAudioCache";
 import { debugLog } from "../config/debug";
 
 // Active park plus one prefetch. Each merged park buffer is 9 channels of
@@ -28,7 +29,14 @@ interface AudioEngineContextType {
     unlockAudio: () => Promise<boolean>;
     playSound: () => void;
     stopSound: () => void;
-    loadBuffers: (urls: string[]) => Promise<boolean>;
+    /**
+     * "loaded" is what it says. "stale" means the load was abandoned — a
+     * park change or a superseding load owns the outcome now, so the caller
+     * must not react to it. "error" means the park's own recording failed
+     * and the caller still owns the park: this is the hook the offline
+     * replay falls back from.
+     */
+    loadBuffers: (urls: string[]) => Promise<"loaded" | "stale" | "error">;
     bufferSourceRef: React.MutableRefObject<AudioBufferSourceNode | null>;
     clearLoadError: () => void;
     cancelPendingLoad: () => void;
@@ -68,7 +76,7 @@ const AudioEngineContext = createContext<AudioEngineContextType>({
     unlockAudio: async () => false,
     playSound: () => {},
     stopSound: () => {},
-    loadBuffers: async () => false,
+    loadBuffers: async () => "error",
     bufferSourceRef: { current: null },
     clearLoadError: () => {},
     cancelPendingLoad: () => {},
@@ -142,6 +150,17 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         getCacheSize: () => bufferCacheRef.current.size,
     })).current;
 
+    // Cache activity reaches the debug log, not the event union: the union
+    // is the contract specs poll, and a cache write is not a state a spec
+    // should wait on — the cache itself is readable through `caches` for
+    // that. These surface for a human watching the console with ?debug.
+    useEffect(() => {
+        setOfflineCacheEventSink((event) => {
+            debugLog(`offline audio cache: ${event.kind}`, "url" in event ? event.url : event);
+        });
+        return () => setOfflineCacheEventSink(null);
+    }, []);
+
     const bufferLoaderRef = useRef<ReturnType<typeof createBufferLoader> | null>(null);
     const {
         supported: wakeLockSupported,
@@ -155,11 +174,10 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         bufferLoaderRef.current = createBufferLoader({
             cache: bufferCacheRef.current,
             fetchArrayBuffer: async (url, signal) => {
-                const response = await fetch(url, { signal });
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch ${url} (${response.status})`);
-                }
-                return response.arrayBuffer();
+                // Network first, disk second: online behaviour is unchanged,
+                // and the cache answers only when the network does not.
+                const { bytes } = await fetchAudioBytes(url, signal);
+                return bytes;
             },
             decode: (data) => {
                 const context = audioContextRef.current;
@@ -262,7 +280,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         return buffer;
     }, [getBufferLoader, recordLoadDebug]);
 
-    const loadBuffers = useCallback(async (urls: string[]): Promise<boolean> => {
+    const loadBuffers = useCallback(async (urls: string[]): Promise<"loaded" | "stale" | "error"> => {
         const requestId = ++activeLoadRequestIdRef.current;
         setIsLoading(true);
         setLoadError(null);
@@ -282,24 +300,24 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             const contentBuffer = await ensureBuffers(urls, "active-load");
             if (requestId !== activeLoadRequestIdRef.current) {
                 audioDebug.recordEvent("load-stale-ignored");
-                return false;
+                return "stale";
             }
 
             // Protect this buffer for as long as it is the active park.
             pinActiveBuffer(getCacheKey(urls));
             setBuffers(contentBuffer);
             audioDebug.recordEvent("buffers-loaded");
-            return true;
+            return "loaded";
         } catch (error) {
             if (requestId !== activeLoadRequestIdRef.current || isAbortError(error)) {
                 audioDebug.recordEvent("load-stale-ignored");
-                return false;
+                return "stale";
             }
             console.error("Error loading buffers:", error);
             setLoadError(error instanceof Error ? error.message : String(error));
             setBuffers(null);
             audioDebug.recordEvent("load-error");
-            return false;
+            return "error";
         } finally {
             if (requestId === activeLoadRequestIdRef.current) {
                 setIsLoading(false);

@@ -8,6 +8,7 @@ import { park as parkCopy } from '../copy';
 import { hasStoredOrientationPermission, requestDeviceOrientationPermission } from "../utils/deviceOrientation";
 import { CENTER_ROTATION_RADIUS_METERS } from "../config/geofence";
 import { selectVariant } from "../utils/audioPaths";
+import { useActiveReplayVariant } from "../hooks/activeReplay";
 import stateParks from "../data/stateParks.json";
 
 
@@ -48,13 +49,22 @@ function ParkModal({
     });
 
     /**
-     * Which of a park's recordings this walker is hearing. Worth showing now
-     * that the choice persists: it is stable across visits, so "recording 2 of
-     * 6" is a fact about their walk rather than a per-reload accident.
+     * Which of a park's recordings this walker is hearing. The seed draws
+     * one per session — stable for the visit, different across visits, and
+     * that variety is deliberate. When the walk is replaying a held
+     * recording instead of the seed's choice, the replay's number wins: the
+     * sentence has to describe what is playing, not what was drawn.
      */
-    const variant = useMemo(
+    const seededVariant = useMemo(
         () => (parkName ? selectVariant(parkName, stateParks, navigator.userAgent) : null),
         [parkName]
+    );
+    const replayVariantNumber = useActiveReplayVariant(parkName);
+    const variant = useMemo(
+        () => (seededVariant && replayVariantNumber
+            ? { ...seededVariant, number: replayVariantNumber }
+            : seededVariant),
+        [seededVariant, replayVariantNumber]
     );
 
     /**

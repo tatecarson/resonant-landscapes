@@ -1,4 +1,4 @@
-import { getParkAudioVariants, type AudioPark, type AudioVariant } from "../utils/audioPaths";
+import { getParkAudioVariants, type AudioVariant } from "../utils/audioPaths";
 import stateParks from "../data/stateParks.json";
 
 /**
@@ -227,7 +227,7 @@ function pairBytes(index: UrlIndex, urls: string[]): number {
  * Deleting from the cache is the truth; the index only decides the order.
  */
 function evictToBudget() {
-    let index = readIndex();
+    const index = readIndex();
     let total = Object.values(index).reduce((sum, record) => sum + record.bytes, 0);
     if (total <= byteBudget) return;
 

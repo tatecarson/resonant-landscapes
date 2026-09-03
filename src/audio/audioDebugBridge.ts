@@ -13,7 +13,6 @@
  */
 
 import { isDebugEnabled } from "../config/debug";
-
 /**
  * Every event the audio engine reports. Ordered by when they happen in a
  * walk: engine start-up, loading, playback, unlocking, interruption.

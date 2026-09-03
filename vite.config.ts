@@ -27,18 +27,89 @@ export default defineConfig({
       includeAssets: ["icons/*.png"],
       workbox: {
         /*
-         * The shell only. Audio and map tiles are rl-1u7.8.2, and caching
-         * those needs a policy for eviction and for what "cached" means to a
-         * walker, which is a different question from whether the app opens.
+         * The shell, precached; the ground the walker covers, cached on use.
          *
-         * Explicit rather than a catch-all, so nothing new under public/
-         * joins the precache by accident as it grows.
+         * Audio is deliberately absent from runtimeCaching. Its caching has
+         * a policy of its own — network first, written through on use, a
+         * measured byte budget, and "held" meaning a whole recording pair —
+         * and that lives with the fetch seam in
+         * src/audio/offlineAudioCache.ts (rl-1u7.8.2). A workbox route here
+         * would be a second cache answering the same fetches, and the
+         * walker-facing claim ("this park will play with no signal") has to
+         * have exactly one source of truth.
          */
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
         navigateFallback: "index.html",
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
+        runtimeCaching: [
+          {
+            /*
+             * Map tiles, cache-first: they are content-addressed by zoom and
+             * tile coordinate, so a cached tile is not a stale tile, and a
+             * walker who loses signal keeps the ground they have already
+             * looked at instead of watching the map go grey around them.
+             *
+             * The cap is a session measured out: a walk covers a couple of
+             * square kilometres across the app's zoom floor (~17) to its
+             * ceiling (~19), which is on the order of a thousand tiles, at
+             * tens of kilobytes each. 1200 entries and purgeOnQuotaError
+             * bound that; the browser may hold each no-cors tile response
+             * with quota padding well above its real size, so the release
+             * valve matters more than the arithmetic.
+             */
+            urlPattern: /^https:\/\/tiles\.stadiamaps\.com\/tiles\/.*/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "resonant-tiles-v1",
+              expiration: {
+                maxEntries: 1200,
+                maxAgeSeconds: 30 * 24 * 60 * 60,
+                purgeOnQuotaError: true,
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            /*
+             * The typeface stylesheet. Stale-while-revalidate rather than
+             * cache-first: it is a pointer to font files, cheap to refresh,
+             * and a pointing hand that goes stale misdirects for longer than
+             * it saves.
+             */
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "resonant-font-css-v1",
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 30 * 24 * 60 * 60,
+                purgeOnQuotaError: true,
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            /*
+             * The font files themselves. Immutable by design — Google ships
+             * them under hashed URLs — so cache-first with a long lease, and
+             * an offline open of the shell keeps the walk's type rather than
+             * falling back to whatever the phone defaults to.
+             */
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "resonant-fonts-v1",
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 365 * 24 * 60 * 60,
+                purgeOnQuotaError: true,
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
       manifest: {
         name: "Resonant Landscapes",
