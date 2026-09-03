@@ -103,6 +103,39 @@ test("returning to a recent park replays it from cache", async ({ context, page 
   expect(cacheEntries).toBeLessThanOrEqual(3);
 });
 
+test("bytes the walk fetches land in the disk cache for offline replay", async ({ context, page }) => {
+  /*
+   * The marker swap guard, in passing: a state flip that failed to re-key
+   * the feature logs the rlayers warning, and this walk flips a marker
+   * twice — to cached when the prefetch lands, to heard when playback does.
+   */
+  const warnings: string[] = [];
+  page.on("console", (message) => {
+    if (/does not support updating of src/i.test(message.text())) {
+      warnings.push(message.text());
+    }
+  });
+
+  await startWalk(context, page, FAR_AWAY);
+
+  await walkTo(context, page, HARTFORD, 2000);
+  await expect.poll(async () => (await audioDebug(page))?.hasBuffers, { timeout: 60_000 }).toBe(true);
+
+  // Both files of the drawn recording are on disk, under the cache name the
+  // offline replay reads. The prefetch and the active load agree on the
+  // same recording, so two URLs is the whole pair.
+  const heldPaths = await page.evaluate(async () => {
+    const cache = await caches.open("resonant-audio-v1");
+    return (await cache.keys()).map((request) => new URL(request.url).pathname);
+  });
+  expect(heldPaths.length).toBeGreaterThanOrEqual(2);
+  expect(heldPaths.some((path) => /Hartford-Beach/.test(path))).toBe(true);
+
+  // The cached-parks store recomputes on a short coalesce after each write.
+  await page.waitForTimeout(1_000);
+  expect(warnings, "a marker state flip was rejected and the old icon stayed").toEqual([]);
+});
+
 test("audio stops when the walker leaves the park", async ({
   context,
   page,
