@@ -29,15 +29,28 @@ import sys
 import time
 import subprocess
 
-# The campus, from OSM way 172206707 ("Chatham University"), plus about 30 m
-# so a road or lot running along the boundary is captured rather than clipped.
+# The campus, typed out by hand from the bounds of OSM way 172206707
+# ("Chatham University"): the way's own edges, nothing added. The ~30 m that
+# keeps a road or lot along the boundary from being clipped is MARGIN_DEG,
+# which the query below sweeps around this box.
 #
 # Tight on purpose. A wider box swept in most of residential Shadyside: 460
 # building footprints for a campus with a few dozen, and a file that shipped
 # in the bundle. Nothing outside this margin can ever be reached, because
 # points are placed inside the campus bounds and the snap moves in 9 m steps.
+#
+# Hand-typed next to a living OSM object, so main() re-measures the way and
+# stops if the two ever disagree:
 CAMPUS_WAY = 172206707
 CAMPUS = (40.4440242, -79.9277955, 40.4510886, -79.9222085)
+
+# How far the fetched way's bounds may sit from CAMPUS before main() aborts.
+# About 5 m: coordinates here carry 7 decimals, one mistyped digit moves a
+# bound by 1e-4, and the sweep margin is 3e-4. Way boundary edits show up in
+# whole metres, so anything past this is a real change or a real typo, and
+# either way the query, the no-go filter and the shipped campus polygon would
+# all inherit the disagreement.
+CAMPUS_TOLERANCE_DEG = 0.00005
 MARGIN_DEG = 0.0003  # ~33 m north-south, ~25 m east-west at this latitude
 BBOX = (
     CAMPUS[0] - MARGIN_DEG,
@@ -160,6 +173,13 @@ def round_ring(ring: list[list[float]]) -> list[list[float]]:
     return [[round(lon, COORD_DP), round(lat, COORD_DP)] for lon, lat in ring]
 
 
+def ring_bounds(ring: list[list[float]]) -> tuple[float, float, float, float]:
+    """(south, west, north, east), the order CAMPUS is typed in."""
+    lats = [point[1] for point in ring]
+    lons = [point[0] for point in ring]
+    return (min(lats), min(lons), max(lats), max(lons))
+
+
 def classify(tags: dict) -> str | None:
     if "building" in tags:
         return "building"
@@ -226,6 +246,32 @@ def main() -> None:
     if campus_ring[0] != campus_ring[-1]:
         campus_ring.append(campus_ring[0])
     print(f"  campus polygon: {len(campus_ring)} nodes")
+
+    # CAMPUS was typed by hand from this way, and the query bbox, the
+    # touches_campus filter and the campus polygon shipped in the bundle all
+    # follow from it. Check the two agree before anything downstream
+    # inherits the disagreement: a way that grew or moved, or a digit
+    # mistyped years later, would otherwise clip or overshoot silently.
+    fetched_bounds = ring_bounds(campus_ring)
+    worst = max(
+        abs(typed - fetched) for typed, fetched in zip(CAMPUS, fetched_bounds)
+    )
+    if worst > CAMPUS_TOLERANCE_DEG:
+        lat_per_deg = 111_320.0
+        lon_per_deg = lat_per_deg * math.cos(math.radians((CAMPUS[0] + CAMPUS[2]) / 2))
+        raise SystemExit(
+            f"campus way {CAMPUS_WAY} no longer matches CAMPUS.\n"
+            f"  CAMPUS, typed by hand (south, west, north, east): {CAMPUS}\n"
+            f"  the way as fetched today (south, west, north, east): {fetched_bounds}\n"
+            f"The widest side is off by {worst:.7f} degrees, about "
+            f"{worst * lat_per_deg:.1f} m north-south or "
+            f"{worst * lon_per_deg:.1f} m east-west, past the "
+            f"{CAMPUS_TOLERANCE_DEG:.5f} degree allowance.\n"
+            f"If the boundary really moved, retype CAMPUS from the new "
+            f"bounds and consider what the move does to points already "
+            f"placed. Do not widen the tolerance to make this go away."
+        )
+    print(f"  campus bounds match CAMPUS (widest gap {worst:.7f} deg)")
 
     print(f"querying Overpass for {bbox}")
     payload = fetch(query)
