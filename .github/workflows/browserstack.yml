@@ -1,10 +1,20 @@
 name: BrowserStack real devices
 
-# The real-device matrix (rl-06c.6). Manual, or weekly against production:
-# real-device minutes are a bounded spend, so this never runs on every push.
+# The real-device matrix (rl-06c.6). Manual only: real-device minutes are a
+# bounded spend, so this never runs on every push.
+#
+# There was a weekly cron here, and it is deliberately gone for now. The suite
+# has one known failure — the map canvas on every iPhone row (rl-dv8) — so a
+# schedule would paint this job red every Monday until that is settled, and a
+# job that is always red is a job nobody reads. Restore the cron when rl-dv8
+# closes:
+#
+#   schedule:
+#     # Monday mornings, against production.
+#     - cron: "0 6 * * 1"
 #
 # Requires the repository secrets BROWSERSTACK_USERNAME and
-# BROWSERSTACK_ACCESS_KEY. The weekly schedule only fires from the default
+# BROWSERSTACK_ACCESS_KEY. workflow_dispatch is only offered from the default
 # branch, which is where this file lands once merged.
 
 on:
@@ -14,9 +24,6 @@ on:
         description: "URL to walk (a deploy preview, say)"
         required: false
         default: "https://resonant-landscapes.netlify.app"
-  schedule:
-    # Monday mornings, against production.
-    - cron: "0 6 * * 1"
 
 concurrency:
   group: browserstack-real-devices
