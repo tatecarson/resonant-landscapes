@@ -155,6 +155,26 @@ describe("fetchAudioBytes", () => {
         expect(store?.size ?? 0).toBe(0);
     });
 
+    it("rejects an aborted load even when the cache holds the bytes", async () => {
+        // Hold the pair first, from a load nobody abandoned.
+        harness.fetchMock.mockImplementation(async () => okResponse(100));
+        await harness.offlineCache.fetchAudioBytes(spatialUrl, new AbortController().signal);
+        await flushMicrotasks();
+
+        // The same URL again, on a signal the loader has already given up on.
+        // Answering this one from disk would be worse than useless: the loader
+        // checks the signal only after decoding, so a resolved abort spends a
+        // whole 8-channel decode on a park the walker has gone past — the cost
+        // the abort was raised to avoid. The abort has to win over the cache.
+        const controller = new AbortController();
+        controller.abort();
+        harness.fetchMock.mockImplementation(async () => {
+            throw new DOMException("Aborted", "AbortError");
+        });
+        await expect(harness.offlineCache.fetchAudioBytes(spatialUrl, controller.signal))
+            .rejects.toThrow("Aborted");
+    });
+
     it("emits debug events a mirror can read", async () => {
         const events: string[] = [];
         harness.offlineCache.setOfflineCacheEventSink((event) => events.push(event.kind));
@@ -279,6 +299,32 @@ describe("eviction", () => {
         // The orphan goes first even though it is the newest bytes, because
         // half a pair can never play.
         expect(store.has(secondVariant[0])).toBe(false);
+        expect(store.has(spatialUrl)).toBe(true);
+        expect(store.has(monoUrl)).toBe(true);
+    });
+
+    it("adopts bytes on disk the index never learned about, so they can be evicted", async () => {
+        const { offlineCache, caches } = await loadHarness(async () => okResponse(100));
+        offlineCache.setByteBudgetForTests(300);
+
+        // A URL in Cache Storage with no index entry behind it: a cache.put
+        // whose index write quota refused, or a delete that threw after the
+        // entry was already swept. Eviction only ever walks the index, so
+        // without a reconcile these bytes are never counted and never deleted
+        // — they sit there for good, against a budget that cannot see them.
+        const stray = getParkAudioVariants(HARTFORD, [
+            { name: HARTFORD, recordingsCount: 2, sectionsCount: 1 },
+        ], "Chrome")![1][0];
+        caches.stores.set("resonant-audio-v1", new Map([[stray, okResponse(100)]]));
+
+        await offlineCache.fetchAudioBytes(spatialUrl, new AbortController().signal);
+        await offlineCache.fetchAudioBytes(monoUrl, new AbortController().signal);
+        await flushMicrotasks();
+
+        // Adopted at the estimate and dated to the epoch, which makes it the
+        // oldest half-pair in the cache and so the first thing swept.
+        const store = caches.stores.get("resonant-audio-v1")!;
+        expect(store.has(stray)).toBe(false);
         expect(store.has(spatialUrl)).toBe(true);
         expect(store.has(monoUrl)).toBe(true);
     });

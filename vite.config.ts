@@ -46,25 +46,37 @@ export default defineConfig({
         runtimeCaching: [
           {
             /*
-             * Map tiles, cache-first: they are content-addressed by zoom and
-             * tile coordinate, so a cached tile is not a stale tile, and a
-             * walker who loses signal keeps the ground they have already
-             * looked at instead of watching the map go grey around them.
+             * Map tiles: a walker who loses signal keeps the ground they have
+             * already looked at instead of watching the map go grey around
+             * them. Served from cache first either way — the network copy is
+             * fetched behind the answer, so an offline walk is never waiting.
+             *
+             * Stale-while-revalidate rather than cache-first, because the
+             * layer requests tiles no-cors (RLayerTile sets no crossOrigin),
+             * and an opaque response cannot be told apart from a successful
+             * one: status is 0 whether Stadia sent the tile, a 404, or a rate
+             * limit. Under cache-first a single bad tile would be pinned for
+             * its whole 30-day lease, leaving one square of the map broken
+             * long after the signal came back. Revalidating repairs it on the
+             * walker's next look, which is the soonest it could matter.
              *
              * The cap is a session measured out: a walk covers a couple of
              * square kilometres across the app's zoom floor (~17) to its
              * ceiling (~19), which is on the order of a thousand tiles, at
-             * tens of kilobytes each. 1200 entries and purgeOnQuotaError
-             * bound that; the browser may hold each no-cors tile response
-             * with quota padding well above its real size, so the release
-             * valve matters more than the arithmetic.
+             * tens of kilobytes each. The entry cap is well under that on
+             * purpose. Browsers pad opaque responses in quota accounting —
+             * megabytes apiece, against a real size in the tens of kilobytes
+             * — so a cap sized to the real bytes would let the tiles crowd
+             * the origin quota and quietly starve the audio cache, whose
+             * write failures degrade in silence. 400 tiles is still most of a
+             * walk's ground, and purgeOnQuotaError is the release valve.
              */
             urlPattern: /^https:\/\/tiles\.stadiamaps\.com\/tiles\/.*/,
-            handler: "CacheFirst",
+            handler: "StaleWhileRevalidate",
             options: {
               cacheName: "resonant-tiles-v1",
               expiration: {
-                maxEntries: 1200,
+                maxEntries: 400,
                 maxAgeSeconds: 30 * 24 * 60 * 60,
                 purgeOnQuotaError: true,
               },

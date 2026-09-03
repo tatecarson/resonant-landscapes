@@ -45,6 +45,8 @@ export function setByteBudgetForTests(bytes: number) {
  * over- nor under-counted.
  */
 const PAIR_BYTE_ESTIMATE = 12 * 1024 * 1024;
+/** Half a pair: what one URL costs when its own size never arrived. */
+const URL_BYTE_ESTIMATE = PAIR_BYTE_ESTIMATE / 2;
 
 /**
  * What the fetch seam reports, so the provider can mirror cache behaviour
@@ -199,6 +201,19 @@ function pairUrls(url: string): string[] {
     return resolveAudioUrl(url)?.variant ?? [url];
 }
 
+/**
+ * What one indexed URL costs the budget. A response that arrived with no
+ * usable Content-Length is charged the estimate rather than nothing: charging
+ * zero would let a cache full of unmeasured files sum to zero and never cross
+ * the budget at all, which is the one direction the accounting must not fail
+ * in. Every place the running total is added to or subtracted from goes
+ * through here, so an entry always leaves at exactly the weight it arrived.
+ */
+function chargedBytes(record: UrlRecord | undefined): number {
+    if (!record) return 0;
+    return record.bytes > 0 ? record.bytes : URL_BYTE_ESTIMATE;
+}
+
 function pairBytes(index: UrlIndex, urls: string[]): number {
     let total = 0;
     let missing = false;
@@ -228,7 +243,7 @@ function pairBytes(index: UrlIndex, urls: string[]): number {
  */
 function evictToBudget() {
     const index = readIndex();
-    let total = Object.values(index).reduce((sum, record) => sum + record.bytes, 0);
+    let total = Object.values(index).reduce((sum, record) => sum + chargedBytes(record), 0);
     if (total <= byteBudget) return;
 
     const groups = new Map<string, { pair: string[]; members: string[] }>();
@@ -256,14 +271,16 @@ function evictToBudget() {
             const cache = await openAudioCache();
             await Promise.all(urls.map((url) => cache.delete(url)));
         } catch {
-            // A cache that cannot delete will be re-evicted next write.
+            // A cache that cannot delete keeps bytes the index has already
+            // forgotten. reconcileIndexWithCache adopts them back on the next
+            // session's first write, which is what makes them evictable again.
         }
         emit({ kind: "cache-evicted", urls });
     };
 
     const sweep = (urls: string[]) => {
         for (const url of urls) {
-            total -= index[url]?.bytes ?? 0;
+            total -= chargedBytes(index[url]);
             delete index[url];
         }
     };
@@ -288,6 +305,53 @@ function evictToBudget() {
     void Promise.all(deletions).then(() => scheduleCachedParksRecompute());
 }
 
+let indexReconciled = false;
+
+/**
+ * Put the index back in step with what Cache Storage actually holds.
+ *
+ * The index is the only thing eviction can see, and it can lose entries the
+ * cache still has: a `writeIndex` that quota refused, a `cache.delete` that
+ * threw after the entry was already swept. Bytes in that state are invisible
+ * to the budget forever — they are never counted and never deleted — which is
+ * exactly the unbounded growth the budget exists to prevent, and
+ * `navigator.storage.persist()` has already asked the browser not to reclaim
+ * them for us. So a URL on disk the index does not know is adopted at the
+ * estimate and dated to the epoch, which makes it the first thing evicted;
+ * an index entry with nothing behind it is dropped, so it stops charging the
+ * budget for bytes that are gone.
+ *
+ * Once per session, before the first eviction decision. The reconcile is a
+ * full `cache.keys()` scan, and nothing between two writes can desynchronise
+ * the index badly enough to be worth paying that on every one.
+ */
+async function reconcileIndexWithCache() {
+    try {
+        const cache = await openAudioCache();
+        const heldUrls = new Set((await cache.keys()).map((request) => request.url));
+        const index = readIndex();
+        let changed = false;
+
+        for (const url of heldUrls) {
+            if (!index[url]) {
+                index[url] = { bytes: 0, touchedAt: 0 };
+                changed = true;
+            }
+        }
+        for (const url of Object.keys(index)) {
+            if (!heldUrls.has(url)) {
+                delete index[url];
+                changed = true;
+            }
+        }
+
+        if (changed) writeIndex(index);
+    } catch {
+        // No Cache Storage to reconcile against: the index stands as it is,
+        // which is the same position this module was in before the scan.
+    }
+}
+
 async function writeThrough(url: string, response: Response) {
     try {
         const cache = await openAudioCache();
@@ -302,6 +366,11 @@ async function writeThrough(url: string, response: Response) {
         };
         writeIndex(index);
         emit({ kind: "cache-write", url });
+
+        if (!indexReconciled) {
+            indexReconciled = true;
+            await reconcileIndexWithCache();
+        }
         evictToBudget();
         scheduleCachedParksRecompute();
     } catch (error) {
@@ -334,17 +403,22 @@ async function readCached(url: string): Promise<ArrayBuffer | null> {
 /**
  * The fetch seam, network-first with the cache as its fallback.
  *
- * The signal is respected the way the loader expects: an aborted fetch
- * throws before anything is written, and a response that arrived whole for
- * a load that was then abandoned is still worth keeping — the bytes cost
- * the same either way, and the park they belong to is usually the one being
- * walked towards.
+ * The signal is respected the way the loader expects: an aborted load throws,
+ * cache or no cache, and a response that arrived whole for a load that was
+ * then abandoned is still worth keeping — the bytes cost the same either way,
+ * and the park they belong to is usually the one being walked towards.
+ *
+ * An abort must never be answered from disk. The loader only checks the
+ * signal after decoding, so resolving a cancelled prefetch with held bytes
+ * would spend a full 8-channel decode on a park the walker has already walked
+ * past — the exact cost the abort was raised to avoid.
  */
 export async function fetchAudioBytes(url: string, signal: AbortSignal): Promise<AudioBytesResult> {
     let response: Response;
     try {
         response = await fetch(url, { signal });
     } catch (error) {
+        if (signal.aborted) throw error;
         const cached = await readCached(url);
         if (cached) return { bytes: cached, fromCache: true };
         throw error;
@@ -362,7 +436,20 @@ export async function fetchAudioBytes(url: string, signal: AbortSignal): Promise
     // same either way, and the park they belong to is usually the one being
     // walked towards. A fetch that threw mid-flight never reaches this line.
     const saved = signal.aborted ? null : response.clone();
-    const bytes = await response.arrayBuffer();
+    let bytes: ArrayBuffer;
+    try {
+        bytes = await response.arrayBuffer();
+    } catch (error) {
+        // The body died part-way down: signal lost mid-download, which is the
+        // thin-signal case this cache is for. Same fallback as a fetch that
+        // never connected — and the clone is cancelled rather than left
+        // holding a locked stream over the half of the park that did arrive.
+        void saved?.body?.cancel().catch(() => {});
+        if (signal.aborted) throw error;
+        const cached = await readCached(url);
+        if (cached) return { bytes: cached, fromCache: true };
+        throw error;
+    }
     if (saved) {
         void writeThrough(url, saved);
     }
@@ -446,15 +533,22 @@ export function recomputeCachedParks(): Promise<void> {
             const next = new Set(held);
             const changed = next.size !== cachedParksSnapshot.size
                 || [...next].some((parkName) => !cachedParksSnapshot.has(parkName));
-            cachedParksSnapshot = next;
+            // Only swap the object when the set really changed.
+            // useSyncExternalStore compares snapshots by identity, so a fresh
+            // Set holding the same parks is still a change to React: every
+            // park marker would re-render for a recompute that found nothing.
             if (changed) {
+                cachedParksSnapshot = next;
                 notifyCachedParksChanged();
             }
         } catch {
             // No Cache Storage (private window, old engine): nothing is
-            // held, which is the honest answer.
-            cachedParksSnapshot = new Set();
-            notifyCachedParksChanged();
+            // held, which is the honest answer. Already-empty stays the same
+            // object, for the same identity reason as above.
+            if (cachedParksSnapshot.size > 0) {
+                cachedParksSnapshot = new Set();
+                notifyCachedParksChanged();
+            }
         } finally {
             recomputeInFlight = null;
         }

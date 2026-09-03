@@ -135,6 +135,15 @@ const HOARenderer = ({
         cancelPendingLoad,
     });
 
+    /**
+     * The park the load effect below is currently working for, null between
+     * parks. A retry has no effect lifetime of its own to hang an `isCurrent`
+     * flag on, so it reads this instead: a retry for a park the walker has
+     * since left must not come back from its cache lookup and win the load
+     * race against the park they are standing in now.
+     */
+    const activeParkNameRef = useRef<string | null>(null);
+
     useEffect(() => {
         audioActionsRef.current = {
             loadBuffers,
@@ -190,15 +199,23 @@ const HOARenderer = ({
         const heldNumber = variants
             ? variants.findIndex((variant) => variant[0] === held[0] && variant[1] === held[1]) + 1
             : 0;
-        if (heldNumber > 0) {
-            setActiveReplay(parkName, heldNumber);
+        if (heldNumber < 1) {
+            // A held pair this browser cannot number is one the strip cannot
+            // describe — findCachedVariantForPark searches both asset
+            // families, and only one of them is this browser's. Playing it
+            // would leave "recording N of M" pointing at the seed's choice
+            // while something else sounds, which is the sentence the replay
+            // store exists to prevent. Dead-end honestly instead.
+            return;
         }
+        setActiveReplay(parkName, heldNumber);
         audioActionsRef.current.clearLoadError();
         await audioActionsRef.current.loadBuffers(held);
     }, []);
 
     useEffect(() => {
         let isCurrent = true;
+        activeParkNameRef.current = parkName;
         setShouldAutoPlay(true);
         setAllowManualRestart(false);
 
@@ -206,6 +223,7 @@ const HOARenderer = ({
 
         return () => {
             isCurrent = false;
+            activeParkNameRef.current = null;
             // Cancel the load, but do not stop playback. The tracking hook
             // stops audio on the parkName transition, which is the real event.
             audioActionsRef.current.cancelPendingLoad();
@@ -295,8 +313,10 @@ const HOARenderer = ({
         clearLoadError();
         cancelPendingLoad();
         // The same load-with-fallback as entry: a retry with no signal walks
-        // into the held recording rather than failing twice at the same URL.
-        void loadParkAudio(parkName, () => true);
+        // into the held recording rather than failing twice at the same URL,
+        // and under the same guard, so a walker who leaves mid-retry does not
+        // get this park's held recording playing in the next one.
+        void loadParkAudio(parkName, () => activeParkNameRef.current === parkName);
     }, [cancelPendingLoad, clearLoadError, loadParkAudio, parkName]);
 
     return (
