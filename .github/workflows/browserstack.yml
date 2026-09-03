@@ -1,0 +1,59 @@
+name: BrowserStack real devices
+
+# The real-device matrix (rl-06c.6). Manual only: real-device minutes are a
+# bounded spend, so this never runs on every push.
+#
+# There was a weekly cron here, and it is deliberately gone for now. The suite
+# has one known failure — the map canvas on every iPhone row (rl-dv8) — so a
+# schedule would paint this job red every Monday until that is settled, and a
+# job that is always red is a job nobody reads. Restore the cron when rl-dv8
+# closes:
+#
+#   schedule:
+#     # Monday mornings, against production.
+#     - cron: "0 6 * * 1"
+#
+# Requires the repository secrets BROWSERSTACK_USERNAME and
+# BROWSERSTACK_ACCESS_KEY. workflow_dispatch is only offered from the default
+# branch, which is where this file lands once merged.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "URL to walk (a deploy preview, say)"
+        required: false
+        default: "https://resonant-landscapes.netlify.app"
+
+concurrency:
+  group: browserstack-real-devices
+  cancel-in-progress: false
+
+jobs:
+  real-devices:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run the real-device suite on BrowserStack
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          PLAYWRIGHT_BASE_URL: ${{ inputs.base_url || 'https://resonant-landscapes.netlify.app' }}
+        # Two things about this line, both of which fail quietly if undone.
+        # Unquoted: the SDK dispatches on argv, so wrapping the whole
+        # invocation in one string matches no command — it prints "Not a
+        # valid command" and exits 0, green without having run a test.
+        # And --config=, not -c: the SDK's own parser eats the value after
+        # a separated flag and forwards a bare "-c" to Playwright, which
+        # dies with "option '-c, --config <file>' argument missing".
+        run: npx browserstack-node-sdk playwright test --config=playwright.browserstack.config.ts

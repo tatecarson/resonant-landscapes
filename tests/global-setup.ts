@@ -13,9 +13,11 @@
  * under test. It surfaced here only because an assertion happened to look at
  * the document head and found it empty.
  */
+import type { FullConfig } from "@playwright/test";
+
 const MARKERS = ["<div id=\"root\">", "Resonant Landscapes"];
 
-export default async function globalSetup() {
+export default async function globalSetup(config?: FullConfig) {
     const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:4173";
 
     let response: Response;
@@ -24,10 +26,27 @@ export default async function globalSetup() {
         response = await fetch(baseURL, { redirect: "follow" });
         body = await response.text();
     } catch (error) {
-        // Nothing is listening yet. Playwright's own webServer will start it,
-        // or report a clearer failure than this could.
-        void error;
-        return;
+        // Nothing is listening yet. If this config declares a webServer,
+        // Playwright is about to start it, or report a clearer failure than
+        // this could. If it does not — playwright.browserstack.config.ts
+        // drives a deployed URL from real devices — then nothing will ever
+        // answer, and staying quiet here spends the whole build discovering
+        // that once per device.
+        if (config?.webServer) {
+            void error;
+            return;
+        }
+
+        throw new Error(
+            [
+                `Nothing answered at ${baseURL}, and this config has no webServer`,
+                "to start one, so every test would fail at its first navigation.",
+                `  cause: ${error instanceof Error ? error.message : String(error)}`,
+                "",
+                "Check PLAYWRIGHT_BASE_URL — a typo here is the difference between",
+                "one clear failure and a full run of them.",
+            ].join("\n")
+        );
     }
 
     if (MARKERS.some((marker) => body.includes(marker))) {

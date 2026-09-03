@@ -54,7 +54,8 @@
     "sim:ring": "APPROACH_RING_HOLD_MS=8000 playwright test tests/approach-ring.spec.ts --project=chromium --headed",
     "sim:ring:iphone": "APPROACH_RING_HOLD_MS=8000 playwright test tests/approach-ring.spec.ts --project=iphone-13 --headed",
     "sim:path:install": "playwright install chromium webkit",
-    "render:sites": "tsx scripts/dump-placements.ts && python3 scripts/render-site-layout.py"
+    "render:sites": "tsx scripts/dump-placements.ts && python3 scripts/render-site-layout.py",
+    "browserstack:real-devices": "PLAYWRIGHT_BASE_URL=\"${PLAYWRIGHT_BASE_URL:-https://resonant-landscapes.netlify.app}\" browserstack-node-sdk playwright test --config=playwright.browserstack.config.ts"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.18",
@@ -79,7 +80,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "@welldone-software/why-did-you-render": "^8.0.1",
     "autoprefixer": "^10.4.17",
-    "browserstack-node-sdk": "^1.52.0",
+    "browserstack-node-sdk": "^1.68.1",
     "eslint": "^8.52.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
