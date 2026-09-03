@@ -47,8 +47,8 @@ interface Harness {
 }
 
 /**
- * Fresh module state per test: the park URL index, the cached-parks
- * snapshot and the event sink are module-level, so every test re-imports.
+ * Fresh module state per test: the park URL index, the byte index and the
+ * event sink are module-level, so every test re-imports.
  */
 async function loadHarness(fetchImpl?: (url: string) => Promise<Response>): Promise<Harness> {
     vi.resetModules();
@@ -192,41 +192,6 @@ describe("fetchAudioBytes", () => {
     });
 });
 
-describe("cached-parks store", () => {
-    const [spatialUrl, monoUrl] = hartfordVariant();
-
-    afterEach(() => {
-        vi.unstubAllGlobals();
-    });
-
-    it("counts a park as held only once its whole pair is cached", async () => {
-        const { offlineCache } = await loadHarness(async () => okResponse(100));
-
-        await offlineCache.fetchAudioBytes(spatialUrl, new AbortController().signal);
-        await flushMicrotasks();
-        await offlineCache.recomputeCachedParks();
-        expect(offlineCache.getCachedParksSnapshot().has(HARTFORD)).toBe(false);
-
-        await offlineCache.fetchAudioBytes(monoUrl, new AbortController().signal);
-        await flushMicrotasks();
-        await offlineCache.recomputeCachedParks();
-        expect(offlineCache.getCachedParksSnapshot().has(HARTFORD)).toBe(true);
-    });
-
-    it("answers from the real cache, not from the byte index", async () => {
-        const { offlineCache, caches } = await loadHarness(async () => okResponse(100));
-        await offlineCache.fetchAudioBytes(spatialUrl, new AbortController().signal);
-        await offlineCache.fetchAudioBytes(monoUrl, new AbortController().signal);
-        await flushMicrotasks();
-
-        // Simulate the browser dropping the entry behind the app's back:
-        // the index still claims the bytes, the cache does not hold them.
-        caches.stores.get("resonant-audio-v1")?.delete(spatialUrl);
-        await offlineCache.recomputeCachedParks();
-        expect(offlineCache.getCachedParksSnapshot().has(HARTFORD)).toBe(false);
-    });
-});
-
 describe("findCachedVariantForPark", () => {
     const [spatialUrl, monoUrl] = hartfordVariant();
 
@@ -245,6 +210,20 @@ describe("findCachedVariantForPark", () => {
         await flushMicrotasks();
         const variant = await offlineCache.findCachedVariantForPark(HARTFORD);
         expect(variant).toEqual([spatialUrl, monoUrl]);
+    });
+
+    it("answers from the real cache, not from the byte index", async () => {
+        const { offlineCache, caches } = await loadHarness(async () => okResponse(100));
+        await offlineCache.fetchAudioBytes(spatialUrl, new AbortController().signal);
+        await offlineCache.fetchAudioBytes(monoUrl, new AbortController().signal);
+        await flushMicrotasks();
+
+        // Simulate the browser dropping the entry behind the app's back:
+        // the index still claims the bytes, the cache does not hold them.
+        // A replay offered on the index's word would fail on a file that
+        // is not there.
+        caches.stores.get("resonant-audio-v1")?.delete(spatialUrl);
+        expect(await offlineCache.findCachedVariantForPark(HARTFORD)).toBeNull();
     });
 });
 
@@ -345,8 +324,5 @@ describe("eviction", () => {
         const store = caches.stores.get("resonant-audio-v1")!;
         expect(store.has(debugUrl)).toBe(false);
         expect(store.has(spatialUrl)).toBe(true);
-        await offlineCache.recomputeCachedParks();
-        // And it never counted as a park being held.
-        expect(offlineCache.getCachedParksSnapshot().has("Custer Test")).toBe(false);
     });
 });

@@ -285,24 +285,22 @@ function evictToBudget() {
         }
     };
 
-    const deletions: Promise<void>[] = [];
     if (orphans.length > 0) {
         const orphanUrls = [...orphans].sort((a, b) => index[a].touchedAt - index[b].touchedAt);
         while (total > byteBudget && orphanUrls.length > 0) {
             const url = orphanUrls.shift()!;
-            deletions.push(evictUrls([url]));
+            void evictUrls([url]);
             sweep([url]);
         }
     }
     complete.sort((a, b) => a.touchedAt - b.touchedAt);
     while (total > byteBudget && complete.length > 0) {
         const entry = complete.shift()!;
-        deletions.push(evictUrls(entry.urls));
+        void evictUrls(entry.urls);
         sweep(entry.urls);
     }
 
     writeIndex(index);
-    void Promise.all(deletions).then(() => scheduleCachedParksRecompute());
 }
 
 let indexReconciled = false;
@@ -372,7 +370,6 @@ async function writeThrough(url: string, response: Response) {
             await reconcileIndexWithCache();
         }
         evictToBudget();
-        scheduleCachedParksRecompute();
     } catch (error) {
         // Quota, private mode, or a storage system that refuses writes: the
         // walk plays exactly as it did before this module existed. A cache
@@ -481,90 +478,4 @@ export async function findCachedVariantForPark(parkName: string): Promise<AudioV
     } catch {
         return null;
     }
-}
-
-/**
- * Which parks the cache actually holds, straight from Cache Storage rather
- * than from the byte index — the index advises eviction, the cache is the
- * truth a walker is standing on.
- *
- * Cached is not heard, and the difference matters: a prefetch can complete
- * for a park the walker never enters, and an eviction can take a park the
- * heard record still counts. This store answers only "will this park play
- * with no signal".
- */
-let cachedParksSnapshot: ReadonlySet<string> = new Set();
-const cachedParksListeners = new Set<() => void>();
-let recomputeInFlight: Promise<void> | null = null;
-let recomputeScheduled = false;
-
-function notifyCachedParksChanged() {
-    for (const listener of cachedParksListeners) {
-        listener();
-    }
-}
-
-export function subscribeToCachedParks(listener: () => void): () => void {
-    cachedParksListeners.add(listener);
-    if (cachedParksListeners.size === 1) {
-        void recomputeCachedParks();
-    }
-    return () => {
-        cachedParksListeners.delete(listener);
-    };
-}
-
-export function getCachedParksSnapshot(): ReadonlySet<string> {
-    return cachedParksSnapshot;
-}
-
-export function recomputeCachedParks(): Promise<void> {
-    if (recomputeInFlight) return recomputeInFlight;
-    recomputeInFlight = (async () => {
-        try {
-            const cache = await openAudioCache();
-            const heldUrls = new Set((await cache.keys()).map((request) => request.url));
-            const held: string[] = [];
-            for (const [parkName, variants] of buildParkUrlIndex()) {
-                if (variants.some((variant) => variant.every((url) => heldUrls.has(url)))) {
-                    held.push(parkName);
-                }
-            }
-            const next = new Set(held);
-            const changed = next.size !== cachedParksSnapshot.size
-                || [...next].some((parkName) => !cachedParksSnapshot.has(parkName));
-            // Only swap the object when the set really changed.
-            // useSyncExternalStore compares snapshots by identity, so a fresh
-            // Set holding the same parks is still a change to React: every
-            // park marker would re-render for a recompute that found nothing.
-            if (changed) {
-                cachedParksSnapshot = next;
-                notifyCachedParksChanged();
-            }
-        } catch {
-            // No Cache Storage (private window, old engine): nothing is
-            // held, which is the honest answer. Already-empty stays the same
-            // object, for the same identity reason as above.
-            if (cachedParksSnapshot.size > 0) {
-                cachedParksSnapshot = new Set();
-                notifyCachedParksChanged();
-            }
-        } finally {
-            recomputeInFlight = null;
-        }
-    })();
-    return recomputeInFlight;
-}
-
-/**
- * Writes and evictions come in bursts of two (a pair), and Cache Storage
- * round-trips are not free on a phone. Coalesce.
- */
-export function scheduleCachedParksRecompute() {
-    if (recomputeScheduled || typeof window === "undefined") return;
-    recomputeScheduled = true;
-    window.setTimeout(() => {
-        recomputeScheduled = false;
-        void recomputeCachedParks();
-    }, 500);
 }

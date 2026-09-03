@@ -36,7 +36,6 @@ import {
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import { useReduceVisuals } from "../hooks/useReduceVisuals";
 import { markParkHeard, useHeardParks } from "../hooks/heardParks";
-import { useCachedParks } from "../hooks/cachedParks";
 import NearestParkChip from "./NearestParkChip";
 import InstallHint from "./InstallHint";
 import { getVariantCenter } from "../utils/scaledParks";
@@ -272,7 +271,6 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     const { preloadBuffers, resonanceAudioScene, stopSound } = useAudioEngine();
     const { audioContext, isPlaying } = useAudioContext();
     const heardParks = useHeardParks();
-    const cachedParks = useCachedParks();
     const {
         accuracy,
         accuracyMeters,
@@ -526,7 +524,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                 activeParkName={parkName || undefined}
                 activeParkDistance={Math.floor(parkDistance)}
             />
-            <ParkFeatureLayers parkFeatures={parkFeatures} heardParks={heardParks} cachedParks={cachedParks} />
+            <ParkFeatureLayers parkFeatures={parkFeatures} heardParks={heardParks} />
 
             <GeolocationPositionLayer
                 position={position}
