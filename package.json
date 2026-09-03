@@ -53,7 +53,8 @@
     "sim:audio:worst:https:pixel": "PLAYWRIGHT_EXTERNAL_SERVER=1 playwright test tests/audio-worst-case-mobile.spec.ts --project=pixel-7 --headed",
     "sim:ring": "APPROACH_RING_HOLD_MS=8000 playwright test tests/approach-ring.spec.ts --project=chromium --headed",
     "sim:ring:iphone": "APPROACH_RING_HOLD_MS=8000 playwright test tests/approach-ring.spec.ts --project=iphone-13 --headed",
-    "sim:path:install": "playwright install chromium webkit"
+    "sim:path:install": "playwright install chromium webkit",
+    "render:sites": "tsx scripts/dump-placements.ts && python3 scripts/render-site-layout.py"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.18",

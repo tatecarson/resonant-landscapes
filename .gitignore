@@ -47,3 +47,6 @@ log/
 
 # Beads / Dolt files (added by bd init)
 .beads-credential-key
+src/data/placements.generated.json
+build/
+__pycache__/

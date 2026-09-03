@@ -79,6 +79,27 @@ const CLEARANCE_TARGET_METERS = 8;
 /** Compass points probed when measuring room. Sixteen is every 22.5 degrees. */
 const CLEARANCE_PROBES = 16;
 
+/**
+ * How far apart two listening points must be, in metres.
+ *
+ * The same 15 m a walker has to be within to enter a park, so points closer
+ * than this have overlapping listening areas and are heard as one place.
+ *
+ * This was the missing constraint. Clearance asks how much room a point has
+ * against buildings and roads; nothing asked whether it had room against the
+ * other twelve. So the search happily settled two parks 3 m apart on a campus
+ * with 8.59 ha of legal ground for the 2.21 ha thirteen circles need. The
+ * crowding was never a shortage of site — it was a question nobody put.
+ */
+const SEPARATION_METERS = 15;
+
+function metresBetween([lonA, latA]: Coordinate, [lonB, latB]: Coordinate) {
+    const midLat = ((latA + latB) / 2) * (Math.PI / 180);
+    const dx = (lonA - lonB) * 111_320 * Math.cos(midLat);
+    const dy = (latA - latB) * 111_320;
+    return Math.hypot(dx, dy);
+}
+
 function isPointInNoGo(candidate: Feature<Point>, noGo: NoGoSet) {
     return noGo.features.some(f => {
         try {
@@ -99,8 +120,17 @@ function isPointInNoGo(candidate: Feature<Point>, noGo: NoGoSet) {
  * rectangle and a campus is not, so the first eleven Chatham points passed
  * every no-go test while standing in residential Shadyside.
  */
-function isAcceptable(candidate: Feature<Point>, noGo: NoGoSet, inside: Feature<Polygon> | null) {
+function isAcceptable(
+    candidate: Feature<Point>,
+    noGo: NoGoSet,
+    inside: Feature<Polygon> | null,
+    placed: Coordinate[] = []
+) {
     if (isPointInNoGo(candidate, noGo)) return false;
+    const here = candidate.geometry.coordinates as Coordinate;
+    for (const other of placed) {
+        if (metresBetween(here, other) < SEPARATION_METERS) return false;
+    }
     if (!inside) return true;
     try {
         return booleanPointInPolygon(candidate, inside);
@@ -161,9 +191,10 @@ function clearanceMeters(
     candidate: Feature<Point>,
     noGo: NoGoSet,
     inside: Feature<Polygon> | null,
-    want: number
+    want: number,
+    placed: Coordinate[] = []
 ): number {
-    if (!isAcceptable(candidate, noGo, inside)) return -1;
+    if (!isAcceptable(candidate, noGo, inside, placed)) return -1;
 
     const [lon, lat] = candidate.geometry.coordinates as Coordinate;
     const lonPerMetre = 1 / (111_320 * Math.cos((lat * Math.PI) / 180));
@@ -178,7 +209,7 @@ function clearanceMeters(
                 lon + Math.cos(angle) * radius * lonPerMetre,
                 lat + Math.sin(angle) * radius * latPerMetre,
             ]);
-            if (!isAcceptable(probe, noGo, inside)) {
+            if (!isAcceptable(probe, noGo, inside, placed)) {
                 ringIsClear = false;
                 break;
             }
@@ -197,7 +228,7 @@ function clearanceMeters(
  * every rescued point ended up hard against a wall or a kerb with most of its
  * listening area inside the building it had just escaped. Measured on the
  * live Terrace walk, eight of thirteen points sat in a pocket smaller than
- * their own 15 m radius and two had no room at all. See rl-wc3.4.
+ * their own 15 m radius and two had no room at all. See rl-1u7.17.
  *
  * This looks for room instead. It spirals out the same way, but keeps going
  * until it finds a spot with real clearance, and settles for the roomiest it
@@ -206,7 +237,8 @@ function clearanceMeters(
 function snapToAcceptable(
     start: Feature<Point>,
     noGo: NoGoSet,
-    inside: Feature<Polygon> | null
+    inside: Feature<Polygon> | null,
+    placed: Coordinate[] = []
 ): Feature<Point> {
     const stepDeg = 0.00008; // ~ 9 m east, ~ 9 m north
     const maxIterations = 2000;
@@ -219,7 +251,7 @@ function snapToAcceptable(
     let iter = 0;
 
     let best = start;
-    let bestClearance = clearanceMeters(start, noGo, inside, CLEARANCE_TARGET_METERS);
+    let bestClearance = clearanceMeters(start, noGo, inside, CLEARANCE_TARGET_METERS, placed);
     if (bestClearance >= CLEARANCE_TARGET_METERS) return start;
 
     while (iter < maxIterations) {
@@ -227,7 +259,7 @@ function snapToAcceptable(
         const [lon, lat] = current.geometry.coordinates as Coordinate;
         current = point([lon + dx * stepDeg, lat + dy * stepDeg]);
 
-        const clearance = clearanceMeters(current, noGo, inside, CLEARANCE_TARGET_METERS);
+        const clearance = clearanceMeters(current, noGo, inside, CLEARANCE_TARGET_METERS, placed);
         if (clearance > bestClearance) {
             bestClearance = clearance;
             best = current;
@@ -281,6 +313,11 @@ function remapIntoSite(
     const xScale = (E - W) / (maxX - minX);
     const yScale = (N - S) / (maxY - minY);
 
+    // Each point is placed against the ones already down, so the thirteen
+    // spread out instead of settling wherever is merely legal. Order does not
+    // matter: sorting by how little room a point starts with gives the same
+    // layout, so the parks are taken as listed.
+    const placed: Coordinate[] = [];
     return stateParks.map((park, i) => {
         const [rx, ry] = rotated[i];
         const scaledLon = W + (rx - minX) * xScale;
@@ -288,8 +325,12 @@ function remapIntoSite(
         let pt = point([scaledLon, scaledLat]);
         // Onto the site first, then off whatever it landed on.
         if (inside) pt = pullOntoSite(pt, inside);
-        if (!isAcceptable(pt, noGo, inside)) pt = snapToAcceptable(pt, noGo, inside);
-        return { ...park, scaledCoords: pt.geometry.coordinates as Coordinate };
+        if (clearanceMeters(pt, noGo, inside, CLEARANCE_TARGET_METERS, placed) < CLEARANCE_TARGET_METERS) {
+            pt = snapToAcceptable(pt, noGo, inside, placed);
+        }
+        const coords = pt.geometry.coordinates as Coordinate;
+        placed.push(coords);
+        return { ...park, scaledCoords: coords };
     });
 }
 

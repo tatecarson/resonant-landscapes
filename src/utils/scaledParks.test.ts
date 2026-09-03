@@ -93,20 +93,37 @@ describe("the Chatham placement", () => {
     });
 
     /*
-     * There is deliberately no assertion here about how far apart the Chatham
-     * points are, or how much room each has.
+     * Spacing is asserted now, and it was not before.
      *
-     * Both are bad and both are unresolved. Every one of the 13 sits in a
-     * pocket of legal ground smaller than its own 15 m listening radius, and
-     * the closest pair is a few metres. That is not a number to pin: it is
-     * the open question on rl-wc3.1, which is whether a bounding-box remap
-     * suits this campus at all, and it will not be settled by a test.
+     * The old layout put the closest pair 3.2 m apart, which is two parks
+     * sharing one listening area, and there was no honest number to pin. The
+     * cause turned out not to be the campus: clearance asked how much room a
+     * point had against buildings and roads, and nothing asked whether it had
+     * room against the other twelve. Placing each point against the ones
+     * already down took the closest pair to 23.8 m without moving Terrace or
+     * DSU by a metre. See rl-wc3.5.
      *
-     * Pinning today's value would make a bad layout look like a decision.
-     * What is asserted above is what must be true whatever gets decided: the
-     * points are on the campus and not inside a building, a car park or a
-     * road.
+     * Fifteen metres is the floor because it is the enter radius: closer than
+     * that and a walker is inside two parks at once.
      */
+    it("keeps every pair of parks out of each other's listening area", () => {
+        const points = getScaledPoints("chatham");
+        for (let i = 0; i < points.length; i += 1) {
+            for (let j = i + 1; j < points.length; j += 1) {
+                const [lonA, latA] = points[i].scaledCoords as Coordinate;
+                const [lonB, latB] = points[j].scaledCoords as Coordinate;
+                const midLat = ((latA + latB) / 2) * (Math.PI / 180);
+                const metres = Math.hypot(
+                    (lonA - lonB) * 111_320 * Math.cos(midLat),
+                    (latA - latB) * 111_320
+                );
+                expect(
+                    metres,
+                    `${points[i].name} and ${points[j].name} would be heard as one place`
+                ).toBeGreaterThanOrEqual(15);
+            }
+        }
+    });
 });
 
 /**
@@ -115,11 +132,11 @@ describe("the Chatham placement", () => {
  * The snap used to stop at the first position that was not inside a no-go
  * polygon, and the first position outside an obstacle is against its edge.
  * Two of Terrace's points had no room at all: one metre in some direction was
- * a building or N Grange Ave. See rl-wc3.4.
+ * a building or N Grange Ave. See rl-1u7.17.
  *
- * Chatham is excluded on purpose. Its legal ground is fragmented into pockets
- * smaller than the target, so it cannot meet this yet, and the reason is the
- * placement question on rl-wc3.1 rather than the snap.
+ * Chatham is held to the same bar. It could not meet it while the thirteen
+ * points were fighting each other for the same pockets; with the separation
+ * constraint in place its worst point has 8 m and its median 9 m.
  */
 describe("room around each point", () => {
     const clearanceOf = (
@@ -164,6 +181,15 @@ describe("room around each point", () => {
         for (const park of getScaledPoints("terrace")) {
             expect(
                 clearanceOf(park.scaledCoords as Coordinate, terraceNoGoPolygons),
+                `${park.name} is wedged against something`
+            ).toBeGreaterThanOrEqual(8);
+        }
+    });
+
+    it("gives every Chatham point somewhere to stand", () => {
+        for (const park of getScaledPoints("chatham")) {
+            expect(
+                clearanceOf(park.scaledCoords as Coordinate, chathamNoGoPolygons),
                 `${park.name} is wedged against something`
             ).toBeGreaterThanOrEqual(8);
         }
