@@ -6,12 +6,21 @@ framework: playwright
 # platform below; each is a real device on BrowserStack's cloud, driven by
 # playwright.browserstack.config.ts against the URL in PLAYWRIGHT_BASE_URL.
 #
-# What the emulated projects cannot answer, and these can:
-#   - real iOS Safari decodes the 8-channel asset with AudioToolbox, the
-#     proprietary codec path open-source WebKit does not have
-#   - Samsung Internet is the default browser on the Samsung hardware most
-#     Android walkers actually hold
-#   - Firefox on real Android exercises the third engine on the third tier
+# One engine per OS, and not by choice: Playwright on BrowserStack's real
+# devices accepts only `chrome` on Android and `safari` on iOS. An earlier
+# version of this file asked for Samsung Internet and Firefox on Android and
+# got "Invalid 'browser'. Use 'chrome'" from every session. Samsung Internet
+# — the default browser on the hardware most Android walkers hold — is a real
+# gap in this matrix and cannot be closed here; it would need Appium.
+#
+# So the axes that remain are the ones worth varying:
+#   - iOS version, because WebKit ships with the OS and genuinely differs per
+#     major, and because real iOS Safari decodes through AudioToolbox, the
+#     proprietary path open-source WebKit lacks
+#   - device class, because a phone that decodes an 8-channel file to ~90 MB
+#     of PCM can run out of room to do it
+# Android version is deliberately not an axis: Chrome updates itself, and
+# every Android device here reported the same Chrome build.
 #
 # What these deliberately do not do: geolocation. The geoLocation capability
 # is unsupported for Playwright on real iOS devices, so nothing here depends
@@ -28,33 +37,29 @@ platforms:
     deviceName: Samsung Galaxy S22
     osVersion: 13
 
-  # Samsung Internet: the default browser on the very device above, and
-  # per BrowserStack's API the real-device browserName is "samsung".
-  - browserName: samsung
-    deviceName: Samsung Galaxy S22
-    osVersion: 13
-
-  # A non-Samsung OEM, so vendor WebView/browser quirks do not hide behind
-  # one manufacturer.
+  # A non-Samsung OEM, so vendor quirks do not hide behind one manufacturer.
   - browserName: chrome
     deviceName: Google Pixel 7
     osVersion: 13
 
-  # Firefox on real Android devices is supported per BrowserStack's docs
-  # but is still absent from their capability generator, so treat this
-  # platform as provisional until the first run lists it on the dashboard.
-  - browserName: firefox
-    deviceName: Samsung Galaxy S23
-    osVersion: 14
+  # The only Android row that is not a flagship. Same Chrome as the two
+  # above, so this is not about the engine: it is whether a budget phone has
+  # the memory to decode the 8-channel file at all. The failure this catches
+  # is the one a walker meets in a park with the cheapest phone that runs the
+  # piece, and no flagship can report it.
+  - browserName: chrome
+    deviceName: Samsung Galaxy M32
+    osVersion: "11.0"
 
-  # Real iOS. The floor of the support matrix (README), then the two most
-  # recent majors: what an installed walker on an un-updated phone runs,
-  # and what a current one runs. Device/OS pairs from BrowserStack's
-  # Playwright-for-iOS documentation; adjust on their dashboard's word if
+  # Real iOS, one row per WebKit major the support matrix covers: the floor
+  # in README.md, then 16, 17 and current. Adjust on BrowserStack's word if
   # a pair is retired.
   - browserName: safari
     deviceName: iPhone 12 Pro
     osVersion: 15
+  - browserName: safari
+    deviceName: iPhone 13
+    osVersion: 16
   - browserName: safari
     deviceName: iPhone 15 Pro Max
     osVersion: 17
