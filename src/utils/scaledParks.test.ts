@@ -4,6 +4,7 @@ import { distanceInMeters, type Coordinate } from "./geo";
 import { point } from "@turf/helpers";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import chathamNoGoPolygons from "../data/chathamNoGoPolygons.json";
+import chathamCampus from "../data/chathamCampus.json";
 import terraceNoGoPolygons from "../data/terraceNoGoPolygons.json";
 import type { Feature, Polygon } from "geojson";
 
@@ -60,14 +61,26 @@ describe("getVariantCenter", () => {
 describe("the Chatham placement", () => {
     const points = getScaledPoints("chatham");
 
+    /*
+     * The campus polygon, not its bounding box.
+     *
+     * This used to compare four lon/lat numbers, and that is the check PR
+     * #91's first draft passed with eleven of the thirteen points standing in
+     * Shadyside gardens: inside the rectangle, not in any building, road or
+     * car park, and not on the campus either. A campus is not a rectangle.
+     * The placement constrains points to the polygon, so the test has to ask
+     * the same question the code does.
+     */
     it("puts all 13 parks on the campus", () => {
         expect(points).toHaveLength(13);
         for (const park of points) {
-            const [lon, lat] = park.scaledCoords as Coordinate;
-            expect(lon, `${park.name} is off the campus to the east or west`).toBeGreaterThan(-79.928);
-            expect(lon, `${park.name} is off the campus to the east or west`).toBeLessThan(-79.922);
-            expect(lat, `${park.name} is off the campus to the north or south`).toBeGreaterThan(40.444);
-            expect(lat, `${park.name} is off the campus to the north or south`).toBeLessThan(40.4511);
+            expect(
+                booleanPointInPolygon(
+                    point(park.scaledCoords as Coordinate),
+                    chathamCampus as Feature<Polygon>
+                ),
+                `${park.name} is off the campus`
+            ).toBe(true);
         }
     });
 
