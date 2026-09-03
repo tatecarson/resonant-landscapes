@@ -11,7 +11,7 @@ import OfflineNotice from "./components/OfflineNotice";
 
 const MapExperience = lazy(() => import("./components/MapExperience"));
 
-export type Variant = "dsu" | "terrace";
+export type Variant = "dsu" | "terrace" | "chatham";
 
 /**
  * The debug route and the ?mock= position spoof are development affordances,
@@ -36,6 +36,9 @@ function detectVariant(location: Location): Variant {
   const hashRoute = location.hash.replace(/^#/, "").split("?")[0];
   if (hashRoute === "/terrace" || location.pathname.endsWith("/terrace")) {
     return "terrace";
+  }
+  if (hashRoute === "/chatham" || location.pathname.endsWith("/chatham")) {
+    return "chatham";
   }
   return "dsu";
 }

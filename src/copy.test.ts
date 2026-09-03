@@ -16,6 +16,7 @@ function collectStrings(value: unknown, path = "copy"): [string, string][] {
         const samples: unknown[][] = [
             ["dsu"],
             ["terrace"],
+            ["chatham"],
             [30, 15],
             [null, 15],
             [12],
