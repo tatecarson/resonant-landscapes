@@ -362,11 +362,19 @@ const CHATHAM_BOUNDS: SiteBounds = {
 // polygon is cleared.
 //
 // Swept at 0.00025, 0.00045, 0.00065 and 0.00090: every value puts all 13
-// points on campus and out of the no-go set, and the closest pair comes out
-// at 5.8, 10.0, 7.6 and 9.1 m. This is the best of them, and it is still
-// short of the 16 m that DSU's tightest pair sits at. See rl-wc3.1: whether
-// 13 points belong on this campus at all is a question for the site, not a
-// number to keep tuning.
+// points on campus and out of the no-go set, and 0.00045 was the best of
+// them on spacing.
+//
+// That sweep no longer decides the spacing, and the numbers it produced are
+// not quoted here any more because they went stale twice in one PR. The
+// clearance snap re-moved the points after the buffer had been chosen, and
+// then the separation constraint moved them again; each pass optimised one
+// thing with no view of the others, so whichever ran last won. Spacing is
+// now set by SEPARATION_METERS and asserted in the tests, where a stale
+// number fails loudly instead of sitting in a comment being wrong.
+//
+// The buffer's remaining job is the one in the paragraph above: keeping the
+// remap off the campus boundary.
 const CHATHAM_BUFFER = 0.00045;
 
 function chathamScaledPoints() {
