@@ -22,6 +22,10 @@ import { pickAssetFamily, selectVariant } from "../src/utils/audioPaths";
 
 const HARTFORD = "Hartford Beach State Park";
 
+/** What the in-page decoder reports back for one recording's two files. */
+type Decoded = { channels: number; sampleRate: number; seconds: number };
+type DecodedPair = { spatial: Decoded; mono: Decoded };
+
 test("opens on a real device and passes its own preflight", async ({ page }) => {
     await page.goto("/");
 
@@ -73,8 +77,21 @@ test("decodes this device's real spatial file to eight channels", async ({ page 
     // stream collapsing to stereo — is the failure this check exists for:
     // it would otherwise surface in the field as a park that plays but has
     // no space in it.
-    const decoded = await page.evaluate(async ([spatialUrl, monoUrl]) => {
-        const decode = async (url: string) => {
+    // The URLs travel in the fragment, not in a page.evaluate argument.
+    // BrowserStack's real-iOS driver mishandles that argument in every shape
+    // — an array arrives non-iterable, an object throws "URL is not valid",
+    // a string is evaluated as the expression itself — and the string-source
+    // workarounds that satisfy iOS return undefined on Android, which wants
+    // the opposite shape. A plain no-argument function is the one form both
+    // engines agree on, so what it needs is put where it can read it.
+    await page.goto(`/#decode=${encodeURIComponent(JSON.stringify({ spatialUrl, monoUrl }))}`);
+
+    const decoded = await page.evaluate(async (): Promise<DecodedPair> => {
+        const { spatialUrl, monoUrl } = JSON.parse(
+            decodeURIComponent(window.location.hash.replace(/^#decode=/, ""))
+        ) as { spatialUrl: string; monoUrl: string };
+
+        const decode = async (url: string): Promise<Decoded> => {
             const response = await fetch(url);
             if (!response.ok) throw new Error(`Failed to fetch ${url} (${response.status})`);
             const bytes = await response.arrayBuffer();
@@ -86,22 +103,31 @@ test("decodes this device's real spatial file to eight channels", async ({ page 
                 seconds: Math.round(buffer.duration),
             };
         };
+
         return { spatial: await decode(spatialUrl), mono: await decode(monoUrl) };
-    }, [spatialUrl, monoUrl]);
+    });
 
     expect(decoded.spatial.channels).toBe(8);
     expect(decoded.mono.channels).toBe(1);
     expect(decoded.spatial.seconds).toBeGreaterThan(0);
 });
 
-test("ships a manifest the device can install from", async ({ page, baseURL }) => {
+test("ships a manifest the device can install from", async ({ page }) => {
     await page.goto("/");
 
-    const href = await page.getAttribute('link[rel="manifest"]', "href");
-    expect(href, "no manifest is linked, so nothing can be installed").toBeTruthy();
+    // Read the link and fetch it in one no-argument evaluate: nothing has to
+    // cross the argument boundary, and the fetch happens inside the page, the
+    // way the device fetches it when someone installs. page.request would run
+    // it from node, out through BrowserStack's Android proxy, whose own
+    // certificate reads as "self signed certificate in certificate chain" —
+    // a fact about the tunnel, never about the manifest.
+    const manifest = await page.evaluate(async (): Promise<{ display?: string }> => {
+        const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+        if (!link) throw new Error("no manifest is linked, so nothing can be installed");
+        const response = await fetch(link.href);
+        if (!response.ok) throw new Error(`Failed to fetch the manifest (${response.status})`);
+        return await response.json();
+    });
 
-    const response = await page.request.get(new URL(href!, baseURL).toString());
-    expect(response.ok()).toBe(true);
-    const manifest = await response.json();
     expect(manifest.display).toBe("standalone");
 });
