@@ -17,14 +17,19 @@
  * installability, the shell — needs no park to stand in.
  */
 import { expect, test } from "@playwright/test";
-import { getParkAudioVariants, pickAssetFamily } from "../src/utils/audioPaths";
+import stateParks from "../src/data/stateParks.json" with { type: "json" };
+import { pickAssetFamily, selectVariant } from "../src/utils/audioPaths";
 
 const HARTFORD = "Hartford Beach State Park";
 
 test("opens on a real device and passes its own preflight", async ({ page }) => {
     await page.goto("/");
 
-    const beginButton = page.getByRole("button", { name: /^\s*start\s*$|begin with audio/i });
+    // "Start anyway" is what the modal renders when the preflight verdict
+    // is blocked. Matching it means a device missing a capability fails on
+    // the preflight assertion below, which names the missing thing, rather
+    // than on a locator timeout that names nothing.
+    const beginButton = page.getByRole("button", { name: /^\s*start(\s+anyway)?\s*$/i });
     await expect(beginButton).toBeVisible({ timeout: 30_000 });
 
     // The walk feature-detects its own requirements and renders
@@ -45,17 +50,20 @@ test("opens on a real device and passes its own preflight", async ({ page }) => 
 test("decodes this device's real spatial file to eight channels", async ({ page }) => {
     // The family the walk serves this device, decided the way the app
     // decides it: by engine, from the user agent the device itself reports.
-    // The park record is inline because Playwright's spec loader, unlike
-    // Vite, will not import the parks JSON; the URL builder is the real
-    // one, so what is fetched is what a walker in Hartford Beach gets.
+    // Both the park record and the choice of recording come from the app's
+    // own sources — stateParks.json and the seeded selector — so what is
+    // fetched is one of the sixteen files a walker in Hartford Beach can
+    // actually be served, and renumbering the park's assets moves this test
+    // with them instead of leaving it fetching a URL nothing serves.
     const userAgent = await page.evaluate(() => navigator.userAgent);
     const family = pickAssetFamily(userAgent);
-    const variants = getParkAudioVariants(HARTFORD, [
-        { name: HARTFORD, recordingsCount: 1, sectionsCount: 1 },
-    ], userAgent);
-    if (!variants) throw new Error(`no variants built for ${userAgent}`);
+    const selected = selectVariant(HARTFORD, stateParks, userAgent);
+    if (!selected) throw new Error(`no variants built for ${userAgent}`);
 
-    const [spatialUrl, monoUrl] = variants[0];
+    const [spatialUrl, monoUrl] = selected.urls;
+    console.log(
+        `${HARTFORD}: recording ${selected.number} of ${selected.total} (${family})`
+    );
     // The family decision is unit-tested against known agents; this keeps
     // the test honest about which codec path actually ran on the device.
     expect(spatialUrl).toMatch(family === "aac" ? /_8ch\.m4a$/ : /_8ch\.flac$/);

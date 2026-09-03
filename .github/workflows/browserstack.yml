@@ -42,4 +42,7 @@ jobs:
           BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
           BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
           PLAYWRIGHT_BASE_URL: ${{ inputs.base_url || 'https://resonant-landscapes.netlify.app' }}
-        run: npx browserstack-node-sdk "npx playwright test -c playwright.browserstack.config.ts"
+        # Unquoted on purpose: the SDK dispatches on argv, so a single
+        # quoted string is not a command it recognises — it prints "Not a
+        # valid command" and exits 0, green without having run a test.
+        run: npx browserstack-node-sdk playwright test -c playwright.browserstack.config.ts

@@ -9,13 +9,34 @@ import { defineConfig } from "@playwright/test";
  * One project here, so a multiplication by emulated projects can never
  * sneak into a real-device bill.
  *
- * No webServer: the suite drives a deployed URL (production by default, a
- * deploy preview via PLAYWRIGHT_BASE_URL), because real devices cannot
+ * No webServer: the suite drives a deployed URL, because real devices cannot
  * reach a laptop's localhost. The globalSetup server-identity check still
  * runs, so a mistyped URL fails loudly instead of testing somebody else's
- * site on seven devices.
+ * site on seven devices — and with no webServer to fall back on, a URL that
+ * refuses the connection fails there too rather than being waved through.
  */
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "https://resonant-landscapes.netlify.app";
+
+/*
+ * PLAYWRIGHT_BASE_URL is the only thing that decides which site the devices
+ * open, so this reads it rather than defaulting. browserstack.yml declares
+ * `playwrightConfigOptions.use.baseURL: ${PLAYWRIGHT_BASE_URL}` and the SDK
+ * applies that over whatever this file sets: a default here would be dead
+ * code that reads as a safety net, and an unset variable would resolve to an
+ * empty baseURL on all seven devices. Both entry points supply it — the
+ * workflow, and `npm run browserstack:real-devices`, which defaults it to
+ * production. Anything else fails here, before a session is billed.
+ */
+const baseURL = process.env.PLAYWRIGHT_BASE_URL;
+if (!baseURL) {
+    throw new Error(
+        [
+            "PLAYWRIGHT_BASE_URL is not set, and browserstack.yml overrides",
+            "use.baseURL with it, so the devices would open an empty URL.",
+            "Run `npm run browserstack:real-devices`, which defaults it to",
+            "production, or set it to the deploy preview you mean to walk.",
+        ].join("\n")
+    );
+}
 
 export default defineConfig({
     testDir: "./tests",
@@ -25,6 +46,11 @@ export default defineConfig({
     expect: {
         timeout: 15_000,
     },
+    // browserstack.yml declares parallelsPerPlatform: 1, and each Playwright
+    // worker opens its own remote session. Left to its default (half the
+    // cores), a multi-core runner would quietly open two sessions per
+    // platform — double the real-device minutes this build budgets for.
+    workers: 1,
     use: {
         baseURL,
     },
