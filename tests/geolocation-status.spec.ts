@@ -33,7 +33,13 @@ async function stubPermissionState(page: Page, state: string) {
 }
 
 async function openMap(page: Page) {
-  await page.goto("/");
+  // ?debug, because two tests here poll window.__mapDebug and a production
+  // build gates the mirrors behind that query (src/config/debug.ts). Without
+  // it this spec cannot run against a deploy preview at all: the poll spins
+  // its full timeout and reports "no fix was ever processed" while the app is
+  // behaving correctly — rl-our, in the file next door. In dev the query
+  // changes nothing. map-camera.spec.ts navigates the same way.
+  await page.goto("/?debug");
   await dismissWelcomeModal(page);
 }
 
@@ -213,9 +219,33 @@ test("stays quiet when GPS accuracy is good enough for the geofences", async ({ 
 });
 
 test("says the signal is lost when fixes stop arriving", async ({ page, context }) => {
+  // Three bounded waits in sequence — 20 s for a fix to be consumed, 20 s for
+  // the status to clear, 25 s for the watchdog — ceiling at 65 s against a
+  // 90 s default, before navigation and setup. The conditions that stretch
+  // them are the full-suite load this test was rewritten for (rl-9ud), and a
+  // run that tips over reports "Test timeout exceeded" instead of whichever
+  // of the three messages below actually explains it. Room to fail clearly.
+  test.setTimeout(120_000);
+
   await context.grantPermissions(["geolocation"]);
   await stubControllableGeolocation(page, { accuracy: 5 });
   await openMap(page);
+
+  /*
+   * Prove a fix was actually consumed before anything else. The empty
+   * status this test waits for is ambiguous on purpose-narrow terms: it is
+   * what healthy accuracy looks like, but it is also what a page that has
+   * not processed its first fix yet looks like, and under full-suite load
+   * the fix can lag the assertion. Stopping fixes at that point arms the
+   * watchdog on nothing, and the test then spent its 25 s waiting for
+   * "signal lost" while the banner honestly held ACQUIRING (rl-9ud).
+   */
+  await expect
+    .poll(() => page.evaluate(() => window.__mapDebug?.position ?? null), {
+      timeout: 20_000,
+      message: "no fix was ever processed, so the watchdog below would be arming on nothing",
+    })
+    .not.toBeNull();
 
   await expect(page.getByTestId("location-status")).toHaveCount(0, { timeout: 20_000 });
 

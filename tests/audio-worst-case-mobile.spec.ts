@@ -9,8 +9,14 @@ import { scaleCoordinates } from "../src/utils/geo.js";
 import { formatParkSlug, getParkAudioVariants } from "../src/utils/audioPaths.js";
 import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";
 import { expectParkLabelVisible } from "./helpers/ui-assertions";
+import { skipIfRoutingSawNothing, skipIfWorkerControlsPage } from "./helpers/service-worker";
 
-const replayPath = "/";
+// The ?debug query is load-bearing here. Every assertion in this spec reads
+// window.__audioDebug, and a production build gates that mirror behind
+// ?debug (production-surfaces.spec.ts asserts the gate), so run against a
+// deploy preview without the query this spec fails no matter what the app
+// does — rl-our. In dev the flag changes nothing: the mirror is always on.
+const replayPath = "/?debug";
 const neutralPoint = {
   latitude: 44.0142,
   longitude: -97.1098,
@@ -250,6 +256,16 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   await page.waitForLoadState("domcontentloaded");
   console.log("[worst-case] page loaded");
   await dismissWelcomeModal(page);
+
+  // The service worker hides the network from WebKit routing, which would
+  // make every measurement below fiction. Verified 2026-09-03 against a
+  // production preview: zero routed requests, a 6 ms prefetch, buffers
+  // already resident. The controller is only knowable once the page has
+  // loaded, which is why this sits below goto. It is a cheap early exit, not
+  // a guarantee — see the recorder check before the assertions, which is the
+  // half that cannot be raced.
+  await skipIfWorkerControlsPage(page, browserName);
+
   const userAgent = await page.evaluate(() => navigator.userAgent);
   console.log("[worst-case] resolving largest audio payload park");
   const worstCasePark = await resolveWorstCasePark(request, userAgent);
@@ -332,6 +348,11 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   console.log(
     `[worst-case] playback started loadMs=${loadCompletedAt - loadStartedAt} autoplayStartMs=${playbackStartedAt - playStartedAt}`
   );
+  // The park loaded and played, so requests were made. An empty recorder now
+  // means a worker claimed the page after the check above and the network
+  // went somewhere this test cannot see: skip rather than assert on nothing.
+  skipIfRoutingSawNothing(observedAudioRequests.length, browserName);
+
   const relevantRequests = observedAudioRequests.filter((request) => request.url.includes(worstCasePark.slug));
   const audioDebug = await page.evaluate(() => window.__audioDebug ?? null);
   const renderDebug = await page.evaluate(() => window.__renderDebug ?? null);
