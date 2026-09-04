@@ -255,6 +255,23 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   await page.waitForLoadState("domcontentloaded");
   console.log("[worst-case] page loaded");
   await dismissWelcomeModal(page);
+
+  // A production build runs the service worker, and on WebKit Playwright
+  // cannot intercept service-worker-initiated network requests. Every
+  // measurement below would then be fiction: the route recorder counts
+  // nothing, the per-request delay never applies, and the payload arrives
+  // at real network speed (or out of the rl-1u7.8.2 disk cache) while the
+  // assertions believe they are watching a throttled transfer. Verified
+  // 2026-09-03 against a production preview: zero routed requests, a 6 ms
+  // prefetch, buffers already resident. Tracked as rl-9ek.1; until the
+  // measurement moves to a layer the worker cannot bypass, this run is
+  // skipped rather than green for no reason. The controller is only
+  // knowable once the page has loaded, which is why this sits below goto.
+  const swControlled = await page.evaluate(() => Boolean(navigator.serviceWorker?.controller));
+  if (browserName === "webkit" && swControlled) {
+    test.skip(true, "the service worker mediates audio fetches and WebKit routing cannot see them (rl-9ek.1)");
+  }
+
   const userAgent = await page.evaluate(() => navigator.userAgent);
   console.log("[worst-case] resolving largest audio payload park");
   const worstCasePark = await resolveWorstCasePark(request, userAgent);
