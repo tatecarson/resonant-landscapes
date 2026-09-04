@@ -2,6 +2,13 @@
  * How many channels the spatial file must decode to for the HOA field to be
  * real. Third-order ambisonics in ACN/SN3D is 16 channels; these recordings
  * are the 8-channel subset the piece was authored in.
+ *
+ * Channel index 2 decodes digitally silent in every master — measured 2026-09-04
+ * by the corpus audit (rl-2v0): all 204 eight-channel files, both families, zero
+ * nonzero samples. That is the authoring convention of the subset, not an encode
+ * step dropping a component (rl-6p5), so a level measurement reading 0.000 there
+ * is expected and does not re-open the question. What would re-open it: any
+ * other channel reading silence, or ch2 carrying signal.
  */
 export const EXPECTED_SPATIAL_CHANNELS = 8;
 
