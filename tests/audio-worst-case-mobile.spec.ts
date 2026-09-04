@@ -267,7 +267,18 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   // measurement moves to a layer the worker cannot bypass, this run is
   // skipped rather than green for no reason. The controller is only
   // knowable once the page has loaded, which is why this sits below goto.
-  const swControlled = await page.evaluate(() => Boolean(navigator.serviceWorker?.controller));
+  // The controller is only knowable once the page has loaded, which is why
+  // this sits below goto — and it needs a short grace period, because
+  // registration activates asynchronously and clientsClaim takes the page
+  // on first load. Without the wait this test is a coin flip: one run
+  // against a preview skipped (worker fast), the next ran and passed on
+  // real routing (worker slow), a third would run blind and fail. A few
+  // seconds of patience on dev, where no worker ever comes, buys a
+  // deterministic answer everywhere.
+  const swControlled = await page
+    .waitForFunction(() => Boolean(navigator.serviceWorker?.controller), null, { timeout: 3_000 })
+    .then(() => true)
+    .catch(() => false);
   if (browserName === "webkit" && swControlled) {
     test.skip(true, "the service worker mediates audio fetches and WebKit routing cannot see them (rl-9ek.1)");
   }
