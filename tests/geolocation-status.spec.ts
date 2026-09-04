@@ -217,6 +217,22 @@ test("says the signal is lost when fixes stop arriving", async ({ page, context 
   await stubControllableGeolocation(page, { accuracy: 5 });
   await openMap(page);
 
+  /*
+   * Prove a fix was actually consumed before anything else. The empty
+   * status this test waits for is ambiguous on purpose-narrow terms: it is
+   * what healthy accuracy looks like, but it is also what a page that has
+   * not processed its first fix yet looks like, and under full-suite load
+   * the fix can lag the assertion. Stopping fixes at that point arms the
+   * watchdog on nothing, and the test then spent its 25 s waiting for
+   * "signal lost" while the banner honestly held ACQUIRING (rl-9ud).
+   */
+  await expect
+    .poll(() => page.evaluate(() => window.__mapDebug?.position ?? null), {
+      timeout: 20_000,
+      message: "no fix was ever processed, so the watchdog below would be arming on nothing",
+    })
+    .not.toBeNull();
+
   await expect(page.getByTestId("location-status")).toHaveCount(0, { timeout: 20_000 });
 
   // A fix landed, then nothing. No error fires, so without the watchdog the
