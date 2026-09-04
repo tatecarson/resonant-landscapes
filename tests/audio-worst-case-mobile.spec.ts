@@ -9,6 +9,7 @@ import { scaleCoordinates } from "../src/utils/geo.js";
 import { formatParkSlug, getParkAudioVariants } from "../src/utils/audioPaths.js";
 import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";
 import { expectParkLabelVisible } from "./helpers/ui-assertions";
+import { skipIfRoutingSawNothing, skipIfWorkerControlsPage } from "./helpers/service-worker";
 
 // The ?debug query is load-bearing here. Every assertion in this spec reads
 // window.__audioDebug, and a production build gates that mirror behind
@@ -256,32 +257,14 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   console.log("[worst-case] page loaded");
   await dismissWelcomeModal(page);
 
-  // A production build runs the service worker, and on WebKit Playwright
-  // cannot intercept service-worker-initiated network requests. Every
-  // measurement below would then be fiction: the route recorder counts
-  // nothing, the per-request delay never applies, and the payload arrives
-  // at real network speed (or out of the rl-1u7.8.2 disk cache) while the
-  // assertions believe they are watching a throttled transfer. Verified
-  // 2026-09-03 against a production preview: zero routed requests, a 6 ms
-  // prefetch, buffers already resident. Tracked as rl-9ek.1; until the
-  // measurement moves to a layer the worker cannot bypass, this run is
-  // skipped rather than green for no reason. The controller is only
-  // knowable once the page has loaded, which is why this sits below goto.
-  // The controller is only knowable once the page has loaded, which is why
-  // this sits below goto — and it needs a short grace period, because
-  // registration activates asynchronously and clientsClaim takes the page
-  // on first load. Without the wait this test is a coin flip: one run
-  // against a preview skipped (worker fast), the next ran and passed on
-  // real routing (worker slow), a third would run blind and fail. A few
-  // seconds of patience on dev, where no worker ever comes, buys a
-  // deterministic answer everywhere.
-  const swControlled = await page
-    .waitForFunction(() => Boolean(navigator.serviceWorker?.controller), null, { timeout: 3_000 })
-    .then(() => true)
-    .catch(() => false);
-  if (browserName === "webkit" && swControlled) {
-    test.skip(true, "the service worker mediates audio fetches and WebKit routing cannot see them (rl-9ek.1)");
-  }
+  // The service worker hides the network from WebKit routing, which would
+  // make every measurement below fiction. Verified 2026-09-03 against a
+  // production preview: zero routed requests, a 6 ms prefetch, buffers
+  // already resident. The controller is only knowable once the page has
+  // loaded, which is why this sits below goto. It is a cheap early exit, not
+  // a guarantee — see the recorder check before the assertions, which is the
+  // half that cannot be raced.
+  await skipIfWorkerControlsPage(page, browserName);
 
   const userAgent = await page.evaluate(() => navigator.userAgent);
   console.log("[worst-case] resolving largest audio payload park");
@@ -365,6 +348,11 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   console.log(
     `[worst-case] playback started loadMs=${loadCompletedAt - loadStartedAt} autoplayStartMs=${playbackStartedAt - playStartedAt}`
   );
+  // The park loaded and played, so requests were made. An empty recorder now
+  // means a worker claimed the page after the check above and the network
+  // went somewhere this test cannot see: skip rather than assert on nothing.
+  skipIfRoutingSawNothing(observedAudioRequests.length, browserName);
+
   const relevantRequests = observedAudioRequests.filter((request) => request.url.includes(worstCasePark.slug));
   const audioDebug = await page.evaluate(() => window.__audioDebug ?? null);
   const renderDebug = await page.evaluate(() => window.__renderDebug ?? null);

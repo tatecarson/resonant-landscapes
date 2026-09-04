@@ -7,6 +7,7 @@ import fs from "node:fs/promises";
 import stateParks from "../src/data/stateParks.json" with { type: "json" };
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";
+import { skipIfRoutingSawNothing, skipIfWorkerControlsPage } from "./helpers/service-worker";
 
 import { scaleCoordinates } from "../src/utils/geo.js";
 
@@ -189,7 +190,7 @@ async function getIosPermissionHarnessState(page: Page) {
   return page.evaluate(() => window.__iosPermissionHarness ?? null) as Promise<IosPermissionHarnessState | null>;
 }
 
-test("mobile audio loads and plays for every real park on the normal route", async ({ context, page, baseURL }, testInfo) => {
+test("mobile audio loads and plays for every real park on the normal route", async ({ browserName, context, page, baseURL }, testInfo) => {
   test.skip(
     process.env.RUN_ALL_PARKS_SOAK !== "1",
     "Set RUN_ALL_PARKS_SOAK=1 to run the full all-parks mobile soak."
@@ -236,6 +237,14 @@ test("mobile audio loads and plays for every real park on the normal route", asy
   await page.goto(replayPath);
   await page.waitForLoadState("domcontentloaded");
   await dismissWelcomeModal(page);
+
+  // Same reason the worst-case sim skips: this spec counts audio requests
+  // through context.route, and on WebKit a service worker takes them out of
+  // view. Without this, a run against a deploy preview reports every park at
+  // zero requests — a product failure for a walk that played fine — while
+  // the URL-shape and legacy-WAV guards below pass vacuously over an empty
+  // array. rl-9ek.1.
+  await skipIfWorkerControlsPage(page, browserName);
 
   if (useIPhonePermissionHarness) {
     await expect
@@ -373,6 +382,13 @@ test("mobile audio loads and plays for every real park on the normal route", asy
   });
 
   expect(failures, JSON.stringify(report, null, 2)).toEqual([]);
+
+  // Every park above loaded and played, so requests were made. An empty
+  // recorder now means a worker claimed the page after the check by the goto
+  // and took the network out of view: skip rather than fail the count below
+  // and pass the two guards after it over an empty array.
+  skipIfRoutingSawNothing(observedAudioRequests.length, browserName);
+
   expect(runResults.every((result) => result.audioRequestCount >= 2)).toBeTruthy();
   expect(
     runResults.every((result) =>
