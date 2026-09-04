@@ -51,7 +51,12 @@ type ParkRunResult = {
   failureReason: string | null;
 };
 
-const replayPath = "/";
+// The ?debug query is load-bearing here. Every assertion in this spec reads
+// window.__audioDebug, and a production build gates that mirror behind
+// ?debug (production-surfaces.spec.ts asserts the gate), so run against a
+// deploy preview without the query this spec fails no matter what the app
+// does — rl-our. In dev the flag changes nothing: the mirror is always on.
+const replayPath = "/?debug";
 const neutralPoint: Coordinate = [-97.1098, 44.0142];
 const scaleLat = 0.00066;
 const scaleLong = 0.00045;

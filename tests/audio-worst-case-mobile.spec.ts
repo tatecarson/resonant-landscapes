@@ -10,7 +10,12 @@ import { formatParkSlug, getParkAudioVariants } from "../src/utils/audioPaths.js
 import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";
 import { expectParkLabelVisible } from "./helpers/ui-assertions";
 
-const replayPath = "/";
+// The ?debug query is load-bearing here. Every assertion in this spec reads
+// window.__audioDebug, and a production build gates that mirror behind
+// ?debug (production-surfaces.spec.ts asserts the gate), so run against a
+// deploy preview without the query this spec fails no matter what the app
+// does — rl-our. In dev the flag changes nothing: the mirror is always on.
+const replayPath = "/?debug";
 const neutralPoint = {
   latitude: 44.0142,
   longitude: -97.1098,
