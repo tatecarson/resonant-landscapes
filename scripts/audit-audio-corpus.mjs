@@ -52,7 +52,16 @@ function argFlag(flag) {
 }
 
 const LIMIT = Number(argValue("--limit", 0)) || Infinity;
+const FAMILY_NAMES = ["aac", "lossless"];
 const FAMILY_FILTER = argValue("--family", null);
+if (FAMILY_FILTER && !FAMILY_NAMES.includes(FAMILY_FILTER)) {
+  // Otherwise every file filters out, nothing is measured, and the run still
+  // prints "HARD FAILURES: none" and exits 0 — a green result over an empty
+  // corpus. "flac" is the likely guess, since the lossless family lives in
+  // sounds-flac/ and sounds-wav-mono/.
+  console.error(`--family ${FAMILY_FILTER} is not a family. Use one of: ${FAMILY_NAMES.join(", ")}`);
+  process.exit(1);
+}
 const CACHE_DIR = resolve(argValue("--cache-dir", join(tmpdir(), "rl-audio-corpus-cache")));
 const OUT_PATH = argValue("--out", null);
 const REFRESH = argFlag("--refresh");
@@ -124,13 +133,26 @@ async function fetchWithRetry(url, options, attempts = 2) {
   throw lastError;
 }
 
+/**
+ * The expected size, which is what makes both the cache check and the
+ * truncated-download check possible. Absent, they both switch off silently:
+ * every run re-downloads, and a connection dropped mid-body is cached as a
+ * short file, decoded happily, and reported as an 8ch/mono length
+ * disagreement — the P1 condition, pointing at a master that is fine. So a
+ * size that cannot be read is a failure, not a zero.
+ */
 async function headSize(url) {
   const response = await fetchWithRetry(url, {
     method: "HEAD",
     signal: AbortSignal.timeout(30_000),
   });
   if (!response.ok) throw new Error(`HEAD ${url} -> ${response.status}`);
-  return Number(response.headers.get("content-length") ?? 0);
+  const header = response.headers.get("content-length");
+  const size = Number(header);
+  if (header === null || !Number.isFinite(size) || size <= 0) {
+    throw new Error(`HEAD ${url} reported content-length ${JSON.stringify(header)}, so the download cannot be checked for truncation`);
+  }
+  return size;
 }
 
 async function downloadFile(entry) {
@@ -186,9 +208,19 @@ function analyzeFile(path) {
     child.stdout.on("data", (data) => {
       try {
         if (!info) {
+          // Hold the samples, do not drop them. stdout and stderr are separate
+          // pipes with no ordering between them, so samples can arrive before
+          // the description that says how wide a frame is. Discarding a chunk
+          // here would shift the frame phase by (bytes mod frameBytes) and
+          // rotate every later sample into the wrong channel — which is how a
+          // corpus-wide claim about channel 2 would end up describing some
+          // other channel. There is nothing to parse until the description
+          // lands, so keep the bytes and try again on the next chunk.
+          carry = carry.length ? Buffer.concat([carry, data]) : data;
           info = parseStreamInfo(stderr);
-          if (!info) return; // description not printed yet; keep buffering
+          if (!info) return;
           stats = makeChannelAccumulators(info.channels);
+          data = Buffer.alloc(0);
         }
         if (!stats) {
           // Input description never arrived but samples are flowing: without
@@ -226,6 +258,13 @@ function analyzeFile(path) {
         if (carry.length > 0) processChunk(carry, carry.length / frameBytes, info.channels, stats);
         if (code !== 0) {
           throw new Error(`ffmpeg exited ${code} for ${path}: ${stderr.slice(-400)}`);
+        }
+        // A file that decoded to nothing is a failed measurement, not a quiet
+        // one: zero samples reads as digitallySilent=false and matches any
+        // other zero in the pair check, so it would be counted as measured
+        // and reported clean.
+        if (stats[0].n === 0) {
+          throw new Error(`decoded 0 samples from ${path}: ${stderr.slice(-400)}`);
         }
         settled = true;
         resolvePromise({ info, stats: finishStats(stats) });
@@ -334,9 +373,18 @@ function finishStats(stats) {
   });
 }
 
+/**
+ * Silent channels are skipped, because they all hash alike and would otherwise
+ * be reported as copies of one another. The two findings mean opposite things:
+ * a duplicated channel is a spatial field that collapsed to broadcast mono, a
+ * silent one is a component that is absent. Silence is already counted by the
+ * silentChannels check; letting it also land in copiedChannels would describe
+ * a missing component as a duplicated one.
+ */
 function markCopies(channels) {
   const firstWithDigest = new Map();
   channels.forEach((channel, index) => {
+    if (channel.digitallySilent) return;
     if (firstWithDigest.has(channel.digest)) {
       channel.copyOf = firstWithDigest.get(channel.digest);
     } else {
@@ -345,9 +393,14 @@ function markCopies(channels) {
   });
 }
 
+/**
+ * Both arguments are already dB, where 0 is full scale and silence is null —
+ * finishStats nulls rmsDb rather than reporting -Infinity. So the only
+ * non-comparable case is a null, handled here; a zero is the loudest reading
+ * there is and must be subtracted like any other.
+ */
 function rmsDeltaDb(a, b) {
   if (a === null || b === null) return null;
-  if (a === 0 || b === 0) return a === b ? 0 : null;
   return Number((a - b).toFixed(2));
 }
 
@@ -502,6 +555,11 @@ async function main() {
   }, CONCURRENCY);
 
   // ── Triage ─────────────────────────────────────────────────────────────
+  // silentChannels holds the channels that reopen rl-6p5 — any digital silence
+  // other than the known channel 2 of an eight-channel file. It is the same
+  // list as channel2Verdict.otherSilentChannels; both are reported, and an
+  // empty bucket here has to mean the check found nothing rather than that
+  // nothing ever wrote to it.
   const anomalies = { pairMismatch: [], silentChannels: [], copiedChannels: [], clipping: [], dcOffset: [], crossFamilyDrift: [] };
   const channel2Verdict = { eightChannelFiles: 0, channel2Silent: 0, otherSilentChannels: [] };
 
@@ -525,6 +583,7 @@ async function main() {
         entry.result.channelStats.forEach((channel, index) => {
           if (channel.digitallySilent && !(role === "eightChannel" && index === 2)) {
             channel2Verdict.otherSilentChannels.push(`${label} ${role} ch${index}`);
+            anomalies.silentChannels.push({ label, role, channel: index });
           }
           if (channel.copyOf !== undefined) {
             anomalies.copiedChannels.push({ label, role, channel: index, copyOf: channel.copyOf });
