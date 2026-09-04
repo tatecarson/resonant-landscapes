@@ -98,6 +98,13 @@ function offsetPointByMeters(
  * runtime would see. The CDN exposes Content-Length through
  * access-control-expose-headers — the app's own cache index already reads it
  * (offlineAudioCache writeThrough) — and HEAD needs no CORS preflight.
+ *
+ * That exposure is the one thing an in-page probe depends on that a node-side
+ * one did not, so it is checked rather than defaulted. A header that stops
+ * being readable would otherwise size every park at zero, and since the
+ * largest-park reduce compares totalBytes with `>`, every park tying at zero
+ * makes the first one in stateParks.json the "worst case" — a spec that keeps
+ * passing while measuring a payload nobody chose.
  */
 async function measureContentLengths(
   page: import("@playwright/test").Page,
@@ -110,7 +117,18 @@ async function measureContentLengths(
         if (!response.ok) {
           throw new Error(`HEAD ${url} failed with ${response.status}`);
         }
-        return Number(response.headers.get("content-length") ?? 0);
+        const header = response.headers.get("content-length");
+        if (header === null) {
+          throw new Error(
+            `HEAD ${url} returned no readable content-length. The CDN must name it in ` +
+            "access-control-expose-headers for an in-page probe to read it."
+          );
+        }
+        const bytes = Number(header);
+        if (!Number.isFinite(bytes) || bytes <= 0) {
+          throw new Error(`HEAD ${url} reported content-length "${header}", which is not a payload size.`);
+        }
+        return bytes;
       })
     );
   }, urls);
@@ -250,8 +268,12 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   await context.route("https://resonant-landscapes.b-cdn.net/**", async (route) => {
     // The sizing probes are the test's own traffic, not the walk's: HEADs the
     // page issues to measure payloads before the worst case is chosen. Let
-    // them pass unrecorded and undelayed, so the recorder stays a record of
-    // what the walk fetched and skipIfRoutingSawNothing keeps its meaning.
+    // them pass unrecorded and undelayed by this handler, so the recorder
+    // stays a record of what the walk fetched and skipIfRoutingSawNothing
+    // keeps its meaning. By this handler only: on throttled chromium the CDP
+    // emulation is beneath Playwright's routing, so these still pay its
+    // latency — about a second across the 26 probes, all of it spent before
+    // the measured window opens.
     if (route.request().method() === "HEAD") {
       await route.continue();
       return;

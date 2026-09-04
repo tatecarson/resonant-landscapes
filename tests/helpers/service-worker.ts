@@ -31,7 +31,8 @@ import { test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
 export const WORKER_HIDES_ROUTING =
-    "the service worker mediates audio fetches and WebKit routing cannot see them (rl-9ek.1)";
+    "the service worker mediates audio fetches and WebKit routing cannot see them, " +
+    "so there is no honest throttled run to have here — see tests/helpers/service-worker.ts";
 
 /**
  * Skip early when the worker has already claimed the page. Call after goto.
