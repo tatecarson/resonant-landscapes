@@ -24,6 +24,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "audio:check": "bash scripts/check-audio-variants.sh",
+    "audio:audit": "if [ -z \"$NODE_EXTRA_CA_CERTS\" ] && [ -f \"$HOME/.certs/aaa.pem\" ]; then export NODE_EXTRA_CA_CERTS=\"$HOME/.certs/aaa.pem\"; fi; node scripts/audit-audio-corpus.mjs",
     "audio:convert:wav": "bash scripts/convert-m4a-to-wav-safari.sh",
     "audio:convert:flac": "bash scripts/convert-wav-to-flac.sh",
     "demo:wayfinding": "PLAYWRIGHT_VIDEO=1 WAYFINDING_HOLD_MS=2500 playwright test tests/wayfinding.spec.ts --project=chromium -g \"counts a park as heard\"",

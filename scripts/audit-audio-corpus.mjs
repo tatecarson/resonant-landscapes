@@ -24,6 +24,35 @@
  * Usage:
  *   node scripts/audit-audio-corpus.mjs [--limit N] [--family aac|lossless]
  *        [--cache-dir DIR] [--out FILE] [--refresh] [--concurrency N]
+ *   npm run audio:audit [-- --limit N ...]
+ *
+ * Requirements (rl-74x.3):
+ *   1. ffmpeg on PATH. No ffprobe needed — evermeet mac builds ship ffmpeg
+ *      only, and this script parses ffmpeg's own description. `brew install
+ *      ffmpeg` covers it.
+ *
+ *   2. node must be able to verify the CDN's certificate. The chain is
+ *      cross-signed and terminates at 'AAA Certificate Services', a root the
+ *      macOS keychain has and node's bundled CA list may not (newer node
+ *      versions verify it, which is why this bites some machines and not
+ *      others). If a run dies at the first HEAD with "fetch failed" /
+ *      UNABLE_TO_GET_ISSUER_CERT, export the root once:
+ *
+ *        mkdir -p ~/.certs && security find-certificate -a -c \
+ *          'AAA Certificate Services' -p \
+ *          /System/Library/Keychains/SystemRootCertificates.keychain \
+ *          > ~/.certs/aaa.pem
+ *
+ *      then run with it — directly, or through `npm run audio:audit`, which
+ *      picks ~/.certs/aaa.pem up when it exists and stays out of the way when
+ *      NODE_EXTRA_CA_CERTS is already set:
+ *
+ *        NODE_EXTRA_CA_CERTS=~/.certs/aaa.pem node scripts/audit-audio-corpus.mjs
+ *
+ *      Same root cause as rl-9ek.2, which fixed it for the Playwright specs
+ *      by fetching inside the page; this script has no page, so the root
+ *      travels with the invocation. A TLS failure now prints this remediation
+ *      instead of a bare "fetch failed".
  */
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -134,6 +163,40 @@ async function fetchWithRetry(url, options, attempts = 2) {
 }
 
 /**
+ * A TLS failure is not a network failure: retrying changes nothing, and the
+ * raw "TypeError: fetch failed" says nothing about the fix. The CDN's chain
+ * terminates at a root node's bundled CA list may not have (rl-74x.3), so the
+ * failure is diagnosed and rethrown with the remediation attached.
+ */
+const CERTIFICATE_ERROR_CODES = new Set([
+  "UNABLE_TO_GET_ISSUER_CERT",
+  "UNABLE_TO_GET_ISSUER_CERT_LOCALLY",
+  "SELF_SIGNED_CERT_IN_CHAIN",
+  "DEPTH_ZERO_SELF_SIGNED_CERT",
+  "CERT_HAS_EXPIRED",
+]);
+
+function isCertificateFailure(error) {
+  const cause = error?.cause ?? error;
+  return (
+    CERTIFICATE_ERROR_CODES.has(cause?.code) ||
+    /certificate/i.test(String(cause?.message ?? ""))
+  );
+}
+
+function certificateFailureError(url, error) {
+  const cause = error?.cause ?? error;
+  return new Error(
+    [
+      `cannot verify the ${new URL(url).host} certificate — node's bundled CA list lacks the root the chain terminates at (${cause?.code ?? cause?.message})`,
+      `export the root once:  mkdir -p ~/.certs && security find-certificate -a -c 'AAA Certificate Services' -p /System/Library/Keychains/SystemRootCertificates.keychain > ~/.certs/aaa.pem`,
+      `then run with it:      NODE_EXTRA_CA_CERTS=~/.certs/aaa.pem node scripts/audit-audio-corpus.mjs   (or: npm run audio:audit)`,
+      `see the Requirements block at the top of this script (rl-74x.3)`,
+    ].join("\n")
+  );
+}
+
+/**
  * The expected size, which is what makes both the cache check and the
  * truncated-download check possible. Absent, they both switch off silently:
  * every run re-downloads, and a connection dropped mid-body is cached as a
@@ -142,10 +205,16 @@ async function fetchWithRetry(url, options, attempts = 2) {
  * size that cannot be read is a failure, not a zero.
  */
 async function headSize(url) {
-  const response = await fetchWithRetry(url, {
-    method: "HEAD",
-    signal: AbortSignal.timeout(30_000),
-  });
+  let response;
+  try {
+    response = await fetchWithRetry(url, {
+      method: "HEAD",
+      signal: AbortSignal.timeout(30_000),
+    });
+  } catch (error) {
+    if (isCertificateFailure(error)) throw certificateFailureError(url, error);
+    throw error;
+  }
   if (!response.ok) throw new Error(`HEAD ${url} -> ${response.status}`);
   const header = response.headers.get("content-length");
   const size = Number(header);
@@ -161,7 +230,13 @@ async function downloadFile(entry) {
     return { skipped: true };
   }
   const started = Date.now();
-  const response = await fetchWithRetry(url, { signal: AbortSignal.timeout(600_000) });
+  let response;
+  try {
+    response = await fetchWithRetry(url, { signal: AbortSignal.timeout(600_000) });
+  } catch (error) {
+    if (isCertificateFailure(error)) throw certificateFailureError(url, error);
+    throw error;
+  }
   if (!response.ok) throw new Error(`GET ${url} -> ${response.status}`);
   const buffer = Buffer.from(await response.arrayBuffer());
   if (size > 0 && buffer.length !== size) {
