@@ -1,0 +1,4302 @@
+{
+  "schemaVersion": 1,
+  "analysisRate": 2000,
+  "method": "Delivery channel 0 against all 8 capsule channels; independent 5s and 40s windows, 10s each.",
+  "offsetMeaning": "Waveform alignment includes encoder latency/filter phase; not a sample-exact cut recipe.",
+  "sourceErrors": [
+    {
+      "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dogs_Carter Gordon_SD State Parks.wav",
+      "error": "ffmpeg could not decode source"
+    },
+    {
+      "source": "Edits/WATRImpt-OctoMic F8n_Fisher Grove, SD-Falling Water_Carter Gordon_SD State Parks.wav",
+      "error": "ffmpeg could not decode source"
+    }
+  ],
+  "recordings": [
+    {
+      "delivery": "Bear-Butte-1-001",
+      "status": "matched",
+      "match": {
+        "source": "RAW/BEAR BUTTE/BEAR BUTTE-T001.WAV",
+        "score": 0.6382180573455034,
+        "offsetDisagreementSeconds": 0.0005000000000023874,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6534360275826576,
+            "sourceOffsetSeconds": 15.991,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6382180573455034,
+            "sourceOffsetSeconds": 15.991500000000002,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "RAW/BEAR BUTTE/BEAR BUTTE-T003.WAV",
+        "score": 0,
+        "offsetDisagreementSeconds": 31.424999999999997,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.1436189278203896,
+            "sourceOffsetSeconds": 59.8395,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.1028637538761866,
+            "sourceOffsetSeconds": 28.414500000000004,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Bear-Butte-1-002",
+      "status": "matched",
+      "match": {
+        "source": "RAW/BEAR BUTTE/BEAR BUTTE-T001.WAV",
+        "score": 0.6411111837355032,
+        "offsetDisagreementSeconds": 0.0005000000000023874,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6411111837355032,
+            "sourceOffsetSeconds": 75.991,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6584893518400081,
+            "sourceOffsetSeconds": 75.9905,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "RAW/BEAR BUTTE/BEAR BUTTE-T003.WAV",
+        "score": 0,
+        "offsetDisagreementSeconds": 98.3045,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.12244992654817104,
+            "sourceOffsetSeconds": 64.019,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.1294599203594937,
+            "sourceOffsetSeconds": -34.2855,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Bear-Butte-2-001",
+      "status": "matched",
+      "match": {
+        "source": "RAW/BEAR BUTTE/BEAR BUTTE-T003.WAV",
+        "score": 0.585528016005853,
+        "offsetDisagreementSeconds": 0.0010000000000029985,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7012159451636327,
+            "sourceOffsetSeconds": 9.9915,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.585528016005853,
+            "sourceOffsetSeconds": 9.990499999999997,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "RAW/BEAR BUTTE/BEAR BUTTE-T002.WAV",
+        "score": 0,
+        "offsetDisagreementSeconds": 35.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.0,
+            "sourceOffsetSeconds": -5.0,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.0,
+            "sourceOffsetSeconds": -40.0,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Bear-Butte-2-002",
+      "status": "matched",
+      "match": {
+        "source": "RAW/BEAR BUTTE/BEAR BUTTE-T006.WAV",
+        "score": 0.7448342660080076,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7930943261835482,
+            "sourceOffsetSeconds": 59.9905,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7448342660080076,
+            "sourceOffsetSeconds": 59.9905,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "RAW/BEAR BUTTE/BEAR BUTTE-T003.WAV",
+        "score": 0,
+        "offsetDisagreementSeconds": 57.196,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.1027079821801852,
+            "sourceOffsetSeconds": 45.5005,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.08073839574137505,
+            "sourceOffsetSeconds": -11.6955,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Bear-Butte-3-001",
+      "status": "matched",
+      "match": {
+        "source": "RAW/BEAR BUTTE/BEAR BUTTE-T004.WAV",
+        "score": 0.6300427373214509,
+        "offsetDisagreementSeconds": 3.552713678800501e-15,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6525208453666916,
+            "sourceOffsetSeconds": 20.9905,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6300427373214509,
+            "sourceOffsetSeconds": 20.990499999999997,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "RAW/BEAR BUTTE/BEAR BUTTE-T003.WAV",
+        "score": 0,
+        "offsetDisagreementSeconds": 40.4725,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.06785884763999744,
+            "sourceOffsetSeconds": 78.1935,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.07593676194926767,
+            "sourceOffsetSeconds": 37.721000000000004,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Bear-Butte-3-002",
+      "status": "matched",
+      "match": {
+        "source": "RAW/BEAR BUTTE/BEAR BUTTE-T004.WAV",
+        "score": 0.5782555878169676,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6415220338679478,
+            "sourceOffsetSeconds": 80.9905,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5782555878169676,
+            "sourceOffsetSeconds": 80.9905,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "RAW/BEAR BUTTE/BEAR BUTTE-T003.WAV",
+        "score": 0,
+        "offsetDisagreementSeconds": 15.495000000000005,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.07541192577221123,
+            "sourceOffsetSeconds": 12.517499999999998,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.09813482374131767,
+            "sourceOffsetSeconds": 28.012500000000003,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Bear-Butte-4-001",
+      "status": "matched",
+      "match": {
+        "source": "RAW/BEAR BUTTE/BEAR BUTTE-T006.WAV",
+        "score": 0.7407484311585184,
+        "offsetDisagreementSeconds": 2.6645352591003757e-15,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7407484311585184,
+            "sourceOffsetSeconds": -0.009500000000000064,
+            "sourceCapsuleChannel": 0
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7883514383861185,
+            "sourceOffsetSeconds": -0.009500000000002728,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "RAW/BEAR BUTTE/BEAR BUTTE-T003.WAV",
+        "score": 0,
+        "offsetDisagreementSeconds": 96.762,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.06391007844221615,
+            "sourceOffsetSeconds": 69.6435,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.06589018175748511,
+            "sourceOffsetSeconds": -27.118499999999997,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Bear-Butte-4-002",
+      "status": "matched",
+      "match": {
+        "source": "RAW/BEAR BUTTE/BEAR BUTTE-T006.WAV",
+        "score": 0.7212198192376716,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.793473717995139,
+            "sourceOffsetSeconds": 119.9905,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7212198192376716,
+            "sourceOffsetSeconds": 119.9905,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "RAW/BEAR BUTTE/BEAR BUTTE-T003.WAV",
+        "score": 0,
+        "offsetDisagreementSeconds": 54.323499999999996,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.08068852694585557,
+            "sourceOffsetSeconds": 21.9605,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.08613399229001814,
+            "sourceOffsetSeconds": -32.363,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-1-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, plain ambience_Carter Gordon_SD State Parks.wav",
+        "score": 0.3436670072904453,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.3436670072904453,
+            "sourceOffsetSeconds": 27.991,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.3660755500926502,
+            "sourceOffsetSeconds": 27.991,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 22.636499999999998,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.11260809971476379,
+            "sourceOffsetSeconds": 6.5634999999999994,
+            "sourceCapsuleChannel": 0
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.1158576478005667,
+            "sourceOffsetSeconds": -16.073,
+            "sourceCapsuleChannel": 3
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-1-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, plain ambience_Carter Gordon_SD State Parks.wav",
+        "score": 0.4431393399152172,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.44378826816256134,
+            "sourceOffsetSeconds": 87.991,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.4431393399152172,
+            "sourceOffsetSeconds": 87.991,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 46.0215,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.10838396537997823,
+            "sourceOffsetSeconds": 23.454,
+            "sourceCapsuleChannel": 0
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.10715959971709157,
+            "sourceOffsetSeconds": -22.5675,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-2-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dogs, Car on Gravel, Grate, Wind,_Carter Gordon_SD State Parks.wav",
+        "score": 0.56170742116375,
+        "offsetDisagreementSeconds": 3.552713678800501e-15,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.56170742116375,
+            "sourceOffsetSeconds": 22.9915,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5819193178885024,
+            "sourceOffsetSeconds": 22.991500000000002,
+            "sourceCapsuleChannel": 3
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 32.885000000000005,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.1149410230197757,
+            "sourceOffsetSeconds": 4.112500000000001,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.11640337315415134,
+            "sourceOffsetSeconds": -28.7725,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-2-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dogs, Car on Gravel, Grate, Wind,_Carter Gordon_SD State Parks.wav",
+        "score": 0.5025048387037175,
+        "offsetDisagreementSeconds": 0.0005000000000023874,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6179640781868431,
+            "sourceOffsetSeconds": 82.992,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5025048387037175,
+            "sourceOffsetSeconds": 82.9915,
+            "sourceCapsuleChannel": 3
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 51.2755,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.13132777709747723,
+            "sourceOffsetSeconds": 21.604,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.10861878516504143,
+            "sourceOffsetSeconds": -29.6715,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-3-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dogs, Wind, Ambience, Low engines_Carter Gordon_SD State Parks.wav",
+        "score": 0.4380656299254232,
+        "offsetDisagreementSeconds": 0.0004999999999881766,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5121140340487456,
+            "sourceOffsetSeconds": 127.98849999999999,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.4380656299254232,
+            "sourceOffsetSeconds": 127.988,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 40.2665,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.11716421834334431,
+            "sourceOffsetSeconds": 17.7895,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.10995924342418063,
+            "sourceOffsetSeconds": -22.477,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-3-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dogs, Far off car engines, sparse_Carter Gordon_SD State Parks.wav",
+        "score": 0.494005900612704,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5863228446642749,
+            "sourceOffsetSeconds": 59.989000000000004,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.494005900612704,
+            "sourceOffsetSeconds": 59.989000000000004,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 39.6175,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.12695117986620605,
+            "sourceOffsetSeconds": 24.698,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.12149803059815101,
+            "sourceOffsetSeconds": -14.9195,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-4-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dogs, Wind, Ambience, Low engines_Carter Gordon_SD State Parks.wav",
+        "score": 0.46454939513476623,
+        "offsetDisagreementSeconds": 0.0010000000000012221,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.48418720113925356,
+            "sourceOffsetSeconds": 7.992000000000001,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.46454939513476623,
+            "sourceOffsetSeconds": 7.993000000000002,
+            "sourceCapsuleChannel": 3
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 25.343,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.10934293728612006,
+            "sourceOffsetSeconds": 4.561,
+            "sourceCapsuleChannel": 0
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.10474897562269556,
+            "sourceOffsetSeconds": -20.782,
+            "sourceCapsuleChannel": 3
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-4-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dogs, Wind, Ambience, Low engines_Carter Gordon_SD State Parks.wav",
+        "score": 0.4068590020975448,
+        "offsetDisagreementSeconds": 0.0005000000000023874,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6846579068257657,
+            "sourceOffsetSeconds": 67.9925,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.4068590020975448,
+            "sourceOffsetSeconds": 67.992,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 16.747500000000002,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.09118746894516758,
+            "sourceOffsetSeconds": 6.0055,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.10921146178766568,
+            "sourceOffsetSeconds": -10.742,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-5-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, plain ambience_Carter Gordon_SD State Parks.wav",
+        "score": 0.4145152045190721,
+        "offsetDisagreementSeconds": 0.0005000000000165983,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.4145152045190721,
+            "sourceOffsetSeconds": 147.991,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.4337569359870683,
+            "sourceOffsetSeconds": 147.9905,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 39.982,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.10297904819102978,
+            "sourceOffsetSeconds": 13.366,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.10702060319054019,
+            "sourceOffsetSeconds": -26.616,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-5-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dogs, Car on Gravel, Grate, Wind,_Carter Gordon_SD State Parks.wav",
+        "score": 0.4607879155758696,
+        "offsetDisagreementSeconds": 0.0004999999999881766,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.4607879155758696,
+            "sourceOffsetSeconds": 142.991,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5275491817745919,
+            "sourceOffsetSeconds": 142.9915,
+            "sourceCapsuleChannel": 3
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 57.642500000000005,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.10661975639147953,
+            "sourceOffsetSeconds": 27.088500000000003,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.111943808723379,
+            "sourceOffsetSeconds": -30.554000000000002,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-6-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dogs, Car on Gravel, Grate, Wind,_Carter Gordon_SD State Parks.wav",
+        "score": 0.4930735042510477,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.4930735042510477,
+            "sourceOffsetSeconds": 202.991,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5152060425237817,
+            "sourceOffsetSeconds": 202.991,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 32.28,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.11149572578103216,
+            "sourceOffsetSeconds": 15.7365,
+            "sourceCapsuleChannel": 0
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.11608394277693491,
+            "sourceOffsetSeconds": -16.5435,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-6-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dogs, Car on Gravel, Grate, Wind,_Carter Gordon_SD State Parks.wav",
+        "score": 0.45482419638122873,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.547923974877891,
+            "sourceOffsetSeconds": 262.9915,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.45482419638122873,
+            "sourceOffsetSeconds": 262.9915,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 18.103499999999997,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.10945059133222153,
+            "sourceOffsetSeconds": 11.6085,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.10293593648800795,
+            "sourceOffsetSeconds": -6.494999999999997,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-7-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dogs, Car on Gravel, Grate, Wind,_Carter Gordon_SD State Parks.wav",
+        "score": 0.5517833758457367,
+        "offsetDisagreementSeconds": 0.00050000000004502,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5825742886777865,
+            "sourceOffsetSeconds": 322.992,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5517833758457367,
+            "sourceOffsetSeconds": 322.9915,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 39.452999999999996,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.10456599077404903,
+            "sourceOffsetSeconds": 28.097499999999997,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.10734436400196504,
+            "sourceOffsetSeconds": -11.3555,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-7-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dogs, Car on Gravel, Grate, Wind,_Carter Gordon_SD State Parks.wav",
+        "score": 0.4283897481044085,
+        "offsetDisagreementSeconds": 0.0004999999999881766,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5893413289039413,
+            "sourceOffsetSeconds": 382.991,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.4283897481044085,
+            "sourceOffsetSeconds": 382.9915,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 47.5205,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.08270186285873286,
+            "sourceOffsetSeconds": 17.689,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.10112042992127361,
+            "sourceOffsetSeconds": -29.8315,
+            "sourceCapsuleChannel": 3
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-8-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dogs, Car on Gravel, Grate, Wind,_Carter Gordon_SD State Parks.wav",
+        "score": 0.3820953286772058,
+        "offsetDisagreementSeconds": 0.0004999999999881766,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5926899885575837,
+            "sourceOffsetSeconds": 442.991,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.3820953286772058,
+            "sourceOffsetSeconds": 442.9905,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 20.051000000000002,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.10177656359853741,
+            "sourceOffsetSeconds": 2.2205000000000004,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.0946395044018821,
+            "sourceOffsetSeconds": -17.8305,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-8-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dogs, Car on Gravel, Grate, Wind,_Carter Gordon_SD State Parks.wav",
+        "score": 0.5623266008793806,
+        "offsetDisagreementSeconds": 0.0004999999999881766,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5623266008793806,
+            "sourceOffsetSeconds": 502.9915,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7776719913486597,
+            "sourceOffsetSeconds": 502.991,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 7.0675,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.06394029883650576,
+            "sourceOffsetSeconds": 2.8785,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.05498447467886748,
+            "sourceOffsetSeconds": -4.189,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-9-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dogs, Car on Gravel, Grate, Wind,_Carter Gordon_SD State Parks.wav",
+        "score": 0.507663164748603,
+        "offsetDisagreementSeconds": 0.0004999999999881766,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.658976035005115,
+            "sourceOffsetSeconds": 562.991,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.507663164748603,
+            "sourceOffsetSeconds": 562.9915,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 30.916999999999998,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.07957263068882416,
+            "sourceOffsetSeconds": 12.517,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.10467670668335284,
+            "sourceOffsetSeconds": -18.4,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Custer-State-9-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dogs, Far off car engines, sparse_Carter Gordon_SD State Parks.wav",
+        "score": 0.5858936083601355,
+        "offsetDisagreementSeconds": 0.002500000000000391,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5858936083601355,
+            "sourceOffsetSeconds": -0.008000000000000007,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6167686627417768,
+            "sourceOffsetSeconds": -0.010500000000000398,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ANMLRdnt-OctoMic F8n_Custer State Park, SD-Prarie Dog, Yelp, Chirp_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 29.763,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.10976963924831094,
+            "sourceOffsetSeconds": 16.885,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.1220858731244059,
+            "sourceOffsetSeconds": -12.878,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Fisher-Grove-1-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/WIND-OctoMic F8n_Fisher Grove State Park-Wind_Carter Gordon_SD State Parks.wav",
+        "score": 0.4968105482182906,
+        "offsetDisagreementSeconds": 0.0005000000000023874,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5353908197083338,
+            "sourceOffsetSeconds": 27.991,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.4968105482182906,
+            "sourceOffsetSeconds": 27.991500000000002,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WIND-OctoMic F8n_Fisher Grove, SD-Wind_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 31.924499999999995,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.14742683587629027,
+            "sourceOffsetSeconds": 49.574,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.1461158673984513,
+            "sourceOffsetSeconds": 17.649500000000003,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Fisher-Grove-1-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/WIND-OctoMic F8n_Fisher Grove State Park-Wind_Carter Gordon_SD State Parks.wav",
+        "score": 0.466121015877431,
+        "offsetDisagreementSeconds": 0.0005000000000023874,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6819452842005518,
+            "sourceOffsetSeconds": 87.9905,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.466121015877431,
+            "sourceOffsetSeconds": 87.991,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WIND-OctoMic F8n_Fisher Grove, SD-Wind_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 62.57700000000001,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.08480322511053327,
+            "sourceOffsetSeconds": 88.156,
+            "sourceCapsuleChannel": 0
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.12956007091337332,
+            "sourceOffsetSeconds": 25.578999999999994,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Fort-Sisseton-1-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBHist-OctoMic F8n_Fort Sisseton, SD-Ambience_Carter Gordon_SD State Park.wav",
+        "score": 0.3630110401746585,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.3630110401746585,
+            "sourceOffsetSeconds": 37.9905,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.423654482392922,
+            "sourceOffsetSeconds": 37.9905,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WATRDrip-OctoMic F8n_Fort Sisseton, SD-Water Drip, Nature Ambience_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 99.80199999999999,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.13808240633878038,
+            "sourceOffsetSeconds": 134.5955,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.21567349758663032,
+            "sourceOffsetSeconds": 34.793499999999995,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Good-Earth-1-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ICEBrk-OctoMic F8n_Good Earth State Park-Big Sioux River, ice breaking_TAC_SD State Parks.wav",
+        "score": 0.5963361606399437,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5963361606399437,
+            "sourceOffsetSeconds": 31.991,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6356120200892577,
+            "sourceOffsetSeconds": 31.991,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WATRFlow-OctoMic F8n_Good Earth State Park-Big sioux river, running water, runoff_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 60.5215,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.0925720492967838,
+            "sourceOffsetSeconds": 278.0665,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.10770768845277154,
+            "sourceOffsetSeconds": 217.54500000000002,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Good-Earth-1-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ICEBrk-OctoMic F8n_Good Earth State Park-Big Sioux River, ice breaking_TAC_SD State Parks.wav",
+        "score": 0.4063634315976383,
+        "offsetDisagreementSeconds": 1.4210854715202004e-14,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6370823584778424,
+            "sourceOffsetSeconds": 91.991,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.4063634315976383,
+            "sourceOffsetSeconds": 91.99100000000001,
+            "sourceCapsuleChannel": 3
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WATRFlow-OctoMic F8n_Good Earth State Park-Big sioux river, running water, runoff_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 158.79399999999998,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.10744240151036215,
+            "sourceOffsetSeconds": 85.394,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.13144527922631688,
+            "sourceOffsetSeconds": 244.188,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Good-Earth-2-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ICEBrk-OctoMic F8n_Good Earth State Park-Big Sioux River, ice breaking_TAC_SD State Parks.wav",
+        "score": 0.6151067826748563,
+        "offsetDisagreementSeconds": 0.0005000000000165983,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6180631546961658,
+            "sourceOffsetSeconds": 151.991,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6151067826748563,
+            "sourceOffsetSeconds": 151.9905,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WATRFlow-OctoMic F8n_Good Earth State Park-Big sioux river, running water, runoff_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 63.010999999999996,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.10366585142628901,
+            "sourceOffsetSeconds": 187.215,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.11389178165891109,
+            "sourceOffsetSeconds": 124.20400000000001,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Good-Earth-2-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ICEBrk-OctoMic F8n_Good Earth State Park-Big Sioux River, ice breaking_TAC_SD State Parks.wav",
+        "score": 0.6504070429808474,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6504070429808474,
+            "sourceOffsetSeconds": 211.9905,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.752993585852163,
+            "sourceOffsetSeconds": 211.9905,
+            "sourceCapsuleChannel": 0
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WATRFlow-OctoMic F8n_Good Earth State Park-Big sioux river, running water, runoff_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 183.66150000000002,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.10702062118618477,
+            "sourceOffsetSeconds": 51.5735,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.09400333331744759,
+            "sourceOffsetSeconds": 235.235,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Hartford-Beach-1-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach, SD-Birds, Snow Footsteps, Ambience_Carter Gordon_SD State Parks.wav",
+        "score": 0.5689903233294046,
+        "offsetDisagreementSeconds": 3.552713678800501e-15,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5689903233294046,
+            "sourceOffsetSeconds": 11.9905,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5966949597467746,
+            "sourceOffsetSeconds": 11.990499999999997,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach, SD-Ambience, Birds_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 54.12350000000001,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.09704554184046563,
+            "sourceOffsetSeconds": 122.2055,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.08520033511780499,
+            "sourceOffsetSeconds": 68.082,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Hartford-Beach-1-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach, SD-Birds, Snow Footsteps, Ambience_Carter Gordon_SD State Parks.wav",
+        "score": 0.5447566418315628,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5447566418315628,
+            "sourceOffsetSeconds": 71.9905,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5712148734409896,
+            "sourceOffsetSeconds": 71.9905,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach, SD-Ambience, Birds_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 36.6465,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.08818131456848556,
+            "sourceOffsetSeconds": 68.68,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.10126805070551069,
+            "sourceOffsetSeconds": 32.033500000000004,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Hartford-Beach-2-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach, SD-Ambience, Birds_Carter Gordon_SD State Parks.wav",
+        "score": 0.5272996947685665,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5461604198097323,
+            "sourceOffsetSeconds": 29.990499999999997,
+            "sourceCapsuleChannel": 0
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5272996947685665,
+            "sourceOffsetSeconds": 29.990499999999997,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach, SD-Birds, Snow Footsteps, Ambience_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 191.90249999999997,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.09368054713636222,
+            "sourceOffsetSeconds": 155.545,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.10751356396934941,
+            "sourceOffsetSeconds": -36.3575,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Hartford-Beach-2-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach, SD-Ambience, Birds_Carter Gordon_SD State Parks.wav",
+        "score": 0.5127572209480781,
+        "offsetDisagreementSeconds": 0.0005000000000165983,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5127572209480781,
+            "sourceOffsetSeconds": 89.9905,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5297681701884432,
+            "sourceOffsetSeconds": 89.99100000000001,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach, SD-Birds, Snow Footsteps, Ambience_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 16.785500000000013,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.10619304568073093,
+            "sourceOffsetSeconds": 139.982,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.09598774398268754,
+            "sourceOffsetSeconds": 156.7675,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Hartford-Beach-3-001",
+      "status": "unresolved",
+      "match": {
+        "source": "Edits/BIRDSong-OctoMic F8n_Hartford Beach, SD-Birds, Nature Ambience, Car engine_Carter Gordon_SD State Parks.wav",
+        "score": 0.6090410364401849,
+        "offsetDisagreementSeconds": 2.6645352591003757e-15,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6090410364401849,
+            "sourceOffsetSeconds": -0.009500000000000064,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7108921078747722,
+            "sourceOffsetSeconds": -0.009500000000002728,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/BIRDSong-OctoMic F8n_Hartford Beach State Park, SD-Birds Chirping, Slight knocks forest ambience_Carter Gordon_SD State Parks.wav",
+        "score": 0.5901436276618761,
+        "offsetDisagreementSeconds": 8.881784197001252e-16,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5901436276618761,
+            "sourceOffsetSeconds": -0.5934999999999997,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6878819119281316,
+            "sourceOffsetSeconds": -0.5934999999999988,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Hartford-Beach-3-002",
+      "status": "unresolved",
+      "match": {
+        "source": "Edits/BIRDSong-OctoMic F8n_Hartford Beach, SD-Birds, Nature Ambience, Car engine_Carter Gordon_SD State Parks.wav",
+        "score": 0.5726231729639092,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6122224345696695,
+            "sourceOffsetSeconds": 59.9905,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5726231729639092,
+            "sourceOffsetSeconds": 59.9905,
+            "sourceCapsuleChannel": 0
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/BIRDSong-OctoMic F8n_Hartford Beach State Park, SD-Birds Chirping, Slight knocks forest ambience_Carter Gordon_SD State Parks.wav",
+        "score": 0.5444224555320903,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5826733063583511,
+            "sourceOffsetSeconds": 59.406499999999994,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5444224555320903,
+            "sourceOffsetSeconds": 59.406499999999994,
+            "sourceCapsuleChannel": 0
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Hartford-Beach-4-001",
+      "status": "unresolved",
+      "match": {
+        "source": "Edits/BIRDSong-OctoMic F8n_Hartford Beach State Park, SD-Birds Chirping, Slight knocks forest ambience_Carter Gordon_SD State Parks.wav",
+        "score": 0.6144916534171774,
+        "offsetDisagreementSeconds": 2.6645352591003757e-15,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6144916534171774,
+            "sourceOffsetSeconds": -0.009500000000000064,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7048790891207027,
+            "sourceOffsetSeconds": -0.009500000000002728,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/BIRDSong-OctoMic F8n_Hartford Beach, SD-Birds, Nature Ambience, Car engine_Carter Gordon_SD State Parks.wav",
+        "score": 0.5923611481295574,
+        "offsetDisagreementSeconds": 8.881784197001252e-16,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5923611481295574,
+            "sourceOffsetSeconds": 0.5744999999999996,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6933869157208176,
+            "sourceOffsetSeconds": 0.5745000000000005,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Hartford-Beach-4-002",
+      "status": "unresolved",
+      "match": {
+        "source": "Edits/BIRDSong-OctoMic F8n_Hartford Beach State Park, SD-Birds Chirping, Slight knocks forest ambience_Carter Gordon_SD State Parks.wav",
+        "score": 0.5711961635379995,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6045996004302786,
+            "sourceOffsetSeconds": 59.9905,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5711961635379995,
+            "sourceOffsetSeconds": 59.9905,
+            "sourceCapsuleChannel": 0
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/BIRDSong-OctoMic F8n_Hartford Beach, SD-Birds, Nature Ambience, Car engine_Carter Gordon_SD State Parks.wav",
+        "score": 0.5356218841210099,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5937249541197719,
+            "sourceOffsetSeconds": 60.5745,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5356218841210099,
+            "sourceOffsetSeconds": 60.5745,
+            "sourceCapsuleChannel": 0
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Hartford-Beach-5-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach-Footsteps, Wind, Ambience, Car Engine_Carter Gordon_SD State Parks.wav",
+        "score": 0.6416363771255318,
+        "offsetDisagreementSeconds": 3.552713678800501e-15,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6416363771255318,
+            "sourceOffsetSeconds": 15.9905,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6593531002743754,
+            "sourceOffsetSeconds": 15.990499999999997,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach, SD-Ambience, Birds_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 51.974500000000006,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.12352346107149957,
+            "sourceOffsetSeconds": 100.9945,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.11708006656818244,
+            "sourceOffsetSeconds": 49.019999999999996,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Hartford-Beach-5-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach-Footsteps, Wind, Ambience, Car Engine_Carter Gordon_SD State Parks.wav",
+        "score": 0.6649082162054444,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6649082162054444,
+            "sourceOffsetSeconds": 75.9905,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7346660566489912,
+            "sourceOffsetSeconds": 75.9905,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach, SD-Ambience, Birds_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 34.4195,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.11676602567502233,
+            "sourceOffsetSeconds": 85.32,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.1223537451555078,
+            "sourceOffsetSeconds": 50.900499999999994,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Hartford-Beach-6-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach-Footsteps, Wind, Ambience, Car Engine_Carter Gordon_SD State Parks.wav",
+        "score": 0.6414858091949971,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6555505514631846,
+            "sourceOffsetSeconds": 135.9905,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6414858091949971,
+            "sourceOffsetSeconds": 135.9905,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach, SD-Ambience, Birds_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 34.988,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.11875420469091268,
+            "sourceOffsetSeconds": 85.6865,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.12470990737510222,
+            "sourceOffsetSeconds": 50.698499999999996,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Hartford-Beach-6-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach-Footsteps, Wind, Ambience, Car Engine_Carter Gordon_SD State Parks.wav",
+        "score": 0.6829797345840669,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6931788037867816,
+            "sourceOffsetSeconds": 195.9905,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6829797345840669,
+            "sourceOffsetSeconds": 195.9905,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach, SD-Ambience, Birds_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 18.718999999999994,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.12349692801949277,
+            "sourceOffsetSeconds": 84.842,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.11406019152873409,
+            "sourceOffsetSeconds": 66.123,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Hartford-Beach-7-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach-Footsteps, Wind, Ambience, Car Engine_Carter Gordon_SD State Parks.wav",
+        "score": 0.8108200045224222,
+        "offsetDisagreementSeconds": 0.0009999999999763531,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.9018903598816226,
+            "sourceOffsetSeconds": 255.99149999999997,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.8108200045224222,
+            "sourceOffsetSeconds": 255.9905,
+            "sourceCapsuleChannel": 3
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach, SD-Ambience, Birds_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 47.09349999999998,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.06596656721983557,
+            "sourceOffsetSeconds": 162.117,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.06450544332858381,
+            "sourceOffsetSeconds": 115.02350000000001,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Hartford-Beach-7-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach-Footsteps, Wind, Ambience, Car Engine_Carter Gordon_SD State Parks.wav",
+        "score": 0.6938061994236606,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7162957656615048,
+            "sourceOffsetSeconds": 315.9905,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6938061994236606,
+            "sourceOffsetSeconds": 315.9905,
+            "sourceCapsuleChannel": 0
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach, SD-Ambience, Birds_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 55.016,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.06875679645787895,
+            "sourceOffsetSeconds": 52.0775,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.07483270164560672,
+            "sourceOffsetSeconds": -2.9384999999999977,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Hartford-Beach-8-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach-Footsteps, Wind, Ambience, Car Engine_Carter Gordon_SD State Parks.wav",
+        "score": 0.6818691353276203,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6845430777467623,
+            "sourceOffsetSeconds": 375.9905,
+            "sourceCapsuleChannel": 0
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6818691353276203,
+            "sourceOffsetSeconds": 375.9905,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach, SD-Ambience, Birds_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 24.886500000000012,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.0716522804838829,
+            "sourceOffsetSeconds": 124.63900000000001,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.07578194018013056,
+            "sourceOffsetSeconds": 99.7525,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Hartford-Beach-8-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach, SD-Birds, Snow Footsteps, Ambience_Carter Gordon_SD State Parks.wav",
+        "score": 0.5635161292832147,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.637278440869878,
+            "sourceOffsetSeconds": 131.9905,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5635161292832147,
+            "sourceOffsetSeconds": 131.9905,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic F8n_Hartford Beach, SD-Ambience, Birds_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 3.4980000000000047,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.10144757066474366,
+            "sourceOffsetSeconds": 74.285,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.09257535181225518,
+            "sourceOffsetSeconds": 77.783,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Lake-Herman-1-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/BIRDFowl-OctoMic F8n_Lake Herman-Gaggle of geese on partially frozen Lake_TAC_SD State Park.wav",
+        "score": 0.6420201798952544,
+        "offsetDisagreementSeconds": 3.552713678800501e-15,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6420201798952544,
+            "sourceOffsetSeconds": 7.990500000000001,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7226973681602928,
+            "sourceOffsetSeconds": 7.990499999999997,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WINDVege-OctoMic F8n_Lake Herman State Park, SD-Wind, prairie grass_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 122.19200000000001,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.029503235453885644,
+            "sourceOffsetSeconds": 92.598,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.03106965905565981,
+            "sourceOffsetSeconds": -29.594,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Lake-Herman-1-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/BIRDFowl-OctoMic F8n_Lake Herman-Gaggle of geese on partially frozen Lake_TAC_SD State Park.wav",
+        "score": 0.5734563752937885,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.832043769015921,
+            "sourceOffsetSeconds": 67.9905,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5734563752937885,
+            "sourceOffsetSeconds": 67.9905,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WINDVege-OctoMic F8n_Lake Herman State Park, SD-Wind, prairie grass_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 143.671,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.02690669868403543,
+            "sourceOffsetSeconds": 108.9545,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.035559907880161674,
+            "sourceOffsetSeconds": -34.716499999999996,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Lake-Herman-1-003",
+      "status": "matched",
+      "match": {
+        "source": "Edits/BIRDFowl-OctoMic F8n_Lake Herman-Gaggle of geese on partially frozen Lake_TAC_SD State Park.wav",
+        "score": 0.8015206648653375,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.841817504692501,
+            "sourceOffsetSeconds": 127.9905,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.8015206648653375,
+            "sourceOffsetSeconds": 127.9905,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WINDVege-OctoMic F8n_Lake Herman State Park, SD-Wind, prairie grass_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 27.340999999999998,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.04396565834760228,
+            "sourceOffsetSeconds": 1.3890000000000002,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.028249369267061644,
+            "sourceOffsetSeconds": -25.951999999999998,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Lake-Herman-1-004",
+      "status": "matched",
+      "match": {
+        "source": "Edits/BIRDFowl-OctoMic F8n_Lake Herman-Gaggle of geese on partially frozen Lake_TAC_SD State Park.wav",
+        "score": 0.7211373265021751,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7211373265021751,
+            "sourceOffsetSeconds": 187.9905,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.8463997463829062,
+            "sourceOffsetSeconds": 187.9905,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WINDVege-OctoMic F8n_Lake Herman State Park, SD-Wind, prairie grass_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 173.78050000000002,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.025952708697019197,
+            "sourceOffsetSeconds": 140.36,
+            "sourceCapsuleChannel": 0
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.04564378888460437,
+            "sourceOffsetSeconds": -33.4205,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Lake-Herman-1-005",
+      "status": "matched",
+      "match": {
+        "source": "Edits/BIRDFowl-OctoMic F8n_Lake Herman-Gaggle of geese on partially frozen Lake_TAC_SD State Park.wav",
+        "score": 0.7521437959513917,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7521437959513917,
+            "sourceOffsetSeconds": 247.9905,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7610037014450304,
+            "sourceOffsetSeconds": 247.9905,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WINDVege-OctoMic F8n_Lake Herman State Park, SD-Wind, prairie grass_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 33.083,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.04684923351369764,
+            "sourceOffsetSeconds": 1.2569999999999997,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.03317353400557722,
+            "sourceOffsetSeconds": -31.826,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Lake-Herman-2-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/BIRDFowl-OctoMic F8n_Lake Herman-Gaggle of geese on partially frozen Lake_TAC_SD State Park.wav",
+        "score": 0.7092403049238577,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7092403049238577,
+            "sourceOffsetSeconds": 307.9905,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7907616092757794,
+            "sourceOffsetSeconds": 307.9905,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WINDVege-OctoMic F8n_Lake Herman State Park, SD-Wind, prairie grass_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 67.83899999999998,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.026817698878506095,
+            "sourceOffsetSeconds": 31.780500000000004,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.023237793821445862,
+            "sourceOffsetSeconds": 99.61949999999999,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Lake-Herman-2-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/BIRDFowl-OctoMic F8n_Lake Herman-Gaggle of geese on partially frozen Lake_TAC_SD State Park.wav",
+        "score": 0.7199599029681892,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7199599029681892,
+            "sourceOffsetSeconds": 367.9905,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7520380239660197,
+            "sourceOffsetSeconds": 367.9905,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WINDVege-OctoMic F8n_Lake Herman State Park, SD-Wind, prairie grass_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 179.799,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.0230069798521412,
+            "sourceOffsetSeconds": 146.449,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.032942265870400986,
+            "sourceOffsetSeconds": -33.35,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Lake-Herman-2-003",
+      "status": "matched",
+      "match": {
+        "source": "Edits/BIRDFowl-OctoMic F8n_Lake Herman-Gaggle of geese on partially frozen Lake_TAC_SD State Park.wav",
+        "score": 0.57901089296658,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7263269535758533,
+            "sourceOffsetSeconds": 427.9905,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.57901089296658,
+            "sourceOffsetSeconds": 427.9905,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WINDVege-OctoMic F8n_Lake Herman State Park, SD-Wind, prairie grass_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 25.6755,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.026744269308942747,
+            "sourceOffsetSeconds": 34.1875,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.02460779342925387,
+            "sourceOffsetSeconds": 59.863,
+            "sourceCapsuleChannel": 3
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Lake-Herman-2-004",
+      "status": "matched",
+      "match": {
+        "source": "Edits/BIRDFowl-OctoMic F8n_Lake Herman-Gaggle of geese on partially frozen Lake_TAC_SD State Park.wav",
+        "score": 0.6163770947228431,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7770363014903306,
+            "sourceOffsetSeconds": 487.9905,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6163770947228431,
+            "sourceOffsetSeconds": 487.9905,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WINDVege-OctoMic F8n_Lake Herman State Park, SD-Wind, prairie grass_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 36.153,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.038207274134992204,
+            "sourceOffsetSeconds": 5.42,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.02849889457750617,
+            "sourceOffsetSeconds": -30.733,
+            "sourceCapsuleChannel": 3
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Lake-Herman-2-005",
+      "status": "matched",
+      "match": {
+        "source": "Edits/BIRDFowl-OctoMic F8n_Lake Herman-Gaggle of geese on partially frozen Lake_TAC_SD State Park.wav",
+        "score": 0.6069082480061395,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7471771585309231,
+            "sourceOffsetSeconds": 547.9905,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6069082480061395,
+            "sourceOffsetSeconds": 547.9905,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WINDVege-OctoMic F8n_Lake Herman State Park, SD-Wind, prairie grass_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 83.9955,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.02593714250471585,
+            "sourceOffsetSeconds": 9.8105,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.0211595213679487,
+            "sourceOffsetSeconds": 93.80600000000001,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Newton-Hills-1-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AEROJet-OctoMic_Newton HIlls State Park-Recording forest ambience with birdsong and_TAC_SD State Parks.wav",
+        "score": 0.5722932256435049,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5722932256435049,
+            "sourceOffsetSeconds": 9.991,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6724086028243856,
+            "sourceOffsetSeconds": 9.991,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBBird-OctoMic_Newton Hills State Park, SD-forest ambience with sutle birdsong and wing flutter_TAC_SD State parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 26.51849999999999,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.12334806238969631,
+            "sourceOffsetSeconds": 231.725,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.1013431739506928,
+            "sourceOffsetSeconds": 205.2065,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Newton-Hills-1-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AEROJet-OctoMic_Newton HIlls State Park-Recording forest ambience with birdsong and_TAC_SD State Parks.wav",
+        "score": 0.7234215267163807,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7234215267163807,
+            "sourceOffsetSeconds": 69.991,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.8148900882278314,
+            "sourceOffsetSeconds": 69.991,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBBird-OctoMic_Newton Hills State Park, SD-forest ambience with sutle birdsong and wing flutter_TAC_SD State parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 122.564,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.08291470915738616,
+            "sourceOffsetSeconds": 200.3345,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.07652538541850386,
+            "sourceOffsetSeconds": 77.7705,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Newton-Hills-1-003",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AEROJet-OctoMic_Newton HIlls State Park-Recording forest ambience with birdsong and_TAC_SD State Parks.wav",
+        "score": 0.9497361092242723,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.9648446542698346,
+            "sourceOffsetSeconds": 129.991,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.9497361092242723,
+            "sourceOffsetSeconds": 129.991,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBBird-OctoMic_Newton Hills State Park, SD-forest ambience with sutle birdsong and wing flutter_TAC_SD State parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 7.188500000000005,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.12937687164103936,
+            "sourceOffsetSeconds": 71.006,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.11695530582902532,
+            "sourceOffsetSeconds": 78.1945,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Newton-Hills-2-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AEROJet-OctoMic_Newton HIlls State Park-Recording forest ambience with birdsong and_TAC_SD State Parks.wav",
+        "score": 0.6794678513768411,
+        "offsetDisagreementSeconds": 0.0005000000000165983,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7929219501279126,
+            "sourceOffsetSeconds": 189.9905,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6794678513768411,
+            "sourceOffsetSeconds": 189.991,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBBird-OctoMic_Newton Hills State Park, SD-forest ambience with sutle birdsong and wing flutter_TAC_SD State parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 34.16550000000001,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.10779024186608183,
+            "sourceOffsetSeconds": 124.799,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.1403297190884663,
+            "sourceOffsetSeconds": 90.6335,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Newton-Hills-2-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBBird-OctoMic_Newton Hills State Park, SD-forest ambience with sutle birdsong and wing flutter_TAC_SD State parks.wav",
+        "score": 0.4277889598624763,
+        "offsetDisagreementSeconds": 0.0015000000000071623,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.4277889598624763,
+            "sourceOffsetSeconds": 38.9905,
+            "sourceCapsuleChannel": 0
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5635567802700535,
+            "sourceOffsetSeconds": 38.992000000000004,
+            "sourceCapsuleChannel": 3
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AEROJet-OctoMic_Newton HIlls State Park-Recording forest ambience with birdsong and_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 43.474000000000004,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.22064340560430729,
+            "sourceOffsetSeconds": 4.400499999999999,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.1499993953842353,
+            "sourceOffsetSeconds": -39.0735,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Newton-Hills-2-003",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBBird-OctoMic_Newton Hills State Park, SD-forest ambience with sutle birdsong and wing flutter_TAC_SD State parks.wav",
+        "score": 0.662469536876051,
+        "offsetDisagreementSeconds": 0.0005000000000023874,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.885503049869698,
+            "sourceOffsetSeconds": 98.991,
+            "sourceCapsuleChannel": 0
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.662469536876051,
+            "sourceOffsetSeconds": 98.9915,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AEROJet-OctoMic_Newton HIlls State Park-Recording forest ambience with birdsong and_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 106.98150000000001,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.07580303071982167,
+            "sourceOffsetSeconds": 86.189,
+            "sourceCapsuleChannel": 0
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.08451969390751547,
+            "sourceOffsetSeconds": 193.1705,
+            "sourceCapsuleChannel": 3
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Newton-Hills-3-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBBird-OctoMic_Newton Hills State Park, SD-forest ambience with sutle birdsong and wing flutter_TAC_SD State parks.wav",
+        "score": 0.6888771794983395,
+        "offsetDisagreementSeconds": 0.0014999999999929514,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7368447407559086,
+            "sourceOffsetSeconds": 158.991,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6888771794983395,
+            "sourceOffsetSeconds": 158.9925,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AEROJet-OctoMic_Newton HIlls State Park-Recording forest ambience with birdsong and_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 172.5145,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.07969938516935911,
+            "sourceOffsetSeconds": 4.0945,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.11460758545434621,
+            "sourceOffsetSeconds": 176.609,
+            "sourceCapsuleChannel": 3
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Newton-Hills-3-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic_Newton Hills State Park-Recording forest ambience by the Auggie Ridge_TAC_SD State Parks.wav",
+        "score": 0.4492522200219896,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.46553812715642473,
+            "sourceOffsetSeconds": 17.991,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.4492522200219896,
+            "sourceOffsetSeconds": 17.991,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AEROJet-OctoMic_Newton HIlls State Park-Recording forest ambience with birdsong and_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 36.7905,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.10616325496931364,
+            "sourceOffsetSeconds": 3.6884999999999994,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.10806752607217888,
+            "sourceOffsetSeconds": -33.102000000000004,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Newton-Hills-3-003",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic_Newton Hills State Park-Recording forest ambience by the Auggie Ridge_TAC_SD State Parks.wav",
+        "score": 0.4645178418257558,
+        "offsetDisagreementSeconds": 0.0015000000000071623,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.4645178418257558,
+            "sourceOffsetSeconds": 77.9905,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6299006496937009,
+            "sourceOffsetSeconds": 77.992,
+            "sourceCapsuleChannel": 3
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AEROJet-OctoMic_Newton HIlls State Park-Recording forest ambience with birdsong and_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 64.8885,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.09234627764217436,
+            "sourceOffsetSeconds": 32.212,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.15141757222815874,
+            "sourceOffsetSeconds": -32.6765,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Newton-Hills-4-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic_Newton Hills State Park-Recording forest ambience by the Auggie Ridge_TAC_SD State Parks.wav",
+        "score": 0.5505692821234277,
+        "offsetDisagreementSeconds": 0.0009999999999763531,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6763051518901755,
+            "sourceOffsetSeconds": 137.992,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5505692821234277,
+            "sourceOffsetSeconds": 137.991,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AEROJet-OctoMic_Newton HIlls State Park-Recording forest ambience with birdsong and_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 248.43200000000002,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.1438010526650514,
+            "sourceOffsetSeconds": 228.8085,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.10062233810841534,
+            "sourceOffsetSeconds": -19.6235,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Newton-Hills-4-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic_Newton Hills State Park-Recording forest ambience by the Auggie Ridge_TAC_SD State Parks.wav",
+        "score": 0.46491626265988173,
+        "offsetDisagreementSeconds": 0.0004999999999881766,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.46491626265988173,
+            "sourceOffsetSeconds": 197.9915,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5768327600631454,
+            "sourceOffsetSeconds": 197.991,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AEROJet-OctoMic_Newton HIlls State Park-Recording forest ambience with birdsong and_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 50.428,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.11026038446730319,
+            "sourceOffsetSeconds": 34.0655,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.1258228429547448,
+            "sourceOffsetSeconds": -16.3625,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Newton-Hills-4-003",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Newton Hills State Park-Very quiet ambience, some leaves _TAC_SD State Parks.wav",
+        "score": 0.7458065472061334,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7873724786963157,
+            "sourceOffsetSeconds": 37.991,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7458065472061334,
+            "sourceOffsetSeconds": 37.991,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AEROJet-OctoMic_Newton HIlls State Park-Recording forest ambience with birdsong and_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 196.46300000000002,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.08268323971436513,
+            "sourceOffsetSeconds": 0.8105000000000002,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.08398811566398211,
+            "sourceOffsetSeconds": 197.2735,
+            "sourceCapsuleChannel": 3
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Newton-Hills-5-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Newton Hills State Park-Very quiet ambience, some leaves _TAC_SD State Parks.wav",
+        "score": 0.6774793585423677,
+        "offsetDisagreementSeconds": 1.4210854715202004e-14,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6774793585423677,
+            "sourceOffsetSeconds": 97.991,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7672134828021265,
+            "sourceOffsetSeconds": 97.99100000000001,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AEROJet-OctoMic_Newton HIlls State Park-Recording forest ambience with birdsong and_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 59.557500000000005,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.10934544268389329,
+            "sourceOffsetSeconds": 232.138,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.08789964849109952,
+            "sourceOffsetSeconds": 172.5805,
+            "sourceCapsuleChannel": 3
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Newton-Hills-5-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Newton Hills State Park-Very quiet ambience, some leaves _TAC_SD State Parks.wav",
+        "score": 0.6006008458190012,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6248080262542891,
+            "sourceOffsetSeconds": 157.991,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6006008458190012,
+            "sourceOffsetSeconds": 157.991,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AEROJet-OctoMic_Newton HIlls State Park-Recording forest ambience with birdsong and_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 57.160000000000004,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.0995146847477859,
+            "sourceOffsetSeconds": 24.942,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.16958434813201556,
+            "sourceOffsetSeconds": -32.218,
+            "sourceCapsuleChannel": 0
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Newton-Hills-5-003",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Newton Hills State Park-Very quiet ambience, some leaves _TAC_SD State Parks.wav",
+        "score": 0.591199633753926,
+        "offsetDisagreementSeconds": 2.842170943040401e-14,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6360264464222877,
+            "sourceOffsetSeconds": 217.991,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.591199633753926,
+            "sourceOffsetSeconds": 217.99099999999999,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AEROJet-OctoMic_Newton HIlls State Park-Recording forest ambience with birdsong and_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 43.5325,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.08988065624183535,
+            "sourceOffsetSeconds": 37.7825,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.11191328661584721,
+            "sourceOffsetSeconds": -5.75,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Oakwood-Lakes-1-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ICETonl-OctoMic F8n_Oakwood Lakes-distant ice cracking, singing ice_TAC_SD State Parks.wav",
+        "score": 0.7962665132363768,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.8337339569919835,
+            "sourceOffsetSeconds": 21.991,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7962665132363768,
+            "sourceOffsetSeconds": 21.991,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ICETonl-OctoMic F8n_Oakwood Lakes-more distant, cracking, groaning, gurgling,_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 60.02350000000001,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.10160694914312414,
+            "sourceOffsetSeconds": 423.048,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.08403068040504241,
+            "sourceOffsetSeconds": 363.0245,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Oakwood-Lakes-1-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ICETonl-OctoMic F8n_Oakwood Lakes-distant ice cracking, singing ice_TAC_SD State Parks.wav",
+        "score": 0.795141442128721,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.795141442128721,
+            "sourceOffsetSeconds": 81.991,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.8343920368179281,
+            "sourceOffsetSeconds": 81.991,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ICETonl-OctoMic F8n_Oakwood Lakes-more distant, cracking, groaning, gurgling,_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 182.208,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.09733877717226525,
+            "sourceOffsetSeconds": 378.115,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.10657665098107284,
+            "sourceOffsetSeconds": 195.907,
+            "sourceCapsuleChannel": 0
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Oakwood-Lakes-1-003",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ICETonl-OctoMic F8n_Oakwood Lakes-distant ice cracking, singing ice_TAC_SD State Parks.wav",
+        "score": 0.8202336633685864,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.8317431800231256,
+            "sourceOffsetSeconds": 141.991,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.8202336633685864,
+            "sourceOffsetSeconds": 141.991,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ICETonl-OctoMic F8n_Oakwood Lakes-more distant, cracking, groaning, gurgling,_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 207.1375,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.14994013728346095,
+            "sourceOffsetSeconds": 382.2365,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.07798783999088783,
+            "sourceOffsetSeconds": 175.099,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Oakwood-Lakes-1-004",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ICETonl-OctoMic F8n_Oakwood Lakes-distant ice cracking, singing ice_TAC_SD State Parks.wav",
+        "score": 0.797113840633443,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7981177390850093,
+            "sourceOffsetSeconds": 201.991,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.797113840633443,
+            "sourceOffsetSeconds": 201.991,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ICETonl-OctoMic F8n_Oakwood Lakes-more distant, cracking, groaning, gurgling,_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 199.91299999999998,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.07499549675009153,
+            "sourceOffsetSeconds": 193.6505,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.08996707659011847,
+            "sourceOffsetSeconds": 393.5635,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Palisades-State-1-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBRurl-OctoMic_Palisades State Park, SD-a frozen river in a gorge, a few birds_Tate_SD State Parks.wav",
+        "score": 0.6736174638339932,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6736174638339932,
+            "sourceOffsetSeconds": 37.9905,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.74723056549425,
+            "sourceOffsetSeconds": 37.9905,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WATRFlow-OctoMic F8N_Palisades-Very close mic, Split Rock Creek, many rocks_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 15.0095,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.07323558351179608,
+            "sourceOffsetSeconds": 19.112,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.05035306992967454,
+            "sourceOffsetSeconds": 34.1215,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Palisades-State-1-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBRurl-OctoMic_Palisades State Park, SD-a frozen river in a gorge, a few birds_Tate_SD State Parks.wav",
+        "score": 0.7734009097110172,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7734009097110172,
+            "sourceOffsetSeconds": 97.9905,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.784011591990972,
+            "sourceOffsetSeconds": 97.9905,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WATRFlow-OctoMic F8N_Palisades-Very close mic, Split Rock Creek, many rocks_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 70.58600000000001,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.04120106229178948,
+            "sourceOffsetSeconds": 73.7595,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.03922452955869146,
+            "sourceOffsetSeconds": 3.173499999999997,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Palisades-State-1-003",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBRurl-OctoMic_Palisades State Park, SD-a frozen river in a gorge, a few birds_Tate_SD State Parks.wav",
+        "score": 0.5172789802858013,
+        "offsetDisagreementSeconds": 0.0010000000000047748,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5172789802858013,
+            "sourceOffsetSeconds": 157.9905,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5713453877561508,
+            "sourceOffsetSeconds": 157.9915,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WATRFlow-OctoMic F8N_Palisades-Very close mic, Split Rock Creek, many rocks_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 70.385,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.11166327936360687,
+            "sourceOffsetSeconds": 61.399,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.13439325116815662,
+            "sourceOffsetSeconds": -8.986,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Palisades-State-2-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/WATRFlow-OctoMic F8n_Palisades-There is a very close mic, jammer, Split_TAC_SD State Parks.wav",
+        "score": 0.7944022530521697,
+        "offsetDisagreementSeconds": 3.552713678800501e-15,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7944022530521697,
+            "sourceOffsetSeconds": 9.9905,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.8125281623784549,
+            "sourceOffsetSeconds": 9.990499999999997,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBRurl-OctoMic_Palisades State Park, SD-a frozen river in a gorge, a few birds_Tate_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 219.05149999999998,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.03933991748338833,
+            "sourceOffsetSeconds": 186.331,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.03639199931853283,
+            "sourceOffsetSeconds": -32.7205,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Palisades-State-2-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/WATRFlow-OctoMic F8n_Palisades-There is a very close mic, jammer, Split_TAC_SD State Parks.wav",
+        "score": 0.8119270618376325,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.8119270618376325,
+            "sourceOffsetSeconds": 69.9905,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.8146613995012558,
+            "sourceOffsetSeconds": 69.9905,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBRurl-OctoMic_Palisades State Park, SD-a frozen river in a gorge, a few birds_Tate_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 150.9425,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.035326336205523334,
+            "sourceOffsetSeconds": 122.32,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.0337148600192121,
+            "sourceOffsetSeconds": -28.622500000000002,
+            "sourceCapsuleChannel": 0
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Palisades-State-2-003",
+      "status": "matched",
+      "match": {
+        "source": "Edits/WATRFlow-OctoMic, F8n_Palisades-Close mic, Split Rock Creek, even higher_TAC_SD State Parks.wav",
+        "score": 0.7797283390785784,
+        "offsetDisagreementSeconds": 3.552713678800501e-15,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.8006054657839683,
+            "sourceOffsetSeconds": 7.990500000000001,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7797283390785784,
+            "sourceOffsetSeconds": 7.990499999999997,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBRurl-OctoMic_Palisades State Park, SD-a frozen river in a gorge, a few birds_Tate_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 96.19099999999999,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.04151990516895788,
+            "sourceOffsetSeconds": 61.87050000000001,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.05135382866852624,
+            "sourceOffsetSeconds": 158.0615,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Roy-Lake-1-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ICEMisc-OctoMic F8n_Roy Lake, SD-Birds, Snow and Ice Falling_Carter Gordon_SD State Parks.wav",
+        "score": 0.609496594132803,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.609496594132803,
+            "sourceOffsetSeconds": 21.991,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7394076143630433,
+            "sourceOffsetSeconds": 21.991,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ICEImpt-OctoMic F8n_Roy Lake, SD-Birds, Sbowm and Ice Falling_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 38.44,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.07541171031316553,
+            "sourceOffsetSeconds": 2.3324999999999996,
+            "sourceCapsuleChannel": 0
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.07656154520713974,
+            "sourceOffsetSeconds": -36.1075,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Roy-Lake-1-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ICEMisc-OctoMic F8n_Roy Lake, SD-Ice Crackle, Nature Ambience_Carter Gordon_SD State Parks.wav",
+        "score": 0.683044897403756,
+        "offsetDisagreementSeconds": 1.7763568394002505e-15,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.683044897403756,
+            "sourceOffsetSeconds": 3.9915000000000003,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6969214808088061,
+            "sourceOffsetSeconds": 3.991500000000002,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ICEImpt-OctoMic F8n_Roy Lake, SD-Birds, Sbowm and Ice Falling_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 30.506999999999998,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.08245417011384956,
+            "sourceOffsetSeconds": -4.8455,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.07762459882869735,
+            "sourceOffsetSeconds": -35.3525,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Roy-Lake-2-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ICEMisc-OctoMic F8n_Roy Lake, SD-Ice Crackle, Nature Ambience_Carter Gordon_SD State Parks.wav",
+        "score": 0.7005504320706466,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7587138467647564,
+            "sourceOffsetSeconds": 63.991,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7005504320706466,
+            "sourceOffsetSeconds": 63.991,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ICEImpt-OctoMic F8n_Roy Lake, SD-Birds, Sbowm and Ice Falling_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 34.983999999999995,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.07751960196919122,
+            "sourceOffsetSeconds": -2.035,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.08590373340899335,
+            "sourceOffsetSeconds": -37.019,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Roy-Lake-2-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/ICEImpt-OctoMic F8n_Roy Lake, SD-Snow Falling, Ice Falling, Birds, Nature_Carter Gordon_SD State Parks.wav",
+        "score": 0.43953938794880437,
+        "offsetDisagreementSeconds": 3.552713678800501e-15,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.45197741678526604,
+            "sourceOffsetSeconds": 15.9905,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.43953938794880437,
+            "sourceOffsetSeconds": 15.990499999999997,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/ICEImpt-OctoMic F8n_Roy Lake, SD-Birds, Sbowm and Ice Falling_Carter Gordon_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 39.144,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.11226269163881385,
+            "sourceOffsetSeconds": 0.5499999999999998,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.10919390837911237,
+            "sourceOffsetSeconds": -38.594,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Sica-Hollow-1-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Sica Hollow-Forest Ambience, wind, leaves, air, distant_TAC_SD State Parks.wav",
+        "score": 0.7519093191197596,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7864038691783414,
+            "sourceOffsetSeconds": 31.990499999999997,
+            "sourceCapsuleChannel": 0
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7519093191197596,
+            "sourceOffsetSeconds": 31.990499999999997,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WATRFall-OctoMic F8n_Sica Hollow -trail of the spirits, small waterfall, snow_TACV_SD State Parks .wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 32.916,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.05459759638890381,
+            "sourceOffsetSeconds": 127.4025,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.052004475521401396,
+            "sourceOffsetSeconds": 94.4865,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Sica-Hollow-1-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic F8n_Sica Hollow-Forest Ambience, wind, leaves, air, distant_TAC_SD State Parks.wav",
+        "score": 0.7487515336550803,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7487515336550803,
+            "sourceOffsetSeconds": 91.9905,
+            "sourceCapsuleChannel": 7
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7988424884537884,
+            "sourceOffsetSeconds": 91.9905,
+            "sourceCapsuleChannel": 0
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/WATRFall-OctoMic F8n_Sica Hollow -trail of the spirits, small waterfall, snow_TACV_SD State Parks .wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 24.798000000000016,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.04762785980748123,
+            "sourceOffsetSeconds": 73.526,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.04638126019015375,
+            "sourceOffsetSeconds": 98.32400000000001,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Sica-Hollow-2-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/WATRFall-OctoMic F8n_Sica Hollow -trail of the spirits, small waterfall, snow_TACV_SD State Parks .wav",
+        "score": 0.8117087048407435,
+        "offsetDisagreementSeconds": 3.552713678800501e-15,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.832771001331736,
+            "sourceOffsetSeconds": 19.9905,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.8117087048407435,
+            "sourceOffsetSeconds": 19.990499999999997,
+            "sourceCapsuleChannel": 2
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic F8n_Sica Hollow-Forest Ambience, wind, leaves, air, distant_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 24.566000000000003,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.03699259461948285,
+            "sourceOffsetSeconds": -2.7055,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.037811822778110994,
+            "sourceOffsetSeconds": 21.860500000000002,
+            "sourceCapsuleChannel": 7
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Sica-Hollow-2-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/WATRFall-OctoMic F8n_Sica Hollow -trail of the spirits, small waterfall, snow_TACV_SD State Parks .wav",
+        "score": 0.6845035412720276,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6845035412720276,
+            "sourceOffsetSeconds": 79.9905,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7987922472936468,
+            "sourceOffsetSeconds": 79.9905,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic F8n_Sica Hollow-Forest Ambience, wind, leaves, air, distant_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 27.39800000000001,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.04144325316114807,
+            "sourceOffsetSeconds": 104.6245,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.03717833953947477,
+            "sourceOffsetSeconds": 132.0225,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Sica-Hollow-3-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/WATRFlow-OctoMic F8n_Sica Hollow-trail of the spirits, stream, rushing water_TAC_SD State Parks.wav",
+        "score": 0.7954797001281367,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.8019155836876586,
+            "sourceOffsetSeconds": 47.9905,
+            "sourceCapsuleChannel": 0
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7954797001281367,
+            "sourceOffsetSeconds": 47.9905,
+            "sourceCapsuleChannel": 0
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic F8n_Sica Hollow-Forest Ambience, wind, leaves, air, distant_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 89.601,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.04442470439971017,
+            "sourceOffsetSeconds": 17.2575,
+            "sourceCapsuleChannel": 3
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.046041411578575345,
+            "sourceOffsetSeconds": 106.85849999999999,
+            "sourceCapsuleChannel": 5
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Sica-Hollow-3-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/WATRFlow-OctoMic F8n_Sica Hollow-trail of the spirits, stream, rushing water_TAC_SD State Parks.wav",
+        "score": 0.7944966747270774,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.7944966747270774,
+            "sourceOffsetSeconds": 107.9905,
+            "sourceCapsuleChannel": 0
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.7970517348633213,
+            "sourceOffsetSeconds": 107.9905,
+            "sourceCapsuleChannel": 0
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic F8n_Sica Hollow-Forest Ambience, wind, leaves, air, distant_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 24.234499999999997,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.04328035330010022,
+            "sourceOffsetSeconds": 8.673,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.04164862661180293,
+            "sourceOffsetSeconds": -15.561499999999999,
+            "sourceCapsuleChannel": 0
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Union-Grove-1-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic_Union Grove State Park, SD-Birds, leaves ruslting_TAC_SD State Parks.wav",
+        "score": 0.5178803755543122,
+        "offsetDisagreementSeconds": 0.0010000000000047748,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5178803755543122,
+            "sourceOffsetSeconds": 49.991,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.6020980513217172,
+            "sourceOffsetSeconds": 49.989999999999995,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/BIRDMisc-OctoMic_Union Grove State Park-Recording birds, crows, small birds, fluttering_Tate_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 28.049499999999995,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.17115956477343183,
+            "sourceOffsetSeconds": 59.973,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.2191993478391409,
+            "sourceOffsetSeconds": 31.923500000000004,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Union-Grove-1-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic_Union Grove State Park, SD-Birds, leaves ruslting_TAC_SD State Parks.wav",
+        "score": 0.5723930294589465,
+        "offsetDisagreementSeconds": 1.4210854715202004e-14,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5749946435021299,
+            "sourceOffsetSeconds": 109.991,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5723930294589465,
+            "sourceOffsetSeconds": 109.99100000000001,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/BIRDMisc-OctoMic_Union Grove State Park-Recording birds, crows, small birds, fluttering_Tate_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 28.864499999999992,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.2438222000136291,
+            "sourceOffsetSeconds": 59.9135,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.28037272394569257,
+            "sourceOffsetSeconds": 31.049000000000007,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Union-Grove-1-003",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic_Union Grove State Park, SD-Birds, leaves ruslting_TAC_SD State Parks.wav",
+        "score": 0.5321715029004414,
+        "offsetDisagreementSeconds": 0.0005000000000165983,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5321715029004414,
+            "sourceOffsetSeconds": 169.9905,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.601191499056673,
+            "sourceOffsetSeconds": 169.991,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/BIRDMisc-OctoMic_Union Grove State Park-Recording birds, crows, small birds, fluttering_Tate_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 42.5415,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.12983758033557613,
+            "sourceOffsetSeconds": 13.413499999999999,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.0908155284177559,
+            "sourceOffsetSeconds": -29.128,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Union-Grove-1-004",
+      "status": "matched",
+      "match": {
+        "source": "Edits/AMBForst-OctoMic_Union Grove State Park, SD-Birds, leaves ruslting_TAC_SD State Parks.wav",
+        "score": 0.4569642827179095,
+        "offsetDisagreementSeconds": 0.0010000000000047748,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6208703348286206,
+            "sourceOffsetSeconds": 229.991,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.4569642827179095,
+            "sourceOffsetSeconds": 229.99,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/BIRDMisc-OctoMic_Union Grove State Park-Recording birds, crows, small birds, fluttering_Tate_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 295.207,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.08298713028418447,
+            "sourceOffsetSeconds": 270.8425,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.17402040765211357,
+            "sourceOffsetSeconds": -24.3645,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Union-Grove-2-001",
+      "status": "matched",
+      "match": {
+        "source": "Edits/BIRDMisc-OctoMic_Union Grove State Park-Recording birds, crows, small birds, fluttering_Tate_SD State Parks.wav",
+        "score": 0.5384484607884411,
+        "offsetDisagreementSeconds": 0.0005000000000023874,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.8142423920866257,
+            "sourceOffsetSeconds": 47.991,
+            "sourceCapsuleChannel": 5
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.5384484607884411,
+            "sourceOffsetSeconds": 47.9905,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic_Union Grove State Park, SD-Birds, leaves ruslting_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 38.227000000000004,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.15514303879193184,
+            "sourceOffsetSeconds": 96.681,
+            "sourceCapsuleChannel": 2
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.10781810349465219,
+            "sourceOffsetSeconds": 58.45399999999999,
+            "sourceCapsuleChannel": 0
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Union-Grove-2-002",
+      "status": "matched",
+      "match": {
+        "source": "Edits/BIRDMisc-OctoMic_Union Grove State Park-Recording birds, crows, small birds, fluttering_Tate_SD State Parks.wav",
+        "score": 0.578847688151334,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.6150250555891291,
+            "sourceOffsetSeconds": 107.9905,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.578847688151334,
+            "sourceOffsetSeconds": 107.9905,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic_Union Grove State Park, SD-Birds, leaves ruslting_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 193.1975,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.08672562257818134,
+            "sourceOffsetSeconds": 31.2855,
+            "sourceCapsuleChannel": 6
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.11033357020170244,
+            "sourceOffsetSeconds": 224.483,
+            "sourceCapsuleChannel": 0
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Union-Grove-2-003",
+      "status": "matched",
+      "match": {
+        "source": "Edits/BIRDMisc-OctoMic_Union Grove State Park-Recording birds, crows, small birds, fluttering_Tate_SD State Parks.wav",
+        "score": 0.4850715711784738,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.5110086348098982,
+            "sourceOffsetSeconds": 167.9905,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.4850715711784738,
+            "sourceOffsetSeconds": 167.9905,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic_Union Grove State Park, SD-Birds, leaves ruslting_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 79.513,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": -0.11624175655045905,
+            "sourceOffsetSeconds": 153.1265,
+            "sourceCapsuleChannel": 4
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.12193883631796532,
+            "sourceOffsetSeconds": 232.6395,
+            "sourceCapsuleChannel": 6
+          }
+        ]
+      }
+    },
+    {
+      "delivery": "Union-Grove-2-004",
+      "status": "matched",
+      "match": {
+        "source": "Edits/BIRDMisc-OctoMic_Union Grove State Park-Recording birds, crows, small birds, fluttering_Tate_SD State Parks.wav",
+        "score": 0.471974508634776,
+        "offsetDisagreementSeconds": 0.0,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.4786532552952693,
+            "sourceOffsetSeconds": 227.9905,
+            "sourceCapsuleChannel": 0
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": 0.471974508634776,
+            "sourceOffsetSeconds": 227.9905,
+            "sourceCapsuleChannel": 1
+          }
+        ]
+      },
+      "runnerUp": {
+        "source": "Edits/AMBForst-OctoMic_Union Grove State Park, SD-Birds, leaves ruslting_TAC_SD State Parks.wav",
+        "score": 0,
+        "offsetDisagreementSeconds": 169.3315,
+        "windows": [
+          {
+            "deliveryWindowSeconds": 5,
+            "signedCorrelation": 0.12069815536775574,
+            "sourceOffsetSeconds": 73.2805,
+            "sourceCapsuleChannel": 1
+          },
+          {
+            "deliveryWindowSeconds": 40,
+            "signedCorrelation": -0.1323746668164091,
+            "sourceOffsetSeconds": 242.61200000000002,
+            "sourceCapsuleChannel": 4
+          }
+        ]
+      }
+    }
+  ]
+}

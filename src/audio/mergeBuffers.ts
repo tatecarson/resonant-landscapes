@@ -1,9 +1,9 @@
 /**
  * Concatenate several AudioBuffers into one, channel by channel.
  *
- * The park payloads arrive as two files — an 8-channel HOA stream and a
- * 1-channel mono bed — and ResonanceAudio wants them as a single 9-channel
- * buffer. This was Omnitone.mergeBufferListByChannel, and it was the only
+ * This utility preserves input order. Park delivery files need the additional
+ * permutation in mergeDeliveryBuffers below. This was Omnitone.mergeBufferListByChannel,
+ * and it was the only
  * thing left that the direct `omnitone` dependency did: fetching and decoding
  * are plain fetch/decodeAudioData now. Dropping that import removes a second
  * copy of Omnitone from the bundle, base64 HRIR tables and all —
@@ -56,5 +56,40 @@ export function mergeBuffersByChannel(
         }
     }
 
+    return merged;
+}
+
+/**
+ * Restore the nine source channels from the legacy delivery pair.
+ *
+ * The archived extract_channels.sh exported source [0,1,6,7,4,5,2,3]
+ * to the eight-channel file and source 8 to the file named "mono".
+ * Sample correlation confirms this in both delivery families (rl-dqc.7;
+ * docs/audio-channel-correlation.json). The latter file is a spatial component,
+ * not an omnidirectional mix. Silence at delivery index 2 belongs at source 6.
+ *
+ * Single-buffer degradation paths retain their existing behavior. Correct
+ * soundfield routing and replacement of the mislabeled fallback are tracked
+ * separately; restoring order alone does not fix the mono-source encoder.
+ */
+export function mergeDeliveryBuffers(
+    context: BaseAudioContext,
+    bufferList: AudioBuffer[]
+): AudioBuffer {
+    const merged = mergeBuffersByChannel(context, bufferList);
+    if (bufferList.length !== 2 || bufferList[0].numberOfChannels !== 8 ||
+        bufferList[1].numberOfChannels !== 1) return merged;
+
+    // This permutation is its own inverse. Swap in place to avoid allocating
+    // another full nine-channel, sixty-second buffer on a phone.
+    for (const [a, b] of [[2, 6], [3, 7]]) {
+        const first = merged.getChannelData(a);
+        const second = merged.getChannelData(b);
+        for (let i = 0; i < merged.length; i += 1) {
+            const sample = first[i];
+            first[i] = second[i];
+            second[i] = sample;
+        }
+    }
     return merged;
 }

@@ -8,7 +8,7 @@ import { usePlaybackWakeLock } from "../hooks/usePlaybackWakeLock";
 import { createBufferCache } from "../audio/bufferCache";
 import { createBufferLoader, getCacheKey, isAbortError } from "../audio/bufferLoader";
 import { shouldSurfaceDegradation, type SpatialDegradation } from "../audio/channelCheck";
-import { mergeBuffersByChannel } from "../audio/mergeBuffers";
+import { mergeDeliveryBuffers } from "../audio/mergeBuffers";
 import { createAudioDebugBridge, type AudioLoadDebug } from "../audio/audioDebugBridge";
 import { createAudioGraph, primeAudioContext } from "../audio/audioGraph";
 import { fetchAudioBytes, setOfflineCacheEventSink } from "../audio/offlineAudioCache";
@@ -194,7 +194,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             merge: (decoded) => {
                 const context = audioContextRef.current;
                 if (!context) throw new Error("Audio context is not ready yet.");
-                return mergeBuffersByChannel(context, decoded);
+                return mergeDeliveryBuffers(context, decoded);
             },
             onSpatialDegraded: (degradation, cacheKey) => {
                 const activeKey = activeLoadUrlsRef.current
@@ -366,11 +366,10 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
 
         debugLog('Playing sound...', buffers);
         const source = resonanceAudioScene.createSource();
-        // The merged buffer is 9 channels (8ch HOA + 1ch mono). ResonanceAudio's
-        // Source.input is a default GainNode (channelInterpretation='speakers'),
-        // and the FLAC container labels the 8ch stream as 7.1, which Safari can
-        // use to apply a 5.1-style downmix matrix that drops/attenuates channels.
-        // Force discrete routing so every channel reaches the encoder intact.
+        // rl-dqc.8: this is a mono-source encoder, not the soundfield input.
+        // Discrete interpretation here does not preserve the nine recorded
+        // components through its downstream mono ChannelMerger inputs.
+        // Soundfield routing needs its own fix with distance/fade verification.
         source.input.channelInterpretation = 'discrete';
         const bufferSource = audioContext.createBufferSource();
         bufferSourceRef.current = bufferSource;
