@@ -6,8 +6,19 @@
  * through `context.route` is then writing fiction: the recorder counts
  * nothing, per-request delays never apply, and the payload arrives at real
  * speed while the assertions believe they are watching a throttled transfer.
- * Tracked as rl-9ek.1; until the measurement moves to a layer the worker
- * cannot bypass, such a run is skipped rather than green for no reason.
+ * Such a run is skipped rather than green for no reason.
+ *
+ * Measured 2026-09-04 against a production preview (8.7 MB CDN transfer,
+ * the probes in the rl-9ek.1 record), which turned the design question into
+ * two answers. Chromium: the route recorder sees the SW-initiated requests
+ * and the page-target CDP throttle reaches the transfer — 43.8 s against a
+ * 43.6 s theoretical at 200 KB/s — so a throttled run there is real and needs
+ * no measuring layer of its own. WebKit: routing stayed blind across a
+ * successful transfer, so there is no honest run to have, and the skip is
+ * the honest form of asserting the SW-mediated outcome. The worker has no
+ * audio route of its own (audio caching lives page-side), which makes the
+ * interception invisible-and-real rather than cache-shaped: `cache: reload`
+ * bypassed every cache and the bytes still moved unrecorded.
  *
  * Two checks, because one is not enough. The worker cannot be seen before the
  * page loads, and it claims the page asynchronously — `clientsClaim` can land

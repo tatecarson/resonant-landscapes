@@ -86,57 +86,79 @@ function offsetPointByMeters(
   };
 }
 
-async function getContentLength(
-  request: import("@playwright/test").APIRequestContext,
-  url: string
+/**
+ * Sizes payloads from inside the page, the way the app itself fetches them.
+ *
+ * The previous node-side HEAD — request.fetch on the APIRequestContext — ran
+ * with node's own CA bundle, which on at least one machine cannot verify the
+ * CDN's legacy cross-signed chain and fails with UNABLE_TO_GET_ISSUER_CERT
+ * while every browser on the same machine verifies the host fine (rl-9ek.2).
+ * An in-page fetch uses the browser's trust store, so no machine needs
+ * NODE_EXTRA_CA_CERTS, and the bytes counted are the bytes the app's own
+ * runtime would see. The CDN exposes Content-Length through
+ * access-control-expose-headers — the app's own cache index already reads it
+ * (offlineAudioCache writeThrough) — and HEAD needs no CORS preflight.
+ */
+async function measureContentLengths(
+  page: import("@playwright/test").Page,
+  urls: string[]
 ) {
-  const response = await request.fetch(url, { method: "HEAD" });
-  if (!response.ok()) {
-    throw new Error(`HEAD ${url} failed with ${response.status()}`);
-  }
-
-  const contentLengthHeader = response.headers()["content-length"];
-  return Number(contentLengthHeader ?? 0);
+  return page.evaluate(async (probeUrls: string[]) => {
+    return Promise.all(
+      probeUrls.map(async (url) => {
+        const response = await fetch(url, { method: "HEAD" });
+        if (!response.ok) {
+          throw new Error(`HEAD ${url} failed with ${response.status}`);
+        }
+        return Number(response.headers.get("content-length") ?? 0);
+      })
+    );
+  }, urls);
 }
 
 async function resolveWorstCasePark(
-  request: import("@playwright/test").APIRequestContext,
+  page: import("@playwright/test").Page,
   userAgent: string
 ) {
-  const parkCandidates = await Promise.all(
-    stateParks.map(async (park) => {
-      const variants = getParkAudioVariants(park.name, stateParks, userAgent);
-      const urls = variants?.[0];
-      if (!urls) {
-        throw new Error(`Missing audio variants for ${park.name}`);
-      }
+  const candidates = stateParks.map((park) => {
+    const variants = getParkAudioVariants(park.name, stateParks, userAgent);
+    const urls = variants?.[0];
+    if (!urls) {
+      throw new Error(`Missing audio variants for ${park.name}`);
+    }
 
-      const [eightChannelUrl, monoUrl] = urls;
-      const [eightChannelBytes, monoBytes] = await Promise.all([
-        getContentLength(request, eightChannelUrl),
-        getContentLength(request, monoUrl),
-      ]);
-      const [scaledLongitude, scaledLatitude] = scaleCoordinates(
-        park.cords as [number, number],
-        referencePoint,
-        scaleLong,
-        scaleLat
-      );
+    const [scaledLongitude, scaledLatitude] = scaleCoordinates(
+      park.cords as [number, number],
+      referencePoint,
+      scaleLong,
+      scaleLat
+    );
 
-      return {
-        name: park.name,
-        slug: formatParkSlug(park.name),
-        scaledCoords: {
-          latitude: scaledLatitude,
-          longitude: scaledLongitude,
-        },
-        urls,
-        totalBytes: eightChannelBytes + monoBytes,
-        eightChannelBytes,
-        monoBytes,
-      };
-    })
+    return {
+      name: park.name,
+      slug: formatParkSlug(park.name),
+      scaledCoords: {
+        latitude: scaledLatitude,
+        longitude: scaledLongitude,
+      },
+      urls,
+    };
+  });
+
+  const lengths = await measureContentLengths(
+    page,
+    candidates.flatMap((candidate) => candidate.urls)
   );
+
+  const parkCandidates = candidates.map((candidate, index) => {
+    const [eightChannelBytes, monoBytes] = [lengths[index * 2], lengths[index * 2 + 1]];
+    return {
+      ...candidate,
+      eightChannelBytes,
+      monoBytes,
+      totalBytes: eightChannelBytes + monoBytes,
+    };
+  });
 
   const largestPark = parkCandidates.reduce((largest, candidate) => {
     if (!largest || candidate.totalBytes > largest.totalBytes) {
@@ -199,7 +221,6 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   page,
   baseURL,
   browserName,
-  request,
 }, testInfo) => {
   console.log(`[worst-case] starting test for project=${testInfo.project.name} browser=${browserName}`);
   test.skip(
@@ -227,6 +248,15 @@ test("worst-case park audio loads under throttled mobile network conditions", as
   }
 
   await context.route("https://resonant-landscapes.b-cdn.net/**", async (route) => {
+    // The sizing probes are the test's own traffic, not the walk's: HEADs the
+    // page issues to measure payloads before the worst case is chosen. Let
+    // them pass unrecorded and undelayed, so the recorder stays a record of
+    // what the walk fetched and skipIfRoutingSawNothing keeps its meaning.
+    if (route.request().method() === "HEAD") {
+      await route.continue();
+      return;
+    }
+
     observedAudioRequests.push({
       url: route.request().url(),
       start: Date.now(),
@@ -268,7 +298,7 @@ test("worst-case park audio loads under throttled mobile network conditions", as
 
   const userAgent = await page.evaluate(() => navigator.userAgent);
   console.log("[worst-case] resolving largest audio payload park");
-  const worstCasePark = await resolveWorstCasePark(request, userAgent);
+  const worstCasePark = await resolveWorstCasePark(page, userAgent);
   console.log(
     `[worst-case] selected park=${worstCasePark.name} totalBytes=${worstCasePark.totalBytes}`
   );
