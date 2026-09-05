@@ -1,7 +1,8 @@
 # scripts/
 
-Three shell tools for the audio assets. None of them run in CI, and all three
-work on files or URLs rather than on the app.
+Three shell tools for the audio assets, and one for the issue tracker. None of
+them run in CI, and none work on the app itself — they work on files, URLs, or
+the beads database.
 
 ## `check-audio-variants.sh` — `npm run audio:check`
 
@@ -54,3 +55,20 @@ Both converters need `ffmpeg` on PATH.
 It makes a network request per variant against a third-party CDN — hundreds of
 them across all parks. That belongs in a deliberate run before a release or
 after uploading new recordings, not on every pull request.
+
+## `check-beads-worktree.sh` — `npm run beads:check`
+
+Fails if a git worktree holds its own `.beads/dolt` instead of sharing the main
+checkout's tracker. Worktrees share it automatically; one that has its own copy
+is reading a snapshot frozen at the day it was created, and says nothing about
+it — closed issues look open and newer ones are absent.
+
+```bash
+npm run beads:check                          # check every worktree
+scripts/check-beads-worktree.sh              # check just this checkout
+scripts/check-beads-worktree.sh --all --fix  # stop the stray server, move it aside
+```
+
+`--fix` moves the stray database to a timestamped backup beside the worktree
+rather than deleting it. See "Beads in a worktree" in `AGENTS.md` for why
+`bd bootstrap` and `bd migrate` are the wrong remedies here.

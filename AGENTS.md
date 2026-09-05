@@ -52,6 +52,37 @@ Rules:
 - Prefer a worktree when preserving an existing debugging state
 - Prefer a worktree when running parallel tasks
 
+### Beads in a worktree
+
+A worktree shares the main checkout's beads database automatically, through git
+common-directory discovery. A worktree must therefore **not** have a
+`.beads/dolt` directory of its own.
+
+Older versions of bd gave each worktree one anyway, and the result is quiet
+rather than loud: bd finds the local copy before it walks up to the real one, so
+the backlog you read there is frozen at whatever day the worktree was made.
+Issues closed weeks ago look open, issues filed since are missing entirely, and
+nothing says you are reading a stale copy. Six worktrees on this machine were in
+that state on 2026-09-05.
+
+Check with `npm run beads:check`; clear it with
+`scripts/check-beads-worktree.sh --fix`, which stops the worktree's stray Dolt
+server and moves the database aside rather than deleting it.
+
+**Never run `bd init`, `bd bootstrap` or `bd migrate` inside a worktree**, even
+when bd's own error message recommends it. When bd hits a stray database it
+reports pending schema migrations and offers exactly those two remedies:
+`bd bootstrap` recreates the stray, and migrating a clone forks the shared
+schema so `bd dolt pull` can never merge again. The fix is always to remove the
+stray, never to repair it.
+
+To read or write the tracker from somewhere bd is resolving wrongly, point it at
+the main checkout instead of migrating anything:
+
+```bash
+bd -C /path/to/main/checkout --readonly ready
+```
+
 ## Playwright Testing
 
 For iPhone Safari and Android verification:
