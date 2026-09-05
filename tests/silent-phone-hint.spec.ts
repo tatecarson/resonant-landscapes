@@ -116,3 +116,56 @@ test("does not stand there qualifying a park that is not playing", async ({ cont
 
     await expect(page.getByTestId("silence-hint")).toHaveCount(0);
 });
+
+/**
+ * rl-1u7.18. Where STOP sits must not depend on what advice happens to be
+ * showing.
+ *
+ * STOP is the primary control of the piece while someone is walking: pressed
+ * one-handed, often without looking, by someone paying attention to a park
+ * rather than a screen. That only works if its position is somewhere the
+ * thumb can learn. The hint appears and clears mid-walk on its own timer, so
+ * anything that lets it move the button moves the button under the thumb.
+ *
+ * Measured rather than reasoned about, in both orientations, because the ways
+ * it can move have different causes and only one of them shows up in
+ * portrait: sharing a flex row with the controls displaces STOP sideways, and
+ * sitting below it inside a bottom-anchored strip lifts it.
+ *
+ * Run under the iphone-13 profile this pins a third one for free, and the
+ * largest. Orientation access is refused there, so the permission recovery
+ * panel opens inside this same window; before rl-1u7.18 it rendered after the
+ * controls and took STOP 323px up the screen with it. Any project may
+ * therefore be measuring across two events at once, which is the point — the
+ * assertion is that the button is where it was, whatever else happened.
+ */
+for (const orientation of [
+    { name: "held upright", width: 390, height: 844 },
+    { name: "turned sideways", width: 844, height: 390 },
+]) {
+    test(`keeps the stop button still as the hint comes and goes, ${orientation.name}`, async ({
+        context,
+        page,
+    }) => {
+        await page.setViewportSize({ width: orientation.width, height: orientation.height });
+        await page.goto("/");
+        await dismissWelcomeModal(page);
+
+        await dwellAt(context, page, AT_CENTRE, 2_000);
+        await expect
+            .poll(() => isPlaying(page), { timeout: 40_000, message: "audio never started at the centre" })
+            .toBe(true);
+
+        const stop = page.getByRole("button", { name: "Stop playback" });
+        await expect(page.getByTestId("silence-hint").first()).toBeVisible();
+        const whileHinting = await stop.boundingBox();
+
+        // The hint retires itself on SILENCE_HINT_DURATION_MS, so this is the
+        // same walker at the same park a few seconds later — the exact moment
+        // the button would jump.
+        await expect(page.getByTestId("silence-hint")).toHaveCount(0, { timeout: 15_000 });
+        const afterItClears = await stop.boundingBox();
+
+        expect(afterItClears).toEqual(whileHinting);
+    });
+}
