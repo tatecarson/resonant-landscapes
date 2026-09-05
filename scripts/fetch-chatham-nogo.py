@@ -82,6 +82,15 @@ ROAD_HALF_WIDTH = {
     "service": 5.0,
 }
 
+# Relations as well as ways, because a building mapped as a multipolygon is
+# not a way and was silently missing from the no-go set (rl-wc3.10). Two are
+# live on this campus today: Pelletreau Apartments (2294344) and the Tree of
+# Life congregation (7776216), both buildings a pin could be snapped onto.
+#
+# Roads are deliberately ways only. A highway relation is a route — a named
+# itinerary stitched out of member ways that are already matched individually
+# by the way clause — so asking for them would buffer the same asphalt a
+# second time under a route's name.
 QUERY = """[out:json][timeout:90];
 (
   way["building"]({bbox});
@@ -89,8 +98,17 @@ QUERY = """[out:json][timeout:90];
   way["natural"="water"]({bbox});
   way["leisure"~"pitch|playground|swimming_pool"]({bbox});
   way["highway"~"{roads}"]({bbox});
+  relation["building"]({bbox});
+  relation["amenity"="parking"]({bbox});
+  relation["natural"="water"]({bbox});
+  relation["leisure"~"pitch|playground|swimming_pool"]({bbox});
 );
 out geom;"""
+
+# Relation types whose outer rings enclose real ground. Anything else tagged
+# building or amenity — a type=site grouping, say — describes a collection
+# rather than a footprint, and assembling rings from it would invent one.
+AREA_RELATION_TYPES = {"multipolygon", "building"}
 
 
 def fetch(query: str) -> dict:
@@ -178,6 +196,72 @@ def ring_bounds(ring: list[list[float]]) -> tuple[float, float, float, float]:
     lats = [point[1] for point in ring]
     lons = [point[0] for point in ring]
     return (min(lats), min(lons), max(lats), max(lons))
+
+
+def assemble_outer_rings(members: list[dict]) -> tuple[list[list[list[float]]], int]:
+    """
+    Stitch a multipolygon's outer members into closed rings.
+
+    An OSM multipolygon does not carry a ring. It carries member ways, and a
+    long outer boundary is routinely split across several of them, in no
+    particular order and in either direction — so the geometry has to be sewn
+    up here before it is a polygon at all. That assembly is the whole reason
+    rl-wc3.10 was kept out of rl-wc3.9 rather than folded in.
+
+    Returns the closed rings and a count of fragments that could not be
+    closed, so the caller can say so rather than shipping a gap.
+
+    Inner rings are deliberately ignored. A courtyard left filled is a pin
+    pushed out of a courtyard, which costs a few metres of walkable ground; a
+    courtyard cut out is a pin standing in the middle of a building. Only one
+    of those is a bad afternoon, and this file exists to prevent it.
+
+    Endpoint matching is on exact coordinates, which is safe because both
+    fragments come from the same Overpass response and a shared node is
+    serialised identically in each. Rounding happens later, on the way out.
+    """
+    pending: list[list[list[float]]] = []
+    for member in members:
+        if member.get("type") != "way":
+            continue
+        # "" is tolerated by the spec and means outer in practice; anything
+        # explicitly "inner" is a hole, handled by not handling it.
+        if member.get("role") not in ("outer", ""):
+            continue
+        geometry = member.get("geometry") or []
+        if len(geometry) < 2:
+            continue
+        pending.append([[node["lon"], node["lat"]] for node in geometry])
+
+    rings: list[list[list[float]]] = []
+    unclosed = 0
+
+    while pending:
+        current = pending.pop(0)
+        joined = True
+        while current[0] != current[-1] and joined:
+            joined = False
+            for index, fragment in enumerate(pending):
+                if fragment[0] == current[-1]:
+                    current.extend(fragment[1:])
+                elif fragment[-1] == current[-1]:
+                    current.extend(reversed(fragment[:-1]))
+                elif fragment[-1] == current[0]:
+                    current[:0] = fragment[:-1]
+                elif fragment[0] == current[0]:
+                    current[:0] = list(reversed(fragment[1:]))
+                else:
+                    continue
+                pending.pop(index)
+                joined = True
+                break
+
+        if current[0] == current[-1] and len(current) >= 4:
+            rings.append(current)
+        else:
+            unclosed += 1
+
+    return rings, unclosed
 
 
 def classify(tags: dict) -> str | None:
@@ -283,15 +367,60 @@ def main() -> None:
     counts: dict[str, int] = {}
     skipped = 0
 
+    unclosed_total = 0
+    relation_counts: dict[str, int] = {}
+
     for element in elements:
         tags = element.get("tags", {})
         kind = classify(tags)
-        geometry = element.get("geometry")
-        if kind is None or not geometry or len(geometry) < 2:
+        if kind is None:
             continue
 
         name = tags.get("name")
         osm_id = element["id"]
+
+        if element.get("type") == "relation":
+            if tags.get("type") not in AREA_RELATION_TYPES:
+                continue
+
+            rings, unclosed = assemble_outer_rings(element.get("members", []))
+            unclosed_total += unclosed
+            if unclosed:
+                print(
+                    f"  relation {osm_id} ({name or 'unnamed'}): "
+                    f"{unclosed} outer fragment(s) would not close",
+                    file=sys.stderr,
+                )
+
+            kept = [ring for ring in rings if touches_campus(ring, campus_ring)]
+            if not kept:
+                skipped += 1
+                continue
+
+            for index, ring in enumerate(kept):
+                features.append(
+                    {
+                        "type": "Feature",
+                        "properties": {
+                            "name": name,
+                            "kind": kind,
+                            "osm_id": osm_id,
+                            # Only on relations: a way is the default and
+                            # tagging 228 of them would cost bundle bytes to
+                            # say nothing. Absent means way.
+                            "osm_type": "relation",
+                            **({"ring": index} if len(kept) > 1 else {}),
+                        },
+                        "geometry": {"type": "Polygon", "coordinates": [round_ring(ring)]},
+                    }
+                )
+            counts[kind] = counts.get(kind, 0) + 1
+            relation_counts[kind] = relation_counts.get(kind, 0) + 1
+            continue
+
+        geometry = element.get("geometry")
+        if not geometry or len(geometry) < 2:
+            continue
 
         if kind == "road":
             half = ROAD_HALF_WIDTH.get(tags["highway"], 6.0)
@@ -371,7 +500,20 @@ def main() -> None:
     print(f"wrote {out.relative_to(out.parent.parent.parent)}: {len(features)} polygons")
     print(f"  ({skipped} dropped for not touching the campus)")
     for kind, count in sorted(counts.items()):
-        print(f"  {kind}: {count}")
+        relations = relation_counts.get(kind)
+        suffix = f" ({relations} from relations)" if relations else ""
+        print(f"  {kind}: {count}{suffix}")
+
+    # Loud, because the failure it reports is a hole in the no-go set rather
+    # than a smaller file: an outer boundary that would not close is ground
+    # this run believes is walkable and has not checked.
+    if unclosed_total:
+        print(
+            f"WARNING: {unclosed_total} outer ring(s) across all relations could "
+            f"not be closed and are not in the file. Those footprints are not "
+            f"protected; check them on OSM before trusting this run.",
+            file=sys.stderr,
+        )
 
 
 if __name__ == "__main__":
