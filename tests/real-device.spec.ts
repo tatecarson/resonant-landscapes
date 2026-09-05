@@ -118,9 +118,13 @@ test("opens on a real device and passes its own preflight", async () => {
         "failure separately rather than narrowing this assertion."
     ).toBeAttached({ timeout: 30_000 });
 
-    // Read once the element exists, so the numbers describe the thing that is
-    // actually there rather than an absence.
-    const geometry = await page.evaluate(() => {
+    // Read after the visibility question has been settled, not before it is
+    // asked. Measured at attachment these numbers would be up to 30 seconds
+    // old by the time they are quoted in the failure below, and a canvas that
+    // attaches unsized and is laid out a moment later would be reported as
+    // 0x0 — sending whoever reads it after an app layout bug that does not
+    // exist, which is the one thing this assertion exists to stop.
+    const readGeometry = () => page.evaluate(() => {
         const element = document.querySelector("canvas");
         if (!element) return null;
         const box = element.getBoundingClientRect();
@@ -146,19 +150,30 @@ test("opens on a real device and passes its own preflight", async () => {
         };
     });
 
+    // Ask first, measure second, assert third — so the geometry describes the
+    // moment the verdict was reached either way.
+    let visible = true;
+    try {
+        await expect(canvas).toBeVisible({ timeout: 30_000 });
+    } catch {
+        visible = false;
+    }
+
+    const geometry = await readGeometry();
+
     // Recorded on the way past whether or not the assertion holds: the green
     // Android rows are the control group this failure is read against, and
     // nothing was capturing their numbers either.
     console.log(`[rl-dv8] canvas geometry: ${JSON.stringify(geometry)}`);
 
-    await expect(
-        canvas,
+    expect(
+        visible,
         "A canvas is attached but Playwright does not consider it visible. " +
         `Geometry: ${JSON.stringify(geometry)}. Zero width or height points at ` +
         "the walk's layout on this device; a full-size box with everything " +
         "visible points at the harness, and this assertion should then be " +
         "narrowed on iOS with that build linked from rl-dv8."
-    ).toBeVisible({ timeout: 30_000 });
+    ).toBe(true);
 });
 
 test("decodes this device's real spatial file to eight channels", async () => {

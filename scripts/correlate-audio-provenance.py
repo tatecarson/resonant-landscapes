@@ -86,6 +86,16 @@ def main():
         if not candidates:
             candidates = [f for f in (root / 'RAW').rglob('*')
                           if f.suffix.lower() == '.wav' and all(w in str(f.relative_to(root)).lower() for w in words)]
+        # This pass re-examines every candidate below, so whatever the previous
+        # run concluded about these particular files is superseded — including
+        # "empty" or "could not decode" for one that has since been restored.
+        # `results` above already drops the rechecked park's rows for the same
+        # reason; carrying its errors forward unfiltered left the manifest
+        # asserting a fault after it had been fixed (rl-74x.6). Errors for
+        # files this run does not look at are left alone.
+        rechecked = {str(f.relative_to(root)) for f in candidates}
+        source_errors = [e for e in source_errors if e['source'] not in rechecked]
+
         cache = {}
         for f in candidates:
             # An empty file is not a codec problem, and saying so matters
