@@ -34,6 +34,13 @@ const POSITIONS = {
 const isPlaying = (page: Page) =>
     page.evaluate(() => window.__audioDebug?.isPlaying ?? false);
 
+// The ?debug query is load-bearing here: both tests assert on isPlaying(),
+// which reads window.__audioDebug — a mirror a production build gates behind
+// the query (src/config/debug.ts). On the bare path the poll reads undefined
+// forever against a deploy preview and fails no matter what the app does —
+// rl-9ek.5. In dev the flag changes nothing: the mirror is always on.
+const mapPath = "/?debug";
+
 /** Re-push the position so a stationary walker keeps registering. */
 async function dwellAt(
     context: BrowserContext,
@@ -57,7 +64,7 @@ test.beforeEach(async ({ page, context, baseURL }) => {
 });
 
 test("keeps playing in the gap between the enter and exit radii", async ({ context, page }) => {
-    await page.goto("/");
+    await page.goto(mapPath);
     await dismissWelcomeModal(page);
 
     await dwellAt(context, page, POSITIONS.atCentre, 2_000);
@@ -78,7 +85,7 @@ test("keeps playing in the gap between the enter and exit radii", async ({ conte
 test("stops once the walker is past the exit radius", async ({ context, page }) => {
     // The other half of the same promise. Without it, "keeps playing" could be
     // satisfied by never stopping at all.
-    await page.goto("/");
+    await page.goto(mapPath);
     await dismissWelcomeModal(page);
 
     await dwellAt(context, page, POSITIONS.atCentre, 2_000);

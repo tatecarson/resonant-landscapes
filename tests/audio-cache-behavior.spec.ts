@@ -21,6 +21,15 @@ const FAR_AWAY: [number, number] = [44.01150129188, -97.11064253895];
 
 const audioDebug = (page: Page) => page.evaluate(() => window.__audioDebug ?? null);
 
+// The ?debug query is load-bearing here. Three tests read audioDebug(), which
+// is window.__audioDebug — a mirror a production build gates behind the query
+// (src/config/debug.ts), so on the bare path those reads return undefined and
+// the polls run out against a deploy preview no matter what the app does —
+// rl-9ek.5. In dev the flag changes nothing: the mirror is always on. The
+// prefetch-abort test reads nothing the flag touches but navigates through
+// the same startWalk, so it goes along.
+const mapPath = "/?debug";
+
 /**
  * WebKit only emits geolocation on change and will not replay a fix set before
  * the map's watch registered, so nudge until the app reacts.
@@ -45,7 +54,7 @@ async function startWalk(context: BrowserContext, page: Page, from: [number, num
   await context.grantPermissions(["geolocation"]);
   await context.setGeolocation({ latitude: from[0], longitude: from[1] });
   await seedOrientationPermission(page);
-  await page.goto("/");
+  await page.goto(mapPath);
   await dismissWelcomeModal(page);
 }
 
@@ -140,7 +149,7 @@ test("audio stops when the walker leaves the park", async ({
   await seedOrientationPermission(page);
   await context.setGeolocation({ latitude: 44.01308, longitude: -97.11062 });
 
-  await page.goto("/");
+  await page.goto(mapPath);
   await page.waitForLoadState("domcontentloaded");
   await dismissWelcomeModal(page);
 

@@ -66,6 +66,17 @@ test("mobile playback holds a wake lock and recovers after audio interruption", 
 
   await seedOrientationPermission(page);
 
+  /*
+   * Every parameter on this path is gated by the same flag (rl-9ek.6).
+   * isDebugEnabled() decides the window.__audioDebug reads below, and it
+   * also decides detectMockPosition (src/App.tsx): without the query a
+   * production build discards the mock position, so the spec would never
+   * reach the park it believes it is standing in and then time out polling
+   * a mirror that does not exist — two failures, the first masking the
+   * second. The gate must join with &, not open a second ?: appending
+   * "?debug" to a path that already carries a query parses as part of the
+   * last parameter's value and silently does nothing.
+   */
   await page.goto(
     `/?debug&mock=${sicaHollowCenter.latitude},${sicaHollowCenter.longitude}&ntl-drawer-state=hidden`
   );
