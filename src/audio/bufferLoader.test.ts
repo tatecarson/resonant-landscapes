@@ -5,9 +5,16 @@ import { EXPECTED_SPATIAL_CHANNELS } from "./channelCheck";
 
 const buffer = (name: string) => ({ name }) as unknown as AudioBuffer;
 
-/** What `decode` hands back — only its channel count is inspected. */
-const decodedBuffer = (numberOfChannels: number) =>
-    ({ name: "decoded", numberOfChannels }) as unknown as AudioBuffer;
+/**
+ * What `decode` hands back. Its channel count decides the downmix path, and
+ * its length and sample rate decide whether the delivery's two files agree
+ * about the recording they belong to (rl-74x.5) — so a default pair has to
+ * agree, or every test here would take the degraded path.
+ */
+const decodedBuffer = (
+    numberOfChannels: number,
+    { length = 2_646_000, sampleRate = 44_100 } = {}
+) => ({ name: "decoded", numberOfChannels, length, sampleRate }) as unknown as AudioBuffer;
 
 /** A promise whose settlement this test controls. */
 const deferred = <T,>() => {
@@ -24,14 +31,25 @@ const deferred = <T,>() => {
  * Builds a loader whose network and decode steps are controllable, so the
  * abort and dedup behavior can be proven without real audio or a real fetch.
  */
-const setup = ({ decodedChannels = EXPECTED_SPATIAL_CHANNELS } = {}) => {
+const setup = ({
+    decodedChannels = EXPECTED_SPATIAL_CHANNELS,
+    decode,
+}: {
+    decodedChannels?: number;
+    decode?: (data: ArrayBuffer, url: string) => Promise<AudioBuffer>;
+} = {}) => {
     const cache = createBufferCache({ maxEntries: 2 });
     const pending = new Map<string, ReturnType<typeof deferred<ArrayBuffer>>>();
     const signals: AbortSignal[] = [];
 
+    // Which URL produced which ArrayBuffer, so a `decode` override can hand
+    // back a different buffer per file rather than one for the whole pair.
+    const urlOf = new Map<ArrayBuffer, string>();
+
     const fetchArrayBuffer = vi.fn((url: string, signal: AbortSignal) => {
         signals.push(signal);
         const control = deferred<ArrayBuffer>();
+        control.promise.then((data) => urlOf.set(data, url), () => {});
         pending.set(url, control);
         signal.addEventListener("abort", () => {
             control.reject(new DOMException("Aborted", "AbortError"));
@@ -45,7 +63,10 @@ const setup = ({ decodedChannels = EXPECTED_SPATIAL_CHANNELS } = {}) => {
     const loader = createBufferLoader({
         cache,
         fetchArrayBuffer,
-        decode: async (_data: ArrayBuffer) => decodedBuffer(decodedChannels),
+        decode: async (data: ArrayBuffer) =>
+            decode
+                ? decode(data, urlOf.get(data) ?? "")
+                : decodedBuffer(decodedChannels),
         merge: (buffers: AudioBuffer[]) => buffer(`merged:${buffers.length}`),
         onSpatialDegraded,
         loadMonoFallback,
@@ -175,10 +196,69 @@ describe("createBufferLoader", () => {
             {
                 decodedChannels: 2,
                 expectedChannels: EXPECTED_SPATIAL_CHANNELS,
+                cause: "downmix",
                 reason: "downmixed",
             },
             // The key travels with it so the consumer can tell a prefetch's
             // report from the active park's.
+            getCacheKey(["a.flac", "a-mono.wav"])
+        );
+    });
+
+    it("plays a mismatched pair through the W fallback instead of failing the park", async () => {
+        // rl-74x.5. Both files decode fine and the spatial one has all eight
+        // channels; they just disagree about how long the recording is. That
+        // cannot be merged, and until now nothing caught the throw, so the
+        // park died on a load error while a perfectly good W mix sat on the
+        // CDN next to it.
+        const { loader, pending, cache, onSpatialDegraded, loadMonoFallback } = setup({
+            decode: async (_data, url) =>
+                url.endsWith("-mono.wav")
+                    ? decodedBuffer(1, { length: 2_572_353 })
+                    : decodedBuffer(EXPECTED_SPATIAL_CHANNELS),
+        });
+
+        const load = loader.load(["a.flac", "a-mono.wav"]);
+        pending.get("a.flac")!.resolve(new ArrayBuffer(8));
+        pending.get("a-mono.wav")!.resolve(new ArrayBuffer(8));
+
+        // One buffer reaches merge: the separately fetched W mix. The park
+        // plays.
+        await expect(load).resolves.toEqual({ name: "merged:1" });
+        expect(loadMonoFallback).toHaveBeenCalled();
+        expect(cache.size).toBe(1);
+
+        // And the walker is told, rather than it degrading quietly.
+        expect(onSpatialDegraded).toHaveBeenCalledWith(
+            {
+                decodedChannels: EXPECTED_SPATIAL_CHANNELS,
+                expectedChannels: EXPECTED_SPATIAL_CHANNELS,
+                cause: "pair-mismatch",
+                reason: "downmixed",
+            },
+            getCacheKey(["a.flac", "a-mono.wav"])
+        );
+    });
+
+    it("still fails a mismatched pair when the W mix cannot be fetched", async () => {
+        // The honest end of the same path: there is nothing left to play, so
+        // this is a load error and must not be cached as if it were audio.
+        const { loader, pending, cache, loadMonoFallback, onSpatialDegraded } = setup({
+            decode: async (_data, url) =>
+                url.endsWith("-mono.wav")
+                    ? decodedBuffer(1, { sampleRate: 48_000 })
+                    : decodedBuffer(EXPECTED_SPATIAL_CHANNELS),
+        });
+        loadMonoFallback.mockRejectedValueOnce(new Error("fallback unavailable"));
+
+        const load = loader.load(["a.flac", "a-mono.wav"]);
+        pending.get("a.flac")!.resolve(new ArrayBuffer(8));
+        pending.get("a-mono.wav")!.resolve(new ArrayBuffer(8));
+
+        await expect(load).rejects.toThrow("fallback unavailable");
+        expect(cache.size).toBe(0);
+        expect(onSpatialDegraded).toHaveBeenCalledWith(
+            expect.objectContaining({ cause: "pair-mismatch", reason: "no-fallback" }),
             getCacheKey(["a.flac", "a-mono.wav"])
         );
     });
