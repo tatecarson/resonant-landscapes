@@ -5,14 +5,17 @@ declare module 'resonance-audio' {
 
     class ResonanceAudio {
         output: AudioNode;
-        constructor(context: AudioContext);
+        ambisonicInput: AudioNode;
+        ambisonicOutput: AudioNode;
+        constructor(context: BaseAudioContext, options?: { ambisonicOrder?: number });
         setAmbisonicOrder(order: number): void;
+        setListenerFromMatrix(matrix: { elements: number[] }): void;
         setListenerPosition(x: number, y: number, z: number): void;
         setListenerOrientation(
             forwardX: number, forwardY: number, forwardZ: number,
             upX: number, upY: number, upZ: number
         ): void;
-        createSource(): ResonanceSource;
+        createSource(options?: { rolloff?: "none" | "logarithmic" | "linear" }): ResonanceSource;
         dispose(): void;
     }
 

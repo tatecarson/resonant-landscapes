@@ -6,6 +6,8 @@ export interface BufferLoaderDeps {
     fetchArrayBuffer: (url: string, signal: AbortSignal) => Promise<ArrayBuffer>;
     decode: (data: ArrayBuffer) => Promise<AudioBuffer>;
     merge: (buffers: AudioBuffer[]) => AudioBuffer;
+    /** Fetch a separately exported W mix only when spatial decode collapsed. */
+    loadMonoFallback?: (urls: string[], signal: AbortSignal) => Promise<AudioBuffer>;
     /**
      * Called when the spatial file did not decode to its full channel count.
      * Fires per load, not per cache hit.
@@ -47,6 +49,7 @@ export const createBufferLoader = ({
     decode,
     merge,
     onSpatialDegraded,
+    loadMonoFallback,
 }: BufferLoaderDeps): BufferLoader => {
     interface InFlight {
         promise: Promise<AudioBuffer>;
@@ -82,10 +85,24 @@ export const createBufferLoader = ({
             // Trust nothing about the decode: a browser that quietly collapsed
             // the 8-channel stream would otherwise produce a walk that plays
             // and looks right with no spatial field at all.
-            const { buffers, degradation } = planDecodedBuffers(decoded);
-            if (degradation) {
-                onSpatialDegraded?.(degradation, key);
+            const plan = planDecodedBuffers(decoded);
+            let buffers = plan.buffers;
+            if (plan.degradation) {
+                try {
+                    if (!loadMonoFallback) throw new Error("No verified mono fallback is available.");
+                    const mono = await loadMonoFallback(urls, signal);
+                    if (mono.numberOfChannels !== 1) throw new Error("Mono fallback did not decode to one channel.");
+                    if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+                    buffers = [mono];
+                    onSpatialDegraded?.({ ...plan.degradation, reason: "downmixed" }, key);
+                } catch (error) {
+                    if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+                    onSpatialDegraded?.({ ...plan.degradation, reason: "no-fallback" }, key);
+                    throw error;
+                }
             }
+            // A fallback fetch/decode can outlive cancellation too.
+            if (signal.aborted) throw new DOMException("Aborted", "AbortError");
 
             const merged = merge(buffers);
             cache.set(key, merged);

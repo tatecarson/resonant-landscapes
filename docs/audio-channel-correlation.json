@@ -1,0 +1,530 @@
+[
+  {
+    "delivery": "Sica-Hollow-1-001",
+    "family": "lossless",
+    "source": "pre-ogg-conversion/sources/AMBForst-OctoMic F8n_Sica Hollow-Forest Ambience, wind, leaves, air, distant_TAC_SD State Parks-001.wav",
+    "sourceSHA256": "46cd62d0123c88964a479c09a1d0215f902a28e83bd6ce188567b0b5ea03bb82",
+    "sourceOffsetSeconds": 32,
+    "windowSeconds": [
+      5,
+      15
+    ],
+    "channels": [
+      {
+        "deliveryChannel": 0,
+        "sourceChannel": 0,
+        "correlation": 0.9997196716950159,
+        "gain": 0.9981021056007715
+      },
+      {
+        "deliveryChannel": 1,
+        "sourceChannel": 1,
+        "correlation": 0.9985828076388702,
+        "gain": 0.9965919550218645
+      },
+      {
+        "deliveryChannel": 2,
+        "silent": true
+      },
+      {
+        "deliveryChannel": 3,
+        "sourceChannel": 7,
+        "correlation": 0.9021645493233504,
+        "gain": 0.8114538959449962
+      },
+      {
+        "deliveryChannel": 4,
+        "sourceChannel": 4,
+        "correlation": 0.9997985862721103,
+        "gain": 0.9981082389514213
+      },
+      {
+        "deliveryChannel": 5,
+        "sourceChannel": 5,
+        "correlation": 0.9997608354177825,
+        "gain": 0.9979417452910281
+      },
+      {
+        "deliveryChannel": 6,
+        "sourceChannel": 2,
+        "correlation": 0.9995452049249588,
+        "gain": 0.996170090973248
+      },
+      {
+        "deliveryChannel": 7,
+        "sourceChannel": 3,
+        "correlation": 0.9982736419884408,
+        "gain": 0.9966766694856787
+      },
+      {
+        "deliveryChannel": 8,
+        "sourceChannel": 8,
+        "correlation": 0.9998472323718919,
+        "gain": 0.9979884516452303
+      }
+    ],
+    "verified": true
+  },
+  {
+    "delivery": "Sica-Hollow-1-001",
+    "family": "aac",
+    "source": "pre-ogg-conversion/sources/AMBForst-OctoMic F8n_Sica Hollow-Forest Ambience, wind, leaves, air, distant_TAC_SD State Parks-001.wav",
+    "sourceSHA256": "46cd62d0123c88964a479c09a1d0215f902a28e83bd6ce188567b0b5ea03bb82",
+    "sourceOffsetSeconds": 32,
+    "windowSeconds": [
+      5,
+      15
+    ],
+    "channels": [
+      {
+        "deliveryChannel": 0,
+        "sourceChannel": 0,
+        "correlation": 0.9997205163683252,
+        "gain": 0.9981041936707933
+      },
+      {
+        "deliveryChannel": 1,
+        "sourceChannel": 1,
+        "correlation": 0.9985910395809081,
+        "gain": 0.9965949283488649
+      },
+      {
+        "deliveryChannel": 2,
+        "silent": true
+      },
+      {
+        "deliveryChannel": 3,
+        "sourceChannel": 7,
+        "correlation": 0.902165921263184,
+        "gain": 0.8114558649743304
+      },
+      {
+        "deliveryChannel": 4,
+        "sourceChannel": 4,
+        "correlation": 0.9997989782535588,
+        "gain": 0.9981073758273462
+      },
+      {
+        "deliveryChannel": 5,
+        "sourceChannel": 5,
+        "correlation": 0.9997615045956674,
+        "gain": 0.9979412049691767
+      },
+      {
+        "deliveryChannel": 6,
+        "sourceChannel": 2,
+        "correlation": 0.9995471302098665,
+        "gain": 0.9961671293541912
+      },
+      {
+        "deliveryChannel": 7,
+        "sourceChannel": 3,
+        "correlation": 0.9982826394246401,
+        "gain": 0.9966748422831829
+      },
+      {
+        "deliveryChannel": 8,
+        "sourceChannel": 8,
+        "correlation": 0.9998477128193746,
+        "gain": 0.9979885269988843
+      }
+    ],
+    "verified": true
+  },
+  {
+    "delivery": "Newton-Hills-3-002",
+    "family": "lossless",
+    "source": "pre-ogg-conversion/sources/AMBForst-OctoMic_Newton Hills State Park-Recording forest ambience by the Auggie Ridge_TAC_SD State Parks-001.wav",
+    "sourceSHA256": "13594a6f811f15f0e757922390e2f56ef1959de26ebe300c71bed7d3a26e5618",
+    "sourceOffsetSeconds": 18,
+    "windowSeconds": [
+      5,
+      15
+    ],
+    "channels": [
+      {
+        "deliveryChannel": 0,
+        "sourceChannel": 0,
+        "correlation": 0.9532872042701273,
+        "gain": 0.9466211448530369
+      },
+      {
+        "deliveryChannel": 1,
+        "sourceChannel": 1,
+        "correlation": 0.9678803535827599,
+        "gain": 0.9639008708234926
+      },
+      {
+        "deliveryChannel": 2,
+        "silent": true
+      },
+      {
+        "deliveryChannel": 3,
+        "sourceChannel": 7,
+        "correlation": 0.9129674084938362,
+        "gain": 0.8323374715856232
+      },
+      {
+        "deliveryChannel": 4,
+        "sourceChannel": 4,
+        "correlation": 0.9971061391716689,
+        "gain": 0.9950488414125789
+      },
+      {
+        "deliveryChannel": 5,
+        "sourceChannel": 5,
+        "correlation": 0.9942347613404825,
+        "gain": 0.9921681187342343
+      },
+      {
+        "deliveryChannel": 6,
+        "sourceChannel": 2,
+        "correlation": 0.9797247039915651,
+        "gain": 0.9765686058209596
+      },
+      {
+        "deliveryChannel": 7,
+        "sourceChannel": 3,
+        "correlation": 0.9649318275799743,
+        "gain": 0.960919626846027
+      },
+      {
+        "deliveryChannel": 8,
+        "sourceChannel": 8,
+        "correlation": 0.9958094415663293,
+        "gain": 0.9895364025537179
+      }
+    ],
+    "verified": true
+  },
+  {
+    "delivery": "Newton-Hills-3-002",
+    "family": "aac",
+    "source": "pre-ogg-conversion/sources/AMBForst-OctoMic_Newton Hills State Park-Recording forest ambience by the Auggie Ridge_TAC_SD State Parks-001.wav",
+    "sourceSHA256": "13594a6f811f15f0e757922390e2f56ef1959de26ebe300c71bed7d3a26e5618",
+    "sourceOffsetSeconds": 18,
+    "windowSeconds": [
+      5,
+      15
+    ],
+    "channels": [
+      {
+        "deliveryChannel": 0,
+        "sourceChannel": 0,
+        "correlation": 0.9537227061452866,
+        "gain": 0.9466571403255742
+      },
+      {
+        "deliveryChannel": 1,
+        "sourceChannel": 1,
+        "correlation": 0.9681469775933293,
+        "gain": 0.9639082068001306
+      },
+      {
+        "deliveryChannel": 2,
+        "silent": true
+      },
+      {
+        "deliveryChannel": 3,
+        "sourceChannel": 7,
+        "correlation": 0.9130039410891887,
+        "gain": 0.8323508931198013
+      },
+      {
+        "deliveryChannel": 4,
+        "sourceChannel": 4,
+        "correlation": 0.997125733193536,
+        "gain": 0.9950474764826358
+      },
+      {
+        "deliveryChannel": 5,
+        "sourceChannel": 5,
+        "correlation": 0.9942725003940481,
+        "gain": 0.9921602125746267
+      },
+      {
+        "deliveryChannel": 6,
+        "sourceChannel": 2,
+        "correlation": 0.9798802870488346,
+        "gain": 0.9765403482370596
+      },
+      {
+        "deliveryChannel": 7,
+        "sourceChannel": 3,
+        "correlation": 0.9651848230949092,
+        "gain": 0.9609211054265795
+      },
+      {
+        "deliveryChannel": 8,
+        "sourceChannel": 8,
+        "correlation": 0.9958335150286242,
+        "gain": 0.9895464356905965
+      }
+    ],
+    "verified": true
+  },
+  {
+    "delivery": "Newton-Hills-3-003",
+    "family": "lossless",
+    "source": "pre-ogg-conversion/sources/AMBForst-OctoMic_Newton Hills State Park-Recording forest ambience by the Auggie Ridge_TAC_SD State Parks-002.wav",
+    "sourceSHA256": "c39df5381104ec9e043196c96ae1bc265eb1f825bd7f62fb74344310124b6193",
+    "sourceOffsetSeconds": 18,
+    "windowSeconds": [
+      5,
+      15
+    ],
+    "channels": [
+      {
+        "deliveryChannel": 0,
+        "sourceChannel": 0,
+        "correlation": 0.9503438844857863,
+        "gain": 0.9420864294394133
+      },
+      {
+        "deliveryChannel": 1,
+        "sourceChannel": 1,
+        "correlation": 0.9650714692136312,
+        "gain": 0.9609158301821651
+      },
+      {
+        "deliveryChannel": 2,
+        "silent": true
+      },
+      {
+        "deliveryChannel": 3,
+        "sourceChannel": 7,
+        "correlation": 0.9097224944028482,
+        "gain": 0.8264238024029321
+      },
+      {
+        "deliveryChannel": 4,
+        "sourceChannel": 4,
+        "correlation": 0.9968783902201965,
+        "gain": 0.9948898556794242
+      },
+      {
+        "deliveryChannel": 5,
+        "sourceChannel": 5,
+        "correlation": 0.9937131640047825,
+        "gain": 0.9917878560408012
+      },
+      {
+        "deliveryChannel": 6,
+        "sourceChannel": 2,
+        "correlation": 0.9778064904135748,
+        "gain": 0.9733925683194492
+      },
+      {
+        "deliveryChannel": 7,
+        "sourceChannel": 3,
+        "correlation": 0.9594869873813228,
+        "gain": 0.9541456357082633
+      },
+      {
+        "deliveryChannel": 8,
+        "sourceChannel": 8,
+        "correlation": 0.9959380432876344,
+        "gain": 0.9893631258044377
+      }
+    ],
+    "verified": true
+  },
+  {
+    "delivery": "Newton-Hills-3-003",
+    "family": "aac",
+    "source": "pre-ogg-conversion/sources/AMBForst-OctoMic_Newton Hills State Park-Recording forest ambience by the Auggie Ridge_TAC_SD State Parks-002.wav",
+    "sourceSHA256": "c39df5381104ec9e043196c96ae1bc265eb1f825bd7f62fb74344310124b6193",
+    "sourceOffsetSeconds": 18,
+    "windowSeconds": [
+      5,
+      15
+    ],
+    "channels": [
+      {
+        "deliveryChannel": 0,
+        "sourceChannel": 0,
+        "correlation": 0.9507226910649844,
+        "gain": 0.9420126854400417
+      },
+      {
+        "deliveryChannel": 1,
+        "sourceChannel": 1,
+        "correlation": 0.9653342622301203,
+        "gain": 0.960878801542246
+      },
+      {
+        "deliveryChannel": 2,
+        "silent": true
+      },
+      {
+        "deliveryChannel": 3,
+        "sourceChannel": 7,
+        "correlation": 0.9097544038889464,
+        "gain": 0.826418655787418
+      },
+      {
+        "deliveryChannel": 4,
+        "sourceChannel": 4,
+        "correlation": 0.9968986481347378,
+        "gain": 0.9948913597974447
+      },
+      {
+        "deliveryChannel": 5,
+        "sourceChannel": 5,
+        "correlation": 0.9937503330890817,
+        "gain": 0.9917845061346788
+      },
+      {
+        "deliveryChannel": 6,
+        "sourceChannel": 2,
+        "correlation": 0.977968236586722,
+        "gain": 0.9733834755026003
+      },
+      {
+        "deliveryChannel": 7,
+        "sourceChannel": 3,
+        "correlation": 0.9597453452794265,
+        "gain": 0.9540948634527229
+      },
+      {
+        "deliveryChannel": 8,
+        "sourceChannel": 8,
+        "correlation": 0.9959606466958222,
+        "gain": 0.989353452549139
+      }
+    ],
+    "verified": true
+  },
+  {
+    "delivery": "Newton-Hills-4-001",
+    "family": "lossless",
+    "source": "pre-ogg-conversion/sources/AMBForst-OctoMic_Newton Hills State Park-Recording forest ambience by the Auggie Ridge_TAC_SD State Parks-003.wav",
+    "sourceSHA256": "7336fe89853abecf6b80fde7f3d792766b1a0ebb784c1b05728c840175db21b2",
+    "sourceOffsetSeconds": 18,
+    "windowSeconds": [
+      5,
+      15
+    ],
+    "channels": [
+      {
+        "deliveryChannel": 0,
+        "sourceChannel": 0,
+        "correlation": 0.9803261073616781,
+        "gain": 0.9750474453839716
+      },
+      {
+        "deliveryChannel": 1,
+        "sourceChannel": 1,
+        "correlation": 0.9891675388782679,
+        "gain": 0.9864731223989381
+      },
+      {
+        "deliveryChannel": 2,
+        "silent": true
+      },
+      {
+        "deliveryChannel": 3,
+        "sourceChannel": 7,
+        "correlation": 0.9798582539724252,
+        "gain": 0.9589946072024718
+      },
+      {
+        "deliveryChannel": 4,
+        "sourceChannel": 4,
+        "correlation": 0.9993074277192809,
+        "gain": 0.9981094567381723
+      },
+      {
+        "deliveryChannel": 5,
+        "sourceChannel": 5,
+        "correlation": 0.999387443224328,
+        "gain": 0.9973251703937204
+      },
+      {
+        "deliveryChannel": 6,
+        "sourceChannel": 2,
+        "correlation": 0.9947951433867315,
+        "gain": 0.9937948853733565
+      },
+      {
+        "deliveryChannel": 7,
+        "sourceChannel": 3,
+        "correlation": 0.9939917047481124,
+        "gain": 0.9918452404175999
+      },
+      {
+        "deliveryChannel": 8,
+        "sourceChannel": 8,
+        "correlation": 0.999339421639035,
+        "gain": 0.9962914183536399
+      }
+    ],
+    "verified": true
+  },
+  {
+    "delivery": "Newton-Hills-4-001",
+    "family": "aac",
+    "source": "pre-ogg-conversion/sources/AMBForst-OctoMic_Newton Hills State Park-Recording forest ambience by the Auggie Ridge_TAC_SD State Parks-003.wav",
+    "sourceSHA256": "7336fe89853abecf6b80fde7f3d792766b1a0ebb784c1b05728c840175db21b2",
+    "sourceOffsetSeconds": 18,
+    "windowSeconds": [
+      5,
+      15
+    ],
+    "channels": [
+      {
+        "deliveryChannel": 0,
+        "sourceChannel": 0,
+        "correlation": 0.9804864912949346,
+        "gain": 0.97506773800299
+      },
+      {
+        "deliveryChannel": 1,
+        "sourceChannel": 1,
+        "correlation": 0.9892552642164717,
+        "gain": 0.9864532145527577
+      },
+      {
+        "deliveryChannel": 2,
+        "silent": true
+      },
+      {
+        "deliveryChannel": 3,
+        "sourceChannel": 7,
+        "correlation": 0.9798657250998009,
+        "gain": 0.958994636868997
+      },
+      {
+        "deliveryChannel": 4,
+        "sourceChannel": 4,
+        "correlation": 0.999311529361048,
+        "gain": 0.9980991690379947
+      },
+      {
+        "deliveryChannel": 5,
+        "sourceChannel": 5,
+        "correlation": 0.9993907575886747,
+        "gain": 0.9973288674316598
+      },
+      {
+        "deliveryChannel": 6,
+        "sourceChannel": 2,
+        "correlation": 0.9948321147553933,
+        "gain": 0.9938099678847777
+      },
+      {
+        "deliveryChannel": 7,
+        "sourceChannel": 3,
+        "correlation": 0.9940284461239826,
+        "gain": 0.991860796762214
+      },
+      {
+        "deliveryChannel": 8,
+        "sourceChannel": 8,
+        "correlation": 0.999342857979361,
+        "gain": 0.9962859846781339
+      }
+    ],
+    "verified": true
+  }
+]

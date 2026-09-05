@@ -1,3 +1,4 @@
+import { setSoundfieldGimbalOrientation } from "../audio/soundfield";
 import React, { useRef, useEffect, useCallback } from 'react';
 
 import Gimbal from '../utils/Gimbal';
@@ -84,7 +85,7 @@ const GimbalArrow = ({
             const { vectorFwd, vectorUp } = gimbal;
 
             if (resonanceAudioScene) {
-                resonanceAudioScene.setListenerOrientation(vectorFwd.x, vectorFwd.y, vectorFwd.z, vectorUp.x, vectorUp.y, vectorUp.z);
+                setSoundfieldGimbalOrientation(resonanceAudioScene, vectorFwd, vectorUp);
             }
 
             if (isDebugEnabled()) {

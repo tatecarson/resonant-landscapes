@@ -1,0 +1,639 @@
+{
+  "verifiedAt": "2026-09-05T02:40:38.249Z",
+  "storageAndPublicCdnVerified": true,
+  "files": [
+    {
+      "path": "sounds-mono-w/Bear-Butte-1-001_w.flac",
+      "bytes": 1444184,
+      "sha256": "a1c0a744c5e791fc2bfc11082f47cf2a9de3e58de3555a617370795b211b2440",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Bear-Butte-1-002_w.flac",
+      "bytes": 1284178,
+      "sha256": "7e10246780be5aba1e56eb584b90fe11b7ffecbb54b49b8e13322f859010f446",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Bear-Butte-2-001_w.flac",
+      "bytes": 1218854,
+      "sha256": "215c3e9d55a755b25fd70c966d7ebbf7d843e20d42cf3c8c190c4e558ae65485",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Bear-Butte-2-002_w.flac",
+      "bytes": 933209,
+      "sha256": "9b8633e3f5653df6f170810bcb3c476181ddc727613086715142d5ea27d31eb0",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Bear-Butte-3-001_w.flac",
+      "bytes": 926710,
+      "sha256": "a9ec08015076bf7b05a68b70137a79b2ee06c58d4fca7b47e12afbf12f97c4a1",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Bear-Butte-3-002_w.flac",
+      "bytes": 891700,
+      "sha256": "8ee07d8034d74fc214cf38e139fbf28e4135f42dc3488ccf95aee0d600391bf4",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Bear-Butte-4-001_w.flac",
+      "bytes": 958448,
+      "sha256": "c8bfadbd297acacf28e4bd14228b021f9f38de1075a331a2327f9be432b08819",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Bear-Butte-4-002_w.flac",
+      "bytes": 929380,
+      "sha256": "fedaef5011526ce414f68616e760fb4be28a74517801a65bf1c5109b8f969927",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-1-001_w.flac",
+      "bytes": 1409917,
+      "sha256": "c0fa432843fba1bebe3a097c2c5e8d3279440ef324fe8d991462db17bcbcdc76",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-1-002_w.flac",
+      "bytes": 1407724,
+      "sha256": "3d293e85cd2a8af4c81710aa047c94d61eca863427de446f86e504c9aa103173",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-2-001_w.flac",
+      "bytes": 1381660,
+      "sha256": "4dc86811814aa710557d95e0d9839f2cf327c7f133a53244df35ebca0756c912",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-2-002_w.flac",
+      "bytes": 1381384,
+      "sha256": "2fc17a20047c28945f2122ba3c9cf6911f6d940a6606dac763656ae4e01b80f3",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-3-001_w.flac",
+      "bytes": 1689031,
+      "sha256": "9119d5c2e9dfa98308ac93999e988d5c177da6f9b2a1a99ed936c6c7d7107d3c",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-3-002_w.flac",
+      "bytes": 1515959,
+      "sha256": "98f15289cfef165d55d0e5dbbad7c0b8345fb4fcde1498b87dd2c262d89a2d18",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-4-001_w.flac",
+      "bytes": 1706167,
+      "sha256": "700cb9d9ef62a21b45274f67ab07a31dd92582e21d2e87a3546bfa7fea5deb67",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-4-002_w.flac",
+      "bytes": 1704636,
+      "sha256": "590201205945a6c50aaf6fe21d9bebd7f40a26a3e225d2f6eaf8b76d52beb3d0",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-5-001_w.flac",
+      "bytes": 1411018,
+      "sha256": "bc086c4b1da7b35fd6404cd660c376989cb2519556314c2c6416bad5eb30b840",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-5-002_w.flac",
+      "bytes": 1387682,
+      "sha256": "a26aaf41787aa64a0b1d46f1a04809264b1ab5ca3a71b27d3023affaa3691448",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-6-001_w.flac",
+      "bytes": 1394116,
+      "sha256": "b8d3cb9954f0f35bd81c64a1d9b83ff88679472ef760ce64e9ad1d75ccbb0fa2",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-6-002_w.flac",
+      "bytes": 1399161,
+      "sha256": "64d8a06287e294b3fb476f85a018964f1dda51110fd921d25bf49b321893f1ee",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-7-001_w.flac",
+      "bytes": 1400042,
+      "sha256": "11a94bb757af389b887cf74a781cdce8b96bcf8683f639c60287af42064993d9",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-7-002_w.flac",
+      "bytes": 1383209,
+      "sha256": "d0cfa54bdffe12b9a67acdf07138b7afbae97f69c0e0831e56cf2d35f6bb51af",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-8-001_w.flac",
+      "bytes": 1424477,
+      "sha256": "ba96973bcd6d5c72b31b01f68b867705df9c7ca5f0381f1314554c531af62af1",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-8-002_w.flac",
+      "bytes": 1470146,
+      "sha256": "bced77c7a1f42453ef8eca57d39beb99808f973ce6965a9d93a449d28d1dbfb1",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-9-001_w.flac",
+      "bytes": 1377576,
+      "sha256": "7a0352cd06f06e152452cdc7a271838d5e75fc0a6d5ac3663f2845c9fa237cde",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Custer-State-9-002_w.flac",
+      "bytes": 1530078,
+      "sha256": "c83bb97bd1d017761b4f010e02c0cfc74c236b9f24f3c48c8fb45f23cb383993",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Fisher-Grove-1-001_w.flac",
+      "bytes": 1514706,
+      "sha256": "5015263c8a5828d7a5733980f833da257e4311ccf9503e4915b641d05076b8d5",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Fisher-Grove-1-002_w.flac",
+      "bytes": 1504127,
+      "sha256": "39f2493e91a8893c2cbe9c34a7149bb8027300e3abcb1f7128805eaaf4292507",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Fort-Sisseton-1-001_w.flac",
+      "bytes": 1338629,
+      "sha256": "9fa94e4be3d8cf650121af0fbd6f1a66512841c0ecd83b39de8e8e1a3ebe1724",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Good-Earth-1-001_w.flac",
+      "bytes": 2008779,
+      "sha256": "4552d56cbeafd70a1461e2b2cd4b6d8299e94bc4857a444ecf7df635eeebb448",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Good-Earth-1-002_w.flac",
+      "bytes": 2004684,
+      "sha256": "8e70879dd9a0db4220671da1009be1457fa8bac13d5fd68a7abcc2b3f74313b2",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Good-Earth-2-001_w.flac",
+      "bytes": 1968754,
+      "sha256": "0d5633822bb24846a7a6757194659df1fca005d0aa2989cd60392f227b868eb1",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Good-Earth-2-002_w.flac",
+      "bytes": 1954441,
+      "sha256": "6bf10ccef9cf8fc6a56b7a90853e1bf216dc12e393a9f9bb9de59f80a3a11ad0",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Hartford-Beach-1-001_w.flac",
+      "bytes": 1476321,
+      "sha256": "cdde378ff2e64fc303007c461af090b1c801726bb77692e4fa898e04425c94bb",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Hartford-Beach-1-002_w.flac",
+      "bytes": 1493212,
+      "sha256": "8c89ef87da6967a97b111b7d16a589eb85c8392e428a84a49a93530d6e2df04c",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Hartford-Beach-2-001_w.flac",
+      "bytes": 1490269,
+      "sha256": "f40139e84715adaea0e1e803dbaa292963556568610434f4ed8ae47156b90bd3",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Hartford-Beach-2-002_w.flac",
+      "bytes": 1507479,
+      "sha256": "b267ba4a39f2433f23b032dcf3655d9df874d5916c2681d2a87c3957f7d415b9",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Hartford-Beach-3-001_w.flac",
+      "bytes": 1566943,
+      "sha256": "3c2f3bc748cd8386978cfd82f90c6d6813a77f8c7ed1b208edfe8c552433abc4",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Hartford-Beach-3-002_w.flac",
+      "bytes": 1535186,
+      "sha256": "7ddfbb515caf93d3f2aec43238e111e6db07e6b6d0f43d4aee75d9a6ba709697",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Hartford-Beach-4-001_w.flac",
+      "bytes": 2890183,
+      "sha256": "7f8d5a03065f2b8a2cbeb6c248a1f62c3cef6c2ffd0ca6d41d59e78ca8bc9f63",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Hartford-Beach-4-002_w.flac",
+      "bytes": 2868525,
+      "sha256": "410f628c1cce9ba29d07b052ce89b2a15d2c4152d752c6f2f41433a794d77aa4",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Hartford-Beach-5-001_w.flac",
+      "bytes": 1589609,
+      "sha256": "954c5451380f477a9d7cbf641b4d4a9fb9466f3cc85f0f4eeb7bd7005336472c",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Hartford-Beach-5-002_w.flac",
+      "bytes": 1531115,
+      "sha256": "55281a89cebeda95580d49ebebabdbe55a790a3966d1046305c64d55d607416d",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Hartford-Beach-6-001_w.flac",
+      "bytes": 1542734,
+      "sha256": "5ba8e7506672f0543cfd4bc3dc3fa3026ac33c05673500299eacc2082caf5f91",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Hartford-Beach-6-002_w.flac",
+      "bytes": 1552386,
+      "sha256": "23cb1221ee5862f9edcd82ce7eab111c42fe791ce5d4ab9dd0babad18fcc1636",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Hartford-Beach-7-001_w.flac",
+      "bytes": 1576425,
+      "sha256": "9a9e9c041305312c33b87d78f73cf9e38f7d76ba9d7905c155eeda202ca0e9fa",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Hartford-Beach-7-002_w.flac",
+      "bytes": 1509389,
+      "sha256": "270cd29f51fdbc4a3ccd9570c3493946718b3fca4f2b5196ca4c11fa5f263842",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Hartford-Beach-8-001_w.flac",
+      "bytes": 1515412,
+      "sha256": "eb4e1d286d142a4c5a2e0940fa385fc6a1569683bed74dad6b3f19a0298cec45",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Hartford-Beach-8-002_w.flac",
+      "bytes": 1507825,
+      "sha256": "84cdd466629c52226153e14893881876bf1e51e1e1ece36f602c22ac303cbb86",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Lake-Herman-1-001_w.flac",
+      "bytes": 2050412,
+      "sha256": "0121489b8e9dc92efa5d6bef8f889711c66a349a67b1ca719ce6a264c4b76e90",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Lake-Herman-1-002_w.flac",
+      "bytes": 1974497,
+      "sha256": "d8690b44f31319becee5fd188b14dab1635d3b77f3b5f3fccee2f142c8cb56a5",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Lake-Herman-1-003_w.flac",
+      "bytes": 2003619,
+      "sha256": "5912375349d5c91c1187467aabe95928adf444749bbfe6fe46e6c12859b99721",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Lake-Herman-1-004_w.flac",
+      "bytes": 2046537,
+      "sha256": "ea185ec1931ad951ed7cf0020270b935986412c8910c08384027401cb50a80f2",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Lake-Herman-1-005_w.flac",
+      "bytes": 2046833,
+      "sha256": "fa095ece4b134a9ed5e3298d6485c266bcb9e6e9581c9a97d08aa9cb22e56094",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Lake-Herman-2-001_w.flac",
+      "bytes": 1958428,
+      "sha256": "8d235c0a770a00a8b43ef6d8eb1536ee0bbce0ba6abc56b6c2b5fbf22c98671b",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Lake-Herman-2-002_w.flac",
+      "bytes": 1905973,
+      "sha256": "d64e2f32fa5bf1d625ebdcaac19589ab42da486854a5220a6bfa63ba8d1f3187",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Lake-Herman-2-003_w.flac",
+      "bytes": 1878990,
+      "sha256": "5a8bc25a719948b72f8f12f09947b40c192b1ffe51125a9e0784bbe7b826960b",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Lake-Herman-2-004_w.flac",
+      "bytes": 1972270,
+      "sha256": "f1ae8dd8fea4d69a6f7970d1aacde7f4a1c795a6248d839ed4393f36caf91782",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Lake-Herman-2-005_w.flac",
+      "bytes": 1905690,
+      "sha256": "a985b944c2f888c0e09cbbedc81299ee8401566ffbc35a72a4e35eba96117770",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Newton-Hills-1-001_w.flac",
+      "bytes": 1136565,
+      "sha256": "054321dcb520f111855d5a5af61bcc4eef91b019225dcc0b795c7883ba7dea04",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Newton-Hills-1-002_w.flac",
+      "bytes": 1124675,
+      "sha256": "e9d6a2b26df245336989ef8b372246c919287ee1a09d4386ed6d8abb829b5f17",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Newton-Hills-1-003_w.flac",
+      "bytes": 1268943,
+      "sha256": "81d6a788a5a2413a4bd972dd428fb5e2b61af460f2499bc3e6383dd10884d26a",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Newton-Hills-2-001_w.flac",
+      "bytes": 1302736,
+      "sha256": "9cb42f60e482c62e565478892545cc0feee8716fa884bf03443d94d3d96293b7",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Newton-Hills-2-002_w.flac",
+      "bytes": 1391356,
+      "sha256": "0b59b32f2351461b5df21a07afb1cf990c9205de1334bfbb50e2df8e8bbbb7c1",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Newton-Hills-2-003_w.flac",
+      "bytes": 1406199,
+      "sha256": "5e2950550f4eb44f60c2716d47a2ff411acbe0a83acf3c8ecfe91c8997719772",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Newton-Hills-3-001_w.flac",
+      "bytes": 1434259,
+      "sha256": "525e1ef124801ce7707a81acce7dbed55625eff447fd2992e876519f33b54e38",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Newton-Hills-3-002_w.flac",
+      "bytes": 1457644,
+      "sha256": "54e3ffca936e43188dc208da1b19c98aa8792927d2955413605f0019e509285e",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Newton-Hills-3-003_w.flac",
+      "bytes": 1511969,
+      "sha256": "98d22ef3863d8caa2859aaabbdcd49d01effbff3e1cb08264ecd387d9c20b3fa",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Newton-Hills-4-001_w.flac",
+      "bytes": 1500014,
+      "sha256": "4d1421eae503c9a39501eea4c6a78e04a8a6c2621c1adc44cd582defc458dfd3",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Newton-Hills-4-002_w.flac",
+      "bytes": 1462939,
+      "sha256": "4b0e0b1f841bf0d2e6a02c456d2e5561f8cb09ce53677c63819281c6e395e468",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Newton-Hills-4-003_w.flac",
+      "bytes": 1252885,
+      "sha256": "855b0b387b916e5cb3a94fba0a9d76a8e9a797303e39068bb37418a96712613c",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Newton-Hills-5-001_w.flac",
+      "bytes": 1142729,
+      "sha256": "7daf555db51b032f7f4ead7c471b499f9c15477f2b1559550231962281a1bc8d",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Newton-Hills-5-002_w.flac",
+      "bytes": 1162232,
+      "sha256": "eef6f1768fda43f9f8bbac234ce0c9bbfca23aee5469228f65e8357d76e91476",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Newton-Hills-5-003_w.flac",
+      "bytes": 1125555,
+      "sha256": "6f66922da1f941213a2bf06d60247f8414d475195172f641313607680096b745",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Oakwood-Lakes-1-001_w.flac",
+      "bytes": 2125657,
+      "sha256": "3099b7b75276e9b9e8915faf405e01936f967d85781e1ad54eba27a459ee7c2a",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Oakwood-Lakes-1-002_w.flac",
+      "bytes": 2155782,
+      "sha256": "ffa8254abc4749461f7554f8d23019534246d1bf45b9679cd40081a96b1aac7e",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Oakwood-Lakes-1-003_w.flac",
+      "bytes": 2152914,
+      "sha256": "0491e53a045f9e666c59c404df6ef10abb80cd1e7717407721c68732f1e1df64",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Oakwood-Lakes-1-004_w.flac",
+      "bytes": 2146270,
+      "sha256": "5c963c7c089bff46fa8f057837734d4bb3854136c53a9925c110884ac9e9765e",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Palisades-State-1-001_w.flac",
+      "bytes": 2473520,
+      "sha256": "ac99d6fa7b826b42bf52b0d93e88519c851039b53d2080e7444f0b01b16f23ac",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Palisades-State-1-002_w.flac",
+      "bytes": 2293092,
+      "sha256": "dfd6e7651f568362329b2ffb3956967d25d2fe21dfb5f4f56542ae9b61d959eb",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Palisades-State-1-003_w.flac",
+      "bytes": 2414645,
+      "sha256": "454b4bcb60a46646c1345f1b346f5b2839584d37540caf442e56bd0897e27a8a",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Palisades-State-2-001_w.flac",
+      "bytes": 2615346,
+      "sha256": "77da536131f59c22683133df9561291d20f7f5d7776601409b3f6adae96e0e40",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Palisades-State-2-002_w.flac",
+      "bytes": 2619729,
+      "sha256": "4b96813026f8cf8e7d94ef80989fd11a1ae5d7bc84da6d088a4cf2d3f2c6019b",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Palisades-State-2-003_w.flac",
+      "bytes": 2552558,
+      "sha256": "c56068a21038e80142e728cdd2e31f90197de1e6fbc40415c20f4933863caf80",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Roy-Lake-1-001_w.flac",
+      "bytes": 1403774,
+      "sha256": "51b6b9c4f7dd1d6c9c882a4512b24cee9c89544e46fb09e858074416236f3cfb",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Roy-Lake-1-002_w.flac",
+      "bytes": 1663031,
+      "sha256": "bd04d6c7e0ed97df67116a8d1a81f0ba21d88a1153ffab0872d488c00a99df20",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Roy-Lake-2-001_w.flac",
+      "bytes": 1664608,
+      "sha256": "30f0376e9958f59155da5cd5303843b7fc7335b3dd083b5d908274c23d799fea",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Roy-Lake-2-002_w.flac",
+      "bytes": 1491305,
+      "sha256": "5787f36adb698913c2201da348bffad505f18b01c77a21f3c056fb660b8bd5f0",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Sica-Hollow-1-001_w.flac",
+      "bytes": 2009523,
+      "sha256": "75158ec7c8bb2a0b0e3a23f34a0fa434771eefbfdb11e963f40ec5f13429fad5",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Sica-Hollow-1-002_w.flac",
+      "bytes": 2044261,
+      "sha256": "337f9ec60f87cd818b0e5ba4129cfeecfcff01f7b834ba775d52bc980d229c90",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Sica-Hollow-2-001_w.flac",
+      "bytes": 2700011,
+      "sha256": "80b0de87e2f7410759d74c28eab079eee2d919dd1af12d2dda2139776d1759b7",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Sica-Hollow-2-002_w.flac",
+      "bytes": 2702568,
+      "sha256": "f11deb9b0a9a8e0607e11625a53e51e7562785b0794d0c1f6f103ceda86e3e54",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Sica-Hollow-3-001_w.flac",
+      "bytes": 2615048,
+      "sha256": "5296e5514891bee6a1378d718beb3c47ccf7770a809b009029fc5e94c2ccb3fc",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Sica-Hollow-3-002_w.flac",
+      "bytes": 2615443,
+      "sha256": "fac646815d9eb2bb8536857896f7ad72e7c82f894ae3335771f99aa5334390ce",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Union-Grove-1-001_w.flac",
+      "bytes": 1323477,
+      "sha256": "2e22d55fb629a30ed9641a45d236b40ec9206d66a61b5606ec1326060d333aac",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Union-Grove-1-002_w.flac",
+      "bytes": 1265772,
+      "sha256": "25635c53b784b973db2b983757c518937029d9f1fe0770f928b777834c749391",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Union-Grove-1-003_w.flac",
+      "bytes": 1219413,
+      "sha256": "88c5d2eb4a0979a15de1e9180fe678d8a64bbdc291cba5362657c9ff64f74f58",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Union-Grove-1-004_w.flac",
+      "bytes": 1274608,
+      "sha256": "d7f8e316fc32f50c8367af2d82cc54574c73d1d1f453d82c08adc63c5806e786",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Union-Grove-2-001_w.flac",
+      "bytes": 1859757,
+      "sha256": "b512037f02f8cf7377ae7459766b5088fbba6cbaf70601b708c7ee9d54ad425f",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Union-Grove-2-002_w.flac",
+      "bytes": 1848843,
+      "sha256": "860e45fd7d7208b12570ea7002b468f031515c4258d7ece021e13032362619fa",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Union-Grove-2-003_w.flac",
+      "bytes": 1871559,
+      "sha256": "79e31d3e382ca420c7cf230e9c441150723d5ecc4d1531d0c9cb3b3ad9e64306",
+      "matches": true
+    },
+    {
+      "path": "sounds-mono-w/Union-Grove-2-004_w.flac",
+      "bytes": 1878138,
+      "sha256": "35cee96785e6e67f5efd42fd74a7f4105f2b42ec64f8dad01ec5029127e81eef",
+      "matches": true
+    },
+    {
+      "path": "sounds-flac/Good-Earth-2-001_8ch.flac",
+      "bytes": 12010150,
+      "sha256": "61d1d648a8faaeaa8958861be1ed005f110d2b281255d637533d27b140943aa1",
+      "matches": true
+    }
+  ],
+  "goodEarth": {
+    "samples": 2646016,
+    "sampleRate": 44100,
+    "channels": 8,
+    "lossySource": true,
+    "source": "Intact AAC delivery twin; calibrated master rerender tracked by rl-dz0"
+  },
+  "corpusAudit": {
+    "recordings": 102,
+    "files": 408,
+    "downloadFailures": [],
+    "decodeFailures": [],
+    "pairMismatches": 0,
+    "hardFailures": 0
+  }
+}

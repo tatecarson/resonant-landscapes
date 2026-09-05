@@ -268,7 +268,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     map: ReturnType<typeof useOL>["map"];
     helpIsOpen: boolean;
 }): JSX.Element {
-    const { preloadBuffers, resonanceAudioScene, stopSound } = useAudioEngine();
+    const { preloadBuffers, setParkDistance: setAudioDistance, stopSound } = useAudioEngine();
     const { audioContext, isPlaying } = useAudioContext();
     const heardParks = useHeardParks();
     const {
@@ -294,7 +294,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         debug,
         variant,
         mockPosition,
-        resonanceAudioScene,
+        setAudioDistance,
         stopSound,
     });
 

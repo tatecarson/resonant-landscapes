@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Geolocation as OLGeoLoc } from "ol";
 import { LineString } from "ol/geom";
 import { fromLonLat, toLonLat } from "ol/proj";
-import type { ResonanceAudio } from "resonance-audio";
 
 import { getScaledPoints, testParks } from "../utils/scaledParks";
 import type { Variant, MockPosition } from "../App";
@@ -36,7 +35,7 @@ interface UseGeolocationTrackingOptions {
     debug: boolean;
     variant: Variant;
     mockPosition: MockPosition | null;
-    resonanceAudioScene: ResonanceAudio | null;
+    setAudioDistance: (metres: number) => void;
     stopSound: () => void;
 }
 
@@ -98,7 +97,7 @@ export function useGeolocationTracking({
     debug,
     variant,
     mockPosition,
-    resonanceAudioScene,
+    setAudioDistance,
     stopSound,
 }: UseGeolocationTrackingOptions) {
     // Null until the first fix arrives. Seeding a coordinate here used to put
@@ -298,7 +297,7 @@ export function useGeolocationTracking({
         const currentDistance = distanceInMeters(activeParkLocation, userLocation);
         if (currentDistance <= EXIT_DISTANCE_METERS) {
             setParkDistance(currentDistance);
-            resonanceAudioScene?.setListenerPosition(currentDistance, currentDistance, 0);
+            setAudioDistance(currentDistance);
             // Keep center-mode latched while the user remains in the active park so
             // minor GPS drift does not drop map centering after rotation has started.
             const nextUserOrientationEnabled =
@@ -322,7 +321,7 @@ export function useGeolocationTracking({
             stopSound();
         }
         return true;
-    }, [currentParkLocation, getSmoothingDelay, parkFeatures, parkName, resonanceAudioScene, stopSound]);
+    }, [currentParkLocation, getSmoothingDelay, parkFeatures, parkName, setAudioDistance, stopSound]);
 
     // The running tick captures updateView by closure, but updateView is
     // rebuilt whenever parkName or currentParkLocation changes — exactly when

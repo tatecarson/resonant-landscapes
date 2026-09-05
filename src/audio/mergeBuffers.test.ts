@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mergeBuffersByChannel } from "./mergeBuffers";
+import { mergeBuffersByChannel, mergeDeliveryBuffers } from "./mergeBuffers";
 
 /**
  * Stand-in for the Web Audio types. The merge only reads length, sampleRate,
@@ -89,5 +89,33 @@ describe("mergeBuffersByChannel", () => {
 
     it("rejects an empty list", () => {
         expect(() => mergeBuffersByChannel(fakeContext(), [])).toThrow(/no buffers/);
+    });
+});
+
+describe("mergeDeliveryBuffers", () => {
+    it("restores height, front/back, and the silent R slot from the archived export order", () => {
+        // Distinct signals identify each original component, including the
+        // ninth component incorrectly named mono by the export script.
+        const spatial = fakeBuffer([[10, -10], [11, -11], [0, 0], [17, -17],
+            [14, -14], [15, -15], [12, -12], [13, -13]]);
+        const ninth = fakeBuffer([[18, -18]]);
+        const result = mergeDeliveryBuffers(fakeContext(), [spatial, ninth]);
+        expect(Array.from({ length: 9 }, (_, c) => Array.from(result.getChannelData(c))))
+            .toEqual([[10, -10], [11, -11], [12, -12], [13, -13],
+                [14, -14], [15, -15], [0, 0], [17, -17], [18, -18]]);
+        expect(Array.from(spatial.getChannelData(2))).toEqual([0, 0]);
+        expect(Array.from(spatial.getChannelData(6))).toEqual([12, -12]);
+    });
+
+    it("still rejects a truncated delivery pair", () => {
+        expect(() => mergeDeliveryBuffers(fakeContext(), [
+            fakeBuffer(Array.from({ length: 8 }, () => [1])), fakeBuffer([[1, 2]]),
+        ])).toThrow(/lengths are inconsistent/);
+    });
+
+    it("does not permute a single decoded buffer", () => {
+        const result = mergeDeliveryBuffers(fakeContext(), [fakeBuffer([[3, 4]])]);
+        expect(result.numberOfChannels).toBe(1);
+        expect(Array.from(result.getChannelData(0))).toEqual([3, 4]);
     });
 });
