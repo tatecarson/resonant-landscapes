@@ -28,6 +28,7 @@
     "tests",
     "playwright.config.ts",
     "playwright.browserstack.config.ts",
-    "src/vite-env.d.ts"
+    "src/vite-env.d.ts",
+    "src/types/resonance-audio.d.ts"
   ]
 }

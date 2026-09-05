@@ -1,7 +1,8 @@
 import { getVariantSeed } from '../audio/variantSeed';
 
 const CDN_BASE = 'https://resonant-landscapes.b-cdn.net/';
-/** [8-channel spatial URL, mono URL] for one recording section. */
+/** [Eight components, ninth component] for one recording section.
+ * Legacy delivery names the ninth component "mono"; it is not a plain mix. */
 export type AudioVariant = [string, string];
 
 /** The park shape audioPaths needs from stateParks.json. */
@@ -182,4 +183,11 @@ export function pickSoundPath(
   seed?: number
 ): AudioVariant | null {
   return selectVariant(parkName, parksJSON, userAgent, seed ?? getVariantSeed())?.urls ?? null;
+}
+
+/** The legacy *_mono file is harmonic 8. W fallback lives separately and is
+ * loaded only when a browser cannot preserve the eight-channel delivery. */
+export function getMonoFallbackUrl(spatialUrl: string): string | null {
+  const match = spatialUrl.match(/^https:\/\/resonant-landscapes\.b-cdn\.net\/(?:sounds|sounds-flac)\/([A-Za-z0-9-]+)_8ch\.(?:m4a|flac|wav)$/);
+  return match ? `${CDN_BASE}sounds-mono-w/${match[1]}_w.flac` : null;
 }

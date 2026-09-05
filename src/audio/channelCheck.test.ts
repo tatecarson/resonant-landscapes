@@ -20,10 +20,10 @@ describe("planDecodedBuffers", () => {
         expect(plan.degradation).toBeNull();
     });
 
-    it("falls back to the mono bed when the browser downmixed to stereo", () => {
+    it("requires a separate fallback when the browser downmixed to stereo", () => {
         const plan = planDecodedBuffers([buffer("spatial", 2), mono]);
 
-        expect(plan.buffers).toEqual([mono]);
+        expect(plan.buffers).toEqual([]);
         expect(plan.degradation).toEqual({
             decodedChannels: 2,
             expectedChannels: EXPECTED_SPATIAL_CHANNELS,
@@ -31,10 +31,10 @@ describe("planDecodedBuffers", () => {
         });
     });
 
-    it("falls back on a mono downmix too, not only stereo", () => {
+    it("requires a separate fallback for a mono downmix too", () => {
         const plan = planDecodedBuffers([buffer("spatial", 1), mono]);
 
-        expect(plan.buffers).toEqual([mono]);
+        expect(plan.buffers).toEqual([]);
         expect(plan.degradation?.reason).toBe("downmixed");
     });
 
@@ -42,9 +42,8 @@ describe("planDecodedBuffers", () => {
         const collapsed = buffer("spatial", 2);
         const plan = planDecodedBuffers([collapsed]);
 
-        // Still played: something audible beats silence, and the caller is
-        // told, which is the whole point.
-        expect(plan.buffers).toEqual([collapsed]);
+        // A collapsed stream is never treated as valid ambisonics.
+        expect(plan.buffers).toEqual([]);
         expect(plan.degradation).toEqual({
             decodedChannels: 2,
             expectedChannels: EXPECTED_SPATIAL_CHANNELS,

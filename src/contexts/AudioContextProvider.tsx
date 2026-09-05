@@ -3,6 +3,7 @@ import React, { createContext, useState, useEffect, useContext, useRef, useCallb
 // below so its ~300 kB (its own bundled Omnitone and base64 HRIR tables
 // included) stays out of the chunk the first paint waits on.
 import type { ResonanceAudio } from "resonance-audio";
+import { createSoundfieldScene, createSoundfieldInput } from "../audio/soundfield";
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import { usePlaybackWakeLock } from "../hooks/usePlaybackWakeLock";
 import { createBufferCache } from "../audio/bufferCache";
@@ -12,6 +13,7 @@ import { mergeDeliveryBuffers } from "../audio/mergeBuffers";
 import { createAudioDebugBridge, type AudioLoadDebug } from "../audio/audioDebugBridge";
 import { createAudioGraph, primeAudioContext } from "../audio/audioGraph";
 import { fetchAudioBytes, setOfflineCacheEventSink } from "../audio/offlineAudioCache";
+import { getMonoFallbackUrl } from "../utils/audioPaths";
 import { debugLog } from "../config/debug";
 
 // Active park plus one prefetch. Each merged park buffer is 9 channels of
@@ -29,6 +31,7 @@ interface AudioEngineContextType {
     unlockAudio: () => Promise<boolean>;
     playSound: () => void;
     stopSound: () => void;
+    setParkDistance: (metres: number) => void;
     /**
      * "loaded" is what it says. "stale" means the load was abandoned — a
      * park change or a superseding load owns the outcome now, so the caller
@@ -76,6 +79,7 @@ const AudioEngineContext = createContext<AudioEngineContextType>({
     unlockAudio: async () => false,
     playSound: () => {},
     stopSound: () => {},
+    setParkDistance: () => {},
     loadBuffers: async () => "error",
     bufferSourceRef: { current: null },
     clearLoadError: () => {},
@@ -134,6 +138,12 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const audioPrimedRef = useRef(false);
     const bufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
     const fadeGainRef = useRef<GainNode | null>(null);
+    const soundfieldInputRef = useRef<ReturnType<typeof createSoundfieldInput> | null>(null);
+    const parkDistanceRef = useRef(0);
+    const setParkDistance = useCallback((metres: number) => {
+        parkDistanceRef.current = metres;
+        soundfieldInputRef.current?.setDistance(metres);
+    }, []);
     const isPlayingRef = useRef(false);
     const activeLoadRequestIdRef = useRef(0);
     const bufferCacheRef = useRef(createBufferCache({ maxEntries: MAX_CACHED_PARKS }));
@@ -171,6 +181,19 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const getBufferLoader = useCallback(() => {
         if (bufferLoaderRef.current) return bufferLoaderRef.current;
 
+        const decode = (data: ArrayBuffer) => {
+            const context = audioContextRef.current;
+            if (!context) throw new Error("Audio context is not ready yet.");
+            // Older Safari only implements the callback form of
+            // decodeAudioData; Omnitone's loader used to paper over this.
+            return new Promise<AudioBuffer>((resolve, reject) => {
+                const maybePromise = context.decodeAudioData(data, resolve, reject);
+                if (maybePromise && typeof maybePromise.then === "function") {
+                    maybePromise.then(resolve, reject);
+                }
+            });
+        };
+
         bufferLoaderRef.current = createBufferLoader({
             cache: bufferCacheRef.current,
             fetchArrayBuffer: async (url, signal) => {
@@ -179,17 +202,12 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
                 const { bytes } = await fetchAudioBytes(url, signal);
                 return bytes;
             },
-            decode: (data) => {
-                const context = audioContextRef.current;
-                if (!context) throw new Error("Audio context is not ready yet.");
-                // Older Safari only implements the callback form of
-                // decodeAudioData; Omnitone's loader used to paper over this.
-                return new Promise<AudioBuffer>((resolve, reject) => {
-                    const maybePromise = context.decodeAudioData(data, resolve, reject);
-                    if (maybePromise && typeof maybePromise.then === "function") {
-                        maybePromise.then(resolve, reject);
-                    }
-                });
+            decode,
+            loadMonoFallback: async (urls, signal) => {
+                const url = getMonoFallbackUrl(urls[0]);
+                if (!url) throw new Error("No verified mono fallback for this recording.");
+                const { bytes } = await fetchAudioBytes(url, signal);
+                return decode(bytes);
             },
             merge: (decoded) => {
                 const context = audioContextRef.current;
@@ -365,12 +383,8 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         if (!audioContext || !resonanceAudioScene || !buffers) return;
 
         debugLog('Playing sound...', buffers);
-        const source = resonanceAudioScene.createSource();
-        // rl-dqc.8: this is a mono-source encoder, not the soundfield input.
-        // Discrete interpretation here does not preserve the nine recorded
-        // components through its downstream mono ChannelMerger inputs.
-        // Soundfield routing needs its own fix with distance/fade verification.
-        source.input.channelInterpretation = 'discrete';
+        const playbackInput = soundfieldInputRef.current?.inputForChannels(buffers.numberOfChannels);
+        if (!playbackInput) return;
         const bufferSource = audioContext.createBufferSource();
         bufferSourceRef.current = bufferSource;
         bufferSource.buffer = buffers;
@@ -386,7 +400,10 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         fadeGainRef.current = fadeGain;
 
         bufferSource.connect(fadeGain);
-        fadeGain.connect(source.input);
+        fadeGain.channelCount = buffers.numberOfChannels;
+        fadeGain.channelCountMode = "explicit";
+        fadeGain.channelInterpretation = "discrete";
+        fadeGain.connect(playbackInput);
         bufferSource.onended = () => {
             // Disconnect here rather than in stopSound: tearing the graph down
             // synchronously would cut the fade-out it just scheduled.
@@ -398,10 +415,12 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             if (bufferSourceRef.current === bufferSource) {
                 bufferSourceRef.current = null;
             }
-            isPlayingRef.current = false;
-            setIsPlaying(false);
-            setNeedsAudioResume(false);
-            audioDebug.sync("playback-ended");
+            if (!bufferSourceRef.current) {
+                isPlayingRef.current = false;
+                setIsPlaying(false);
+                setNeedsAudioResume(false);
+                audioDebug.sync("playback-ended");
+            }
         };
         bufferSource.start();
         isPlayingRef.current = true;
@@ -574,10 +593,10 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
                 // Resolved during mount, long before the walker can press
                 // Start; unlockAudio already awaits this same init promise, so
                 // the gesture path is unchanged.
-                const { ResonanceAudio } = await import("resonance-audio");
-                const scene = new ResonanceAudio(context);
+                const scene = await createSoundfieldScene(context);
                 resonanceSceneRef.current = scene;
-                scene.setAmbisonicOrder(2);
+                soundfieldInputRef.current = createSoundfieldInput(context, scene);
+                soundfieldInputRef.current.setDistance(parkDistanceRef.current);
                 setResonanceAudioScene(scene);
                 // Master gain and the rl-52o safety limiter, on the way to the
                 // speakers. The tuning lives in audioGraph.ts.
@@ -670,6 +689,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         unlockAudio,
         playSound,
         stopSound,
+        setParkDistance,
         loadBuffers,
         bufferSourceRef,
         clearLoadError,
@@ -683,6 +703,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         unlockAudio,
         playSound,
         stopSound,
+        setParkDistance,
         loadBuffers,
         clearLoadError,
         cancelPendingLoad,

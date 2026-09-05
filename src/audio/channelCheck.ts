@@ -21,8 +21,8 @@ export type SpatialDegradation = {
     expectedChannels: number;
     /**
      * `downmixed`: the browser collapsed the spatial stream and we fell back
-     * to the legacy one-channel file. `no-fallback`: it collapsed and there was no such file
-     * to fall back to, so the caller is about to play a broken field.
+     * to a separately verified W file. `no-fallback`: that file is unavailable,
+     * so the caller must report an error and stop the load.
      */
     reason: "downmixed" | "no-fallback";
 };
@@ -37,19 +37,12 @@ export type ChannelPlan = {
 /**
  * Decide what to actually merge, given what the browser handed back.
  *
- * The piece assumes `decodeAudioData` returns 8 discrete channels for the
- * spatial file, and browsers genuinely differ here — AudioContextProvider
- * already forces `channelInterpretation = 'discrete'` on the Resonance source
- * to defeat a Safari downmix at the graph level, but nothing checked the
- * decode itself. A browser that collapses the 8-channel stream to stereo
- * produces an app that still plays audio and still looks correct while the
- * spatial field is silently wrong, which is the worst failure this piece can
- * have: no error, no clue, just a walk that does not do the thing it is for.
+ * Eight discrete components are required before restoring the ninth component.
+ * A downmixed spatial stream cannot be reconstructed by channel concatenation.
  *
- * The legacy fallback drops the collapsed spatial buffer and keeps the file
- * named "mono". rl-dqc.7 found that file carries source component 8, not a
- * plain mix. rl-dqc.9 tracks replacing it with a real mono fallback; the
- * existing downgrade must not be treated as verified audio correctness.
+ * Never pass the legacy file named "mono" through as a fallback: it carries
+ * source component 8. A degraded plan has no playable buffers. The loader must
+ * fetch a separately exported W mix or report a load error (rl-dqc.9).
  *
  * Buffers beyond the first two are passed through untouched; the merge step
  * validates length and sample rate and is the right place for those failures.
@@ -72,7 +65,7 @@ export function planDecodedBuffers(decoded: AudioBuffer[]): ChannelPlan {
 
     if (fallback.length === 0) {
         return {
-            buffers: decoded,
+            buffers: [],
             degradation: {
                 decodedChannels,
                 expectedChannels: EXPECTED_SPATIAL_CHANNELS,
@@ -82,7 +75,7 @@ export function planDecodedBuffers(decoded: AudioBuffer[]): ChannelPlan {
     }
 
     return {
-        buffers: fallback,
+        buffers: [],
         degradation: {
             decodedChannels,
             expectedChannels: EXPECTED_SPATIAL_CHANNELS,
@@ -103,11 +96,6 @@ export function planDecodedBuffers(decoded: AudioBuffer[]): ChannelPlan {
  *   walker has not reached, so crediting its report to the active park would
  *   claim "this park has no plain mix" over a park that has one.
  *
- * Split out as a pure function rather than left inline in the provider,
- * because the no-fallback path cannot be reached from a test through the app:
- * every park payload is a spatial file plus a mono bed, so `planDecodedBuffers`
- * never returns it today. A rule that nothing can exercise is a rule that
- * quietly stops being true (rl-0p1).
  */
 export function shouldSurfaceDegradation(
     degradation: SpatialDegradation,

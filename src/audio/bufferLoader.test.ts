@@ -40,6 +40,7 @@ const setup = ({ decodedChannels = EXPECTED_SPATIAL_CHANNELS } = {}) => {
     });
 
     const onSpatialDegraded = vi.fn();
+    const loadMonoFallback = vi.fn(async () => decodedBuffer(1));
 
     const loader = createBufferLoader({
         cache,
@@ -47,9 +48,10 @@ const setup = ({ decodedChannels = EXPECTED_SPATIAL_CHANNELS } = {}) => {
         decode: async (_data: ArrayBuffer) => decodedBuffer(decodedChannels),
         merge: (buffers: AudioBuffer[]) => buffer(`merged:${buffers.length}`),
         onSpatialDegraded,
+        loadMonoFallback,
     });
 
-    return { cache, loader, fetchArrayBuffer, pending, signals, onSpatialDegraded };
+    return { cache, loader, fetchArrayBuffer, pending, signals, onSpatialDegraded, loadMonoFallback };
 };
 
 describe("createBufferLoader", () => {
@@ -166,7 +168,7 @@ describe("createBufferLoader", () => {
         pending.get("a.flac")!.resolve(new ArrayBuffer(8));
         pending.get("a-mono.wav")!.resolve(new ArrayBuffer(8));
 
-        // Only the mono bed reaches merge — the collapsed spatial stream would
+        // Only the independently loaded W fallback reaches merge; the spatial stream would
         // have produced a field that plays but points nowhere.
         await expect(load).resolves.toEqual({ name: "merged:1" });
         expect(onSpatialDegraded).toHaveBeenCalledWith(
@@ -179,6 +181,39 @@ describe("createBufferLoader", () => {
             // report from the active park's.
             getCacheKey(["a.flac", "a-mono.wav"])
         );
+    });
+
+    it("fails without caching when a verified fallback is unavailable", async () => {
+        const { loader, pending, cache, loadMonoFallback, onSpatialDegraded } = setup({ decodedChannels: 2 });
+        loadMonoFallback.mockRejectedValueOnce(new Error("fallback unavailable"));
+        const load = loader.load(["a.flac", "legacy-u.wav"]);
+        pending.get("a.flac")!.resolve(new ArrayBuffer(8));
+        pending.get("legacy-u.wav")!.resolve(new ArrayBuffer(8));
+        await expect(load).rejects.toThrow("fallback unavailable");
+        expect(cache.size).toBe(0);
+        expect(onSpatialDegraded).toHaveBeenCalledWith(expect.objectContaining({ reason: "no-fallback" }), "a.flac::legacy-u.wav");
+    });
+
+    it("rejects a fallback that is not mono", async () => {
+        const { loader, pending, cache, loadMonoFallback } = setup({ decodedChannels: 2 });
+        loadMonoFallback.mockResolvedValueOnce(decodedBuffer(2));
+        const load = loader.load(["a.flac"]);
+        pending.get("a.flac")!.resolve(new ArrayBuffer(8));
+        await expect(load).rejects.toThrow(/mono/i);
+        expect(cache.size).toBe(0);
+    });
+
+    it("does not cache fallback audio delivered after cancellation", async () => {
+        const { loader, pending, cache, loadMonoFallback } = setup({ decodedChannels: 2 });
+        const fallback = deferred<AudioBuffer>();
+        loadMonoFallback.mockReturnValueOnce(fallback.promise);
+        const load = loader.load(["a.flac"]);
+        pending.get("a.flac")!.resolve(new ArrayBuffer(8));
+        await vi.waitFor(() => expect(loadMonoFallback).toHaveBeenCalled());
+        loader.abort(["a.flac"]);
+        fallback.resolve(decodedBuffer(1));
+        await expect(load).rejects.toThrow(/abort/i);
+        expect(cache.size).toBe(0);
     });
 
     it("does not re-report the degradation on a cache hit", async () => {
