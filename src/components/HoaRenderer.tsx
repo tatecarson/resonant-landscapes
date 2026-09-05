@@ -42,6 +42,7 @@ const HOARenderer = ({
         clearLoadError,
         cancelPendingLoad,
         resumeInterruptedAudio,
+        unlockAudio,
     } = useAudioEngine();
     const {
         isEngineInitializing,
@@ -61,7 +62,10 @@ const HOARenderer = ({
     const [shouldAutoPlay, setShouldAutoPlay] = useState(true);
     const [allowManualRestart, setAllowManualRestart] = useState(false);
     const activeError = pathError ?? engineError ?? loadError;
-    const showFallbackStart = !isPlaying && !isLoading && !activeError && (allowManualRestart || !isAudioUnlocked || Boolean(lastUnlockError));
+    // A direct debug visit skips the welcome gesture. Keep its unlock action
+    // available while fetching/decoding, rather than trapping it behind loading.
+    const showFallbackStart = !isPlaying && !activeError &&
+        (!isAudioUnlocked || (!isLoading && (allowManualRestart || Boolean(lastUnlockError))));
     const hasPrefetchedAudio = lastLoadReason === "prefetch" || (lastLoadReason === "active-load" && lastLoadCacheHit === true);
     const audioStatus = activeError
         ? "error"
@@ -259,13 +263,18 @@ const HOARenderer = ({
                 onRotationActiveChange(false);
             }
         } else {
+            if (!isAudioUnlocked) {
+                setShouldAutoPlay(true);
+                void unlockAudio();
+                return;
+            }
             if (buffers !== null) {
                 setShouldAutoPlay(false);
                 setAllowManualRestart(false);
                 playSound();
             }
         }
-    }, [buffers, isPlaying, playSound, stopSound, rotationActive, onRotationActiveChange]);
+    }, [buffers, isPlaying, isAudioUnlocked, unlockAudio, playSound, stopSound, rotationActive, onRotationActiveChange]);
 
     const loadingLabel = audioStatus === "initializing"
         ? audioCopy.loading.initializing
