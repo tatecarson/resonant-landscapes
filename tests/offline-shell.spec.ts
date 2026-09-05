@@ -106,6 +106,15 @@ test("keeps the debug surfaces gated once a worker is serving the page", async (
      * guarantee on the path a returning walker actually takes. A worker
      * pinning an older bundle would not fail that spec; it would silently
      * test a build nobody is running.
+     *
+     * The two navigations are deliberate, not mixed by accident (rl-9ek.4).
+     * This spec runs under playwright.prod.config.ts, where the gate is
+     * real, so the reads split by which page they land on: after the bare
+     * goto, typeof "undefined" is the assertion's point — the walker-facing
+     * path must expose no mirrors. Then /?debug proves the mirrors are
+     * still reachable when a page asks for them, in this same production
+     * build. Reading them after the bare goto instead would assert nothing
+     * and pass forever.
      */
     await page.goto("/");
     await waitForController(page);
