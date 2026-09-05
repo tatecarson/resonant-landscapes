@@ -88,7 +88,92 @@ test("opens on a real device and passes its own preflight", async () => {
     }
 
     await beginButton.click();
-    await expect(page.locator("canvas").first()).toBeVisible({ timeout: 30_000 });
+
+    /*
+     * Split in two, because one assertion could not say which failure it was
+     * (rl-dv8).
+     *
+     * This line failed on all four iPhone rows and passed on all three
+     * Android ones, and `toBeVisible` covers two completely different
+     * stories: the map never mounted, or it mounted and this harness cannot
+     * see it. The first is a defect in the walk. The second is a limit of
+     * BrowserStack's real-iOS automation, and the fix would be to narrow this
+     * assertion on iOS rather than to change the app. A build that only goes
+     * red distinguishes neither, which is why the issue has sat open through
+     * several of them.
+     *
+     * Two things worth knowing before reading the numbers below. The map is
+     * rlayers/OpenLayers drawing to an ordinary 2D canvas, not MapLibre and
+     * not WebGL, so a missing WebGL context is not a candidate explanation.
+     * And the same assertion passes under Playwright's own WebKit on the
+     * iphone-13 profile — one canvas, 1170x1992 — so neither WebKit nor the
+     * map library is implicated. What is left is this harness.
+     */
+    const canvas = page.locator("canvas").first();
+
+    await expect(
+        canvas,
+        "No canvas was ever added to the page. The map did not mount, which is " +
+        "the walk's problem rather than the harness's — file the OpenLayers " +
+        "failure separately rather than narrowing this assertion."
+    ).toBeAttached({ timeout: 30_000 });
+
+    // Read after the visibility question has been settled, not before it is
+    // asked. Measured at attachment these numbers would be up to 30 seconds
+    // old by the time they are quoted in the failure below, and a canvas that
+    // attaches unsized and is laid out a moment later would be reported as
+    // 0x0 — sending whoever reads it after an app layout bug that does not
+    // exist, which is the one thing this assertion exists to stop.
+    const readGeometry = () => page.evaluate(() => {
+        const element = document.querySelector("canvas");
+        if (!element) return null;
+        const box = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+        const parent = element.parentElement;
+        const parentBox = parent?.getBoundingClientRect();
+        return {
+            canvases: document.querySelectorAll("canvas").length,
+            // The drawing buffer. Zero here means OpenLayers never sized it,
+            // which usually means its container had no height.
+            buffer: { width: element.width, height: element.height },
+            // Where the page thinks it is. Zero here with a non-zero buffer
+            // is a layout problem, not a rendering one.
+            box: { width: Math.round(box.width), height: Math.round(box.height) },
+            parentBox: parentBox
+                ? { width: Math.round(parentBox.width), height: Math.round(parentBox.height) }
+                : null,
+            // The three ways an element present in the DOM reads as invisible.
+            display: style.display,
+            visibility: style.visibility,
+            opacity: style.opacity,
+            viewport: { width: window.innerWidth, height: window.innerHeight },
+        };
+    });
+
+    // Ask first, measure second, assert third — so the geometry describes the
+    // moment the verdict was reached either way.
+    let visible = true;
+    try {
+        await expect(canvas).toBeVisible({ timeout: 30_000 });
+    } catch {
+        visible = false;
+    }
+
+    const geometry = await readGeometry();
+
+    // Recorded on the way past whether or not the assertion holds: the green
+    // Android rows are the control group this failure is read against, and
+    // nothing was capturing their numbers either.
+    console.log(`[rl-dv8] canvas geometry: ${JSON.stringify(geometry)}`);
+
+    expect(
+        visible,
+        "A canvas is attached but Playwright does not consider it visible. " +
+        `Geometry: ${JSON.stringify(geometry)}. Zero width or height points at ` +
+        "the walk's layout on this device; a full-size box with everything " +
+        "visible points at the harness, and this assertion should then be " +
+        "narrowed on iOS with that build linked from rl-dv8."
+    ).toBe(true);
 });
 
 test("decodes this device's real spatial file to eight channels", async () => {

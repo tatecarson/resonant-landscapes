@@ -46,6 +46,21 @@ def match(source, excerpt):
     return float(corr[index]), index
 
 
+def dedupe_errors(errors):
+    """
+    One entry per source, newest wins.
+
+    `--park` reruns carry the previous run's sourceErrors forward and append
+    to them, so re-running one park repeatedly used to stack duplicate rows
+    for the same file. A record of what this archive contains should say each
+    thing once (rl-74x.6).
+    """
+    latest = {}
+    for entry in errors:
+        latest[entry['source']] = entry
+    return sorted(latest.values(), key=lambda e: e['source'])
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--archive', type=pathlib.Path, required=True)
@@ -71,8 +86,31 @@ def main():
         if not candidates:
             candidates = [f for f in (root / 'RAW').rglob('*')
                           if f.suffix.lower() == '.wav' and all(w in str(f.relative_to(root)).lower() for w in words)]
+        # This pass re-examines every candidate below, so whatever the previous
+        # run concluded about these particular files is superseded — including
+        # "empty" or "could not decode" for one that has since been restored.
+        # `results` above already drops the rechecked park's rows for the same
+        # reason; carrying its errors forward unfiltered left the manifest
+        # asserting a fault after it had been fixed (rl-74x.6). Errors for
+        # files this run does not look at are left alone.
+        rechecked = {str(f.relative_to(root)) for f in candidates}
+        source_errors = [e for e in source_errors if e['source'] not in rechecked]
+
         cache = {}
         for f in candidates:
+            # An empty file is not a codec problem, and saying so matters
+            # (rl-74x.6). Two entries in Edits are 0 bytes, and reporting them
+            # as "ffmpeg could not decode source" describes a master this
+            # archive holds in a format nothing can read — which would be
+            # worth chasing. What is actually there is a filename with no
+            # recording behind it, which is worth knowing and not chasing.
+            if f.stat().st_size == 0:
+                source_errors.append(dict(
+                    source=str(f.relative_to(root)),
+                    error='source file is empty (0 bytes): a filename with no session audio behind it',
+                ))
+                print('EMPTY SOURCE', f.name, flush=True)
+                continue
             try:
                 cache[f] = decode(f, list(range(8)))
             except subprocess.CalledProcessError:
@@ -104,7 +142,8 @@ def main():
             args.out.write_text(json.dumps(dict(schemaVersion=1, analysisRate=RATE,
                 method='Delivery channel 0 against all 8 capsule channels; independent 5s and 40s windows, 10s each.',
                 offsetMeaning='Waveform alignment includes encoder latency/filter phase; not a sample-exact cut recipe.',
-                sourceErrors=source_errors, recordings=sorted(results, key=lambda r: r['delivery'])), indent=2) + '\n')
+                sourceErrors=dedupe_errors(source_errors),
+                recordings=sorted(results, key=lambda r: r['delivery'])), indent=2) + '\n')
     return 0 if all(r['status'] == 'matched' for r in results) else 1
 
 
