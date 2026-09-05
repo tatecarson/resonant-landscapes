@@ -79,7 +79,7 @@ const probe = (page: Page) =>
 
 test("Start resumes a context the browser had suspended", async ({ page }) => {
     await suspendUntilResumed(page);
-    await page.goto("/");
+    await page.goto("/?debug&ntl-drawer-state=hidden");
 
     const start = page.getByRole("button", { name: /^\s*start\s*$/i });
     await expect(start).toBeVisible({ timeout: 15_000 });
@@ -102,7 +102,7 @@ test("the walk does not claim to be unlocked without resuming", async ({ page })
     // Reporting unlocked while the context is still suspended is the state a
     // walker cannot diagnose, because every control looks live.
     await suspendUntilResumed(page);
-    await page.goto("/");
+    await page.goto("/?debug&ntl-drawer-state=hidden");
 
     const start = page.getByRole("button", { name: /^\s*start\s*$/i });
     await expect(start).toBeVisible({ timeout: 15_000 });
