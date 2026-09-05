@@ -26,6 +26,14 @@ const WELL_OUTSIDE = { latitude: 44.01298, longitude: -97.11059202 };
 const HOLD_MS = Number(process.env.WAYFINDING_HOLD_MS ?? 0);
 const hold = (page: Page) => (HOLD_MS ? page.waitForTimeout(HOLD_MS) : Promise.resolve());
 
+// The ?debug query is load-bearing here. Three tests poll isPlaying(), which
+// reads window.__audioDebug — a mirror a production build gates behind the
+// query (src/config/debug.ts). On the bare path the poll reads undefined
+// forever against a deploy preview and fails no matter what the app does —
+// rl-9ek.5. In dev the flag changes nothing: the mirror is always on.
+// page.reload() keeps the query, so the reload test stays on the debug path.
+const mapPath = "/?debug";
+
 const chip = (page: Page) => page.getByTestId("nearest-park-chip");
 const nearestLine = (page: Page) => page.getByTestId("nearest-park-line");
 const heardCount = (page: Page) => page.getByTestId("heard-count");
@@ -55,7 +63,7 @@ test.beforeEach(async ({ page, context, baseURL }) => {
 });
 
 test("tells a walker with no park in range where the nearest one is", async ({ context, page }) => {
-    await page.goto("/");
+    await page.goto(mapPath);
     await dismissWelcomeModal(page);
     await dwellAt(context, page, WELL_OUTSIDE, 1_500);
 
@@ -77,7 +85,7 @@ test("tells a walker with no park in range where the nearest one is", async ({ c
 test("stands down while the walker is standing in a park", async ({ context, page }) => {
     // The chip and the park strip share the bottom of the display, and
     // someone standing in a park does not need directions to the nearest one.
-    await page.goto("/");
+    await page.goto(mapPath);
     await dismissWelcomeModal(page);
     await dwellAt(context, page, WELL_OUTSIDE, 1_500);
     await expect(chip(page)).toBeVisible();
@@ -88,7 +96,7 @@ test("stands down while the walker is standing in a park", async ({ context, pag
 });
 
 test("counts a park as heard once its audio has actually played", async ({ context, page }) => {
-    await page.goto("/");
+    await page.goto(mapPath);
     await dismissWelcomeModal(page);
     await dwellAt(context, page, WELL_OUTSIDE, 1_500);
     await expect(heardCount(page)).toHaveText(/^0 of \d+ heard$/);
@@ -110,7 +118,7 @@ test("counts a park as heard once its audio has actually played", async ({ conte
 test("remembers what was heard across a reload", async ({ context, page }) => {
     // A walk is long, and a count that resets when the phone locks and the
     // page reloads is not a record of anything.
-    await page.goto("/");
+    await page.goto(mapPath);
     await dismissWelcomeModal(page);
     await dwellAt(context, page, AT_CENTRE, 2_000);
     await expect
@@ -140,7 +148,7 @@ test("swaps the park marker without OpenLayers refusing the new icon", async ({ 
         }
     });
 
-    await page.goto("/");
+    await page.goto(mapPath);
     await dismissWelcomeModal(page);
     await dwellAt(context, page, AT_CENTRE, 2_000);
     await expect
@@ -164,7 +172,7 @@ test.describe("on the narrowest phone in the support matrix", () => {
          * on the map costs nothing; losing the two numbers they set off on
          * costs them the chip.
          */
-        await page.goto("/");
+        await page.goto(mapPath);
         await dismissWelcomeModal(page);
         await dwellAt(context, page, WELL_OUTSIDE, 1_500);
 

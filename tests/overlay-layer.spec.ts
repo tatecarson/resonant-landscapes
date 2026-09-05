@@ -30,6 +30,15 @@ const WELL_OUTSIDE = { latitude: 44.01298, longitude: -97.11059202 };
  */
 test.use({ viewport: { width: 390, height: 844 } });
 
+// The ?debug query is load-bearing here. Three tests poll
+// window.__audioDebug, which a production build gates behind the query
+// (src/config/debug.ts): on the bare path every poll reads undefined and
+// runs to its timeout against a deploy preview, failing no matter what the
+// app does — rl-9ek.5. In dev the flag changes nothing: the mirror is always
+// on. page.reload() keeps the query, so the second-visit half of the offer
+// test stays on the debug path too.
+const mapPath = "/?debug";
+
 const openHelp = (page: Page) => page.getByRole("button", { name: "Open field guide" }).click();
 const closeButton = (page: Page) => page.getByRole("button", { name: /^close$/i });
 
@@ -83,7 +92,7 @@ test("no overlay's box reaches the field guide's close button", async ({ context
      * invariant asserted is the one that holds everywhere: while a modal is
      * open, nothing floating over the map may share space with its controls.
      */
-    await page.goto("/");
+    await page.goto(mapPath);
     await dismissWelcomeModal(page);
     await dwellAt(context, page, WELL_OUTSIDE, 1_500);
     await expect(page.getByTestId("nearest-park-chip")).toBeVisible();
@@ -117,7 +126,7 @@ test("the park strip does not swallow the field guide's controls either", async 
     // The precedent the chip should have followed, and which nothing has ever
     // asserted. ParkModal takes helpIsOpen and goes inert; if that regressed,
     // the strip would trap a walker the same way the chip did.
-    await page.goto("/");
+    await page.goto(mapPath);
     await dismissWelcomeModal(page);
     await dwellAt(context, page, AT_CENTRE, 2_000);
     await expect(page.locator("p.font-cormorant").first()).toBeVisible({ timeout: 30_000 });
@@ -132,7 +141,7 @@ test("the chip comes back once the field guide is closed", async ({ context, pag
     // Standing down has to be temporary. A chip that stayed hidden after the
     // walker closed the guide would cost them the only thing telling them
     // where to go next.
-    await page.goto("/");
+    await page.goto(mapPath);
     await dismissWelcomeModal(page);
     await dwellAt(context, page, WELL_OUTSIDE, 1_500);
     await expect(page.getByTestId("nearest-park-chip")).toBeVisible();
@@ -171,7 +180,7 @@ test.describe("the install offer", () => {
                 JSON.stringify(["Hartford Beach State Park"])
             );
         });
-        await page.goto("/");
+        await page.goto(mapPath);
         await dismissWelcomeModal(page);
         await page.waitForTimeout(2_000);
 
@@ -181,7 +190,7 @@ test.describe("the install offer", () => {
     test("is not offered before the walker has heard anything", async ({ context, page }) => {
         // The banner pattern everyone dismisses without reading is the one
         // that asks before the piece has done anything worth keeping.
-        await page.goto("/");
+        await page.goto(mapPath);
         await dismissWelcomeModal(page);
         await dwellAt(context, page, WELL_OUTSIDE, 1_500);
 
@@ -193,7 +202,7 @@ test.describe("the install offer", () => {
         context,
         page,
     }) => {
-        await page.goto("/");
+        await page.goto(mapPath);
         await dismissWelcomeModal(page);
         await dwellAt(context, page, AT_CENTRE, 2_000);
         await expect
@@ -269,7 +278,7 @@ test.describe("the install offer", () => {
                 JSON.stringify(["Hartford Beach State Park"])
             );
         });
-        await page.goto("/");
+        await page.goto(mapPath);
         await dismissWelcomeModal(page);
 
         // Nothing yet: the record is old, this session has heard nothing.
@@ -290,7 +299,7 @@ test.describe("the install offer", () => {
     });
 
     test("stands down for the field guide, as the chip does", async ({ context, page }) => {
-        await page.goto("/");
+        await page.goto(mapPath);
         await dismissWelcomeModal(page);
         await dwellAt(context, page, AT_CENTRE, 2_000);
         await expect
@@ -328,7 +337,7 @@ test.describe("the install offer", () => {
         // slow on CI: that timing difference is the only reason this bug
         // reached main. Refusing location holds the banner up deterministically.
         await context.clearPermissions();
-        await page.goto("/");
+        await page.goto(mapPath);
         await dismissWelcomeModal(page);
         await expect(page.getByTestId("location-status")).toBeVisible({ timeout: 30_000 });
 
@@ -338,7 +347,7 @@ test.describe("the install offer", () => {
     });
 
     test("the field guide explains it permanently, for anyone who said no", async ({ page }) => {
-        await page.goto("/");
+        await page.goto(mapPath);
         await dismissWelcomeModal(page);
         await openHelp(page);
 
