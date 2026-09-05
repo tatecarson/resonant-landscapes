@@ -156,26 +156,27 @@ async function stubOrientationPermission(page: Page, answer: "granted" | "denied
     }, answer);
 }
 
-/**
- * Answer every decode with a buffer of the given channel count, and stop the
- * CDN fetch that would otherwise pull 10-25 MB per park. Eight channels is a
- * healthy spatial file; two is a browser that downmixed it.
- */
+/** Fake the CDN payload only, preserving its 8+1 split and the decoder's HRIRs. */
 async function stubAudioDecode(page: Page, { channels }: { channels: number }) {
     await page.addInitScript((channelCount) => {
         const proto = window.AudioContext.prototype;
-        proto.decodeAudioData = function (this: AudioContext) {
-            return Promise.resolve(
-                this.createBuffer(channelCount, this.sampleRate * 2, this.sampleRate)
-            );
-        } as AudioContext["decodeAudioData"];
+        const realDecode = proto.decodeAudioData;
+        proto.decodeAudioData = function (this: AudioContext, data, success, failure) {
+            const marker = new Uint8Array(data);
+            if (data.byteLength !== 4 || marker[0] !== 82 || marker[1] !== 76 || marker[2] !== 84) {
+                return realDecode.call(this, data, success, failure);
+            }
+            const result = Promise.resolve(this.createBuffer(marker[3], this.sampleRate * 2, this.sampleRate));
+            if (success || failure) void result.then(success, failure);
+            return result;
+        };
 
         const realFetch = window.fetch;
         window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
             const url = typeof input === "string" ? input : String((input as Request).url ?? input);
             if (url.includes("b-cdn.net")) {
-                // Never parsed; the stub above answers instead.
-                return Promise.resolve(new Response(new ArrayBuffer(1024), { status: 200 }));
+                const channels = url.includes("_8ch.") ? channelCount : 1;
+                return Promise.resolve(new Response(new Uint8Array([82, 76, 84, channels]), { status: 200 }));
             }
             return realFetch(input, init);
         };
@@ -331,7 +332,7 @@ test.describe("before the walk: Start could not turn the sound on", () => {
     test("says what to do instead of printing the exception", async ({ page }) => {
         await stubFailingUnlock(page);
         await stubFixesAtPark(page);
-        await page.goto("/");
+        await page.goto("/?debug");
         await startWalk(page);
 
         const failure = page.getByTestId("unlock-error");
@@ -343,7 +344,7 @@ test.describe("before the walk: Start could not turn the sound on", () => {
         await expect(sentence).not.toContainText(/NotAllowedError/);
 
         // The exception is not lost, it is moved: this runs against the dev
-        // server, where the debug surfaces are on. production-surfaces.spec.ts
+        // server or a preview with ?debug. production-surfaces.spec.ts
         // proves it is gone from a shipped build.
         await expect(page.getByTestId("unlock-error-detail")).toContainText(UNLOCK_EXCEPTION);
 

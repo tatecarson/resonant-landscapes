@@ -62,3 +62,8 @@ python3 scripts/bunny-audio-storage.py verify-cdn --directory /tmp/rl-audio-repa
 Publishing validates the entire staged manifest before writing, saves a local backup of any replaced file, sends SHA256 checksums with each upload, and reads each file back from storage. Public CDN verification is separate so a stale cached object cannot be mistaken for a successful public repair. The helper does not delete storage objects or change CDN settings.
 
 The expanded local suite passes 225 unit tests, TypeScript, lint and the production build. The existing large-chunk warning remains. The PR stays in draft pending real-phone listening and final archive convention verification.
+
+
+Published verification on 2026-09-05: all 103 storage objects and public CDN responses match their staged SHA256 hashes. The old Good Earth CDN object required a targeted cache purge. The full audit then measured all 408 files with zero download failures, decode failures or pair mismatches. The four previously observed Hartford Beach DC-offset warnings remain. [Publication hashes and audit summary](audio-repair-verification.json) record the result.
+
+Headed tests on the PR HTTPS preview pass in WebKit/iPhone 13 and Chromium/Pixel 7 for the repaired Good Earth pair, exact W samples, forced-downmix playback, park switching and interruption recovery. The network-delay park-switch test blocks service workers because WebKit cannot intercept their fetches. Other playback checks use the normal production preview. These emulated devices do not replace listening with a physical phone and headphones. **rl-dz0** tracks recovering the lossless master after the practical AAC-source repair.

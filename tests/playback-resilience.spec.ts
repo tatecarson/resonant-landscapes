@@ -67,7 +67,7 @@ test("mobile playback holds a wake lock and recovers after audio interruption", 
   await seedOrientationPermission(page);
 
   await page.goto(
-    `/?mock=${sicaHollowCenter.latitude},${sicaHollowCenter.longitude}&ntl-drawer-state=hidden`
+    `/?debug&mock=${sicaHollowCenter.latitude},${sicaHollowCenter.longitude}&ntl-drawer-state=hidden`
   );
   await page.waitForLoadState("domcontentloaded");
   await dismissWelcomeModal(page);

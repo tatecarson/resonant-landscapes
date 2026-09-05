@@ -7,7 +7,10 @@ import { expect, test } from "@playwright/test";
 import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";
 import { expectParkLabelVisible } from "./helpers/ui-assertions";
 
-const replayPath = "/";
+// This test delays and counts requests; WebKit cannot route service-worker fetches.
+test.use({ serviceWorkers: "block" });
+
+const replayPath = "/?debug";
 const firstPoint = {
   latitude: 44.01320393,
   longitude: -97.11059202,
