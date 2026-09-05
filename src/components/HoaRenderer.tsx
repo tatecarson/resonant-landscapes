@@ -334,7 +334,24 @@ const HOARenderer = ({
                 {audioAnnouncement}
             </p>
 
-            <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
+            {/*
+              * A column, right-aligned, with the controls last — and all three
+              * of those are load-bearing for where STOP ends up (rl-1u7.18).
+              *
+              * This is the right-hand cell of the strip's `justify-between`
+              * row, so the cell's right edge is the strip's right edge no
+              * matter how wide the cell gets. Aligning to that edge is what
+              * makes the primary control's position independent of the
+              * advisory copy above it, which is several times wider than the
+              * button and changes width mid-walk.
+              *
+              * It was `sm:flex-row` up to rl-1u7.18. Above 640px — any phone
+              * turned sideways — that put the advisory paragraphs in the same
+              * horizontal row as the controls, where a `w-full` note and the
+              * button divided the width between them and STOP moved 197px as
+              * the hint came and went.
+              */}
+            <div className="flex min-w-0 flex-col items-end gap-2">
 
                 {activeError && (
                     <div className="max-w-sm rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900 shadow-sm">
@@ -371,6 +388,35 @@ const HOARenderer = ({
                             // There is no plain mix in this branch. The
                             // collapsed spatial buffer is all there is.
                             : audioCopy.degraded.noFallback}
+                    </p>
+                )}
+
+                {/*
+                  * Sits with the playing state rather than in the Help modal,
+                  * because a silenced phone is discovered while standing in a
+                  * park and the strip is what is being read there. It cannot
+                  * be detected, so it appears briefly when playback starts
+                  * rather than pretending to know the phone is muted. See
+                  * rl-d2a and rl-krc.
+                  *
+                  * Before the controls, not after — reversed from where
+                  * rl-d2a left it, because the strip is `fixed bottom-0` and
+                  * therefore grows upward. Anything below STOP is between it
+                  * and the anchored edge, so the hint arriving lifted the
+                  * button 23px mid-walk; anything above STOP moves the strip's
+                  * top instead and leaves the button where the thumb left it.
+                  *
+                  * The earlier objection to this position was that it read as
+                  * a label for the button. It does not from here: the note is
+                  * a full-width line and the button is right-aligned under it,
+                  * so they do not line up as a pair.
+                  */}
+                {showSilenceHint && (
+                    <p
+                        className="w-full font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70"
+                        data-testid="silence-hint"
+                    >
+                        {audioCopy.silence[platform]}
                     </p>
                 )}
 
@@ -422,27 +468,6 @@ const HOARenderer = ({
                             </button>
                         )}
                     </div>
-                )}
-
-                {/*
-                  * Sits with the playing state rather than in the Help modal,
-                  * because a silenced phone is discovered while standing in a
-                  * park and the strip is what is being read there. It cannot
-                  * be detected, so it appears briefly when playback starts
-                  * rather than pretending to know the phone is muted. See
-                  * rl-d2a and rl-krc.
-                  *
-                  * After the controls, not before. Above them it took a full
-                  * width row out of the strip, pushed Stop down, and read as
-                  * a label for the button rather than a note about the sound.
-                  */}
-                {showSilenceHint && (
-                    <p
-                        className="w-full font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70"
-                        data-testid="silence-hint"
-                    >
-                        {audioCopy.silence[platform]}
-                    </p>
                 )}
 
                 {isPlaying && rotationActive && (

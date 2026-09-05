@@ -212,6 +212,28 @@ function ParkModal({
                         {/* Divider */}
                         <div className="my-3 h-px bg-neutral-900/10" />
 
+                        {/*
+                          * Above the controls, for the reason the silent-mode
+                          * hint is (rl-1u7.18). This panel is 323px tall and
+                          * used to render after the controls row, so on a
+                          * phone that has refused orientation access it stood
+                          * between STOP and the strip's anchored bottom edge
+                          * and lifted the button most of a screen — the same
+                          * failure as the hint's 23px, several times over.
+                          *
+                          * Opening upward is also the better read: the panel
+                          * explains something, and the controls it explains
+                          * stay where the thumb already found them.
+                          */}
+                        {rotationBlocked && (
+                            <div className="mb-3">
+                                <PermissionRecovery
+                                    capability="orientation"
+                                    onDismiss={() => setRotationBlocked(false)}
+                                />
+                            </div>
+                        )}
+
                         {/* Controls row */}
                         <div className="flex items-center justify-between gap-4">
 
@@ -257,15 +279,6 @@ function ParkModal({
                             {/* Right: audio controls */}
                             <HOARenderer {...hoaRendererProps} />
                         </div>
-
-                        {rotationBlocked && (
-                            <div className="mt-3">
-                                <PermissionRecovery
-                                    capability="orientation"
-                                    onDismiss={() => setRotationBlocked(false)}
-                                />
-                            </div>
-                        )}
 
                     </div>
                 </div>
