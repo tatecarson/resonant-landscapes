@@ -6,6 +6,7 @@ See https://bunny.net/docs/storage/http for authentication and checksum semantic
 """
 import argparse
 import hashlib
+import re
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -16,6 +17,35 @@ import urllib.request
 
 STORAGE = 'https://ny.storage.bunnycdn.com/resonant-landscapes/'
 CDN = 'https://resonant-landscapes.b-cdn.net/'
+
+# The only destinations this script will ever write, one per delivery family.
+#
+# It began narrower still — W fallbacks plus a single named repaired file —
+# because it was written to publish one repair and nothing else. Adding a
+# recording to a park needs the other three families as well (rl-ijl), so the
+# allowlist is now per-family rather than per-incident. What it must keep
+# doing is refuse an arbitrary path: everything here is served to walkers
+# standing in a park, and a typo that lands audio at an unexpected key is not
+# something the CDN will tell anyone about.
+#
+# 'sounds-flac/Good-Earth-2-001_8ch.flac' is no longer a special case; it
+# matches the sounds-flac rule like any other delivery.
+DELIVERY_FAMILIES = {
+    'sounds': r'[A-Za-z0-9-]+_(8ch|mono)\.m4a',
+    'sounds-flac': r'[A-Za-z0-9-]+_8ch\.flac',
+    'sounds-wav-mono': r'[A-Za-z0-9-]+_mono\.wav',
+    'sounds-mono-w': r'[A-Za-z0-9-]+_w\.flac',
+}
+
+CONTENT_TYPES = {'.flac': 'audio/flac', '.m4a': 'audio/mp4', '.wav': 'audio/wav'}
+
+
+def permitted_path(path):
+    """Whether this is a delivery key, and not somewhere else entirely."""
+    if len(path.parts) != 2:
+        return False
+    pattern = DELIVERY_FAMILIES.get(path.parts[0])
+    return bool(pattern) and re.fullmatch(pattern, path.name) is not None
 
 
 def main():
@@ -37,7 +67,9 @@ def main():
     def request(path, data=None, public=False):
         headers = {} if public else {'AccessKey': key}
         if data is not None:
-            headers.update({'Content-Type': 'audio/flac',
+            # Was hardcoded audio/flac, which was true while only FLAC was
+            # ever published. It is not true of the m4a and wav families.
+            headers.update({'Content-Type': CONTENT_TYPES[PurePosixPath(path).suffix],
                             'Checksum': hashlib.sha256(data).hexdigest().upper()})
         req = urllib.request.Request((CDN if public else STORAGE) + path,
                                      data=data, headers=headers,
@@ -60,9 +92,8 @@ def main():
     # Check the complete batch before any write, and never accept arbitrary destinations.
     for entry in entries:
         path = PurePosixPath(entry['path'])
-        permitted = (len(path.parts) == 2 and path.parts[0] == 'sounds-mono-w' and path.name.endswith('_w.flac')) or str(path) == 'sounds-flac/Good-Earth-2-001_8ch.flac'
-        if not permitted or not (root / path).resolve().is_relative_to(root):
-            raise ValueError(f'Unexpected repair path: {path}')
+        if not permitted_path(path) or not (root / path).resolve().is_relative_to(root):
+            raise ValueError(f'Unexpected publish path: {path}')
         if hashlib.sha256((root / path).read_bytes()).hexdigest() != entry['sha256']:
             raise ValueError(f'Repair changed after verification: {path}')
     results = []
