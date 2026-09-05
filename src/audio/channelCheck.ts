@@ -20,9 +20,24 @@ export type SpatialDegradation = {
     decodedChannels: number;
     expectedChannels: number;
     /**
-     * `downmixed`: the browser collapsed the spatial stream and we fell back
-     * to a separately verified W file. `no-fallback`: that file is unavailable,
-     * so the caller must report an error and stop the load.
+     * What went wrong with the payload, as opposed to what was done about it.
+     *
+     * `downmix`: the browser collapsed the spatial stream, so decodedChannels
+     * is below expectedChannels and says by how much.
+     *
+     * `pair-mismatch`: the spatial file decoded to the right number of
+     * channels, but the delivery's two files disagree on length or sample
+     * rate and cannot be merged (rl-74x.5). decodedChannels and
+     * expectedChannels are then equal, which is why this field exists: a
+     * report that said only "downmixed" would blame the browser for a
+     * mismatched pair on the CDN and send whoever reads it looking in the
+     * wrong place.
+     */
+    cause: "downmix" | "pair-mismatch";
+    /**
+     * `downmixed`: we fell back to a separately verified W file.
+     * `no-fallback`: that file is unavailable, so the caller must report an
+     * error and stop the load.
      */
     reason: "downmixed" | "no-fallback";
 };
@@ -35,6 +50,29 @@ export type ChannelPlan = {
 };
 
 /**
+ * Whether these buffers can be concatenated channel-wise at all.
+ *
+ * mergeBuffersByChannel requires one length and one sample rate across the
+ * whole list, and it is right to: the delivery's files are two halves of one
+ * recording, so a disagreement means they are not describing the same take,
+ * and lining them up anyway offsets channels against each other. Asked here
+ * rather than discovered there, so a bad pair becomes a degraded park instead
+ * of a thrown error.
+ *
+ * Live example: the CDN's Good-Earth-2-001 8ch FLAC is 58.33 s against its
+ * 60.00 s counterpart (rl-74x.1). Fixing that one file removes today's
+ * instance and none of the class — any re-encode or partial upload puts
+ * another one back.
+ */
+function canMerge(decoded: AudioBuffer[]): boolean {
+    const [first] = decoded;
+    return decoded.every(
+        (buffer) =>
+            buffer.length === first.length && buffer.sampleRate === first.sampleRate
+    );
+}
+
+/**
  * Decide what to actually merge, given what the browser handed back.
  *
  * Eight discrete components are required before restoring the ninth component.
@@ -44,8 +82,13 @@ export type ChannelPlan = {
  * source component 8. A degraded plan has no playable buffers. The loader must
  * fetch a separately exported W mix or report a load error (rl-dqc.9).
  *
- * Buffers beyond the first two are passed through untouched; the merge step
- * validates length and sample rate and is the right place for those failures.
+ * A pair that cannot be merged is decided here too. It used to be left to
+ * mergeBuffersByChannel, which throws — correctly, since truncating to the
+ * shorter file would put a channel offset into spatial audio — but nothing
+ * caught the throw, so one bad file on the CDN failed the park outright
+ * rather than degrading it (rl-74x.5). The recording is still unplayable as
+ * a soundfield; the difference is that the walker now hears the W mix and is
+ * told, instead of standing in a park with an error on the strip.
  */
 export function planDecodedBuffers(decoded: AudioBuffer[]): ChannelPlan {
     const [spatial] = decoded;
@@ -57,6 +100,22 @@ export function planDecodedBuffers(decoded: AudioBuffer[]): ChannelPlan {
     }
 
     if (spatial.numberOfChannels >= EXPECTED_SPATIAL_CHANNELS) {
+        if (!canMerge(decoded)) {
+            return {
+                buffers: [],
+                degradation: {
+                    // The spatial file is intact; the pair is not. Both counts
+                    // are the truth about this payload, and `cause` is what
+                    // stops the pair of them reading as a browser downmix.
+                    decodedChannels: spatial.numberOfChannels,
+                    expectedChannels: EXPECTED_SPATIAL_CHANNELS,
+                    cause: "pair-mismatch",
+                    // Provisional, as in the downmix branch below: the loader
+                    // settles this once it knows whether the W mix arrived.
+                    reason: "downmixed",
+                },
+            };
+        }
         return { buffers: decoded, degradation: null };
     }
 
@@ -69,6 +128,7 @@ export function planDecodedBuffers(decoded: AudioBuffer[]): ChannelPlan {
             degradation: {
                 decodedChannels,
                 expectedChannels: EXPECTED_SPATIAL_CHANNELS,
+                cause: "downmix",
                 reason: "no-fallback",
             },
         };
@@ -79,6 +139,7 @@ export function planDecodedBuffers(decoded: AudioBuffer[]): ChannelPlan {
         degradation: {
             decodedChannels,
             expectedChannels: EXPECTED_SPATIAL_CHANNELS,
+            cause: "downmix",
             reason: "downmixed",
         },
     };

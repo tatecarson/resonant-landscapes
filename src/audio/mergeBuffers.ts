@@ -13,6 +13,13 @@
  * rate mismatch means the two files disagree about the recording, and
  * silently truncating to the shorter one would put a channel offset into
  * spatial audio, which is audible only as "the park sounds wrong".
+ *
+ * It is no longer the first thing to notice that, though. planDecodedBuffers
+ * asks the same question before the load gets here and turns a mismatched
+ * pair into the W fallback (rl-74x.5), because nothing caught this throw and
+ * one bad file on the CDN failed the park outright. So these remain as the
+ * last line of defence rather than the working path: reaching them now means
+ * something merged a list that was never checked.
  */
 export function mergeBuffersByChannel(
     context: BaseAudioContext,
