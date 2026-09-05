@@ -41,6 +41,16 @@ type MapDebugSnapshot = {
   viewportSize: [number, number] | null;
 };
 
+// The ?debug query is load-bearing here. Every test navigates to this path,
+// and the assertions below read window.__audioDebug and window.__mapDebug,
+// which a production build gates behind the query (src/config/debug.ts). On
+// the bare path every one of those reads returns undefined against a deploy
+// preview and the spec fails no matter what the app does — the same defect
+// rl-our fixed in the mobile audio sims and geolocation-status (rl-9ek.3);
+// this spec was missed. In dev the flag changes nothing: the mirrors are
+// always on. map-camera.spec.ts navigates the same way.
+const mapPath = "/?debug";
+
 async function readAmbientGradient(page: import("@playwright/test").Page) {
   return page.getByTestId("ambient-gradient").evaluate((el) => getComputedStyle(el).backgroundImage);
 }
@@ -159,7 +169,7 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   await seedOrientationPermission(page);
   await seedDeviceOrientationHarness(page);
 
-  await page.goto("/");
+  await page.goto(mapPath);
   await page.waitForLoadState("domcontentloaded");
 
   await dismissWelcomeModal(page);
@@ -290,7 +300,7 @@ test("shows the rotation affordance before tracking is enabled at center", async
 
   await seedDeviceOrientationHarness(page);
 
-  await page.goto("/");
+  await page.goto(mapPath);
   await page.waitForLoadState("domcontentloaded");
 
   await dismissWelcomeModal(page);
@@ -363,7 +373,7 @@ test("rotation tracking stops after leaving the center radius", async ({
   await seedOrientationPermission(page);
   await seedDeviceOrientationHarness(page);
 
-  await page.goto("/");
+  await page.goto(mapPath);
   await page.waitForLoadState("domcontentloaded");
 
   await dismissWelcomeModal(page);
