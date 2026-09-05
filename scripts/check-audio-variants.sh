@@ -71,18 +71,15 @@ const browserConfigs = browserFamily === 'all'
       },
     ];
 
-const park = stateParks.find((entry) => entry.name === parkName) ?? (parkName === 'Custer Test' ? { name: parkName } : null);
+const park = stateParks.find((entry) => entry.name === parkName) ?? (['Custer Test', 'Current Location Test'].includes(parkName) ? { name: parkName } : null);
 if (!park) {
   console.error(`Unknown park: ${parkName}`);
   process.exit(1);
 }
 
 function getMetadataVariants(parkName, userAgent) {
-  if (parkName === 'Custer Test') {
-    return [[
-      `${CDN_BASE}sounds/Custer-Test-1-001_8ch.wav`,
-      `${CDN_BASE}sounds/Custer-Test-1-001_mono.wav`,
-    ]];
+  if (['Custer Test', 'Current Location Test'].includes(parkName)) {
+    return getParkAudioVariants(parkName, stateParks, userAgent);
   }
 
   const foundPark = stateParks.find((entry) => entry.name === parkName);

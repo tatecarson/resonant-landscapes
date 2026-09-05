@@ -16,16 +16,17 @@ const PARK_SLUG_OVERRIDES: Record<string, string> = {
   'Custer State Park': 'Custer-State',
   'Palisades State Park': 'Palisades-State',
 };
-const DEBUG_PARK_AUDIO_VARIANTS: Record<string, AudioVariant[]> = {
-  'Custer Test': [[
-    `${CDN_BASE}sounds/Custer-Test-1-001_8ch.wav`,
-    `${CDN_BASE}sounds/Custer-Test-1-001_mono.wav`
-  ]],
-  'Current Location Test': [[
-    `${CDN_BASE}sounds/Custer-Test-1-001_8ch.wav`,
-    `${CDN_BASE}sounds/Custer-Test-1-001_mono.wav`
-  ]],
-};
+// Both legacy Custer-Test WAV components match Custer-State-1-002 decoded
+// PCM exactly (rl-oam). Reuse its audited, browser-appropriate delivery and W
+// fallback instead of downloading a separate 48 MB WAV pair on phones.
+const DEBUG_PARK_NAMES = new Set(['Custer Test', 'Current Location Test']);
+const DEBUG_RECORDING_BASE = 'Custer-State-1-002';
+
+function deliveryPair(base: string, family: 'aac' | 'lossless'): AudioVariant {
+  return family === 'aac'
+    ? [`${CDN_BASE}sounds/${base}_8ch.m4a`, `${CDN_BASE}sounds/${base}_mono.m4a`]
+    : [`${CDN_BASE}sounds-flac/${base}_8ch.flac`, `${CDN_BASE}sounds-wav-mono/${base}_mono.wav`];
+}
 
 function hashString(value: string): number {
   let hash = 0;
@@ -99,10 +100,8 @@ export function getParkAudioVariants(
   parksJSON: AudioPark[],
   userAgent = ''
 ): AudioVariant[] | null {
-  // Not Object.hasOwn: that is ES2022 and lands in Safari 15.4, above the
-  // iOS 15 floor in README.md's support matrix.
-  if (Object.prototype.hasOwnProperty.call(DEBUG_PARK_AUDIO_VARIANTS, parkName)) {
-    return DEBUG_PARK_AUDIO_VARIANTS[parkName];
+  if (DEBUG_PARK_NAMES.has(parkName)) {
+    return [deliveryPair(DEBUG_RECORDING_BASE, pickAssetFamily(userAgent))];
   }
 
   const foundPark = parksJSON.find((park) => park.name === parkName);
@@ -122,20 +121,13 @@ export function getParkAudioVariants(
   }
 
   const family = pickAssetFamily(userAgent);
-  const spatialFolder = family === 'aac' ? 'sounds' : 'sounds-flac';
-  const spatialExtension = family === 'aac' ? 'm4a' : 'flac';
-  const monoFolder = family === 'aac' ? 'sounds' : 'sounds-wav-mono';
-  const monoExtension = family === 'aac' ? 'm4a' : 'wav';
   const variants: AudioVariant[] = [];
 
   for (let recording = 1; recording <= recordingsCount; recording += 1) {
     for (let section = 1; section <= sectionsCount; section += 1) {
       const paddedSection = String(section).padStart(3, '0');
       const base = `${cleanParkName}-${recording}-${paddedSection}`;
-      variants.push([
-        `${CDN_BASE}${spatialFolder}/${base}_8ch.${spatialExtension}`,
-        `${CDN_BASE}${monoFolder}/${base}_mono.${monoExtension}`
-      ]);
+      variants.push(deliveryPair(base, family));
     }
   }
 
