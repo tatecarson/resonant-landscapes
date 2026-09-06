@@ -301,46 +301,6 @@ export const audio = {
 } as const;
 
 /**
- * Where the next park is, and how much of the walk is left.
- *
- * Outside prefetch range the map showed a walker their own dot and nothing
- * else: no indication that there was anywhere to go, how far, or which way.
- * That is the state a walk spends most of its time in.
- *
- * The bearing is eight points of the compass rather than degrees, because
- * this is read while moving. Screen readers get the point spelled out, since
- * "NE" is read as two letters.
- */
-export const wayfinding = {
-    /**
-     * Rendered beside the park name rather than inside one string, so a long
-     * name truncates and this survives. "Fort Sisseton Historic State Park"
-     * is 33 characters and already overflows a narrow phone; losing the end
-     * of the name costs nothing, and losing the distance and the bearing
-     * costs the walker the only two things they can act on.
-     */
-    nearestMetrics: (meters: number, point: string) => ` · ${meters} m ${point}`,
-    nearestAriaLabel: (park: string, meters: number, spokenPoint: string) =>
-        `Nearest park: ${park}, ${meters} metres to the ${spokenPoint}`,
-    spokenPoints: {
-        N: "north",
-        NE: "north east",
-        E: "east",
-        SE: "south east",
-        S: "south",
-        SW: "south west",
-        W: "west",
-        NW: "north west",
-    },
-    /**
-     * Counted in parks heard rather than parks visited, because walking
-     * through one while the audio was still downloading is not hearing it.
-     */
-    heardCount: (heard: number, total: number) => `${heard} of ${total} heard`,
-    allHeard: "Every park heard",
-} as const;
-
-/**
  * What is true with no signal.
  *
  * Still modest, but about the right things now. The walk opens without a
