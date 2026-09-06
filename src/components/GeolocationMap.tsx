@@ -36,7 +36,7 @@ import {
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import { useReduceVisuals } from "../hooks/useReduceVisuals";
 import { markParkHeard, useHeardParks } from "../hooks/heardParks";
-import InstallHint from "./InstallHint";
+import { useInstallHint } from "../hooks/useInstallHint";
 import ProximityWarmth from "./ProximityWarmth";
 import { getVariantCenter } from "../utils/scaledParks";
 import { debugLog, isDebugEnabled } from "../config/debug";
@@ -596,51 +596,11 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
             </ErrorBoundary>
 
             {/*
-              * Two reasons to stand down, and they are different.
-              *
-              * A park strip is up: they share the bottom of the display, and
-              * a walker standing in a park does not need to be told where the
-              * nearest park is.
-              *
-              * The Help modal is up: this is a fixed element in ordinary DOM,
-              * and the modal is a Headless UI Dialog inside a relative z-10
-              * stacking context, so the chip paints over the whole modal
-              * including its close button. That trapped a walker in the field
-              * guide with no way out of it (rl-1u7.15). The park strip already
-              * takes helpIsOpen for the same reason; the chip was written
-              * without it.
-              */}
-            {/*
-              * One stack owns the bottom of the display, so the safe-area
-              * padding is written once and anything added here cannot overlap
-              * what is already in it. It stands down for the field guide:
-              * these are fixed elements in ordinary DOM and the guide is a
-              * Dialog inside a relative z-10 context, so anything left here
-              * paints over its close button (rl-1u7.15).
-              *
-              * The nearest-park chip used to sit under the install offer, and
-              * the note here used to explain why the offer never replaced it:
-              * the chip was the walker's only sense of where to go next. It
-              * is gone now (rl-2l3) — a name, a distance and a compass point,
-              * permanently on screen, is a readout to follow rather than a
-              * campus to wander. What it was answering has not gone away,
-              * though, and the note it left behind is worth keeping: outside
-              * prefetch range the map is a dot on empty ground, and that is
-              * the state a walk spends most of its time in and the state in
-              * which someone gives up and goes home. ProximityWarmth answers
-              * it now, without words.
-              */}
-            <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-center gap-2 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-                <InstallHint active={!parkName && !helpIsOpen} />
-            </div>
-
-            {/*
-              * Hot and cold, under the bottom stack and over the map. Not
-              * suppressed for the field guide the way the stack is: it sits
-              * at z-30 beneath the Dialog rather than over it, so it never
-              * reaches the close button, and a tint that vanished whenever
-              * the guide opened would flash the whole screen for a walker
-              * checking one line of it.
+              * Hot and cold, under the map and over it. Not suppressed for
+              * the field guide: it sits at z-30 beneath the Dialog rather
+              * than over it, so it never reaches the close button, and a
+              * tint that vanished whenever the guide opened would flash the
+              * whole screen for a walker checking one line of it.
               */}
             <ProximityWarmth
                 userLonLat={userLonLat}
@@ -705,6 +665,14 @@ export default function GeolocationMap({
         setHelpIsOpen(true);
     }, []);
 
+    /*
+     * Mounted here, not in the guide, because the prompt event Chromium fires
+     * arrives once, early in the page's life, and the guide opens long after
+     * it. The map is always mounted, so the capture is too; the guide only
+     * reads the answer (rl-5yp).
+     */
+    const { install: guideInstall } = useInstallHint();
+
     useRenderDebug("GeolocationMap", {
         debug,
         helpIsOpen,
@@ -732,7 +700,13 @@ export default function GeolocationMap({
                     <span className="map-help-button__glyph" aria-hidden="true">?</span>
                 </button>
             </RControl.RCustom>
-            {helpIsOpen && <HelpModal isOpen={helpIsOpen} setIsOpen={setHelpIsOpen} />}
+            {helpIsOpen && (
+                <HelpModal
+                    isOpen={helpIsOpen}
+                    setIsOpen={setHelpIsOpen}
+                    install={guideInstall}
+                />
+            )}
             <RLayerTile
                 url="https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}.png"
                 maxZoom={20}
