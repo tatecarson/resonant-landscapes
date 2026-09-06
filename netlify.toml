@@ -37,6 +37,38 @@
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
+# Security headers (rl-6dt, from the rl-snp deep scan). A static site with no
+# backend, so these are defence in depth rather than a fix for anything known.
+#
+# Every value below was tested against a real production build served with
+# these exact headers, not reasoned about — which is the only reason the two
+# surprises in here were found rather than shipped:
+#
+#   1. script-src needs 'unsafe-eval'. Resonance Audio evaluates a string as
+#      JavaScript while building the ambisonic scene, so without it the walk
+#      loads, looks fine, and has no sound at all. It is the weakening nobody
+#      wants and the library is archived upstream, so it cannot be fixed here
+#      — only noticed. Everything else stays strict to keep it worth having.
+#   2. Permissions-Policy cannot be "geolocation and nothing else". The walk
+#      is a compass: it reads deviceorientation, which Chrome gates behind
+#      accelerometer, gyroscope and magnetometer, and it holds a wake lock so
+#      the screen does not sleep mid-park. Turning those off would have
+#      disabled the mechanic the piece is made of.
+#
+# Adding an origin means adding it here. The one place that bites is the
+# commented-out react-render-tracker tag in index.html: uncomment it and it
+# will be blocked until cdn.jsdelivr.net is in script-src.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://tiles.stadiamaps.com; connect-src 'self' https://resonant-landscapes.b-cdn.net https://tiles.stadiamaps.com; worker-src 'self'; manifest-src 'self'; media-src 'self'"
+    X-Content-Type-Options = "nosniff"
+    # frame-ancestors above is the one browsers honour now; this is for the
+    # ones that do not read it.
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self), screen-wake-lock=(self), camera=(), microphone=(), payment=(), usb=(), interest-cohort=()"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

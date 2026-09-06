@@ -165,7 +165,15 @@ export default defineConfig({
     target: ["safari15", "ios15", "chrome109", "firefox115"],
   },
   server: {
-    allowedHosts: true
+    // A phone needs a secure context for orientation and audio, so testing
+    // uncommitted work means a cloudflared quick tunnel to this server, and
+    // those come with a fresh random hostname every time — which is why this
+    // was a blanket `true`. The leading dot is Vite's "this domain and its
+    // subdomains", so every tunnel the README's workflow can produce is
+    // allowed and nothing else is. localhost and bare IPs are permitted by
+    // Vite regardless, so `--host 0.0.0.0` for a phone on the same wifi is
+    // unaffected. Add a domain here rather than reaching for `true` again.
+    allowedHosts: [".trycloudflare.com"]
   },
   test: {
     // Unit tests only. Playwright owns tests/*.spec.ts and must not be
