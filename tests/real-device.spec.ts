@@ -31,10 +31,9 @@ type Decoded = {
     /** Measured per channel, so silence and a downmix can be told apart. */
     levels: ChannelLevel[];
 };
-type DecodedPair = {
-    spatial: Decoded;
-    mono: Decoded;
-    /** Spatial channels that are a sample-for-sample copy of channel 0. */
+type DecodedFile = Decoded & {
+    /** Channels that are a sample-for-sample copy of channel 0. Zero for mono,
+     * which has no other channel to be a copy of anything. */
     copiesOfFirstChannel: number;
 };
 
@@ -244,28 +243,39 @@ test("decodes this device's real spatial file to eight channels", async () => {
     // workarounds that satisfy iOS return undefined on Android, which wants
     // the opposite shape. A plain no-argument function is the one form both
     // engines agree on, so what it needs is put where it can read it.
-    await page.goto(`/#decode=${encodeURIComponent(JSON.stringify({ spatialUrl, monoUrl }))}`);
-    // And then actually load it. The tests in this file share one page, and
-    // a goto that changes only the fragment is a same-document navigation —
-    // nothing reloads. So the walk the previous test left running is still
-    // running underneath this one: map mounted, engine up, an AudioContext
-    // already held. Real iOS Safari will not hand out another to decode
-    // with, and this test asks for one.
+
+    // One file per navigation, and each on a page that has just been reloaded.
+    // Two things are bought by that, both of them measured rather than assumed.
     //
-    // That is measured, not supposed. The four iPhone rows went red here the
-    // moment the canvas test above them started passing — the walk now opens
-    // where it used to sit stuck on the welcome modal, so this inherited a
-    // far heavier page than it ever had before — and the same four are green
-    // when this test is run on its own (rl-dv8). Reload, so what is measured
-    // is the device's decoder rather than what ran before it.
-    await page.reload();
+    // The reload: the tests in this file share one page, and a goto that
+    // changes only the fragment is a same-document navigation, so nothing
+    // reloads. The walk the test above left running would still be running
+    // under this one — map mounted, engine up, an AudioContext already held —
+    // and real iOS Safari will not hand out another to decode with. Four
+    // iPhone rows went red here the moment the canvas test started passing,
+    // and the same four were green when this test ran on its own (rl-dv8).
+    //
+    // One file at a time: BrowserStack's real-device driver gives an async
+    // script 30 seconds to return, and the two files together are ~10 MB to
+    // fetch and decode. Asked as one script that was an iPhone 14 timing out
+    // at 30005 ms; asked as two, each has the budget to itself. It also means
+    // the second decode does not begin with the first one's AudioContext
+    // still open, which is the same scarcity the reload is about.
+    //
+    // A fresh context per file would say this more directly and is not
+    // available: real iOS allows exactly one per session, as the note above
+    // the shared page explains. Reloading is how isolation is spelled here.
+    const decodeOne = async (url: string): Promise<DecodedFile> => {
+        // The URL travels in the fragment, not in a page.evaluate argument —
+        // see the note above on what this driver does to arguments.
+        await page.goto(`/#decode=${encodeURIComponent(JSON.stringify({ url }))}`);
+        await page.reload();
 
-    const decoded = await page.evaluate(async (): Promise<DecodedPair> => {
-        const { spatialUrl, monoUrl } = JSON.parse(
-            decodeURIComponent(window.location.hash.replace(/^#decode=/, ""))
-        ) as { spatialUrl: string; monoUrl: string };
+        return page.evaluate(async (): Promise<DecodedFile> => {
+            const { url } = JSON.parse(
+                decodeURIComponent(window.location.hash.replace(/^#decode=/, ""))
+            ) as { url: string };
 
-        const decode = async (url: string) => {
             const response = await fetch(url);
             if (!response.ok) throw new Error(`Failed to fetch ${url} (${response.status})`);
             const bytes = await response.arrayBuffer();
@@ -296,35 +306,29 @@ test("decodes this device's real spatial file to eight channels", async () => {
                 levels.push({ rms: Math.sqrt(sumOfSquares / taken.length), peak });
             }
 
+            // A browser that broadcasts one channel across eight reports eight
+            // channels and sounds like nothing in particular. Count the channels
+            // that are a copy of the first to tell that apart from real ambisonics.
+            // The samples stay in the page: only the count crosses back.
+            const first = samples[0] ?? [];
+            const copiesOfFirstChannel = samples
+                .slice(1)
+                .filter((channel) => channel.every((value, index) => value === first[index]))
+                .length;
+
             return {
-                summary: {
-                    channels: buffer.numberOfChannels,
-                    sampleRate: buffer.sampleRate,
-                    seconds: Math.round(buffer.duration),
-                },
+                channels: buffer.numberOfChannels,
+                sampleRate: buffer.sampleRate,
+                seconds: Math.round(buffer.duration),
                 levels,
-                samples,
+                copiesOfFirstChannel,
             };
-        };
+        });
+    };
 
-        const spatial = await decode(spatialUrl);
-        const mono = await decode(monoUrl);
-
-        // A browser that broadcasts one channel across eight reports eight
-        // channels and sounds like nothing in particular. Count the channels
-        // that are a copy of the first to tell that apart from real ambisonics.
-        const first = spatial.samples[0] ?? [];
-        const copiesOfFirstChannel = spatial.samples
-            .slice(1)
-            .filter((channel) => channel.every((value, index) => value === first[index]))
-            .length;
-
-        return {
-            spatial: { ...spatial.summary, levels: spatial.levels },
-            mono: { ...mono.summary, levels: mono.levels },
-            copiesOfFirstChannel,
-        };
-    });
+    const spatial = await decodeOne(spatialUrl);
+    const mono = await decodeOne(monoUrl);
+    const decoded = { spatial, mono, copiesOfFirstChannel: spatial.copiesOfFirstChannel };
 
     expect(decoded.spatial.channels).toBe(8);
     expect(decoded.mono.channels).toBe(1);
