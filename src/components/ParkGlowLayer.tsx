@@ -2,6 +2,7 @@ import { memo, useCallback } from "react";
 import { fromLonLat, getPointResolution } from "ol/proj";
 import type RenderEvent from "ol/render/Event";
 import { RLayerVector, useOL } from "rlayers";
+import { palette, withAlpha } from "../theme/palette";
 
 type Coordinate = [number, number];
 
@@ -60,8 +61,8 @@ function ParkGlowLayer({
             if (peakOpacity <= 0) continue;
 
             const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radiusPx);
-            gradient.addColorStop(0, `rgba(50, 93, 9, ${peakOpacity.toFixed(3)})`);
-            gradient.addColorStop(1, "rgba(50, 93, 9, 0)");
+            gradient.addColorStop(0, withAlpha(palette.accentSoft, peakOpacity.toFixed(3)));
+            gradient.addColorStop(1, withAlpha(palette.accentSoft, 0));
 
             ctx.beginPath();
             ctx.arc(cx, cy, radiusPx, 0, 2 * Math.PI);

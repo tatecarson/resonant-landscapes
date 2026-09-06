@@ -3,6 +3,7 @@ import { memo, useMemo } from "react";
 import { distanceInMeters, type Coordinate } from "../utils/geo";
 import { useReduceVisuals } from "../hooks/useReduceVisuals";
 import { ENTER_DISTANCE_METERS } from "../config/geofence";
+import { palette, rgbChannels } from "../theme/palette";
 
 interface ProximityWarmthProps {
     /** The walker, in lon/lat. Null until the first fix arrives. */
@@ -79,8 +80,8 @@ const FALLOFF = 2;
  * disappear on a phone held outdoors in sun, which is the only place this
  * runs.
  */
-const COLD_RGB = [126, 148, 156] as const;
-const WARM_RGB = [226, 168, 96] as const;
+const COLD_RGB = channels(palette.warmthCold);
+const WARM_RGB = channels(palette.warmthWarm);
 const COLD_ALPHA = 0.1;
 /**
  * Set by looking, not by taste. The first value here was 0.34 and it could not
@@ -103,6 +104,16 @@ const WARM_ALPHA = 0.5;
  * nothing at all to find a recording by, which is worse than a strong tint.
  */
 const REDUCED_WARM_ALPHA = 0.35;
+
+/**
+ * The palette's channel string as the three numbers this file interpolates
+ * between. The ramp is computed per fix, so it needs the components, not a
+ * colour it can hand to CSS whole.
+ */
+function channels(hex: string): [number, number, number] {
+    const [r, g, b] = rgbChannels(hex).split(" ").map(Number);
+    return [r, g, b];
+}
 
 function clamp01(value: number) {
     return Math.min(1, Math.max(0, value));

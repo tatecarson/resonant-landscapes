@@ -34,13 +34,13 @@ body {
     pointer-events: none;
     position: absolute;
     width: max-content;
-    background: rgba(246, 241, 231, 0.92);
-    color: #17312a;
-    box-shadow: 0 18px 40px rgba(16, 33, 29, 0.18);
+    background: rgb(var(--rl-ground-rgb) / 0.92);
+    color: var(--rl-ink);
+    box-shadow: 0 18px 40px rgb(var(--rl-ink-rgb) / 0.18);
     backdrop-filter: blur(14px);
     padding: 10px 14px;
     border-radius: 999px;
-    border: 1px solid rgba(35, 70, 58, 0.14);
+    border: 1px solid rgb(var(--rl-edge-rgb) / 0.14);
     letter-spacing: 0.12em;
     text-transform: uppercase;
     font-size: 10px;
@@ -63,11 +63,11 @@ body {
     justify-content: center;
     width: 2.6rem;
     height: 2.6rem;
-    border: 1px solid rgba(35, 70, 58, 0.14);
+    border: 1px solid rgb(var(--rl-edge-rgb) / 0.14);
     border-radius: 999px;
-    background: rgba(246, 241, 231, 0.82);
-    color: #17312a;
-    box-shadow: 0 18px 40px rgba(16, 33, 29, 0.16);
+    background: rgb(var(--rl-ground-rgb) / 0.82);
+    color: var(--rl-ink);
+    box-shadow: 0 18px 40px rgb(var(--rl-ink-rgb) / 0.16);
     backdrop-filter: blur(14px);
     padding: 0;
     font-size: 1.15rem;
@@ -83,14 +83,14 @@ body {
 
 .map-help-button:hover {
     transform: translateY(-1px);
-    background: rgba(246, 241, 231, 0.92);
-    border-color: rgba(35, 70, 58, 0.28);
+    background: rgb(var(--rl-ground-rgb) / 0.92);
+    border-color: rgb(var(--rl-edge-rgb) / 0.28);
 }
 
 .map-help-button:disabled:hover {
     transform: none;
-    background: rgba(246, 241, 231, 0.82);
-    border-color: rgba(35, 70, 58, 0.14);
+    background: rgb(var(--rl-ground-rgb) / 0.82);
+    border-color: rgb(var(--rl-edge-rgb) / 0.14);
 }
 
 .map-help-button__glyph {
@@ -140,11 +140,11 @@ body {
     width: 2.6rem;
     height: 2.6rem;
     margin: 0;
-    border: 1px solid rgba(35, 70, 58, 0.14);
+    border: 1px solid rgb(var(--rl-edge-rgb) / 0.14);
     border-radius: 999px;
-    background: rgba(246, 241, 231, 0.82);
-    color: #17312a;
-    box-shadow: 0 18px 40px rgba(16, 33, 29, 0.16);
+    background: rgb(var(--rl-ground-rgb) / 0.82);
+    color: var(--rl-ink);
+    box-shadow: 0 18px 40px rgb(var(--rl-ink-rgb) / 0.16);
     backdrop-filter: blur(14px);
     font-size: 1.15rem;
     line-height: 1;
@@ -153,8 +153,8 @@ body {
 
 .map .ol-zoom button:hover,
 .map .ol-zoom button:focus {
-    background: rgba(246, 241, 231, 0.92);
-    border-color: rgba(35, 70, 58, 0.28);
+    background: rgb(var(--rl-ground-rgb) / 0.92);
+    border-color: rgb(var(--rl-edge-rgb) / 0.28);
 }
 
 .map .ol-zoom button:hover {
@@ -218,7 +218,7 @@ body {
 }
 
 .example-overview .ol-overviewmap-box {
-    border: 2px solid blue;
+    border: 2px solid var(--rl-edge);
 }
 
 .example-overview,
@@ -317,10 +317,10 @@ body {
      * notice: an overlay with nothing to press does not take presses.
      */
     pointer-events: none;
-    background: #8ecdc0;
+    background: var(--rl-panel);
     border-radius: 0.75rem;
     padding: 0.85rem 1rem;
-    box-shadow: 0 6px 20px rgba(23, 43, 36, 0.22);
+    box-shadow: 0 6px 20px rgb(var(--rl-ink-rgb) / 0.22);
     text-align: center;
 }
 
@@ -328,14 +328,14 @@ body {
     margin: 0;
     font-size: 0.95rem;
     font-weight: 600;
-    color: rgba(23, 43, 36, 0.95);
+    color: rgb(var(--rl-ink-rgb) / 0.95);
 }
 
 .location-status__detail {
     margin: 0.3rem 0 0;
     font-size: 0.82rem;
     line-height: 1.4;
-    color: rgba(23, 43, 36, 0.8);
+    color: rgb(var(--rl-ink-rgb) / 0.8);
 }
 
 /* Recovery steps under a blocked-location message. Left-aligned against the
@@ -356,12 +356,16 @@ body {
     gap: 0.5rem;
     font-size: 0.75rem;
     line-height: 1.45;
-    color: rgba(23, 43, 36, 0.8);
+    color: rgb(var(--rl-ink-rgb) / 0.8);
 }
 
 .location-status__steps li > span:first-child {
     font-variant-numeric: tabular-nums;
-    color: rgba(23, 43, 36, 0.45);
+    /* 0.7, not the 0.45 this was: these numerals are the order the steps are
+       followed in, and at 0.45 they measured 2.7:1 against the mint card -
+       unreadable outdoors, which is the only place this card appears. 0.7
+       clears 4.5:1 and still sits back from the detail text above. */
+    color: rgb(var(--rl-ink-rgb) / 0.7);
 }
 
 /*
@@ -398,8 +402,8 @@ body {
     padding: 0 1.25rem;
     border: none;
     border-radius: 999px;
-    background: rgb(23 23 23 / 0.92);
-    color: #fff;
+    background: rgb(var(--rl-ink-rgb) / 0.92);
+    color: var(--rl-on-ink);
     font-family: "Space Mono", monospace;
     font-size: 11px;
     letter-spacing: 0.18em;
@@ -408,7 +412,7 @@ body {
      * OpenLayers' own control width gave it. */
     white-space: nowrap;
     width: max-content;
-    box-shadow: 0 2px 12px rgb(0 0 0 / 0.25);
+    box-shadow: 0 2px 12px rgb(var(--rl-ink-rgb) / 0.25);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;

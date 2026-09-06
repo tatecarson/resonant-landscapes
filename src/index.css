@@ -2,29 +2,74 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * The palette, mirrored from src/theme/palette.js so that plain CSS can reach
+ * it. Tailwind builds its colour tokens from that same file; this block exists
+ * for the stylesheets Tailwind cannot reach — src/components/layers.css, which
+ * styles markup OpenLayers generates — and is checked against the source by
+ * src/theme/palette.test.ts, so the two cannot drift.
+ *
+ * Each token comes in two spellings: the hex, for solid fills, and the
+ * space-separated channels, for `rgb(var(--rl-x-rgb) / <alpha>)`.
+ */
+:root {
+    --rl-ink: #0b1a16;
+    --rl-ink-rgb: 11 26 22;
+    --rl-ink-muted: #35574c;
+    --rl-ink-muted-rgb: 53 87 76;
+    --rl-on-ink: #ffffff;
+    --rl-on-ink-rgb: 255 255 255;
+    --rl-ground: #f6f1e7;
+    --rl-ground-rgb: 246 241 231;
+    --rl-panel: #8ecdc0;
+    --rl-panel-rgb: 142 205 192;
+    --rl-surface: #dbe5de;
+    --rl-surface-rgb: 219 229 222;
+    --rl-edge: #21493e;
+    --rl-edge-rgb: 33 73 62;
+    --rl-accent: #2f6b52;
+    --rl-accent-rgb: 47 107 82;
+    --rl-accent-soft: #3f7a63;
+    --rl-accent-soft-rgb: 63 122 99;
+    --rl-beacon: #d98962;
+    --rl-beacon-rgb: 217 137 98;
+    --rl-status-error: #6b2f22;
+    --rl-status-error-rgb: 107 47 34;
+    --rl-status-error-surface: #f7ddd5;
+    --rl-status-error-surface-rgb: 247 221 213;
+    --rl-status-warning: #5e4a1a;
+    --rl-status-warning-rgb: 94 74 26;
+    --rl-status-warning-surface: #f3e6c4;
+    --rl-status-warning-surface-rgb: 243 230 196;
+    --rl-warmth-cold: #7e949c;
+    --rl-warmth-cold-rgb: 126 148 156;
+    --rl-warmth-warm: #e2a860;
+    --rl-warmth-warm-rgb: 226 168 96;
+}
+
 .rotation-affordance {
   animation: rotation-affordance-breathe 2.2s ease-in-out infinite;
-  background-color: rgb(23 23 23 / 0.035);
+  background-color: rgb(var(--rl-ink-rgb) / 0.035);
   box-shadow:
-    0 0 0 1px rgb(23 23 23 / 0.28),
-    0 0 0 0 rgb(23 23 23 / 0.18);
+    0 0 0 1px rgb(var(--rl-ink-rgb) / 0.28),
+    0 0 0 0 rgb(var(--rl-ink-rgb) / 0.18);
   will-change: background-color, box-shadow;
 }
 
 @keyframes rotation-affordance-breathe {
   0%,
   100% {
-    background-color: rgb(23 23 23 / 0.025);
+    background-color: rgb(var(--rl-ink-rgb) / 0.025);
     box-shadow:
-      0 0 0 1px rgb(23 23 23 / 0.22),
-      0 0 0 0 rgb(23 23 23 / 0.12);
+      0 0 0 1px rgb(var(--rl-ink-rgb) / 0.22),
+      0 0 0 0 rgb(var(--rl-ink-rgb) / 0.12);
   }
 
   52% {
-    background-color: rgb(23 23 23 / 0.085);
+    background-color: rgb(var(--rl-ink-rgb) / 0.085);
     box-shadow:
-      0 0 0 1px rgb(23 23 23 / 0.42),
-      0 0 0 8px rgb(23 23 23 / 0);
+      0 0 0 1px rgb(var(--rl-ink-rgb) / 0.42),
+      0 0 0 8px rgb(var(--rl-ink-rgb) / 0);
   }
 }
 
@@ -47,8 +92,8 @@
    */
   :root:not([data-motion]) .rotation-affordance {
     animation: none;
-    background-color: rgb(23 23 23 / 0.06);
-    box-shadow: 0 0 0 2px rgb(23 23 23 / 0.28);
+    background-color: rgb(var(--rl-ink-rgb) / 0.06);
+    box-shadow: 0 0 0 2px rgb(var(--rl-ink-rgb) / 0.28);
   }
 
   :root:not([data-motion]),
@@ -64,8 +109,8 @@
 
 :root[data-motion="calm"] .rotation-affordance {
   animation: none;
-  background-color: rgb(23 23 23 / 0.06);
-  box-shadow: 0 0 0 2px rgb(23 23 23 / 0.28);
+  background-color: rgb(var(--rl-ink-rgb) / 0.06);
+  box-shadow: 0 0 0 2px rgb(var(--rl-ink-rgb) / 0.28);
 }
 
 /*

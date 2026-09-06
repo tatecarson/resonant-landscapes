@@ -118,7 +118,7 @@ const GimbalArrow = ({
                 <button
                     type="button"
                     onClick={requestPermission}
-                    className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] inline-flex min-h-[44px] items-center rounded-full border border-neutral-900/30 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-neutral-900 transition-colors hover:border-neutral-900 hover:bg-white/30"
+                    className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-panel inline-flex min-h-[44px] items-center rounded-full border border-ink/30 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-ink transition-colors hover:border-ink hover:bg-white/30"
                 >
                     {rotationCopy.allowAccess}
                 </button>
@@ -129,7 +129,7 @@ const GimbalArrow = ({
     if (hideUI) return null;
 
     return (
-        <p className="text-xs text-slate-400 tabular-nums">
+        <p className="text-xs text-ink/70 tabular-nums">
             {rotationCopy.heading} <span ref={yawDisplayRef}>—</span>
         </p>
     );

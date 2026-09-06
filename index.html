@@ -11,6 +11,9 @@
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <!-- Matches the park strip, so the browser chrome does not sit as a white
        band above a walk that is otherwise all cream and green. -->
+  <!-- The `panel` token. A literal because the browser reads this tag before
+       any stylesheet, so it cannot be a custom property; kept in step with
+       src/theme/palette.js by hand. -->
   <meta name="theme-color" content="#8ecdc0" />
   <!-- Zoom stays available: this is read outdoors in glare at 9-12px, and
        blocking it fails WCAG 1.4.4. viewport-fit=cover is what makes the

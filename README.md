@@ -2,6 +2,59 @@
 
 This project is tested with BrowserStack
 
+## Colour
+
+Every colour in the app comes from `src/theme/palette.js`. Nothing else defines
+one. Roles, not hues:
+
+| Token | Value | For |
+| --- | --- | --- |
+| `ink` | `#0b1a16` | Primary text, solid buttons, shadows, the approach ring |
+| `ink-muted` | `#35574c` | Secondary labels on the light grounds |
+| `on-ink` | `#ffffff` | Text and marks sitting on `ink` or `edge` |
+| `ground` | `#f6f1e7` | Cream: the page and the map chrome behind it |
+| `panel` | `#8ecdc0` | Mint: every walker-facing panel, modal and notice |
+| `surface` | `#dbe5de` | Sage: blocks raised off `ground` |
+| `edge` | `#21493e` | Borders, hairlines, map strokes, `ink` button hover |
+| `accent` | `#2f6b52` | Mid green: the sun rays, the "audio ready" dot |
+| `accent-soft` | `#3f7a63` | Light green: park marker fill and the glow under it |
+| `beacon` | `#d98962` | Terracotta, and the only warm colour: "you are here" |
+| `status-error` / `-surface` | `#6b2f22` / `#f7ddd5` | Failures |
+| `status-warning` / `-surface` | `#5e4a1a` / `#f3e6c4` | Degraded, but working |
+| `warmth-cold` / `warmth-warm` | `#7e949c` / `#e2a860` | The proximity ramp's two ends |
+
+Three exits from that one file:
+
+- **Tailwind** builds `theme.extend.colors` from it, so components say
+  `text-ink` and `bg-panel`. This is how nearly everything gets its colour.
+- **`:root` in `src/index.css`** mirrors every token as `--rl-*`, in a hex and
+  a `rgb(… / <alpha>)` channel spelling, for `src/components/layers.css` —
+  which styles markup OpenLayers generates and Tailwind cannot reach.
+- **The canvas layers** import the module directly and call `withAlpha(token,
+  alpha)`, because a `ctx.strokeStyle` is built per frame from a computed
+  opacity and can use neither of the above.
+
+The ambient wash inside a park is a fourth case. Its hue is the walker's
+compass heading, swept across the whole wheel, so the palette cannot name its
+colour — but it does set its weight, as `ambientWash` in the same module. That
+sweep used to run at 80% saturation and 0.75 alpha, which put a full-screen
+primary over a map drawn entirely in muted greens; the mapping is unchanged and
+every heading is still told apart, but each hue now arrives at the weight the
+rest of the app is drawn at. Narrowing the hue to the greens was tried and
+rejected: confined to that band, half the headings become indistinguishable and
+the wash stops saying anything about turning.
+
+The marker SVGs in `src/assets/` are the one exception: OpenLayers fetches them
+as separate documents, where `:root` does not exist, so they repeat the values
+literally. `src/theme/palette.test.ts` checks the `:root` block and every SVG
+against the module, so none of the copies can drift.
+
+Contrast is measured against the ground a value is actually used on, and treats
+4.5:1 for text and 3:1 for UI edges as a floor rather than a target — this is
+read on a phone held outdoors in daylight at walking pace. Muted copy on the
+mint panel is `ink/70` rather than `ink-muted`: no green light enough to read as
+muted clears 4.5:1 against `#8ecdc0`.
+
 ## Browser and OS support
 
 Decided 2026-08-20 (rl-06c.1). The app is a spatial-audio walk taken outdoors on

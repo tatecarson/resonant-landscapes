@@ -27,14 +27,14 @@ function InstallHint({ active }: InstallHintProps) {
 
     return (
         <div
-            className="pointer-events-auto flex max-w-sm flex-col gap-2 rounded-2xl bg-[#8ecdc0] px-4 py-3 shadow-[0_6px_20px_rgba(23,43,36,0.22)]"
+            className="pointer-events-auto flex max-w-sm flex-col gap-2 rounded-2xl bg-panel px-4 py-3 shadow-notice"
             data-testid="install-hint"
         >
             <div className="flex flex-col gap-2">
-                <p className="font-space-mono text-[11px] uppercase tracking-[0.16em] text-neutral-900/85">
+                <p className="font-space-mono text-[11px] uppercase tracking-[0.16em] text-ink/85">
                     {installCopy.title}
                 </p>
-                <p className="font-space-mono text-[11px] leading-relaxed text-neutral-900/70">
+                <p className="font-space-mono text-[11px] leading-relaxed text-ink/70">
                     {installCopy.detail[platform]}
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
@@ -48,7 +48,7 @@ function InstallHint({ active }: InstallHintProps) {
                         <button
                             type="button"
                             onClick={() => void install()}
-                            className="inline-flex min-h-[44px] items-center rounded-full bg-neutral-900 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-neutral-700"
+                            className="inline-flex min-h-[44px] items-center rounded-full bg-ink px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-edge"
                         >
                             {installCopy.action}
                         </button>
@@ -56,7 +56,7 @@ function InstallHint({ active }: InstallHintProps) {
                     <button
                         type="button"
                         onClick={dismiss}
-                        className="inline-flex min-h-[44px] items-center rounded-full border border-neutral-900/30 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-neutral-900/80 transition-colors hover:border-neutral-900"
+                        className="inline-flex min-h-[44px] items-center rounded-full border border-ink/30 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-ink/80 transition-colors hover:border-ink"
                     >
                         {installCopy.dismiss}
                     </button>

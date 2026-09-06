@@ -7,6 +7,7 @@ import { useDecorativeLayerFrame } from "../hooks/useDecorativeLayerFrame";
 import { useReduceVisuals } from "../hooks/useReduceVisuals";
 import { mapRange } from "../utils/math";
 import { PREFETCH_DISTANCE_METERS } from "../config/geofence";
+import { palette, withAlpha } from "../theme/palette";
 
 /** Mid-pulse: visible, and the same on every render. */
 const REDUCED_MOTION_PHASE_S = 0.5;
@@ -77,7 +78,7 @@ function SunRayLayer({ parks, active }: SunRayLayerProps) {
                 ctx.beginPath();
                 ctx.moveTo(cx + cos * innerR1, cy + sin * innerR1);
                 ctx.lineTo(cx + cos * innerR2, cy + sin * innerR2);
-                ctx.strokeStyle = `rgba(29, 158, 117, ${innerAlpha.toFixed(3)})`;
+                ctx.strokeStyle = withAlpha(palette.accent, innerAlpha.toFixed(3));
                 ctx.lineWidth = 1.4 * dpr;
                 ctx.setLineDash([4 * dpr, 4 * dpr]);
                 ctx.lineDashOffset = innerDashOffset;
@@ -92,7 +93,7 @@ function SunRayLayer({ parks, active }: SunRayLayerProps) {
                 ctx.beginPath();
                 ctx.moveTo(cx + cos * outerR1, cy + sin * outerR1);
                 ctx.lineTo(cx + cos * outerR2, cy + sin * outerR2);
-                ctx.strokeStyle = `rgba(29, 158, 117, ${outerAlpha.toFixed(3)})`;
+                ctx.strokeStyle = withAlpha(palette.accent, outerAlpha.toFixed(3));
                 ctx.lineWidth = 0.8 * dpr;
                 ctx.setLineDash([3 * dpr, 5 * dpr]);
                 ctx.lineDashOffset = outerDashOffset;

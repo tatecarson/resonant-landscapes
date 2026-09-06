@@ -1,7 +1,17 @@
 <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!--
+    Colours here are the palette's, spelled out.
+
+    An SVG imported for its URL and handed to OpenLayers as an icon `src` is
+    fetched as a document of its own: it has no access to the page's `:root`,
+    so `var(--rl-ink)` resolves to nothing and the shape renders black. These
+    literals are the one place in the app that has to repeat a token's value
+    rather than reference it, and src/theme/palette.test.ts checks every one of
+    them against src/theme/palette.js so they cannot drift.
+  -->
   <defs>
     <filter id="heardDotShadow" x="12" y="12" width="48" height="48" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#17312A" flood-opacity="0.12"/>
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#0b1a16" flood-opacity="0.12"/>
     </filter>
   </defs>
   <!--
@@ -14,7 +24,7 @@
     not yet heard, so those keep the solid fill and the heavier shadow.
   -->
   <g filter="url(#heardDotShadow)">
-    <circle cx="36" cy="36" r="12" fill="#F6F1E7"/>
-    <circle cx="36" cy="36" r="10.5" stroke="#3F7A63" stroke-width="3"/>
+    <circle cx="36" cy="36" r="12" fill="#f6f1e7"/>
+    <circle cx="36" cy="36" r="10.5" stroke="#3f7a63" stroke-width="3"/>
   </g>
 </svg>
