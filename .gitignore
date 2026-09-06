@@ -50,3 +50,8 @@ log/
 src/data/placements.generated.json
 build/
 __pycache__/
+
+# Agent and admin working directories. Untracked, and one `git add -A` away
+# from not being (rl-9i7, from the rl-snp deep scan).
+.codex/
+project-admin/
