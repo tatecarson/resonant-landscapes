@@ -66,3 +66,10 @@ project-admin/
 .beads/dolt.pre-bootstrap-*/
 .beads.backup-*/
 backup.jsonl
+
+# Design canvases. The seeded page carries the whole editor payload (~2.4 MB)
+# and is regenerable from the .dc.html sketches beside it with one command, so
+# it is build output rather than source. The sketches stay visible but
+# untracked — they are exploration, not part of the app.
+design/*.html
+!design/*.dc.html
