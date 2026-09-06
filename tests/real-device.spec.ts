@@ -108,8 +108,39 @@ test("opens on a real device and passes its own preflight", async () => {
      * And the same assertion passes under Playwright's own WebKit on the
      * iphone-13 profile — one canvas, 1170x1992 — so neither WebKit nor the
      * map library is implicated. What is left is this harness.
+     *
+     * THE ANSWER, from the first instrumented run (2026-09-06): the canvas
+     * was absent, not invisible, and the app was neither broken nor the
+     * harness at fault — the flow was. App.tsx mounts the map only after the
+     * welcome modal closes, and the modal closed only when unlockAudio()
+     * resolved truthy. Safari grants context.resume() only inside a gesture
+     * it recognises, and an automation click is not one; worse, the pending
+     * promise never settles, so Start hung forever — no map, no error, no
+     * skip button. The walk now races the unlock against a short timeout and
+     * offers the start-anyway escape on failure, which is the same path it
+     * already offered a walker whose unlock threw. This test takes that path
+     * the way a walker would: if the escape is up, press it and expect the
+     * map muted rather than no map at all.
      */
     const canvas = page.locator("canvas").first();
+    const startAnyway = page.getByTestId("skip-unlock");
+
+    await expect
+        .poll(
+            async () =>
+                (await canvas.count()) > 0 ||
+                (await startAnyway.isVisible().catch(() => false)),
+            {
+                timeout: 15_000,
+                message:
+                    "Start neither mounted the map nor offered the start-anyway escape.",
+            }
+        )
+        .toBe(true);
+
+    if ((await canvas.count()) === 0) {
+        await startAnyway.click();
+    }
 
     await expect(
         canvas,

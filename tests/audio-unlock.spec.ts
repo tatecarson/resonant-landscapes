@@ -77,6 +77,31 @@ const probe = (page: Page) =>
         sinceMark: window.__unlockProbe?.sinceMark ?? -1,
     }));
 
+/**
+ * The state real Safari reaches when it does not recognise the gesture that
+ * asked for the resume: state reads "suspended" and resume() neither resolves
+ * nor rejects (rl-dv8 — found where BrowserStack's automation meets real
+ * Safari, reproducible at a desk by hanging resume directly).
+ */
+async function hangOnResume(page: Page) {
+    await page.addInitScript(() => {
+        const stateProto = window.BaseAudioContext.prototype;
+        const stateDescriptor = Object.getOwnPropertyDescriptor(stateProto, "state");
+        if (!stateDescriptor?.get) {
+            throw new Error("AudioContext.state descriptor not found; probe would silently pass");
+        }
+        Object.defineProperty(stateProto, "state", {
+            configurable: true,
+            get() {
+                return "suspended";
+            },
+        });
+        window.AudioContext.prototype.resume = function (): Promise<void> {
+            return new Promise(() => {});
+        };
+    });
+}
+
 test("Start resumes a context the browser had suspended", async ({ page }) => {
     await suspendUntilResumed(page);
     await page.goto("/?debug&ntl-drawer-state=hidden");
@@ -116,4 +141,25 @@ test("the walk does not claim to be unlocked without resuming", async ({ page })
 
     const { calls } = await probe(page);
     expect(calls, "reported unlocked without ever resuming").toBeGreaterThan(0);
+});
+
+test("a resume that never settles still opens the walk", async ({ page }) => {
+    // The dead end rl-dv8 found: Start awaited unlockAudio unconditionally,
+    // and a browser that never settles the resume held the welcome modal shut
+    // forever — no map, no error, no skip button, just a walker on the
+    // doorstep. Start must give up on the unlock after a bounded wait and
+    // offer the start-anyway escape, which opens the map muted.
+    await hangOnResume(page);
+    await page.goto("/?debug&ntl-drawer-state=hidden");
+
+    const start = page.getByRole("button", { name: /^\s*start\s*$/i });
+    await expect(start).toBeVisible({ timeout: 15_000 });
+    await start.click();
+
+    const startAnyway = page.getByTestId("skip-unlock");
+    await expect(startAnyway, "Start never surfaced the start-anyway escape").toBeVisible({
+        timeout: 10_000,
+    });
+    await startAnyway.click();
+    await expect(page.locator("canvas").first()).toBeAttached({ timeout: 30_000 });
 });

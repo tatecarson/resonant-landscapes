@@ -13,6 +13,17 @@ interface WelcomeModalProps {
     variant?: Variant;
 }
 
+/**
+ * How long Start waits for the AudioContext before concluding it will not
+ * unlock. Safari grants context.resume() only inside a gesture it recognises,
+ * and when it does not recognise one the promise does not reject — it simply
+ * never settles, so awaiting it unconditionally held the welcome modal shut
+ * forever on any browser that refused: no map, no error, no way forward
+ * (rl-dv8, found where automation meets real Safari). Three seconds is far
+ * longer than a granted resume takes and far shorter than a walker's patience.
+ */
+const UNLOCK_SETTLE_MS = 3_000;
+
 function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps) {
     const cancelButtonRef = useRef(null);
     const { unlockAudio, lastUnlockError } = useAudioContext();
@@ -30,6 +41,10 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
         preflight.problems.length === 1 && preflight.problems[0].id === "browser";
     const platform = useMemo(() => detectPlatform(navigator.userAgent), []);
     const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+    // Set when Start could not unlock audio. unlockAudio records its own
+    // failures in lastUnlockError, but only when its promise settles — the
+    // browser that never settles it is exactly the one this state exists for.
+    const [unlockFailed, setUnlockFailed] = useState(false);
 
     // There is no way to open Safari from inside a webview, so the link is
     // put on the clipboard and the walker pastes it. Some webviews refuse
@@ -46,14 +61,21 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
 
     const handleBegin = useCallback(async () => {
         try {
-            const didUnlockAudio = await unlockAudio();
+            const didUnlockAudio = await Promise.race([
+                unlockAudio(),
+                new Promise<boolean>((resolve) =>
+                    setTimeout(() => resolve(false), UNLOCK_SETTLE_MS)
+                ),
+            ]);
             if (!didUnlockAudio) {
+                setUnlockFailed(true);
                 return;
             }
 
             setIsOpen(false);
         } catch (error) {
             console.error("Error unlocking audio from welcome modal:", error);
+            setUnlockFailed(true);
         }
     }, [setIsOpen, unlockAudio]);
 
@@ -194,7 +216,7 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                     </button>
                                 </div>
 
-                                {lastUnlockError && (
+                                {(lastUnlockError !== null || unlockFailed) && (
                                     <div className="mt-3" data-testid="unlock-error">
                                         <p className="font-space-mono text-[10px] uppercase tracking-widest text-rose-700">
                                             {welcome.unlockFailed}
