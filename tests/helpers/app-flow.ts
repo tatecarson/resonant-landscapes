@@ -14,6 +14,24 @@ export async function seedOrientationPermission(page: Page) {
   });
 }
 
+/**
+ * How long the welcome screen is given to close after Start.
+ *
+ * Start cannot unlock audio until the walk has downloaded its audio engine,
+ * so this budget is really a download budget, and 15 seconds was under it.
+ * Measured at 15,902 ms on the throttled worst-case profile (pixel-7, 1.6
+ * Mbps / 150 ms) — failing by nine hundred milliseconds, which is why the
+ * soak never once reached its own assertions (rl-zve). The number below is
+ * several times the measurement rather than a little over it: the boot is
+ * bandwidth-bound, and a slower runner or a colder cache moves it.
+ *
+ * Costing nothing is the point. Every other suite closes this modal in well
+ * under a second and never comes near this; only a walk that genuinely
+ * cannot start waits here, and that is worth reporting slowly and truly
+ * rather than quickly and wrongly.
+ */
+const WELCOME_DISMISS_TIMEOUT_MS = 45_000;
+
 export async function dismissWelcomeModal(page: Page) {
   // Matches the current "Start" label and the older "Begin With Audio".
   const beginButton = page.getByRole("button", { name: /^\s*start\s*$|begin with audio/i });
@@ -24,7 +42,8 @@ export async function dismissWelcomeModal(page: Page) {
   // four suites reporting a missing park label for one copy edit.
   await expect(beginButton).toBeVisible({ timeout: 15_000 });
   await beginButton.click();
-  await expect(page.getByRole("heading", { name: "Resonant Landscapes" })).toHaveCount(0, {
-    timeout: 15_000,
-  });
+  await expect(page.getByRole("heading", { name: "Resonant Landscapes" })).toHaveCount(
+    0,
+    { timeout: WELCOME_DISMISS_TIMEOUT_MS }
+  );
 }
