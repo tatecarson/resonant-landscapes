@@ -131,7 +131,11 @@ test("opens on a real device and passes its own preflight", async () => {
                 (await canvas.count()) > 0 ||
                 (await startAnyway.isVisible().catch(() => false)),
             {
-                timeout: 15_000,
+                // The same budget the attachment assertion below allows. A
+                // shorter one here would fail a mount that is merely slow on
+                // a real device — and fail it saying Start did nothing, which
+                // would be the wrong diagnosis for a map that was on its way.
+                timeout: 30_000,
                 message:
                     "Start neither mounted the map nor offered the start-anyway escape.",
             }

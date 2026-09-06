@@ -13,17 +13,6 @@ interface WelcomeModalProps {
     variant?: Variant;
 }
 
-/**
- * How long Start waits for the AudioContext before concluding it will not
- * unlock. Safari grants context.resume() only inside a gesture it recognises,
- * and when it does not recognise one the promise does not reject — it simply
- * never settles, so awaiting it unconditionally held the welcome modal shut
- * forever on any browser that refused: no map, no error, no way forward
- * (rl-dv8, found where automation meets real Safari). Three seconds is far
- * longer than a granted resume takes and far shorter than a walker's patience.
- */
-const UNLOCK_SETTLE_MS = 3_000;
-
 function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps) {
     const cancelButtonRef = useRef(null);
     const { unlockAudio, lastUnlockError } = useAudioContext();
@@ -42,8 +31,8 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
     const platform = useMemo(() => detectPlatform(navigator.userAgent), []);
     const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
     // Set when Start could not unlock audio. unlockAudio records its own
-    // failures in lastUnlockError, but only when its promise settles — the
-    // browser that never settles it is exactly the one this state exists for.
+    // failures in lastUnlockError, but its contract is a boolean: a false
+    // arriving without a message would otherwise leave the walker no escape.
     const [unlockFailed, setUnlockFailed] = useState(false);
 
     // There is no way to open Safari from inside a webview, so the link is
@@ -61,12 +50,12 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
 
     const handleBegin = useCallback(async () => {
         try {
-            const didUnlockAudio = await Promise.race([
-                unlockAudio(),
-                new Promise<boolean>((resolve) =>
-                    setTimeout(() => resolve(false), UNLOCK_SETTLE_MS)
-                ),
-            ]);
+            // Awaited whole, not raced against a timer here: the bound that
+            // stops a never-settling resume belongs around the resume itself
+            // (UNLOCK_SETTLE_MS in AudioContextProvider), so a slow engine
+            // boot is waited out rather than reported as a refusal — and the
+            // answer, whenever it arrives, is the one acted on.
+            const didUnlockAudio = await unlockAudio();
             if (!didUnlockAudio) {
                 setUnlockFailed(true);
                 return;
