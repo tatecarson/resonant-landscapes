@@ -55,3 +55,14 @@ __pycache__/
 # from not being (rl-9i7, from the rl-snp deep scan).
 .codex/
 project-admin/
+
+# Beads/Dolt local databases and the backups bd leaves beside them. The
+# .beads/.gitignore that bd ships covers dolt/ and the server files; these are
+# the ones it misses, and they are not small — 81 MB across the three of them
+# as of 2026-09-06, all of it one `git add -A` from being in the history
+# permanently, where 81 MB stays. Here rather than in .beads/.gitignore
+# because that file is bd's, and says so.
+.beads/embeddeddolt/
+.beads/dolt.pre-bootstrap-*/
+.beads.backup-*/
+backup.jsonl
