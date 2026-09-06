@@ -52,6 +52,7 @@ import { RECOVERY_TITLES, RECOVERY_STAKES, getRecoverySteps } from "../utils/rec
 import { app, location as locationCopy, map as mapCopy } from "../copy";
 import type { Variant, MockPosition } from "../App";
 import locationIcon from "../assets/geolocation_marker_heading.svg";
+import { palette, withAlpha } from "../theme/palette";
 
 
 function locationStatusMessage(
@@ -228,7 +229,7 @@ const GeolocationPositionLayer = memo(function GeolocationPositionLayer({
         <RLayerVector zIndex={10}>
             <RStyle.RStyle>
                 <RStyle.RIcon src={locationIcon} anchor={[0.5, 52 / 96]} scale={0.62} />
-                <RStyle.RStroke color={"rgba(33,73,62,0.28)"} width={2} />
+                <RStyle.RStroke color={withAlpha(palette.edge, 0.28)} width={2} />
             </RStyle.RStyle>
             {showPositionIcon && position && <RFeature geometry={new Point(position)}></RFeature>}
             {accuracy && <RFeature geometry={accuracy as LineString}></RFeature>}

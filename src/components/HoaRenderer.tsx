@@ -354,7 +354,7 @@ const HOARenderer = ({
             <div className="flex min-w-0 flex-col items-end gap-2">
 
                 {activeError && (
-                    <div className="max-w-sm rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900 shadow-sm">
+                    <div className="max-w-sm rounded-2xl border border-status-error/25 bg-status-error-surface p-3 text-sm text-status-error shadow-sm">
                         <p className="font-semibold">{audioCopy.error.title}</p>
                         <p className="mt-1">{audioCopy.error.detail}</p>
                         {/*
@@ -366,11 +366,11 @@ const HOARenderer = ({
                           * who can use it is looking.
                           */}
                         {isDebugEnabled() && (
-                            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-lg bg-white/70 p-2 text-xs text-rose-800">{activeError}</pre>
+                            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-lg bg-white/70 p-2 text-xs text-status-error">{activeError}</pre>
                         )}
                         <button
                             onClick={retryLoading}
-                            className="mt-3 inline-flex items-center rounded-full border border-rose-300 bg-white px-3 py-2 text-sm font-medium text-rose-900 shadow-sm"
+                            className="mt-3 inline-flex items-center rounded-full border border-status-error/40 bg-white px-3 py-2 text-sm font-medium text-status-error shadow-sm"
                         >
                             {audioCopy.error.retry}
                         </button>
@@ -379,7 +379,7 @@ const HOARenderer = ({
 
                 {spatialDegradation && !activeError && (
                     <p
-                        className="w-full font-space-mono text-[10px] uppercase tracking-widest text-amber-800"
+                        className="w-full font-space-mono text-[10px] uppercase tracking-widest text-status-warning"
                         role="status"
                         data-testid="spatial-degraded-note"
                     >
@@ -413,7 +413,7 @@ const HOARenderer = ({
                   */}
                 {showSilenceHint && (
                     <p
-                        className="w-full font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70"
+                        className="w-full font-space-mono text-[10px] uppercase tracking-widest text-ink/70"
                         data-testid="silence-hint"
                     >
                         {audioCopy.silence[platform]}
@@ -424,12 +424,12 @@ const HOARenderer = ({
                     <div className="flex flex-wrap items-center gap-2">
                         {showLoadingIndicator && (
                             <div
-                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-neutral-900/15 bg-white/35 px-4 py-2 font-space-mono text-[10px] uppercase tracking-[0.18em] text-neutral-900/70"
+                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-ink/15 bg-white/35 px-4 py-2 font-space-mono text-[10px] uppercase tracking-[0.18em] text-ink/70"
                                 aria-live="polite"
                             >
                                 <span
                                     className={`inline-block h-2 w-2 rounded-full ${
-                                        audioStatus === "ready" ? "bg-emerald-700/70" : "animate-pulse bg-neutral-900/55"
+                                        audioStatus === "ready" ? "bg-accent/70" : "animate-pulse bg-ink/55"
                                     }`}
                                     aria-hidden="true"
                                 />
@@ -441,7 +441,7 @@ const HOARenderer = ({
                             <button
                                 onClick={onTogglePlayback}
                                 aria-label={audioCopy.stopAriaLabel}
-                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-neutral-700"
+                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-ink px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-edge"
                             >
                                 <StopCircleIcon className="h-4 w-4" aria-hidden="true" />
                                 <span>{audioCopy.stop}</span>
@@ -452,7 +452,7 @@ const HOARenderer = ({
                             <button
                                 onClick={() => { void resumeInterruptedAudio(); }}
                                 aria-label={audioCopy.resumeAriaLabel}
-                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-neutral-700"
+                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-ink px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-edge"
                             >
                                 <span>{audioCopy.resume}</span>
                             </button>
@@ -462,7 +462,7 @@ const HOARenderer = ({
                             <button
                                 onClick={onTogglePlayback}
                                 aria-label={audioCopy.startAriaLabel}
-                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-neutral-900/30 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-neutral-900 transition-colors hover:border-neutral-900 hover:bg-white/30"
+                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-ink/30 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-ink transition-colors hover:border-ink hover:bg-white/30"
                             >
                                 <span>{audioCopy.start}</span>
                             </button>

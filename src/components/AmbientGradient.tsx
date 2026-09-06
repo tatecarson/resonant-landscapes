@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { useReduceVisuals } from "../hooks/useReduceVisuals";
+import { ambientWash } from "../theme/palette";
 
 interface AmbientGradientProps {
     active: boolean;
@@ -11,25 +12,49 @@ function normalizeDegrees(value: number) {
     return ((value % 360) + 360) % 360;
 }
 
+/** One hue at the palette's weight, from the centre out to transparent. */
+function washAt(
+    hue: number,
+    core: { saturation: number; lightness: number; alpha: number },
+    edge: { saturation: number; lightness: number; alpha: number }
+) {
+    return (
+        `radial-gradient(ellipse at center, ` +
+        `hsla(${hue}, ${core.saturation}%, ${core.lightness}%, ${core.alpha}) 0%, ` +
+        `hsla(${hue}, ${edge.saturation}%, ${edge.lightness}%, ${edge.alpha}) 40%, ` +
+        `transparent 80%)`
+    );
+}
+
+/**
+ * The hue is the heading and nothing else: the full wheel, so that any two
+ * directions are told apart. Its weight comes from the palette (ambientWash),
+ * which is what stopped this being a full-screen primary sitting over a map
+ * drawn entirely in muted greens — the one surface in the app that did not
+ * look like the app.
+ */
 function getAmbientGradient(headingRadians: number) {
     const headingDegrees = normalizeDegrees((headingRadians * 180) / Math.PI);
     const hue = Math.round(normalizeDegrees(220 - headingDegrees));
 
-    return `radial-gradient(ellipse at center, hsla(${hue}, 80%, 60%, 0.75) 0%, hsla(${hue}, 70%, 55%, 0.4) 40%, transparent 80%)`;
+    return washAt(hue, ambientWash.core, ambientWash.edge);
 }
 
 /**
  * Reduced-motion form: the same presence, none of the movement.
  *
- * The full version is a full-screen wash at 0.75 alpha whose hue tracks the
- * compass — so it slides continuously while the walker turns, on a screen held
- * at walking pace. That is exactly the kind of large-area motion that provokes
+ * The full version is a full-screen wash whose hue tracks the compass — so it
+ * slides continuously while the walker turns, on a screen held at walking
+ * pace. That is exactly the kind of large-area motion that provokes
  * vestibular and photosensitive responses. Holding one hue at a much lower
  * alpha keeps the "you are inside a listening area" cue without animating it.
  */
 const STATIC_HUE = 220;
-const REDUCED_MOTION_GRADIENT =
-    `radial-gradient(ellipse at center, hsla(${STATIC_HUE}, 45%, 60%, 0.22) 0%, hsla(${STATIC_HUE}, 40%, 55%, 0.12) 40%, transparent 80%)`;
+const REDUCED_MOTION_GRADIENT = washAt(
+    STATIC_HUE,
+    ambientWash.calmCore,
+    ambientWash.calmEdge
+);
 
 export default function AmbientGradient({ active, headingRadians }: AmbientGradientProps) {
     const divRef = useRef<HTMLDivElement>(null);

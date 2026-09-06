@@ -36,15 +36,15 @@ function OfflineNotice() {
             className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-4 pt-[max(0.75rem,env(safe-area-inset-top))]"
             data-testid="offline-notice"
         >
-            <div className="max-w-sm rounded-2xl bg-[#8ecdc0] px-4 py-2.5 text-center shadow-[0_6px_20px_rgba(23,43,36,0.22)]">
+            <div className="max-w-sm rounded-2xl bg-panel px-4 py-2.5 text-center shadow-notice">
                 <p
-                    className="font-space-mono text-[11px] uppercase tracking-[0.16em] text-neutral-900/85"
+                    className="font-space-mono text-[11px] uppercase tracking-[0.16em] text-ink/85"
                     role="status"
                     aria-live="polite"
                 >
                     {connection.offline.title}
                 </p>
-                <p className="mt-1 font-space-mono text-[11px] leading-relaxed text-neutral-900/70">
+                <p className="mt-1 font-space-mono text-[11px] leading-relaxed text-ink/70">
                     {connection.offline.detail}
                 </p>
             </div>

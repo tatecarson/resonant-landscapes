@@ -125,7 +125,7 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <div className="fixed inset-0 bg-neutral-900/60 transition-opacity" />
+                    <div className="fixed inset-0 bg-ink/60 transition-opacity" />
                 </Transition.Child>
 
                 <div className="fixed inset-0 w-screen overflow-y-auto">
@@ -139,30 +139,30 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                             leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                             leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                         >
-                            <Dialog.Panel className="relative w-full rounded-2xl bg-[#8ecdc0] p-8 shadow-2xl sm:my-8 sm:max-w-md">
+                            <Dialog.Panel className="relative w-full rounded-2xl bg-panel p-8 shadow-2xl sm:my-8 sm:max-w-md">
                                 {/* decorative top rule */}
                                 <div className="mb-6 flex items-center gap-3">
-                                    <div className="h-px flex-1 bg-neutral-900/25" />
-                                    <span className="text-xs text-neutral-900/40 font-space-mono tracking-widest">✦</span>
-                                    <div className="h-px flex-1 bg-neutral-900/25" />
+                                    <div className="h-px flex-1 bg-ink/25" />
+                                    <span className="text-xs text-ink/40 font-space-mono tracking-widest">✦</span>
+                                    <div className="h-px flex-1 bg-ink/25" />
                                 </div>
 
                                 <Dialog.Title
                                     as="h1"
-                                    className="font-cormorant text-5xl italic font-light tracking-tight text-neutral-900 mb-1"
+                                    className="font-cormorant text-5xl italic font-light tracking-tight text-ink mb-1"
                                 >
                                     {welcome.title}
                                 </Dialog.Title>
-                                <p className="font-space-mono text-[10px] tracking-widest uppercase text-neutral-900/70 mb-7">
+                                <p className="font-space-mono text-[10px] tracking-widest uppercase text-ink/70 mb-7">
                                     {welcome.subtitle}
                                 </p>
 
                                 {preflight.problems.length > 0 && (
                                     <div
-                                        className="mb-7 rounded-2xl border border-neutral-900/25 bg-white/30 p-4"
+                                        className="mb-7 rounded-2xl border border-ink/25 bg-white/30 p-4"
                                         data-testid="capability-preflight"
                                     >
-                                        <p className="font-space-mono text-[11px] font-semibold uppercase tracking-wider text-neutral-900">
+                                        <p className="font-space-mono text-[11px] font-semibold uppercase tracking-wider text-ink">
                                             {preflight.verdict === "blocked"
                                                 ? welcome.preflight.blocked
                                                 : onlyInAppBrowser
@@ -174,23 +174,23 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                                     ? welcome.preflight.needsPhone
                                                     : welcome.preflight.partial}
                                         </p>
-                                        <ul className="mt-2 font-space-mono space-y-2 text-[10px] leading-relaxed text-neutral-900/75">
+                                        <ul className="mt-2 font-space-mono space-y-2 text-[10px] leading-relaxed text-ink/75">
                                             {preflight.problems.map((problem) => (
                                                 <li key={problem.id} className="flex gap-3">
-                                                    <span className="select-none text-neutral-900/40">—</span>
+                                                    <span className="select-none text-ink/40">—</span>
                                                     <span>{problem.detail}</span>
                                                 </li>
                                             ))}
                                         </ul>
                                         {inAppBrowser && (
-                                            <div className="mt-3 border-t border-neutral-900/15 pt-3" data-testid="open-in-browser">
-                                                <p className="font-space-mono text-[10px] leading-relaxed text-neutral-900/75">
+                                            <div className="mt-3 border-t border-ink/15 pt-3" data-testid="open-in-browser">
+                                                <p className="font-space-mono text-[10px] leading-relaxed text-ink/75">
                                                     {welcome.openInBrowser.steps[platform]}
                                                 </p>
                                                 <button
                                                     type="button"
                                                     aria-label={welcome.openInBrowser.copyLinkAriaLabel}
-                                                    className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] mt-3 inline-flex min-h-[44px] items-center justify-center rounded-full border border-neutral-900/40 px-5 py-2 font-space-mono text-[10px] uppercase tracking-widest text-neutral-900 transition-colors hover:bg-neutral-900/10"
+                                                    className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-panel mt-3 inline-flex min-h-[44px] items-center justify-center rounded-full border border-ink/40 px-5 py-2 font-space-mono text-[10px] uppercase tracking-widest text-ink transition-colors hover:bg-ink/10"
                                                     onClick={() => {
                                                         void handleCopyLink();
                                                     }}
@@ -199,7 +199,7 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                                 </button>
                                                 {copyState !== "idle" && (
                                                     <p
-                                                        className="mt-2 font-space-mono text-[10px] leading-relaxed text-neutral-900/75"
+                                                        className="mt-2 font-space-mono text-[10px] leading-relaxed text-ink/75"
                                                         role="status"
                                                         data-testid="copy-link-status"
                                                     >
@@ -213,17 +213,17 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                     </div>
                                 )}
 
-                                <div className="font-space-mono space-y-4 text-[12px] leading-relaxed text-neutral-900/75">
+                                <div className="font-space-mono space-y-4 text-[12px] leading-relaxed text-ink/75">
                                     <p>{welcome.intro(variant)}</p>
                                     {welcome.steps.map((step) => (
                                         <p key={step}>{step}</p>
                                     ))}
                                 </div>
 
-                                <p className="mt-6 font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70">
+                                <p className="mt-6 font-space-mono text-[10px] uppercase tracking-widest text-ink/70">
                                     {welcome.headphones}
                                 </p>
-                                <p className="mt-2 font-space-mono text-[10px] uppercase tracking-widest text-neutral-900/70">
+                                <p className="mt-2 font-space-mono text-[10px] uppercase tracking-widest text-ink/70">
                                     {preflight.orientationNeedsPermission
                                         ? welcome.accessWithRotation
                                         : welcome.accessAudioOnly}
@@ -238,10 +238,10 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                         // the second press away instead.
                                         aria-disabled={isBeginning}
                                         aria-busy={isBeginning}
-                                        className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-neutral-900 px-6 py-3 font-space-mono text-xs tracking-widest uppercase text-white transition-colors ${
+                                        className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-panel inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-ink px-6 py-3 font-space-mono text-xs tracking-widest uppercase text-white transition-colors ${
                                             isBeginning
-                                                ? "cursor-progress bg-neutral-700"
-                                                : "hover:bg-neutral-700"
+                                                ? "cursor-progress bg-edge"
+                                                : "hover:bg-edge"
                                         }`}
                                         onClick={() => {
                                             void handleBegin();
@@ -258,7 +258,7 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
 
                                 {(lastUnlockError !== null || unlockFailed) && (
                                     <div className="mt-3" data-testid="unlock-error">
-                                        <p className="font-space-mono text-[10px] uppercase tracking-widest text-rose-700">
+                                        <p className="font-space-mono text-[10px] uppercase tracking-widest text-status-error">
                                             {welcome.unlockFailed}
                                         </p>
                                         {/*
@@ -270,7 +270,7 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                           */}
                                         {isDebugEnabled() && (
                                             <pre
-                                                className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-lg bg-white/70 p-2 text-[10px] text-rose-800"
+                                                className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-lg bg-white/70 p-2 text-[10px] text-status-error"
                                                 data-testid="unlock-error-detail"
                                             >
                                                 {lastUnlockError}
@@ -286,7 +286,7 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                           */}
                                         <button
                                             type="button"
-                                            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] mt-3 inline-flex min-h-[44px] items-center rounded-full px-1 font-space-mono text-[9px] uppercase tracking-[0.18em] text-neutral-900/60 underline decoration-neutral-900/30 underline-offset-2 transition-colors hover:text-neutral-900"
+                                            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-panel mt-3 inline-flex min-h-[44px] items-center rounded-full px-1 font-space-mono text-[9px] uppercase tracking-[0.18em] text-ink/60 underline decoration-ink/30 underline-offset-2 transition-colors hover:text-ink"
                                             data-testid="skip-unlock"
                                             onClick={() => {
                                                 setIsOpen(false);

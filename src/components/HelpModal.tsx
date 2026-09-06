@@ -32,7 +32,7 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <div className="fixed inset-0 bg-neutral-900/60 transition-opacity" />
+                    <div className="fixed inset-0 bg-ink/60 transition-opacity" />
                 </Transition.Child>
 
                 <div className="fixed inset-0 w-screen overflow-y-auto">
@@ -46,38 +46,38 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                             leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                             leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                         >
-                            <Dialog.Panel className="relative w-full rounded-2xl bg-[#8ecdc0] p-8 shadow-2xl sm:my-8 sm:max-w-md">
+                            <Dialog.Panel className="relative w-full rounded-2xl bg-panel p-8 shadow-2xl sm:my-8 sm:max-w-md">
                                 {/* decorative top rule */}
                                 <div className="mb-6 flex items-center gap-3">
-                                    <div className="h-px flex-1 bg-neutral-900/25" />
-                                    <span className="text-xs text-neutral-900/40 font-space-mono tracking-widest">✦</span>
-                                    <div className="h-px flex-1 bg-neutral-900/25" />
+                                    <div className="h-px flex-1 bg-ink/25" />
+                                    <span className="text-xs text-ink/40 font-space-mono tracking-widest">✦</span>
+                                    <div className="h-px flex-1 bg-ink/25" />
                                 </div>
 
                                 <Dialog.Title
                                     as="h2"
-                                    className="font-cormorant text-5xl italic font-light tracking-tight text-neutral-900 mb-1"
+                                    className="font-cormorant text-5xl italic font-light tracking-tight text-ink mb-1"
                                 >
                                     {help.title}
                                 </Dialog.Title>
-                                <p className="font-space-mono text-[10px] tracking-widest uppercase text-neutral-900/70 mb-7">
+                                <p className="font-space-mono text-[10px] tracking-widest uppercase text-ink/70 mb-7">
                                     {help.subtitle}
                                 </p>
 
-                                <ul className="font-space-mono space-y-3 text-[12px] leading-relaxed text-neutral-900/75">
+                                <ul className="font-space-mono space-y-3 text-[12px] leading-relaxed text-ink/75">
                                     {help.tips.map((tip) => (
                                         <li key={tip} className="flex gap-3">
-                                            <span className="select-none text-neutral-900/40">—</span>
+                                            <span className="select-none text-ink/40">—</span>
                                             <span>{tip}</span>
                                         </li>
                                     ))}
                                     <li className="flex gap-3">
-                                        <span className="select-none text-neutral-900/40">—</span>
+                                        <span className="select-none text-ink/40">—</span>
                                         <span>
                                             {help.questionsLabel}{' '}
                                             <a
                                                 href={help.authorEmail}
-                                                className="text-neutral-900 underline decoration-neutral-900/40 underline-offset-2 transition-colors hover:decoration-neutral-900"
+                                                className="text-ink underline decoration-ink/40 underline-offset-2 transition-colors hover:decoration-ink"
                                             >
                                                 {help.author}
                                             </a>
@@ -85,13 +85,13 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                     </li>
                                 </ul>
 
-                                <div className="mt-6 rounded-2xl border border-neutral-900/15 bg-white/20 p-4">
+                                <div className="mt-6 rounded-2xl border border-ink/15 bg-white/20 p-4">
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
-                                            <p className="font-space-mono text-[11px] font-semibold uppercase tracking-wider text-neutral-900">
+                                            <p className="font-space-mono text-[11px] font-semibold uppercase tracking-wider text-ink">
                                                 {help.keepAwake.title}
                                             </p>
-                                            <p className="mt-1 font-space-mono text-[10px] leading-relaxed text-neutral-900/70">
+                                            <p className="mt-1 font-space-mono text-[10px] leading-relaxed text-ink/70">
                                                 {help.keepAwake.detail}
                                             </p>
                                         </div>
@@ -102,19 +102,19 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                             aria-label={help.keepAwake.ariaLabel}
                                             disabled={!wakeLockSupported}
                                             onClick={() => setKeepScreenAwake(!keepScreenAwake)}
-                                            className={`relative mt-0.5 inline-flex h-7 w-12 flex-none rounded-full border border-neutral-900/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] ${
-                                                keepScreenAwake && wakeLockSupported ? 'bg-neutral-900' : 'bg-white/40'
+                                            className={`relative mt-0.5 inline-flex h-7 w-12 flex-none rounded-full border border-ink/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-panel ${
+                                                keepScreenAwake && wakeLockSupported ? 'bg-ink' : 'bg-white/40'
                                             } ${wakeLockSupported ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                                         >
                                             <span
-                                                className={`mt-0.5 inline-block h-5 w-5 rounded-full bg-[#8ecdc0] shadow transition-transform ${
+                                                className={`mt-0.5 inline-block h-5 w-5 rounded-full bg-panel shadow transition-transform ${
                                                     keepScreenAwake && wakeLockSupported ? 'translate-x-6' : 'translate-x-1'
                                                 }`}
                                                 aria-hidden="true"
                                             />
                                         </button>
                                     </div>
-                                    <p className="mt-2 font-space-mono text-[9px] uppercase tracking-wider text-neutral-900/55" aria-live="polite">
+                                    <p className="mt-2 font-space-mono text-[9px] uppercase tracking-wider text-ink/55" aria-live="polite">
                                         {!wakeLockSupported
                                             ? help.keepAwake.unsupported
                                             : wakeLockError
@@ -133,13 +133,13 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                   * one panel that looked different would read as
                                   * a bug rather than a pair.
                                   */}
-                                <div className="mt-4 rounded-2xl border border-neutral-900/15 bg-white/20 p-4">
+                                <div className="mt-4 rounded-2xl border border-ink/15 bg-white/20 p-4">
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
-                                            <p className="font-space-mono text-[11px] font-semibold uppercase tracking-wider text-neutral-900">
+                                            <p className="font-space-mono text-[11px] font-semibold uppercase tracking-wider text-ink">
                                                 {help.reduceVisuals.title}
                                             </p>
-                                            <p className="mt-1 font-space-mono text-[10px] leading-relaxed text-neutral-900/70">
+                                            <p className="mt-1 font-space-mono text-[10px] leading-relaxed text-ink/70">
                                                 {help.reduceVisuals.detail}
                                             </p>
                                         </div>
@@ -149,12 +149,12 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                             aria-checked={reduceVisuals}
                                             aria-label={help.reduceVisuals.ariaLabel}
                                             onClick={() => setReduceVisuals(!reduceVisuals)}
-                                            className={`relative mt-0.5 inline-flex h-7 w-12 flex-none cursor-pointer rounded-full border border-neutral-900/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] ${
-                                                reduceVisuals ? 'bg-neutral-900' : 'bg-white/40'
+                                            className={`relative mt-0.5 inline-flex h-7 w-12 flex-none cursor-pointer rounded-full border border-ink/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-panel ${
+                                                reduceVisuals ? 'bg-ink' : 'bg-white/40'
                                             }`}
                                         >
                                             <span
-                                                className={`mt-0.5 inline-block h-5 w-5 rounded-full bg-[#8ecdc0] shadow transition-transform ${
+                                                className={`mt-0.5 inline-block h-5 w-5 rounded-full bg-panel shadow transition-transform ${
                                                     reduceVisuals ? 'translate-x-6' : 'translate-x-1'
                                                 }`}
                                                 aria-hidden="true"
@@ -169,7 +169,7 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                       * control looks untouched while the phone
                                       * is quietly deciding.
                                       */}
-                                    <p className="mt-2 font-space-mono text-[9px] uppercase tracking-wider text-neutral-900/55" aria-live="polite">
+                                    <p className="mt-2 font-space-mono text-[9px] uppercase tracking-wider text-ink/55" aria-live="polite">
                                         {followingSystem
                                             ? help.reduceVisuals.followingSystem
                                             : reduceVisuals
@@ -190,24 +190,24 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                   * not another would be worse than neither.
                                   */}
                                 <div className="mt-6 rounded-2xl bg-white/25 p-4" data-testid="help-install">
-                                    <p className="font-space-mono text-[11px] uppercase tracking-[0.16em] text-neutral-900/85">
+                                    <p className="font-space-mono text-[11px] uppercase tracking-[0.16em] text-ink/85">
                                         {installCopy.helpTitle}
                                     </p>
-                                    <p className="mt-2 font-space-mono text-[12px] leading-relaxed text-neutral-900/75">
+                                    <p className="mt-2 font-space-mono text-[12px] leading-relaxed text-ink/75">
                                         {installCopy.helpDetail}
                                     </p>
                                 </div>
 
                                 <div className="mt-8 mb-6 flex items-center gap-3">
-                                    <div className="h-px flex-1 bg-neutral-900/25" />
-                                    <span className="text-xs text-neutral-900/40 font-space-mono tracking-widest">✦</span>
-                                    <div className="h-px flex-1 bg-neutral-900/25" />
+                                    <div className="h-px flex-1 bg-ink/25" />
+                                    <span className="text-xs text-ink/40 font-space-mono tracking-widest">✦</span>
+                                    <div className="h-px flex-1 bg-ink/25" />
                                 </div>
 
-                                <p className="font-space-mono text-[10px] tracking-widest uppercase text-neutral-900/70 mb-3">
+                                <p className="font-space-mono text-[10px] tracking-widest uppercase text-ink/70 mb-3">
                                     {help.aboutLabel}
                                 </p>
-                                <div className="font-space-mono space-y-3 text-[12px] leading-relaxed text-neutral-900/75">
+                                <div className="font-space-mono space-y-3 text-[12px] leading-relaxed text-ink/75">
                                     <p>
                                         {help.credits}
                                     </p>
@@ -217,7 +217,7 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             aria-label={help.paperAriaLabel}
-                                            className="text-neutral-900 underline decoration-neutral-900/40 underline-offset-2 transition-colors hover:decoration-neutral-900"
+                                            className="text-ink underline decoration-ink/40 underline-offset-2 transition-colors hover:decoration-ink"
                                         >
                                             {help.paperLabel} <span aria-hidden="true">↗</span>
                                         </a>
@@ -228,7 +228,7 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             aria-label={help.projectAriaLabel}
-                                            className="text-neutral-900 underline decoration-neutral-900/40 underline-offset-2 transition-colors hover:decoration-neutral-900"
+                                            className="text-ink underline decoration-ink/40 underline-offset-2 transition-colors hover:decoration-ink"
                                         >
                                             {help.projectLabel} <span aria-hidden="true">↗</span>
                                         </a>
@@ -238,7 +238,7 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                 <div className="mt-8">
                                     <button
                                         type="button"
-                                        className="w-full rounded-full bg-neutral-900 px-6 py-3 font-space-mono text-xs tracking-widest uppercase text-white transition-colors hover:bg-neutral-700"
+                                        className="w-full rounded-full bg-ink px-6 py-3 font-space-mono text-xs tracking-widest uppercase text-white transition-colors hover:bg-edge"
                                         onClick={() => setIsOpen(false)}
                                         ref={cancelButtonRef}
                                     >

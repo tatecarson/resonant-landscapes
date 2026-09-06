@@ -8,6 +8,7 @@ import { useDecorativeLayerFrame } from "../hooks/useDecorativeLayerFrame";
 import { useReduceVisuals } from "../hooks/useReduceVisuals";
 import { mapRange } from "../utils/math";
 import { PREFETCH_DISTANCE_METERS } from "../config/geofence";
+import { palette, withAlpha } from "../theme/palette";
 
 /** Mid-pulse: visible, and the same on every render. */
 const REDUCED_MOTION_PHASE_S = 0.5;
@@ -69,7 +70,7 @@ function ProximityRingLayer({ parks, active, enterDistance }: ProximityRingLayer
 
                 ctx.beginPath();
                 ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
-                ctx.strokeStyle = `rgba(168, 8, 116, ${alpha.toFixed(3)})`;
+                ctx.strokeStyle = withAlpha(palette.ink, alpha.toFixed(3));
                 ctx.lineWidth = 2 * dpr;
                 ctx.stroke();
             }
