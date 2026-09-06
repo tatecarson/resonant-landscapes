@@ -244,32 +244,36 @@ test("decodes this device's real spatial file to eight channels", async () => {
     // the opposite shape. A plain no-argument function is the one form both
     // engines agree on, so what it needs is put where it can read it.
 
-    // One file per navigation, and each on a page that has just been reloaded.
-    // Two things are bought by that, both of them measured rather than assumed.
+    // Load the page once, properly. The tests in this file share one page,
+    // and a goto that changes only the fragment is a same-document
+    // navigation, so nothing reloads: the walk the test above left running
+    // would still be running under this one — map mounted, engine up, an
+    // AudioContext already held — and real iOS Safari will not hand out
+    // another to decode with. Four iPhone rows went red here the moment the
+    // canvas test started passing, and the same four were green when this
+    // test ran on its own (rl-dv8).
+    await page.goto(`/#decode=${encodeURIComponent(JSON.stringify({ url: spatialUrl }))}`);
+    await page.reload();
+
+    // Then one file per script, on that same loaded page. BrowserStack's
+    // real-device driver gives an async script 30 seconds to return, and the
+    // two files together are ~10 MB to fetch and decode: asked as one script
+    // that was an iPhone 14 timing out at 30005 ms, and asked as two, each
+    // has the budget to itself.
     //
-    // The reload: the tests in this file share one page, and a goto that
-    // changes only the fragment is a same-document navigation, so nothing
-    // reloads. The walk the test above left running would still be running
-    // under this one — map mounted, engine up, an AudioContext already held —
-    // and real iOS Safari will not hand out another to decode with. Four
-    // iPhone rows went red here the moment the canvas test started passing,
-    // and the same four were green when this test ran on its own (rl-dv8).
-    //
-    // One file at a time: BrowserStack's real-device driver gives an async
-    // script 30 seconds to return, and the two files together are ~10 MB to
-    // fetch and decode. Asked as one script that was an iPhone 14 timing out
-    // at 30005 ms; asked as two, each has the budget to itself. It also means
-    // the second decode does not begin with the first one's AudioContext
-    // still open, which is the same scarcity the reload is about.
-    //
-    // A fresh context per file would say this more directly and is not
-    // available: real iOS allows exactly one per session, as the note above
-    // the shared page explains. Reloading is how isolation is spelled here.
+    // What is deliberately not here is a reload between the files. It was,
+    // and reloading a phone in the middle of decoding 9 MB into ~90 MB of
+    // PCM took a session down with "target closed" on an iPhone 13. The
+    // reload was only ever there to drop the previous AudioContext, and
+    // closing the context does that directly — see the end of the decode.
+    // A fresh browser context per file would say it better still and is not
+    // on offer: real iOS allows exactly one per session, as the note above
+    // the shared page explains.
     const decodeOne = async (url: string): Promise<DecodedFile> => {
         // The URL travels in the fragment, not in a page.evaluate argument —
-        // see the note above on what this driver does to arguments.
+        // see the note above on what this driver does to arguments. This is a
+        // same-document navigation by design: the page is already loaded.
         await page.goto(`/#decode=${encodeURIComponent(JSON.stringify({ url }))}`);
-        await page.reload();
 
         return page.evaluate(async (): Promise<DecodedFile> => {
             const { url } = JSON.parse(
@@ -305,6 +309,12 @@ test("decodes this device's real spatial file to eight channels", async () => {
                 samples.push(taken);
                 levels.push({ rms: Math.sqrt(sumOfSquares / taken.length), peak });
             }
+
+            // Everything wanted has been copied out of the buffer, so give the
+            // context back before the next file asks for one. This is what a
+            // phone is short of, and holding two while decoding the second is
+            // what put the iPhone rows on the floor in the first place.
+            await context.close();
 
             // A browser that broadcasts one channel across eight reports eight
             // channels and sounds like nothing in particular. Count the channels
