@@ -21,6 +21,15 @@ on:
         description: "URL to walk (a deploy preview, say)"
         required: false
         default: "https://resonant-landscapes.netlify.app"
+      # Real-device minutes are the reason this exists. Seven platforms times
+      # every test is the whole spend; when the question is about one test —
+      # is this row's failure the test itself, or the state the test before
+      # it left behind — the rest of the suite is minutes spent learning
+      # nothing. Empty runs everything, which is the default this file had.
+      test_filter:
+        description: "Only run tests whose title matches (Playwright --grep)"
+        required: false
+        default: ""
 
 concurrency:
   group: browserstack-real-devices
@@ -46,11 +55,21 @@ jobs:
           BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
           BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
           PLAYWRIGHT_BASE_URL: ${{ inputs.base_url || 'https://resonant-landscapes.netlify.app' }}
-        # Two things about this line, both of which fail quietly if undone.
+          # Through the environment, not interpolated into the script: an
+          # input pasted straight into a run: block is a shell injection
+          # waiting for someone to type a backtick into a dispatch form.
+          TEST_FILTER: ${{ inputs.test_filter }}
+        # Two things about these lines, both of which fail quietly if undone.
         # Unquoted: the SDK dispatches on argv, so wrapping the whole
         # invocation in one string matches no command — it prints "Not a
         # valid command" and exits 0, green without having run a test.
         # And --config=, not -c: the SDK's own parser eats the value after
         # a separated flag and forwards a bare "-c" to Playwright, which
         # dies with "option '-c, --config <file>' argument missing".
-        run: npx browserstack-node-sdk playwright test --config=playwright.browserstack.config.ts
+        # --grep= is written joined for that second reason, not for style.
+        run: |
+          if [ -n "$TEST_FILTER" ]; then
+            npx browserstack-node-sdk playwright test --config=playwright.browserstack.config.ts --grep="$TEST_FILTER"
+          else
+            npx browserstack-node-sdk playwright test --config=playwright.browserstack.config.ts
+          fi
