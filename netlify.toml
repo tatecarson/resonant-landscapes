@@ -13,6 +13,37 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# Security headers. The site is static with no backend, so this is
+# defence-in-depth: it cannot stop a supply-chain compromise of a build
+# dependency, but it can keep an injected script from reading the CDN's
+# cookies (there are none), phoning home, or the walk being framed by
+# someone else's page.
+#
+# The CSP's allowlist is the exact set of origins the walk already talks
+# to: the app itself, Stadia's map tiles, the audio CDN, and Google Fonts
+# (stylesheet from googleapis, files from gstatic). Anything else a build
+# dependency starts fetching will be blocked and visible in the console,
+# which is the point.
+#
+# script-src allows one inline event handler by hash ('unsafe-hashes' +
+# 'sha256-…'): the media/onload font swap in index.html. Every other
+# script must come from the origin. Safari 15.0–15.4 does not implement
+# unsafe-hashes and will silently drop that handler, so those few
+# browsers fall back to the font stack the stylesheet is designed to sit
+# on top of — the same degradation as scripting-off, accepted by the
+# loading strategy comment in index.html.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tiles.stadiamaps.com; media-src 'self' blob: https://resonant-landscapes.b-cdn.net; connect-src 'self' https://resonant-landscapes.b-cdn.net https://tiles.stadiamaps.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # geolocation=(self): the walk's core permission, asked for by the
+    # first-party page and nothing else. wake-lock is deliberately absent:
+    # keep-awake is a feature, and its default allowlist is already 'self'.
+    Permissions-Policy = "geolocation=(self), camera=(), microphone=(), payment=(), usb=()"
+
 # The entry point must not be cached, or a deploy never reaches anyone holding
 # a stale index.html pointing at assets that no longer exist.
 [[headers]]
