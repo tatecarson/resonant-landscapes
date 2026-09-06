@@ -37,6 +37,7 @@ import { useRenderDebug } from "../hooks/useRenderDebug";
 import { useReduceVisuals } from "../hooks/useReduceVisuals";
 import { markParkHeard, useHeardParks } from "../hooks/heardParks";
 import InstallHint from "./InstallHint";
+import ProximityWarmth from "./ProximityWarmth";
 import { getVariantCenter } from "../utils/scaledParks";
 import { debugLog, isDebugEnabled } from "../config/debug";
 import {
@@ -625,12 +626,27 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
               * though, and the note it left behind is worth keeping: outside
               * prefetch range the map is a dot on empty ground, and that is
               * the state a walk spends most of its time in and the state in
-              * which someone gives up and goes home. Whatever answers it now
-              * has to answer it without words.
+              * which someone gives up and goes home. ProximityWarmth answers
+              * it now, without words.
               */}
             <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-center gap-2 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                 <InstallHint active={!parkName && !helpIsOpen} />
             </div>
+
+            {/*
+              * Hot and cold, under the bottom stack and over the map. Not
+              * suppressed for the field guide the way the stack is: it sits
+              * at z-30 beneath the Dialog rather than over it, so it never
+              * reaches the close button, and a tint that vanished whenever
+              * the guide opened would flash the whole screen for a walker
+              * checking one line of it.
+              */}
+            <ProximityWarmth
+                userLonLat={userLonLat}
+                parks={parkFeatures}
+                heardParks={heardParks}
+                active={!parkName}
+            />
 
             {debug && (
                 <GeolocationDebugPanel

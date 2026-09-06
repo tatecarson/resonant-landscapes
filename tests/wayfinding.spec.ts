@@ -49,6 +49,17 @@ const heardParks = (page: Page) =>
         }
     });
 
+/**
+ * What the tint that replaced the chip is currently saying, 0 cold to 1 warm.
+ * The element reports it as a data attribute precisely so a spec need not
+ * assert on a colour: the ramp is tuning, and this is not a test about tuning.
+ */
+const warmth = (page: Page) =>
+    page
+        .getByTestId("proximity-warmth")
+        .getAttribute("data-warmth")
+        .then((value) => Number(value ?? 0));
+
 const isPlaying = (page: Page) =>
     page.evaluate(() => window.__audioDebug?.isPlaying ?? false);
 
@@ -78,6 +89,7 @@ test("counts a park as heard once its audio has actually played", async ({ conte
     await dismissWelcomeModal(page);
     await dwellAt(context, page, WELL_OUTSIDE, 1_500);
     expect(await heardParks(page)).toEqual([]);
+    const warmBefore = await warmth(page);
     await hold(page);
 
     await dwellAt(context, page, AT_CENTRE, 2_000);
@@ -94,6 +106,24 @@ test("counts a park as heard once its audio has actually played", async ({ conte
             message: "the park that played was never recorded as heard",
         })
         .toBe(1);
+
+    /*
+     * The same standpoint, cooler, because what it is near has been used up.
+     * This is the whole reason the tint is keyed to unheard recordings rather
+     * than to whatever is closest (rl-2l3): keyed to the nearest of any kind
+     * it would read identically here, warmest while the walker stands beside
+     * the one thing they have already listened to.
+     *
+     * A margin, not merely "less": the spots on this campus sit about 20 m
+     * apart, so hearing one leaves another close behind it, and a drop too
+     * small to see would satisfy a bare inequality while failing the walker.
+     */
+    await expect
+        .poll(async () => await warmth(page), {
+            timeout: 10_000,
+            message: "the tint did not cool after the park beside it was heard",
+        })
+        .toBeLessThan(warmBefore - 0.1);
     await hold(page);
 });
 
