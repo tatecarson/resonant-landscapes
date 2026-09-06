@@ -13,6 +13,14 @@ interface WelcomeModalProps {
     variant?: Variant;
 }
 
+/**
+ * How long Start waits before saying it is working on it. An unlock that
+ * answers at once should close the welcome screen without a word flickering
+ * through the button on the way out; only a wait long enough to be mistaken
+ * for a dead button is worth describing (rl-7om).
+ */
+const STARTING_LABEL_DELAY_MS = 400;
+
 function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps) {
     const cancelButtonRef = useRef(null);
     const { unlockAudio, lastUnlockError } = useAudioContext();
@@ -34,6 +42,14 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
     // failures in lastUnlockError, but its contract is a boolean: a false
     // arriving without a message would otherwise leave the walker no escape.
     const [unlockFailed, setUnlockFailed] = useState(false);
+    // Set for as long as a press is being answered. The walk downloads its
+    // audio engine while this screen is up, and Start waits for that before
+    // it can unlock anything, so on the signal a walker has at a park the
+    // press can go unanswered for seconds (rl-7om). isBeginning is the fact;
+    // showStarting is whether it has lasted long enough to say so.
+    const [isBeginning, setIsBeginning] = useState(false);
+    const [showStarting, setShowStarting] = useState(false);
+    const startingTimerRef = useRef<number | undefined>(undefined);
 
     // There is no way to open Safari from inside a webview, so the link is
     // put on the clipboard and the walker pastes it. Some webviews refuse
@@ -49,6 +65,20 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
     }, []);
 
     const handleBegin = useCallback(async () => {
+        // The button stays focusable while it works — aria-disabled rather
+        // than disabled, so a walker on a screen reader is not dropped out of
+        // the control they just pressed — which leaves the second press to be
+        // turned away here.
+        if (isBeginning) {
+            return;
+        }
+
+        setIsBeginning(true);
+        startingTimerRef.current = window.setTimeout(
+            () => setShowStarting(true),
+            STARTING_LABEL_DELAY_MS
+        );
+
         try {
             // Awaited whole, not raced against a timer here: the bound that
             // stops a never-settling resume belongs around the resume itself
@@ -65,8 +95,15 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
         } catch (error) {
             console.error("Error unlocking audio from welcome modal:", error);
             setUnlockFailed(true);
+        } finally {
+            // unlockAudio always settles now — the engine init resolves either
+            // way and the resume is bounded — so this always runs, and the
+            // walker is never left holding a button that says it is working.
+            window.clearTimeout(startingTimerRef.current);
+            setIsBeginning(false);
+            setShowStarting(false);
         }
-    }, [setIsOpen, unlockAudio]);
+    }, [isBeginning, setIsOpen, unlockAudio]);
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
@@ -195,13 +232,27 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                 <div className="mt-8">
                                     <button
                                         type="button"
-                                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-neutral-900 px-6 py-3 font-space-mono text-xs tracking-widest uppercase text-white transition-colors hover:bg-neutral-700"
+                                        // Not `disabled`: it would take the
+                                        // control out from under a screen
+                                        // reader mid-press. handleBegin turns
+                                        // the second press away instead.
+                                        aria-disabled={isBeginning}
+                                        aria-busy={isBeginning}
+                                        className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 focus-visible:ring-offset-[#8ecdc0] inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-neutral-900 px-6 py-3 font-space-mono text-xs tracking-widest uppercase text-white transition-colors ${
+                                            isBeginning
+                                                ? "cursor-progress bg-neutral-700"
+                                                : "hover:bg-neutral-700"
+                                        }`}
                                         onClick={() => {
                                             void handleBegin();
                                         }}
                                         ref={cancelButtonRef}
                                     >
-                                        {preflight.verdict === "blocked" ? welcome.startAnyway : welcome.start}
+                                        {showStarting
+                                            ? welcome.starting
+                                            : preflight.verdict === "blocked"
+                                                ? welcome.startAnyway
+                                                : welcome.start}
                                     </button>
                                 </div>
 

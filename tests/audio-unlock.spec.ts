@@ -143,6 +143,30 @@ test("the walk does not claim to be unlocked without resuming", async ({ page })
     expect(calls, "reported unlocked without ever resuming").toBeGreaterThan(0);
 });
 
+test("Start says it is working while it waits", async ({ page }) => {
+    // The walk downloads its audio engine while the welcome screen is up, and
+    // Start waits for that before it can unlock anything. On the signal a
+    // walker has at a park that wait is seconds long, and an unchanged button
+    // reads as one that did not register the tap (rl-7om). Hanging the resume
+    // is the desk way to hold the press open long enough to look.
+    await hangOnResume(page);
+    await page.goto("/?debug&ntl-drawer-state=hidden");
+
+    const start = page.getByRole("button", { name: /^\s*start\s*$/i });
+    await expect(start).toBeVisible({ timeout: 15_000 });
+    await start.click();
+
+    const working = page.getByRole("button", { name: /starting the walk/i });
+    await expect(working, "Start never said it was working").toBeVisible({ timeout: 5_000 });
+    await expect(working).toHaveAttribute("aria-busy", "true");
+
+    // And gives the button back when the answer arrives, rather than leaving
+    // a walker holding a control that still claims to be working.
+    await expect(page.getByTestId("skip-unlock")).toBeVisible({ timeout: 10_000 });
+    await expect(start).toBeVisible();
+    await expect(start).toHaveAttribute("aria-busy", "false");
+});
+
 test("a resume that never settles still opens the walk", async ({ page }) => {
     // The dead end rl-dv8 found: Start awaited unlockAudio unconditionally,
     // and a browser that never settles the resume held the welcome modal shut
