@@ -245,6 +245,20 @@ test("decodes this device's real spatial file to eight channels", async () => {
     // the opposite shape. A plain no-argument function is the one form both
     // engines agree on, so what it needs is put where it can read it.
     await page.goto(`/#decode=${encodeURIComponent(JSON.stringify({ spatialUrl, monoUrl }))}`);
+    // And then actually load it. The tests in this file share one page, and
+    // a goto that changes only the fragment is a same-document navigation —
+    // nothing reloads. So the walk the previous test left running is still
+    // running underneath this one: map mounted, engine up, an AudioContext
+    // already held. Real iOS Safari will not hand out another to decode
+    // with, and this test asks for one.
+    //
+    // That is measured, not supposed. The four iPhone rows went red here the
+    // moment the canvas test above them started passing — the walk now opens
+    // where it used to sit stuck on the welcome modal, so this inherited a
+    // far heavier page than it ever had before — and the same four are green
+    // when this test is run on its own (rl-dv8). Reload, so what is measured
+    // is the device's decoder rather than what ran before it.
+    await page.reload();
 
     const decoded = await page.evaluate(async (): Promise<DecodedPair> => {
         const { spatialUrl, monoUrl } = JSON.parse(
