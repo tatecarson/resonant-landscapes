@@ -1,17 +1,14 @@
 name: BrowserStack real devices
 
 # The real-device matrix (rl-06c.6). Manual only: real-device minutes are a
-# bounded spend, so this never runs on every push.
-#
-# There was a weekly cron here, and it is deliberately gone for now. The suite
-# has one known failure — the map canvas on every iPhone row (rl-dv8) — so a
-# schedule would paint this job red every Monday until that is settled, and a
-# job that is always red is a job nobody reads. Restore the cron when rl-dv8
-# closes:
-#
-#   schedule:
-#     # Monday mornings, against production.
-#     - cron: "0 6 * * 1"
+# bounded spend, so this never runs on every push — and by decision
+# (rl-06c.7, 2026-09-06) it does not run on a schedule either. There was a
+# weekly cron here, removed at af4a49b while rl-dv8 had the job permanently
+# red; rl-dv8 has since closed, but the cron stays gone on purpose. The
+# matrix answers a "does real hardware decode this" question that does not
+# change week to week, seven real-device sessions per run is a spend that
+# wants an occasion, and runs happen when Tate wants one: this workflow's
+# dispatch button, or `npm run browserstack:real-devices` from a desk.
 #
 # Requires the repository secrets BROWSERSTACK_USERNAME and
 # BROWSERSTACK_ACCESS_KEY. workflow_dispatch is only offered from the default
