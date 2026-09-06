@@ -26,9 +26,21 @@ test("the chatham route names Chatham on the welcome screen", async ({ page }) =
     await expect(page.getByText(/walk chatham's campus/i)).toBeVisible({ timeout: 15_000 });
 });
 
-test("a walker on the campus is told which park is nearest", async ({ page, context }) => {
-    // The chip is the proof the points are here and not in South Dakota: it
-    // names a park and a distance measured from where the walker is standing.
+test("a walker on the campus is standing among the recordings", async ({ page, context }) => {
+    /*
+     * The claim is the same one this test always made: the points are HERE and
+     * not in South Dakota. It used to be read off the nearest-park chip, which
+     * named a park and its distance; the chip is gone (rl-2l3) and the walk's
+     * proximity tint carries the same fact in a stricter form.
+     *
+     * data-warmth is derived from the distance to the nearest recording the
+     * walker has not heard, and it is zero beyond COLD_AT_METERS. So a
+     * non-zero value here means a recording is within 120 m of the middle of
+     * Chatham's campus. The old assertion allowed anything under a kilometre;
+     * this one is an order of magnitude tighter, and a variant that fell
+     * through to the DSU points would read a flat zero rather than pointing
+     * at a park 1,300 km west.
+     */
     await page.goto("/#/chatham");
     await dismissWelcomeModal(page);
 
@@ -38,14 +50,18 @@ test("a walker on the campus is told which park is nearest", async ({ page, cont
         await context.setGeolocation(ON_CAMPUS);
     }
 
-    const line = page.getByTestId("nearest-park-line");
-    await expect(line).toBeVisible({ timeout: 15_000 });
-    await expect(line).toHaveText(/^.+ · \d+ m (NE|NW|SE|SW|N|E|S|W)$/i);
-    // Hundreds of metres, not hundreds of kilometres: a variant that fell
-    // through to the DSU points would still render a chip, pointing at a
-    // park 1,300 km west.
-    const text = (await line.textContent()) ?? "";
-    expect(Number(text.match(/(\d+) m/)?.[1] ?? Infinity)).toBeLessThan(1_000);
+    const warmth = page.getByTestId("proximity-warmth");
+    await expect(warmth).toBeAttached({ timeout: 15_000 });
+    await expect
+        .poll(
+            async () => Number((await warmth.getAttribute("data-warmth")) ?? 0),
+            {
+                timeout: 15_000,
+                message:
+                    "nothing within 120 m of the middle of the campus — the Chatham points are not where the walk thinks they are",
+            }
+        )
+        .toBeGreaterThan(0);
 });
 
 test("the default route is still the DSU walk", async ({ page }) => {

@@ -299,7 +299,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     });
 
     // Was debugPosition, back when the debug panel was the only thing that
-    // needed the walker in lon/lat. The wayfinding chip needs it too, and it
+    // needed the walker in lon/lat. The proximity tint needs it too, and it
     // ships.
     const userLonLat = position ? toLonLat(position.slice(0, 2)) as [number, number] : null;
     const prefetchUrls = useMemo(() => {
