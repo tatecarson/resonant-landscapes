@@ -63,6 +63,13 @@ These get the asset family selected for their engine (see
 browser. Bugs reported here get fixed when they are cheap; they do not block a
 release.
 
+The Samsung Internet gap is accepted by decision (rl-06c.8, 2026-09-06).
+BrowserStack's real-device integration cannot select it through Playwright,
+and a second Appium harness is not worth building for the audience the piece
+has. It is Chromium under the skin, and the Android rows above exercise that
+engine; the risk taken is vendor-specific quirks between Samsung Internet and
+stock Chrome going unnoticed.
+
 ### Unsupported
 
 Anything else, including any engine the audio-format allowlist does not

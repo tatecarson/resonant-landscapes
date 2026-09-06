@@ -13,6 +13,11 @@ framework: playwright
 # — the default browser on the hardware most Android walkers hold — is a real
 # gap in this matrix and cannot be closed here; it would need Appium.
 #
+# Accepted by decision 2026-09-06 (rl-06c.8): the gap stays. No second Appium
+# harness is being built for it; Samsung Internet is Chromium under the skin,
+# which the three Android rows exercise, and README.md records it as best
+# effort.
+#
 # So the axes that remain are the ones worth varying:
 #   - iOS version, because WebKit ships with the OS and genuinely differs per
 #     major, and because real iOS Safari decodes through AudioToolbox, the
