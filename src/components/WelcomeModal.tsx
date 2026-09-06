@@ -30,6 +30,10 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
         preflight.problems.length === 1 && preflight.problems[0].id === "browser";
     const platform = useMemo(() => detectPlatform(navigator.userAgent), []);
     const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+    // Set when Start could not unlock audio. unlockAudio records its own
+    // failures in lastUnlockError, but its contract is a boolean: a false
+    // arriving without a message would otherwise leave the walker no escape.
+    const [unlockFailed, setUnlockFailed] = useState(false);
 
     // There is no way to open Safari from inside a webview, so the link is
     // put on the clipboard and the walker pastes it. Some webviews refuse
@@ -46,14 +50,21 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
 
     const handleBegin = useCallback(async () => {
         try {
+            // Awaited whole, not raced against a timer here: the bound that
+            // stops a never-settling resume belongs around the resume itself
+            // (UNLOCK_SETTLE_MS in AudioContextProvider), so a slow engine
+            // boot is waited out rather than reported as a refusal — and the
+            // answer, whenever it arrives, is the one acted on.
             const didUnlockAudio = await unlockAudio();
             if (!didUnlockAudio) {
+                setUnlockFailed(true);
                 return;
             }
 
             setIsOpen(false);
         } catch (error) {
             console.error("Error unlocking audio from welcome modal:", error);
+            setUnlockFailed(true);
         }
     }, [setIsOpen, unlockAudio]);
 
@@ -194,7 +205,7 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                     </button>
                                 </div>
 
-                                {lastUnlockError && (
+                                {(lastUnlockError !== null || unlockFailed) && (
                                     <div className="mt-3" data-testid="unlock-error">
                                         <p className="font-space-mono text-[10px] uppercase tracking-widest text-rose-700">
                                             {welcome.unlockFailed}

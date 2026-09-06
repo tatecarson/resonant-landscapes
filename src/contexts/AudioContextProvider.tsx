@@ -24,6 +24,20 @@ const MAX_CACHED_PARKS = 2;
 // still feels like the park starting and stopping rather than a slow dissolve.
 const FADE_SECONDS = 0.3;
 const KEEP_SCREEN_AWAKE_STORAGE_KEY = "keepScreenAwakeDuringPlayback";
+/**
+ * How long context.resume() is given to settle. Safari grants it only inside
+ * a gesture it recognises, and when it does not recognise one the promise
+ * does not reject — it simply never settles, so awaiting it unconditionally
+ * held the welcome modal shut forever: no map, no error, no way forward
+ * (rl-dv8, found where automation meets real Safari). Three seconds is far
+ * longer than a granted resume takes and far shorter than a walker's patience.
+ *
+ * The window covers the resume and nothing else. The engine init this unlock
+ * waits on first downloads Resonance Audio, which on a cold cellular load can
+ * legitimately take longer than this — and a slow boot is not a refused
+ * gesture, so it must not be reported to the walker as one.
+ */
+const UNLOCK_SETTLE_MS = 3_000;
 
 interface AudioEngineContextType {
     audioContext: AudioContext | null;
@@ -495,7 +509,20 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             setLastUnlockError(null);
             if (context.state === 'suspended') {
                 audioDebug.sync("resume-requested");
-                await context.resume();
+                let settleTimer: number | undefined;
+                try {
+                    await Promise.race([
+                        context.resume(),
+                        new Promise<never>((_, reject) => {
+                            settleTimer = window.setTimeout(
+                                () => reject(new Error("The browser never answered the request to start audio.")),
+                                UNLOCK_SETTLE_MS
+                            );
+                        }),
+                    ]);
+                } finally {
+                    window.clearTimeout(settleTimer);
+                }
             }
 
             primeOnce(context);

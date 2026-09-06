@@ -46,6 +46,19 @@ export default defineConfig({
     expect: {
         timeout: 15_000,
     },
+    // Every assertion here reaches a real phone across a cloud tunnel, and
+    // the failures that come back are frequently about the journey rather
+    // than the walk: a page.goto that never loads, a session that closes
+    // under a device mid-test. Four consecutive builds of the same commit
+    // failed on three different rows in three different ways (rl-dv8), and
+    // a suite that cannot be run twice with the same answer is one nobody
+    // can read a regression out of.
+    //
+    // Two retries, and deliberately not more. A row that fails three times
+    // running is not the tunnel, and this must never become the setting
+    // that lets a real device failure through quietly — a retried pass is
+    // reported as flaky, and flaky is a thing to go and look at.
+    retries: 2,
     // browserstack.yml declares parallelsPerPlatform: 1, and each Playwright
     // worker opens its own remote session. Left to its default (half the
     // cores), a multi-core runner would quietly open two sessions per

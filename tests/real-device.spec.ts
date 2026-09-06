@@ -31,10 +31,9 @@ type Decoded = {
     /** Measured per channel, so silence and a downmix can be told apart. */
     levels: ChannelLevel[];
 };
-type DecodedPair = {
-    spatial: Decoded;
-    mono: Decoded;
-    /** Spatial channels that are a sample-for-sample copy of channel 0. */
+type DecodedFile = Decoded & {
+    /** Channels that are a sample-for-sample copy of channel 0. Zero for mono,
+     * which has no other channel to be a copy of anything. */
     copiesOfFirstChannel: number;
 };
 
@@ -108,8 +107,43 @@ test("opens on a real device and passes its own preflight", async () => {
      * And the same assertion passes under Playwright's own WebKit on the
      * iphone-13 profile — one canvas, 1170x1992 — so neither WebKit nor the
      * map library is implicated. What is left is this harness.
+     *
+     * THE ANSWER, from the first instrumented run (2026-09-06): the canvas
+     * was absent, not invisible, and the app was neither broken nor the
+     * harness at fault — the flow was. App.tsx mounts the map only after the
+     * welcome modal closes, and the modal closed only when unlockAudio()
+     * resolved truthy. Safari grants context.resume() only inside a gesture
+     * it recognises, and an automation click is not one; worse, the pending
+     * promise never settles, so Start hung forever — no map, no error, no
+     * skip button. The walk now races the unlock against a short timeout and
+     * offers the start-anyway escape on failure, which is the same path it
+     * already offered a walker whose unlock threw. This test takes that path
+     * the way a walker would: if the escape is up, press it and expect the
+     * map muted rather than no map at all.
      */
     const canvas = page.locator("canvas").first();
+    const startAnyway = page.getByTestId("skip-unlock");
+
+    await expect
+        .poll(
+            async () =>
+                (await canvas.count()) > 0 ||
+                (await startAnyway.isVisible().catch(() => false)),
+            {
+                // The same budget the attachment assertion below allows. A
+                // shorter one here would fail a mount that is merely slow on
+                // a real device — and fail it saying Start did nothing, which
+                // would be the wrong diagnosis for a map that was on its way.
+                timeout: 30_000,
+                message:
+                    "Start neither mounted the map nor offered the start-anyway escape.",
+            }
+        )
+        .toBe(true);
+
+    if ((await canvas.count()) === 0) {
+        await startAnyway.click();
+    }
 
     await expect(
         canvas,
@@ -209,14 +243,43 @@ test("decodes this device's real spatial file to eight channels", async () => {
     // workarounds that satisfy iOS return undefined on Android, which wants
     // the opposite shape. A plain no-argument function is the one form both
     // engines agree on, so what it needs is put where it can read it.
-    await page.goto(`/#decode=${encodeURIComponent(JSON.stringify({ spatialUrl, monoUrl }))}`);
 
-    const decoded = await page.evaluate(async (): Promise<DecodedPair> => {
-        const { spatialUrl, monoUrl } = JSON.parse(
-            decodeURIComponent(window.location.hash.replace(/^#decode=/, ""))
-        ) as { spatialUrl: string; monoUrl: string };
+    // Load the page once, properly. The tests in this file share one page,
+    // and a goto that changes only the fragment is a same-document
+    // navigation, so nothing reloads: the walk the test above left running
+    // would still be running under this one — map mounted, engine up, an
+    // AudioContext already held — and real iOS Safari will not hand out
+    // another to decode with. Four iPhone rows went red here the moment the
+    // canvas test started passing, and the same four were green when this
+    // test ran on its own (rl-dv8).
+    await page.goto(`/#decode=${encodeURIComponent(JSON.stringify({ url: spatialUrl }))}`);
+    await page.reload();
 
-        const decode = async (url: string) => {
+    // Then one file per script, on that same loaded page. BrowserStack's
+    // real-device driver gives an async script 30 seconds to return, and the
+    // two files together are ~10 MB to fetch and decode: asked as one script
+    // that was an iPhone 14 timing out at 30005 ms, and asked as two, each
+    // has the budget to itself.
+    //
+    // What is deliberately not here is a reload between the files. It was,
+    // and reloading a phone in the middle of decoding 9 MB into ~90 MB of
+    // PCM took a session down with "target closed" on an iPhone 13. The
+    // reload was only ever there to drop the previous AudioContext, and
+    // closing the context does that directly — see the end of the decode.
+    // A fresh browser context per file would say it better still and is not
+    // on offer: real iOS allows exactly one per session, as the note above
+    // the shared page explains.
+    const decodeOne = async (url: string): Promise<DecodedFile> => {
+        // The URL travels in the fragment, not in a page.evaluate argument —
+        // see the note above on what this driver does to arguments. This is a
+        // same-document navigation by design: the page is already loaded.
+        await page.goto(`/#decode=${encodeURIComponent(JSON.stringify({ url }))}`);
+
+        return page.evaluate(async (): Promise<DecodedFile> => {
+            const { url } = JSON.parse(
+                decodeURIComponent(window.location.hash.replace(/^#decode=/, ""))
+            ) as { url: string };
+
             const response = await fetch(url);
             if (!response.ok) throw new Error(`Failed to fetch ${url} (${response.status})`);
             const bytes = await response.arrayBuffer();
@@ -247,35 +310,35 @@ test("decodes this device's real spatial file to eight channels", async () => {
                 levels.push({ rms: Math.sqrt(sumOfSquares / taken.length), peak });
             }
 
+            // Everything wanted has been copied out of the buffer, so give the
+            // context back before the next file asks for one. This is what a
+            // phone is short of, and holding two while decoding the second is
+            // what put the iPhone rows on the floor in the first place.
+            await context.close();
+
+            // A browser that broadcasts one channel across eight reports eight
+            // channels and sounds like nothing in particular. Count the channels
+            // that are a copy of the first to tell that apart from real ambisonics.
+            // The samples stay in the page: only the count crosses back.
+            const first = samples[0] ?? [];
+            const copiesOfFirstChannel = samples
+                .slice(1)
+                .filter((channel) => channel.every((value, index) => value === first[index]))
+                .length;
+
             return {
-                summary: {
-                    channels: buffer.numberOfChannels,
-                    sampleRate: buffer.sampleRate,
-                    seconds: Math.round(buffer.duration),
-                },
+                channels: buffer.numberOfChannels,
+                sampleRate: buffer.sampleRate,
+                seconds: Math.round(buffer.duration),
                 levels,
-                samples,
+                copiesOfFirstChannel,
             };
-        };
+        });
+    };
 
-        const spatial = await decode(spatialUrl);
-        const mono = await decode(monoUrl);
-
-        // A browser that broadcasts one channel across eight reports eight
-        // channels and sounds like nothing in particular. Count the channels
-        // that are a copy of the first to tell that apart from real ambisonics.
-        const first = spatial.samples[0] ?? [];
-        const copiesOfFirstChannel = spatial.samples
-            .slice(1)
-            .filter((channel) => channel.every((value, index) => value === first[index]))
-            .length;
-
-        return {
-            spatial: { ...spatial.summary, levels: spatial.levels },
-            mono: { ...mono.summary, levels: mono.levels },
-            copiesOfFirstChannel,
-        };
-    });
+    const spatial = await decodeOne(spatialUrl);
+    const mono = await decodeOne(monoUrl);
+    const decoded = { spatial, mono, copiesOfFirstChannel: spatial.copiesOfFirstChannel };
 
     expect(decoded.spatial.channels).toBe(8);
     expect(decoded.mono.channels).toBe(1);
