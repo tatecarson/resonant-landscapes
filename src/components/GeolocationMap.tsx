@@ -36,7 +36,6 @@ import {
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import { useReduceVisuals } from "../hooks/useReduceVisuals";
 import { markParkHeard, useHeardParks } from "../hooks/heardParks";
-import NearestParkChip from "./NearestParkChip";
 import InstallHint from "./InstallHint";
 import { getVariantCenter } from "../utils/scaledParks";
 import { debugLog, isDebugEnabled } from "../config/debug";
@@ -610,27 +609,27 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
               * without it.
               */}
             {/*
-              * One stack owns the bottom of the display, so its two cards can
-              * never overlap each other and the safe-area padding is written
-              * once. Both stand down for the field guide: they are fixed
-              * elements in ordinary DOM and the guide is a Dialog inside a
-              * relative z-10 context, so anything left here paints over its
-              * close button (rl-1u7.15).
+              * One stack owns the bottom of the display, so the safe-area
+              * padding is written once and anything added here cannot overlap
+              * what is already in it. It stands down for the field guide:
+              * these are fixed elements in ordinary DOM and the guide is a
+              * Dialog inside a relative z-10 context, so anything left here
+              * paints over its close button (rl-1u7.15).
               *
-              * The install offer sits above the chip rather than replacing
-              * it. Suppressing the chip while the offer was up cost the
-              * walker their only sense of where to go next at exactly the
-              * moment they had heard a park and were choosing the next one,
-              * which is the wrong thing to trade for a prompt.
+              * The nearest-park chip used to sit under the install offer, and
+              * the note here used to explain why the offer never replaced it:
+              * the chip was the walker's only sense of where to go next. It
+              * is gone now (rl-2l3) — a name, a distance and a compass point,
+              * permanently on screen, is a readout to follow rather than a
+              * campus to wander. What it was answering has not gone away,
+              * though, and the note it left behind is worth keeping: outside
+              * prefetch range the map is a dot on empty ground, and that is
+              * the state a walk spends most of its time in and the state in
+              * which someone gives up and goes home. Whatever answers it now
+              * has to answer it without words.
               */}
             <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-center gap-2 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                 <InstallHint active={!parkName && !helpIsOpen} />
-                <NearestParkChip
-                    userLonLat={userLonLat}
-                    parks={parkFeatures}
-                    heardParks={heardParks}
-                    active={!parkName && !helpIsOpen}
-                />
             </div>
 
             {debug && (

@@ -1,14 +1,20 @@
 /**
  * What is allowed to sit on top of what.
  *
- * The nearest-park chip is a fixed element in ordinary DOM; the Help modal is
- * a Headless UI Dialog inside a relative z-10 stacking context. So the chip
- * painted over the whole modal, including its close button, and a walker who
- * opened the field guide could not get out of it by pressing Close.
+ * The bug this was written for: the nearest-park chip was a fixed element in
+ * ordinary DOM, and the Help modal is a Headless UI Dialog inside a relative
+ * z-10 stacking context, so the chip painted over the whole modal — including
+ * its close button — and a walker who opened the field guide could not get out
+ * of it by pressing Close.
  *
  * The park strip had already solved this: ParkModal takes helpIsOpen and goes
  * inert. Nothing tested that, which is why the chip could repeat the mistake
- * without anything noticing. Both halves are asserted here.
+ * without anything noticing.
+ *
+ * The chip itself is gone (rl-2l3) and the install offer inherited its slot,
+ * which is exactly why these assertions outlived it: the invariant was never
+ * about the chip, it is about anything that floats over the map while a modal
+ * is open. Whatever lands in that stack next is what this file is for.
  */
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";
@@ -95,7 +101,11 @@ test("no overlay's box reaches the field guide's close button", async ({ context
     await page.goto(mapPath);
     await dismissWelcomeModal(page);
     await dwellAt(context, page, WELL_OUTSIDE, 1_500);
-    await expect(page.getByTestId("nearest-park-chip")).toBeVisible();
+    // The chip used to stand here as the thing that floats over the map
+    // (rl-2l3 removed it). The map itself is the honest precondition: the
+    // invariant below is about anything that floats, and the loop names what
+    // can.
+    await expect(page.locator("canvas").first()).toBeVisible();
 
     await openHelp(page);
     await scrollGuideToEnd(page);
@@ -103,7 +113,7 @@ test("no overlay's box reaches the field guide's close button", async ({ context
     const close = await closeButton(page).boundingBox();
     expect(close, "the close button is not on screen to be covered").not.toBeNull();
 
-    for (const testId of ["nearest-park-chip", "offline-notice"]) {
+    for (const testId of ["install-hint", "offline-notice"]) {
         const overlay = page.getByTestId(testId);
         if ((await overlay.count()) === 0) continue;
 
@@ -135,22 +145,6 @@ test("the park strip does not swallow the field guide's controls either", async 
     await closeButton(page).click();
 
     await expect(closeButton(page)).toHaveCount(0, { timeout: 10_000 });
-});
-
-test("the chip comes back once the field guide is closed", async ({ context, page }) => {
-    // Standing down has to be temporary. A chip that stayed hidden after the
-    // walker closed the guide would cost them the only thing telling them
-    // where to go next.
-    await page.goto(mapPath);
-    await dismissWelcomeModal(page);
-    await dwellAt(context, page, WELL_OUTSIDE, 1_500);
-    await expect(page.getByTestId("nearest-park-chip")).toBeVisible();
-
-    await openHelp(page);
-    await expect(page.getByTestId("nearest-park-chip")).toHaveCount(0);
-
-    await closeButton(page).click();
-    await expect(page.getByTestId("nearest-park-chip")).toBeVisible({ timeout: 10_000 });
 });
 
 /**
@@ -195,7 +189,8 @@ test.describe("the install offer", () => {
         await dwellAt(context, page, WELL_OUTSIDE, 1_500);
 
         await expect(page.getByTestId("install-hint")).toHaveCount(0);
-        await expect(page.getByTestId("nearest-park-chip")).toBeVisible();
+        // A control, so that an absent offer is not simply an absent map.
+        await expect(page.locator("canvas").first()).toBeVisible();
     });
 
     test("is offered after a park has been heard, and only until it is answered", async ({
@@ -217,27 +212,29 @@ test.describe("the install offer", () => {
         await expect(hint).toBeVisible({ timeout: 10_000 });
 
         /*
-         * The chip stays. An earlier version of this gave the offer the whole
-         * bottom slot and suppressed the chip, which took away the walker's
-         * only sense of where to go next at exactly the moment they had heard
-         * a park and were choosing the next one. Two wayfinding specs caught
-         * it. They share a stack now, and the assertion is that both are on
-         * screen and neither is sitting on the other.
+         * This used to assert that the offer and the nearest-park chip shared
+         * the bottom stack without sitting on each other. An earlier version
+         * gave the offer the whole slot and suppressed the chip, which took
+         * away the walker's only sense of where to go next at exactly the
+         * moment they had heard a park and were choosing the next one; two
+         * wayfinding specs caught it.
+         *
+         * The chip is gone (rl-2l3), so the offer has the stack to itself and
+         * there is no sibling left to overlap. What still needs asserting is
+         * the other half of what that stack does: keeping the offer inside
+         * the viewport rather than under the home indicator, which is what
+         * its safe-area padding is for and which no other test covers.
          */
-        const chip = page.getByTestId("nearest-park-chip");
-        await expect(chip).toBeVisible();
-
         const hintBox = await hint.boundingBox();
-        const chipBox = await chip.boundingBox();
-        expect(hintBox && chipBox).toBeTruthy();
+        const viewport = page.viewportSize();
+        expect(hintBox && viewport).toBeTruthy();
         expect(
-            hintBox!.y + hintBox!.height <= chipBox!.y + 1,
-            "the install offer and the chip are overlapping"
+            hintBox!.y + hintBox!.height <= viewport!.height,
+            "the install offer runs off the bottom of the screen"
         ).toBe(true);
 
         await hint.getByRole("button", { name: /not now/i }).click();
         await expect(hint).toHaveCount(0);
-        await expect(chip).toBeVisible();
 
         /*
          * Answered once, and answered for good. The park has to be heard
@@ -256,7 +253,9 @@ test.describe("the install offer", () => {
             .toBe(true);
         await dwellAt(context, page, WELL_OUTSIDE, 4_000);
 
-        await expect(page.getByTestId("nearest-park-chip")).toBeVisible({ timeout: 10_000 });
+        // The map, as the control: the offer being absent has to mean it was
+        // refused for good, not that nothing came up at all.
+        await expect(page.locator("canvas").first()).toBeVisible({ timeout: 10_000 });
         await expect(page.getByTestId("install-hint")).toHaveCount(0);
     });
 
@@ -298,7 +297,7 @@ test.describe("the install offer", () => {
         await expect(page.getByTestId("install-hint")).toBeVisible({ timeout: 10_000 });
     });
 
-    test("stands down for the field guide, as the chip does", async ({ context, page }) => {
+    test("stands down for the field guide, and comes back", async ({ context, page }) => {
         await page.goto(mapPath);
         await dismissWelcomeModal(page);
         await dwellAt(context, page, AT_CENTRE, 2_000);

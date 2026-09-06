@@ -34,9 +34,20 @@ const hold = (page: Page) => (HOLD_MS ? page.waitForTimeout(HOLD_MS) : Promise.r
 // page.reload() keeps the query, so the reload test stays on the debug path.
 const mapPath = "/?debug";
 
-const chip = (page: Page) => page.getByTestId("nearest-park-chip");
-const nearestLine = (page: Page) => page.getByTestId("nearest-park-line");
-const heardCount = (page: Page) => page.getByTestId("heard-count");
+// The chip that carried "1 of 13 heard" is gone (rl-2l3), so the count is no
+// longer on screen to assert against. What it was reporting has not gone
+// anywhere: heardParks is the record of what actually played, it is what the
+// map draws its markers from, and it is the thing these tests were always
+// really about. Read it where it lives rather than through a UI that no
+// longer exists.
+const heardParks = (page: Page) =>
+    page.evaluate(() => {
+        try {
+            return JSON.parse(window.localStorage.getItem("heardParks") ?? "[]") as string[];
+        } catch {
+            return [] as string[];
+        }
+    });
 
 const isPlaying = (page: Page) =>
     page.evaluate(() => window.__audioDebug?.isPlaying ?? false);
@@ -62,44 +73,11 @@ test.beforeEach(async ({ page, context, baseURL }) => {
     await seedOrientationPermission(page);
 });
 
-test("tells a walker with no park in range where the nearest one is", async ({ context, page }) => {
-    await page.goto(mapPath);
-    await dismissWelcomeModal(page);
-    await dwellAt(context, page, WELL_OUTSIDE, 1_500);
-
-    await expect(chip(page)).toBeVisible();
-    // Name, a distance in metres, and one of the eight compass points.
-    await expect(nearestLine(page)).toHaveText(
-        /^.+ · \d+ m (NE|NW|SE|SW|N|E|S|W)$/i
-    );
-    await expect(heardCount(page)).toHaveText(/^\d+ of \d+ heard$/i);
-
-    // The visible line abbreviates the compass point, which a screen reader
-    // would spell out letter by letter.
-    await expect(nearestLine(page)).toHaveAttribute(
-        "aria-label",
-        /^Nearest park: .+, \d+ metres to the (north|south|east|west)( (east|west))?$/i
-    );
-});
-
-test("stands down while the walker is standing in a park", async ({ context, page }) => {
-    // The chip and the park strip share the bottom of the display, and
-    // someone standing in a park does not need directions to the nearest one.
-    await page.goto(mapPath);
-    await dismissWelcomeModal(page);
-    await dwellAt(context, page, WELL_OUTSIDE, 1_500);
-    await expect(chip(page)).toBeVisible();
-
-    await dwellAt(context, page, AT_CENTRE, 2_000);
-
-    await expect(chip(page)).toHaveCount(0);
-});
-
 test("counts a park as heard once its audio has actually played", async ({ context, page }) => {
     await page.goto(mapPath);
     await dismissWelcomeModal(page);
     await dwellAt(context, page, WELL_OUTSIDE, 1_500);
-    await expect(heardCount(page)).toHaveText(/^0 of \d+ heard$/);
+    expect(await heardParks(page)).toEqual([]);
     await hold(page);
 
     await dwellAt(context, page, AT_CENTRE, 2_000);
@@ -110,8 +88,12 @@ test("counts a park as heard once its audio has actually played", async ({ conte
 
     await dwellAt(context, page, WELL_OUTSIDE, 4_000);
 
-    await expect(chip(page)).toBeVisible();
-    await expect(heardCount(page)).toHaveText(/^1 of \d+ heard$/);
+    await expect
+        .poll(async () => (await heardParks(page)).length, {
+            timeout: 10_000,
+            message: "the park that played was never recorded as heard",
+        })
+        .toBe(1);
     await hold(page);
 });
 
@@ -129,7 +111,7 @@ test("remembers what was heard across a reload", async ({ context, page }) => {
     await dismissWelcomeModal(page);
     await dwellAt(context, page, WELL_OUTSIDE, 2_000);
 
-    await expect(heardCount(page)).toHaveText(/^1 of \d+ heard$/);
+    expect(await heardParks(page)).toHaveLength(1);
 });
 
 test("swaps the park marker without OpenLayers refusing the new icon", async ({ context, page }) => {
@@ -157,25 +139,4 @@ test("swaps the park marker without OpenLayers refusing the new icon", async ({ 
     await dwellAt(context, page, WELL_OUTSIDE, 3_000);
 
     expect(warnings, "the heard marker was rejected and the old icon stayed").toEqual([]);
-});
-
-test.describe("on the narrowest phone in the support matrix", () => {
-    test.use({ viewport: { width: 320, height: 568 } });
-
-    test("truncates the park name and keeps the distance and bearing", async ({ context, page }) => {
-        /*
-         * The name and the metrics were one string, under one truncate. The
-         * longest park here, "Fort Sisseton Historic State Park", is 33
-         * characters and overflows 320 px on its own, so the end of the line
-         * was the first thing cut, and the end of the line is the distance
-         * and the bearing. Losing the tail of a name a walker can already see
-         * on the map costs nothing; losing the two numbers they set off on
-         * costs them the chip.
-         */
-        await page.goto(mapPath);
-        await dismissWelcomeModal(page);
-        await dwellAt(context, page, WELL_OUTSIDE, 1_500);
-
-        await expect(nearestLine(page)).toContainText(/\d+ m (NE|NW|SE|SW|N|E|S|W)$/i);
-    });
 });
