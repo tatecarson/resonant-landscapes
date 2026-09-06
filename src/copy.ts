@@ -60,6 +60,15 @@ export const welcome = {
     /** Shown instead of Start when something essential is missing. */
     startAnyway: "Start anyway",
     /**
+     * Start, while the press is being answered. The walk downloads its audio
+     * engine during the welcome screen, and on the signal a walker actually
+     * has at a park that can take seconds — during which an unlabelled Start
+     * reads as a button that did not register the tap (rl-7om). Present tense
+     * and the walk's own noun, not "Loading": what is happening is the thing
+     * they asked for, already underway.
+     */
+    starting: "Starting the walk…",
+    /**
      * The way out after Start has failed. The welcome screen cannot be
      * dismissed by tapping beside it, because that only ever happened by
      * accident and left the walker on a map with no sound and nothing saying
