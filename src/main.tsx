@@ -1,7 +1,14 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import { initGoatCounter } from "./analytics/goatcounter";
 import "./index.css";
+
+// Visitor counting, off unless the build carries a GoatCounter site code
+// (rl-lfk). Here rather than in a component so the visit is counted from the
+// page's first moments, before anything lazy loads — and so no render can
+// skip it.
+initGoatCounter();
 
 // The webfont stylesheet is fetched with media="print" so it stays off the
 // critical path, and applying it is this line's job. index.html did it with an
