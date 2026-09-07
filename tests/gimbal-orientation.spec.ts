@@ -198,7 +198,7 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   await context.setGeolocation(HARTFORD_BEACH_CENTER);
 
   // Wait for the compact park strip
-  const parkStrip = page.locator("p.font-cormorant", { hasText: "Hartford Beach State Park" });
+  const parkStrip = page.locator("p.font-display", { hasText: "Hartford Beach State Park" });
   await expect(parkStrip).toBeVisible({ timeout: 20_000 });
   console.log("[test] Hartford Beach State Park strip open");
 
@@ -329,7 +329,7 @@ test("shows the rotation affordance before tracking is enabled at center", async
   await expect(mapCanvas).toBeVisible({ timeout: 15_000 });
   await context.setGeolocation(HARTFORD_BEACH_CENTER);
 
-  await expect(page.locator("p.font-cormorant", { hasText: "Hartford Beach State Park" })).toBeVisible({
+  await expect(page.locator("p.font-display", { hasText: "Hartford Beach State Park" })).toBeVisible({
     timeout: 20_000,
   });
 
@@ -398,7 +398,7 @@ test("rotation tracking stops after leaving the center radius", async ({
   await expect(mapCanvas).toBeVisible({ timeout: 15_000 });
   await context.setGeolocation(HARTFORD_BEACH_CENTER);
 
-  await expect(page.locator("p.font-cormorant", { hasText: "Hartford Beach State Park" })).toBeVisible({
+  await expect(page.locator("p.font-display", { hasText: "Hartford Beach State Park" })).toBeVisible({
     timeout: 20_000,
   });
 

@@ -38,7 +38,7 @@ body {
 }
 
 .example-overlay {
-    font-family: "Space Mono", monospace;
+    font-family: "IBM Plex Mono", monospace;
     user-select: none;
     pointer-events: none;
     position: absolute;
@@ -103,7 +103,7 @@ body {
 }
 
 .map-help-button__glyph {
-    font-family: "Space Mono", monospace;
+    font-family: "IBM Plex Mono", monospace;
     font-size: 0.95rem;
     font-weight: 700;
     color: inherit;
@@ -413,7 +413,7 @@ body {
     border-radius: 999px;
     background: rgb(var(--rl-ink-rgb) / 0.92);
     color: var(--rl-on-ink);
-    font-family: "Space Mono", monospace;
+    font-family: "IBM Plex Mono", monospace;
     font-size: 11px;
     letter-spacing: 0.18em;
     text-transform: uppercase;

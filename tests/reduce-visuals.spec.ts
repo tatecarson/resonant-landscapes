@@ -212,7 +212,7 @@ test("calming the visuals stops the rays inside a park too", async ({ context, p
     await walkIntoParkUntilGradient(context, page);
 
     // The strip is proof the rays are the layer drawing, not the rings.
-    await expect(page.locator("p.font-cormorant").first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator("p.font-display").first()).toBeVisible({ timeout: 30_000 });
     await hold(page);
 
     const whileAnimating = await countArcsOver(page, 2_000);

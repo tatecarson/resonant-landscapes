@@ -65,9 +65,9 @@ async function pollNeverTrue(page: Page, durationMs: number): Promise<void> {
 }
 
 async function parkStripIsVisible(page: Page): Promise<boolean> {
-    // The compact strip shows the park name in a font-cormorant paragraph
+    // The compact strip shows the park name in a font-display paragraph
     // inside a fixed bottom-0 container. Check for the park name text.
-    const strip = page.locator("p.font-cormorant", { hasText: PARK_NAME });
+    const strip = page.locator("p.font-display", { hasText: PARK_NAME });
     return (await strip.count()) > 0 && (await strip.isVisible());
 }
 

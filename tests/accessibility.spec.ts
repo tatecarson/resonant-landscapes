@@ -118,7 +118,7 @@ test("entering a park is announced to screen readers", async ({ page, context })
   // The map is lazy-loaded, so its geolocation watch registers after Start.
   // WebKit only emits on change and does not replay an earlier fix, so nudge
   // the position repeatedly the way a real device pushes updates.
-  const strip = page.locator("p.font-cormorant").first();
+  const strip = page.locator("p.font-display").first();
   await expect(async () => {
     await context.setGeolocation({
       latitude: 44.01308 + Math.random() * 1e-5,
@@ -141,7 +141,7 @@ test("entering a park is announced to screen readers", async ({ page, context })
  * the app interpolates over a position history and a single fix never renders.
  */
 async function walkIntoPark(page: Page, context: import("@playwright/test").BrowserContext) {
-  const strip = page.locator("p.font-cormorant").first();
+  const strip = page.locator("p.font-display").first();
   await expect(async () => {
     await context.setGeolocation({
       latitude: 44.01308 + Math.random() * 1e-5,

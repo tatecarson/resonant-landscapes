@@ -119,7 +119,7 @@ test("replays a walking path with matched device orientation and updates the act
           return "Hartford Beach State Park";
         }
 
-        const compactLabel = page.locator("p.font-cormorant", { hasText: "Hartford Beach State Park" });
+        const compactLabel = page.locator("p.font-display", { hasText: "Hartford Beach State Park" });
         return (await compactLabel.count()) > 0 ? "Hartford Beach State Park" : "";
       },
       { timeout: 15_000, intervals: [500] }
@@ -170,7 +170,7 @@ test("replays a walking path with matched device orientation and updates the act
               return "Sica Hollow State Park";
             }
 
-            const compactLabel = page.locator("p.font-cormorant", { hasText: "Sica Hollow State Park" });
+            const compactLabel = page.locator("p.font-display", { hasText: "Sica Hollow State Park" });
             return (await compactLabel.count()) > 0 ? "Sica Hollow State Park" : "";
           },
           { timeout: 15_000, intervals: [500] }

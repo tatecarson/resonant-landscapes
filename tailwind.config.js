@@ -46,8 +46,8 @@ export default {
         console: `0 18px 45px rgb(${channels(palette.ink)} / 0.16)`,
       },
       fontFamily: {
-        'cormorant': ['"Cormorant Garamond"', 'Georgia', 'serif'],
-        'space-mono': ['"Space Mono"', 'monospace'],
+        'display': ['"Instrument Sans"', 'system-ui', 'sans-serif'],
+        'mono': ['"IBM Plex Mono"', 'monospace'],
       },
     },
   },
