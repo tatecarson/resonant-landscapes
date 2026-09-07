@@ -88,7 +88,7 @@ function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }:
                             leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                             leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                         >
-                            <Dialog.Panel className="relative w-full rounded-2xl bg-panel p-8 shadow-2xl sm:my-8 sm:max-w-md">
+                            <Dialog.Panel className="modal-panel relative flex w-full flex-col overflow-y-auto overscroll-contain rounded-2xl bg-panel px-8 pt-8 shadow-2xl sm:my-8 sm:max-w-md">
                                 {/* decorative top rule */}
                                 <div className="mb-6 flex items-center gap-3">
                                     <div className="h-px flex-1 bg-ink/25" />
@@ -301,7 +301,10 @@ function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }:
                                     </p>
                                 </div>
 
-                                <div className="mt-8">
+                                {/* Pinned the same way the welcome modal's START is, and for the
+                                  * same measured reason (rl-uo5): this panel is the taller of the
+                                  * two, so Close is further off the bottom of the screen. */}
+                                <div className="sticky bottom-0 -mx-8 mt-8 bg-panel px-8 pb-[max(2rem,env(safe-area-inset-bottom))] pt-4">
                                     <button
                                         type="button"
                                         className="w-full rounded-full bg-ink px-6 py-3 font-mono text-xs tracking-widest uppercase text-white transition-colors hover:bg-edge"
