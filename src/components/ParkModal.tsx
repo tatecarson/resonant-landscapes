@@ -195,12 +195,12 @@ function ParkModal({
 
                         {/* Park identity */}
                         <div className="flex items-start justify-between gap-3">
-                            <p className="font-cormorant italic text-[22px] leading-tight font-light text-ink min-w-0 truncate">
+                            <p className="font-display text-[22px] leading-tight font-medium text-ink min-w-0 truncate">
                                 {parkName}
                             </p>
                             {rotationActive && (
                                 <span
-                                    className="mt-1 flex-shrink-0 font-space-mono text-[8px] uppercase tracking-[0.2em] text-ink/70"
+                                    className="mt-1 flex-shrink-0 font-mono text-[8px] uppercase tracking-[0.2em] text-ink/70"
                                     aria-label={parkCopy.trackingAriaLabel}
                                 >
                                     {parkCopy.tracking}
@@ -212,7 +212,7 @@ function ParkModal({
                             {isPlaying && (
                                 <span className="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-ink/60 animate-pulse" aria-hidden="true" />
                             )}
-                            <p className="font-space-mono text-[9px] uppercase tracking-[0.18em] text-ink/70">
+                            <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink/70">
                                 {Math.floor(parkDistance)} m away
                                 {variant && variant.total > 1
                                     ? ` · ${parkCopy.recordingOf(variant.number, variant.total)}`
@@ -256,7 +256,7 @@ function ParkModal({
                                             setRotationDismissed(true);
                                             setRotationActive(false);
                                         }}
-                                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-panel rounded-full inline-flex min-h-[44px] items-center px-1 font-space-mono text-[9px] uppercase tracking-[0.18em] text-ink/70 transition-colors hover:text-ink"
+                                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-panel rounded-full inline-flex min-h-[44px] items-center px-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink/70 transition-colors hover:text-ink"
                                     >
                                         {parkCopy.stopTracking}
                                     </button>
@@ -272,7 +272,7 @@ function ParkModal({
                                 {!rotationActive && showRotationButton && !rotationBlocked && (
                                     <button
                                         onClick={() => { void enableRotation(); }}
-                                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-panel rotation-affordance inline-flex min-h-[44px] items-center rounded-full px-2.5 py-1 font-space-mono text-[9px] uppercase tracking-[0.18em] text-ink/70 underline underline-offset-2 decoration-ink/40 transition-colors hover:text-ink"
+                                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-panel rotation-affordance inline-flex min-h-[44px] items-center rounded-full px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink/70 underline underline-offset-2 decoration-ink/40 transition-colors hover:text-ink"
                                     >
                                         {parkCopy.enableRotation}
                                     </button>
@@ -281,7 +281,7 @@ function ParkModal({
                                     taken the button's place, so the row keeps
                                     its balance instead of going half empty. */}
                                 {!rotationActive && (!showRotationButton || rotationBlocked) && (
-                                    <span className="font-space-mono text-[9px] uppercase tracking-[0.18em] text-ink/25 select-none">
+                                    <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink/25 select-none">
                                         ✦
                                     </span>
                                 )}

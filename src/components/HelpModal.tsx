@@ -92,21 +92,21 @@ function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }:
                                 {/* decorative top rule */}
                                 <div className="mb-6 flex items-center gap-3">
                                     <div className="h-px flex-1 bg-ink/25" />
-                                    <span className="text-xs text-ink/40 font-space-mono tracking-widest">✦</span>
+                                    <span className="text-xs text-ink/40 font-mono tracking-widest">✦</span>
                                     <div className="h-px flex-1 bg-ink/25" />
                                 </div>
 
                                 <Dialog.Title
                                     as="h2"
-                                    className="font-cormorant text-5xl italic font-light tracking-tight text-ink mb-1"
+                                    className="font-display text-5xl font-medium tracking-tight text-ink mb-1"
                                 >
                                     {help.title}
                                 </Dialog.Title>
-                                <p className="font-space-mono text-[10px] tracking-widest uppercase text-ink/70 mb-7">
+                                <p className="font-mono text-[10px] tracking-widest uppercase text-ink/70 mb-7">
                                     {help.subtitle}
                                 </p>
 
-                                <ul className="font-space-mono space-y-3 text-[12px] leading-relaxed text-ink/75">
+                                <ul className="font-mono space-y-3 text-[12px] leading-relaxed text-ink/75">
                                     {help.tips.map((tip) => (
                                         <li key={tip} className="flex gap-3">
                                             <span className="select-none text-ink/40">—</span>
@@ -130,10 +130,10 @@ function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }:
                                 <div className="mt-6 rounded-2xl border border-ink/15 bg-white/20 p-4">
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
-                                            <p className="font-space-mono text-[11px] font-semibold uppercase tracking-wider text-ink">
+                                            <p className="font-mono text-[11px] font-semibold uppercase tracking-wider text-ink">
                                                 {help.keepAwake.title}
                                             </p>
-                                            <p className="mt-1 font-space-mono text-[10px] leading-relaxed text-ink/70">
+                                            <p className="mt-1 font-mono text-[10px] leading-relaxed text-ink/70">
                                                 {help.keepAwake.detail}
                                             </p>
                                         </div>
@@ -156,7 +156,7 @@ function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }:
                                             />
                                         </button>
                                     </div>
-                                    <p className="mt-2 font-space-mono text-[9px] uppercase tracking-wider text-ink/55" aria-live="polite">
+                                    <p className="mt-2 font-mono text-[9px] uppercase tracking-wider text-ink/55" aria-live="polite">
                                         {!wakeLockSupported
                                             ? help.keepAwake.unsupported
                                             : wakeLockError
@@ -178,10 +178,10 @@ function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }:
                                 <div className="mt-4 rounded-2xl border border-ink/15 bg-white/20 p-4">
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
-                                            <p className="font-space-mono text-[11px] font-semibold uppercase tracking-wider text-ink">
+                                            <p className="font-mono text-[11px] font-semibold uppercase tracking-wider text-ink">
                                                 {help.reduceVisuals.title}
                                             </p>
-                                            <p className="mt-1 font-space-mono text-[10px] leading-relaxed text-ink/70">
+                                            <p className="mt-1 font-mono text-[10px] leading-relaxed text-ink/70">
                                                 {help.reduceVisuals.detail}
                                             </p>
                                         </div>
@@ -211,7 +211,7 @@ function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }:
                                       * control looks untouched while the phone
                                       * is quietly deciding.
                                       */}
-                                    <p className="mt-2 font-space-mono text-[9px] uppercase tracking-wider text-ink/55" aria-live="polite">
+                                    <p className="mt-2 font-mono text-[9px] uppercase tracking-wider text-ink/55" aria-live="polite">
                                         {followingSystem
                                             ? help.reduceVisuals.followingSystem
                                             : reduceVisuals
@@ -244,10 +244,10 @@ function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }:
                                   * come back this session.
                                   */}
                                 <div className="mt-6 rounded-2xl bg-white/25 p-4" data-testid="help-install">
-                                    <p className="font-space-mono text-[11px] uppercase tracking-[0.16em] text-ink/85">
+                                    <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink/85">
                                         {installCopy.helpTitle}
                                     </p>
-                                    <p className="mt-2 font-space-mono text-[12px] leading-relaxed text-ink/75">
+                                    <p className="mt-2 font-mono text-[12px] leading-relaxed text-ink/75">
                                         {prose}
                                     </p>
                                     {install && (
@@ -257,7 +257,7 @@ function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }:
                                                 countEvent("install-prompt");
                                                 void install();
                                             }}
-                                            className="mt-3 inline-flex min-h-[44px] items-center rounded-full bg-ink px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-edge"
+                                            className="mt-3 inline-flex min-h-[44px] items-center rounded-full bg-ink px-4 py-2 font-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-edge"
                                         >
                                             {installCopy.action}
                                         </button>
@@ -266,14 +266,14 @@ function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }:
 
                                 <div className="mt-8 mb-6 flex items-center gap-3">
                                     <div className="h-px flex-1 bg-ink/25" />
-                                    <span className="text-xs text-ink/40 font-space-mono tracking-widest">✦</span>
+                                    <span className="text-xs text-ink/40 font-mono tracking-widest">✦</span>
                                     <div className="h-px flex-1 bg-ink/25" />
                                 </div>
 
-                                <p className="font-space-mono text-[10px] tracking-widest uppercase text-ink/70 mb-3">
+                                <p className="font-mono text-[10px] tracking-widest uppercase text-ink/70 mb-3">
                                     {help.aboutLabel}
                                 </p>
-                                <div className="font-space-mono space-y-3 text-[12px] leading-relaxed text-ink/75">
+                                <div className="font-mono space-y-3 text-[12px] leading-relaxed text-ink/75">
                                     <p>
                                         {help.credits}
                                     </p>
@@ -304,7 +304,7 @@ function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }:
                                 <div className="mt-8">
                                     <button
                                         type="button"
-                                        className="w-full rounded-full bg-ink px-6 py-3 font-space-mono text-xs tracking-widest uppercase text-white transition-colors hover:bg-edge"
+                                        className="w-full rounded-full bg-ink px-6 py-3 font-mono text-xs tracking-widest uppercase text-white transition-colors hover:bg-edge"
                                         onClick={() => setIsOpen(false)}
                                         ref={cancelButtonRef}
                                     >

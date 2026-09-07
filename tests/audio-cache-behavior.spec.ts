@@ -161,7 +161,7 @@ test("audio stops when the walker leaves the park", async ({
   };
 
   await settle(44.01308, -97.11062);
-  await expect(page.locator("p.font-cormorant").first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("p.font-display").first()).toBeVisible({ timeout: 30_000 });
   await expect
     .poll(() => page.evaluate(() => window.__audioDebug?.isPlaying ?? false), { timeout: 30_000 })
     .toBe(true);

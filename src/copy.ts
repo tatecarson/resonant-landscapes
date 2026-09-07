@@ -357,7 +357,7 @@ export const install = {
      * with no way to accept it.
      *
      * "The browser menu" rather than the three-dot glyph: this copy renders
-     * in Space Mono, whose charset does not carry U+22EE, so the character
+     * in IBM Plex Mono, whose charset does not carry U+22EE, so the character
      * would fall out to another font or to tofu on the phones this is for.
      * The label named is Chrome's when a site is installable; when it is not,
      * the same menu offers Add to Home screen, which a walker already looking

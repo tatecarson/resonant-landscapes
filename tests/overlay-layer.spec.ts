@@ -140,7 +140,7 @@ test("the park strip does not swallow the field guide's controls either", async 
     await page.goto(mapPath);
     await dismissWelcomeModal(page);
     await dwellAt(context, page, AT_CENTRE, 2_000);
-    await expect(page.locator("p.font-cormorant").first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator("p.font-display").first()).toBeVisible({ timeout: 30_000 });
 
     await openHelp(page);
     await closeButton(page).click();

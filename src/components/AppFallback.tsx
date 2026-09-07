@@ -16,7 +16,7 @@ function AppFallback({ children }: { children: ReactNode }) {
             className="flex min-h-screen items-center justify-center bg-panel p-8"
             data-testid="app-fallback"
         >
-            <p className="max-w-xs text-center font-space-mono text-[12px] leading-relaxed text-ink/80">
+            <p className="max-w-xs text-center font-mono text-[12px] leading-relaxed text-ink/80">
                 {children}
             </p>
         </div>

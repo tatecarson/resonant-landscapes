@@ -7,11 +7,11 @@ export async function expectParkLabelVisible(page: Page, parkName: string) {
     return;
   }
 
-  const compactLabel = page.locator("p.font-cormorant", { hasText: parkName });
+  const compactLabel = page.locator("p.font-display", { hasText: parkName });
   await expect(compactLabel).toBeVisible({ timeout: 15_000 });
 }
 
 export async function expectAudioStatusVisible(page: Page, statusLabel: string) {
-  const status = page.locator("p.font-space-mono", { hasText: statusLabel });
+  const status = page.locator("p.font-mono", { hasText: statusLabel });
   await expect(status.first()).toBeVisible({ timeout: 15_000 });
 }

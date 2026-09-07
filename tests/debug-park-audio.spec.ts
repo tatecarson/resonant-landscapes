@@ -14,7 +14,7 @@ test('a direct debug visit can unlock during loading and play the audited record
         await route.continue();
     });
     await page.goto('/terrace/debug?debug&mock=43.552725,-96.741620&ntl-drawer-state=hidden', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('p.font-cormorant').filter({ hasText: /^Current Location Test$/ })).toBeVisible();
+    await expect(page.locator('p.font-display').filter({ hasText: /^Current Location Test$/ })).toBeVisible();
     try {
         await expect.poll(() => requested).toContain('Custer-State-1-002');
         await expect.poll(() => page.evaluate(() => window.__audioDebug?.isLoading)).toBe(true);

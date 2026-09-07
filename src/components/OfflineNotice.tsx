@@ -38,13 +38,13 @@ function OfflineNotice() {
         >
             <div className="max-w-sm rounded-2xl bg-panel px-4 py-2.5 text-center shadow-notice">
                 <p
-                    className="font-space-mono text-[11px] uppercase tracking-[0.16em] text-ink/85"
+                    className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink/85"
                     role="status"
                     aria-live="polite"
                 >
                     {connection.offline.title}
                 </p>
-                <p className="mt-1 font-space-mono text-[11px] leading-relaxed text-ink/70">
+                <p className="mt-1 font-mono text-[11px] leading-relaxed text-ink/70">
                     {connection.offline.detail}
                 </p>
             </div>

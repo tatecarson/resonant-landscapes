@@ -47,7 +47,7 @@ test("production build ignores ?mock= position spoofing", async ({ page }) => {
   await page.getByRole("button", { name: /^\s*start\s*$/i }).click();
   await page.waitForTimeout(3000);
 
-  await expect(page.locator("p.font-cormorant").first()).toHaveCount(0);
+  await expect(page.locator("p.font-display").first()).toHaveCount(0);
 });
 
 test("production build gates /debug, and ?debug still opens it", async ({ page }) => {

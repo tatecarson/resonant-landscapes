@@ -379,7 +379,7 @@ const HOARenderer = ({
 
                 {spatialDegradation && !activeError && (
                     <p
-                        className="w-full font-space-mono text-[10px] uppercase tracking-widest text-status-warning"
+                        className="w-full font-mono text-[10px] uppercase tracking-widest text-status-warning"
                         role="status"
                         data-testid="spatial-degraded-note"
                     >
@@ -413,7 +413,7 @@ const HOARenderer = ({
                   */}
                 {showSilenceHint && (
                     <p
-                        className="w-full font-space-mono text-[10px] uppercase tracking-widest text-ink/70"
+                        className="w-full font-mono text-[10px] uppercase tracking-widest text-ink/70"
                         data-testid="silence-hint"
                     >
                         {audioCopy.silence[platform]}
@@ -424,7 +424,7 @@ const HOARenderer = ({
                     <div className="flex flex-wrap items-center gap-2">
                         {showLoadingIndicator && (
                             <div
-                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-ink/15 bg-white/35 px-4 py-2 font-space-mono text-[10px] uppercase tracking-[0.18em] text-ink/70"
+                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-ink/15 bg-white/35 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink/70"
                                 aria-live="polite"
                             >
                                 <span
@@ -441,7 +441,7 @@ const HOARenderer = ({
                             <button
                                 onClick={onTogglePlayback}
                                 aria-label={audioCopy.stopAriaLabel}
-                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-ink px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-edge"
+                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-ink px-4 py-2 font-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-edge"
                             >
                                 <StopCircleIcon className="h-4 w-4" aria-hidden="true" />
                                 <span>{audioCopy.stop}</span>
@@ -452,7 +452,7 @@ const HOARenderer = ({
                             <button
                                 onClick={() => { void resumeInterruptedAudio(); }}
                                 aria-label={audioCopy.resumeAriaLabel}
-                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-ink px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-edge"
+                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-ink px-4 py-2 font-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-edge"
                             >
                                 <span>{audioCopy.resume}</span>
                             </button>
@@ -462,7 +462,7 @@ const HOARenderer = ({
                             <button
                                 onClick={onTogglePlayback}
                                 aria-label={audioCopy.startAriaLabel}
-                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-ink/30 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-ink transition-colors hover:border-ink hover:bg-white/30"
+                                className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-ink/30 px-4 py-2 font-mono text-xs uppercase tracking-widest text-ink transition-colors hover:border-ink hover:bg-white/30"
                             >
                                 <span>{audioCopy.start}</span>
                             </button>

@@ -118,7 +118,7 @@ const GimbalArrow = ({
                 <button
                     type="button"
                     onClick={requestPermission}
-                    className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-panel inline-flex min-h-[44px] items-center rounded-full border border-ink/30 px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-ink transition-colors hover:border-ink hover:bg-white/30"
+                    className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-panel inline-flex min-h-[44px] items-center rounded-full border border-ink/30 px-4 py-2 font-mono text-xs uppercase tracking-widest text-ink transition-colors hover:border-ink hover:bg-white/30"
                 >
                     {rotationCopy.allowAccess}
                 </button>

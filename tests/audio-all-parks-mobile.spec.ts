@@ -259,7 +259,7 @@ test("mobile audio loads and plays for every real park on the normal route", asy
     // The park name renders in the strip as a <p>. It was a heading before the
     // mobile-first redesign, so getByRole("heading") could never match and
     // this spec failed every park regardless of the code under test.
-    const heading = page.locator("p.font-cormorant").filter({ hasText: park.name }).first();
+    const heading = page.locator("p.font-display").filter({ hasText: park.name }).first();
     let loadStartedAt = 0;
     let playStartedAt = 0;
 
