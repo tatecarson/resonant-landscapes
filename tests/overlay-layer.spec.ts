@@ -260,6 +260,30 @@ test.describe("the install affordance", () => {
         await expect(line).toContainText(/add to home screen/i);
     });
 
+    test("tells a chromium phone where the menu item is until it is offered one", async ({
+        page,
+    }) => {
+        /*
+         * The state a Pixel is in for the first minute of a walk, and the one
+         * that had no wording of its own (rl-8x0). Chrome gates
+         * beforeinstallprompt on engagement and throttles it on repeat
+         * visits, so there is no button yet on a phone that installs
+         * perfectly well — and the promise on its own is an offer with no way
+         * to accept it. No event is dispatched here, which is exactly the
+         * condition being described.
+         */
+        await page.goto(mapPath);
+        await dismissWelcomeModal(page);
+        await openHelp(page);
+
+        const section = page.getByTestId("help-install");
+        await expect(section).toBeVisible();
+        await expect(section.getByRole("button", { name: /add it/i })).toHaveCount(0);
+        await expect(section).toContainText(/browser menu/i);
+        // Not the iPhone route, which is what this used to say here.
+        await expect(section).not.toContainText(/press share/i);
+    });
+
     test("can raise the real install prompt where the browser offers one", async ({ page }) => {
         /*
          * A synthetic beforeinstallprompt, because a headless browser fires
@@ -315,10 +339,14 @@ test.describe("the install affordance", () => {
 
         /*
          * And the prose does not change when it goes. Losing the button is
-         * how `install` becomes null, so wording keyed to that would flip to
-         * iPhone steps right here — in the open panel, for a walker who has
-         * just installed the walk from a button.
+         * how `install` becomes null, so wording keyed to that would flip
+         * right here — in the open panel, for a walker who has just installed
+         * the walk from a button. Both of the other two wordings would be
+         * wrong for them: the iPhone steps describe a phone they are not
+         * holding, and the menu item is for a browser that has not offered
+         * anything, which this one just did.
          */
-        await expect(section).not.toContainText(/add to home screen/i);
+        await expect(section).not.toContainText(/press share/i);
+        await expect(section).not.toContainText(/browser menu/i);
     });
 });

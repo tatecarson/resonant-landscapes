@@ -340,7 +340,9 @@ export const connection = {
  * job would read as instructions for a phone the walker is not holding, so
  * there the prose is just the promise. iOS Safari has no such API at all:
  * the only route is the walker doing it by hand, so there the prose has to
- * be the steps or it is not an offer.
+ * be the steps or it is not an offer. And Chromium before it has offered
+ * anything gets a third wording, because the promise alone is an offer with
+ * no way to accept it (rl-8x0).
  *
  * What it promises is what installing buys a walker: a full screen, not
  * having to find the link again, and now the real argument — recordings the
@@ -363,6 +365,22 @@ export const install = {
      */
     helpDetail:
         "The walk can live on your home screen. It opens full screen, with no browser bars over the map, and recordings you hear are saved to the phone so they play again where the signal is thin.",
+    /**
+     * Chromium, before it has offered a button. The event Chrome fires is
+     * gated on engagement and throttled on repeat visits, so a walker who
+     * opens the guide in the first minute is in this state on a phone that
+     * can install perfectly well — the promise on its own would be an offer
+     * with no way to accept it.
+     *
+     * "The browser menu" rather than the three-dot glyph: this copy renders
+     * in Space Mono, whose charset does not carry U+22EE, so the character
+     * would fall out to another font or to tofu on the phones this is for.
+     * The label named is Chrome's when a site is installable; when it is not,
+     * the same menu offers Add to Home screen, which a walker already looking
+     * at the menu will find.
+     */
+    helpDetailMenu:
+        "The walk can live on your home screen. Open the browser menu and choose Install app. It opens full screen, with no browser bars over the map, and recordings you hear are saved to the phone so they play again where the signal is thin.",
     /**
      * Where there is no button, the steps are the offer.
      */

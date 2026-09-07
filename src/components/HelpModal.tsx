@@ -13,11 +13,17 @@ interface HelpModalProps {
      * The install affordance, captured from the page's earliest moments and
      * handed down from the map, which is always mounted when this guide
      * could possibly be open (rl-5yp).
+     *
+     * All three fields, because the button and the prose ask different
+     * questions of it: the button wants to know whether it can install right
+     * now, and the prose wants to know what this phone is capable of at all.
      */
     install: InstallOffer["install"];
+    browserCanInstall: InstallOffer["browserCanInstall"];
+    installed: InstallOffer["installed"];
 }
 
-function HelpModal({ isOpen, setIsOpen, install }: HelpModalProps) {
+function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }: HelpModalProps) {
     /*
      * Copy only, which is what detectPlatform is for. iPadOS reports itself
      * as a Mac and gets the promise rather than the steps — the safe way
@@ -26,6 +32,25 @@ function HelpModal({ isOpen, setIsOpen, install }: HelpModalProps) {
      * no such sheet has not.
      */
     const installsByHand = detectPlatform(navigator.userAgent) === "ios";
+    /*
+     * Three states, because there are three answers to "how does this walker
+     * put the walk on their home screen".
+     *
+     * iOS does it by hand, always, and so gets the steps. Anywhere the
+     * browser installs on request the button is the answer and the prose is
+     * the promise alone — including after the button has been used, which is
+     * why this asks what the browser can do rather than whether an event is
+     * still unspent. What is left is Chromium that has not offered anything
+     * yet: the event is gated on engagement and throttled on repeat visits,
+     * so a walker who opens the guide in the first minute is here on a phone
+     * that installs perfectly well, and the promise on its own would be an
+     * offer with no way to accept it (rl-8x0).
+     */
+    const prose = installsByHand
+        ? installCopy.helpDetailManual
+        : browserCanInstall || installed
+          ? installCopy.helpDetail
+          : installCopy.helpDetailMenu;
     const cancelButtonRef = useRef(null);
     const { setKeepScreenAwake } = useAudioEngine();
     const {
@@ -199,23 +224,22 @@ function HelpModal({ isOpen, setIsOpen, install }: HelpModalProps) {
                                   * The popup over the map is gone by decision:
                                   * an interruption asking for something is the
                                   * opposite of a piece about wandering. The
-                                  * prose switches on the phone, not on the
-                                  * button (rl-8x0): the share-sheet steps are
-                                  * the offer on iOS, which has no install API
-                                  * and so never has a button, and they are
-                                  * instructions for a phone the walker is not
-                                  * holding anywhere else.
+                                  * prose is chosen above, by what this phone
+                                  * can actually do rather than by whether a
+                                  * button happens to be on screen (rl-8x0).
                                   *
                                   * Deliberately not `install ? … : …`. That is
                                   * null in more places than iOS — before
                                   * beforeinstallprompt fires, on browsers that
                                   * never fire it, when the walk is already
                                   * installed, and the moment after the button
-                                  * is used, which would flip the paragraph to
-                                  * iPhone steps under the eyes of someone who
-                                  * had just installed it from a button.
+                                  * is used, which would have flipped the
+                                  * paragraph under the eyes of someone who had
+                                  * just installed it from a button.
                                   *
-                                  * Either way, once used, the button does not
+                                  * The button itself does still key off
+                                  * `install`, which is the question it is
+                                  * actually asking: once used, it does not
                                   * come back this session.
                                   */}
                                 <div className="mt-6 rounded-2xl bg-white/25 p-4" data-testid="help-install">
@@ -223,7 +247,7 @@ function HelpModal({ isOpen, setIsOpen, install }: HelpModalProps) {
                                         {installCopy.helpTitle}
                                     </p>
                                     <p className="mt-2 font-space-mono text-[12px] leading-relaxed text-ink/75">
-                                        {installsByHand ? installCopy.helpDetailManual : installCopy.helpDetail}
+                                        {prose}
                                     </p>
                                     {install && (
                                         <button

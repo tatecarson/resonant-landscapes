@@ -25,6 +25,20 @@ export interface InstallOffer {
      * instructions and this stays null.
      */
     install: (() => Promise<void>) | null;
+    /**
+     * Whether this browser has offered to install at all this session, which
+     * is not the same question as whether it will right now.
+     *
+     * `install` goes null the moment the button is used, and the guide's
+     * prose must not read that as "this browser cannot install" — it would
+     * tell someone who had just installed the walk to go and find the menu
+     * item for it. This stays true once the event has been seen, so the copy
+     * can ask what the browser is capable of rather than what is available
+     * in this instant.
+     */
+    browserCanInstall: boolean;
+    /** Already on the home screen, so there is nothing left to offer. */
+    installed: boolean;
 }
 
 /**
@@ -49,6 +63,13 @@ export function useInstallHint(): InstallOffer {
      */
     const promptEventRef = useRef<BeforeInstallPromptEvent | null>(null);
     const [canInstall, setCanInstall] = useState(false);
+    /*
+     * Set with canInstall and never cleared with it. What the button needs to
+     * know is whether there is an event left to spend; what the prose needs
+     * to know is whether this browser installs at all, and those two answers
+     * part company the instant the button is used.
+     */
+    const [browserCanInstall, setBrowserCanInstall] = useState(false);
 
     useEffect(() => {
         const capture = (event: Event) => {
@@ -58,6 +79,7 @@ export function useInstallHint(): InstallOffer {
             event.preventDefault();
             promptEventRef.current = event as BeforeInstallPromptEvent;
             setCanInstall(true);
+            setBrowserCanInstall(true);
         };
         const onInstalled = () => setInstalled(true);
 
@@ -88,5 +110,5 @@ export function useInstallHint(): InstallOffer {
           }
         : null;
 
-    return { install };
+    return { install, browserCanInstall, installed };
 }
