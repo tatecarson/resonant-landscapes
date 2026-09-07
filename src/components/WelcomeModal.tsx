@@ -251,7 +251,18 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                   * and a sticky footer over the top of it would be the same
                                   * disappearing act one layer down.
                                   */}
-                                <div className="sticky bottom-0 -mx-8 mt-8 bg-panel px-8 pb-[max(2rem,env(safe-area-inset-bottom))] pt-4">
+                                <div className="sticky bottom-0 -mx-8 mt-8 bg-panel px-8 pb-[max(2rem,env(safe-area-inset-bottom))] pt-4 relative">
+                                    {/*
+                                      * The line of prose the footer covers is cut mid-glyph without
+                                      * this, which reads as broken text rather than as more text. The
+                                      * fade says the panel continues under the button — the one cue a
+                                      * scroll container gives that its scrollbar does not, on a phone
+                                      * that draws no scrollbar.
+                                      */}
+                                    <div
+                                        aria-hidden="true"
+                                        className="pointer-events-none absolute inset-x-0 bottom-full h-8 bg-gradient-to-t from-panel to-transparent"
+                                    />
                                     <button
                                         type="button"
                                         // Not `disabled`: it would take the

@@ -304,7 +304,18 @@ function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }:
                                 {/* Pinned the same way the welcome modal's START is, and for the
                                   * same measured reason (rl-uo5): this panel is the taller of the
                                   * two, so Close is further off the bottom of the screen. */}
-                                <div className="sticky bottom-0 -mx-8 mt-8 bg-panel px-8 pb-[max(2rem,env(safe-area-inset-bottom))] pt-4">
+                                <div className="sticky bottom-0 -mx-8 mt-8 bg-panel px-8 pb-[max(2rem,env(safe-area-inset-bottom))] pt-4 relative">
+                                    {/*
+                                      * The line of prose the footer covers is cut mid-glyph without
+                                      * this, which reads as broken text rather than as more text. The
+                                      * fade says the panel continues under the button — the one cue a
+                                      * scroll container gives that its scrollbar does not, on a phone
+                                      * that draws no scrollbar.
+                                      */}
+                                    <div
+                                        aria-hidden="true"
+                                        className="pointer-events-none absolute inset-x-0 bottom-full h-8 bg-gradient-to-t from-panel to-transparent"
+                                    />
                                     <button
                                         type="button"
                                         className="w-full rounded-full bg-ink px-6 py-3 font-mono text-xs tracking-widest uppercase text-white transition-colors hover:bg-edge"
