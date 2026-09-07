@@ -3,6 +3,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import { useAudioEngine, useAudioPlaybackState } from '../contexts/AudioContextProvider';
 import { help, install as installCopy } from '../copy';
 import type { InstallOffer } from '../hooks/useInstallHint';
+import { detectPlatform } from '../utils/recoverySteps';
 import { useReduceVisualsPreference } from '../hooks/useReduceVisuals';
 
 interface HelpModalProps {
@@ -17,6 +18,14 @@ interface HelpModalProps {
 }
 
 function HelpModal({ isOpen, setIsOpen, install }: HelpModalProps) {
+    /*
+     * Copy only, which is what detectPlatform is for. iPadOS reports itself
+     * as a Mac and gets the promise rather than the steps — the safe way
+     * round: a walker reading what installing buys them has been told
+     * something true, where a walker told to press share on a phone that has
+     * no such sheet has not.
+     */
+    const installsByHand = detectPlatform(navigator.userAgent) === "ios";
     const cancelButtonRef = useRef(null);
     const { setKeepScreenAwake } = useAudioEngine();
     const {
@@ -190,20 +199,31 @@ function HelpModal({ isOpen, setIsOpen, install }: HelpModalProps) {
                                   * The popup over the map is gone by decision:
                                   * an interruption asking for something is the
                                   * opposite of a piece about wandering. The
-                                  * prose switches with the mechanism (rl-8x0):
-                                  * where the button below installs on request,
-                                  * iPhone steps would be instructions for a
-                                  * phone the walker is not holding; where
-                                  * there is no button, the steps are the
-                                  * offer. Either way, once used, the button
-                                  * does not come back this session.
+                                  * prose switches on the phone, not on the
+                                  * button (rl-8x0): the share-sheet steps are
+                                  * the offer on iOS, which has no install API
+                                  * and so never has a button, and they are
+                                  * instructions for a phone the walker is not
+                                  * holding anywhere else.
+                                  *
+                                  * Deliberately not `install ? … : …`. That is
+                                  * null in more places than iOS — before
+                                  * beforeinstallprompt fires, on browsers that
+                                  * never fire it, when the walk is already
+                                  * installed, and the moment after the button
+                                  * is used, which would flip the paragraph to
+                                  * iPhone steps under the eyes of someone who
+                                  * had just installed it from a button.
+                                  *
+                                  * Either way, once used, the button does not
+                                  * come back this session.
                                   */}
                                 <div className="mt-6 rounded-2xl bg-white/25 p-4" data-testid="help-install">
                                     <p className="font-space-mono text-[11px] uppercase tracking-[0.16em] text-ink/85">
                                         {installCopy.helpTitle}
                                     </p>
                                     <p className="mt-2 font-space-mono text-[12px] leading-relaxed text-ink/75">
-                                        {install ? installCopy.helpDetail : installCopy.helpDetailManual}
+                                        {installsByHand ? installCopy.helpDetailManual : installCopy.helpDetail}
                                     </p>
                                     {install && (
                                         <button

@@ -236,6 +236,19 @@ test.describe("the install affordance", () => {
     });
 
     test("the field guide explains it permanently, for anyone who said no", async ({ page }) => {
+        /*
+         * As an iPhone, because that is who the steps are for. The prose is
+         * chosen by the phone rather than by whether a button happened to be
+         * offered (rl-8x0), so asserting the steps on the chromium runner's
+         * own user agent would assert the wrong branch — and would have gone
+         * green while a Chrome walker was being told to press share.
+         */
+        await page.addInitScript(() => {
+            Object.defineProperty(navigator, "userAgent", {
+                get: () =>
+                    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+            });
+        });
         await page.goto(mapPath);
         await dismissWelcomeModal(page);
         await openHelp(page);
@@ -299,5 +312,13 @@ test.describe("the install affordance", () => {
         // Used once: the event is consumed, so the button goes and does not
         // come back this session, whatever the walker chose in the dialog.
         await expect(button).toHaveCount(0);
+
+        /*
+         * And the prose does not change when it goes. Losing the button is
+         * how `install` becomes null, so wording keyed to that would flip to
+         * iPhone steps right here — in the open panel, for a walker who has
+         * just installed the walk from a button.
+         */
+        await expect(section).not.toContainText(/add to home screen/i);
     });
 });
