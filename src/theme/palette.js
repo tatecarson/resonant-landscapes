@@ -168,10 +168,26 @@ export const arrivalField = {
      */
     core: { floor: 0, peak: 0.74 },
     /**
-     * The bloom that holds a bearing while the map turns under it. Small: it
-     * is a lean on a field, not a second light source.
+     * What turning does, once head tracking is on: the field keeps every one
+     * of the weights above and rotates its hue with the compass.
+     *
+     * This is the palette pass's decision (rl-wmn), kept. Every heading gets
+     * its own hue and any two are still told apart; narrowing the range to the
+     * greens was tried there and rejected, because half the bearings become
+     * indistinguishable and the wash stops saying anything about turning.
+     *
+     * What moved is where the wheel is anchored. The old mapping was
+     * `220 - heading`, which is blue at north for no reason anyone could
+     * name, and it is why nothing in the app could be matched to this surface.
+     * Anchoring it to `panel` instead means facing north is exactly the mint
+     * the walker arrived in, and turning sweeps out from the palette rather
+     * than past it.
+     *
+     * Saturation and lightness are `panel`'s too, so every heading is a
+     * mint-weight version of its hue rather than a primary. That is the same
+     * idea as the wash's own 30%/48%, at the weight this field was tuned to.
      */
-    lean: 0.14,
+    sweep: { anchor: "panel" },
     /**
      * The calm form: one static state for the whole park rather than a
      * dissolve, and no lean, for the walker who turned visuals down. What
@@ -190,6 +206,38 @@ export const arrivalField = {
 export function rgbChannels(hex) {
     const value = hex.replace("#", "");
     return [0, 2, 4].map((i) => parseInt(value.slice(i, i + 2), 16)).join(" ");
+}
+
+/**
+ * A token as hue, saturation and lightness.
+ *
+ * For the one surface whose colour is computed rather than chosen: the arrival
+ * field rotates its hue with the compass and keeps everything else, so it
+ * needs the components of a token rather than the token itself. Deriving them
+ * here rather than writing a second set of numbers is the point — a change to
+ * `panel` moves the field with it.
+ */
+export function hslChannels(hex) {
+    const value = hex.replace("#", "");
+    const [r, g, b] = [0, 2, 4].map((i) => parseInt(value.slice(i, i + 2), 16) / 255);
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const lightness = (max + min) / 2;
+    const span = max - min;
+
+    if (span === 0) {
+        return { hue: 0, saturation: 0, lightness: lightness * 100 };
+    }
+
+    const saturation = span / (1 - Math.abs(2 * lightness - 1));
+    const hue =
+        max === r
+            ? ((g - b) / span + (g < b ? 6 : 0))
+            : max === g
+              ? (b - r) / span + 2
+              : (r - g) / span + 4;
+
+    return { hue: hue * 60, saturation: saturation * 100, lightness: lightness * 100 };
 }
 
 /**

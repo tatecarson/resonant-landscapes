@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { arrivalFieldAlphas, leanPosition } from "./ArrivalField";
+import { arrivalFieldAlphas, hueFor } from "./ArrivalField";
 import { arrivalProgress } from "../utils/arrival";
-import { arrivalField } from "../theme/palette";
+import { arrivalField, hslChannels, palette } from "../theme/palette";
 import { ENTER_DISTANCE_METERS, EXIT_DISTANCE_METERS } from "../config/geofence";
 
 /**
@@ -103,35 +103,49 @@ describe("the arrival field", () => {
         const centre = arrivalFieldAlphas(arrivalProgress(0), true);
 
         expect(near).toEqual(centre);
-        expect(near.lean).toBe(0);
         expect(near.edge).toBeLessThan(arrivalField.edge.peak);
     });
 });
 
-describe("the lean", () => {
-    it("holds a bearing while the screen turns under it", () => {
-        // The map is rotated so the walker's heading points up, so a lean
-        // toward "where you are facing" would be the top of the screen at
-        // every bearing and would say nothing. This one stays put in the
-        // world instead — which is also what the recording does when the
-        // walker turns their head.
-        const north = leanPosition(0);
-        const east = leanPosition(Math.PI / 2);
-        const south = leanPosition(Math.PI);
-
-        expect(north.y).toBeLessThan(50);
-        expect(north.x).toBeCloseTo(50, 5);
-        expect(east.x).toBeLessThan(50);
-        expect(south.y).toBeGreaterThan(50);
+describe("the sweep", () => {
+    it("is the palette itself at north", () => {
+        // The old mapping was 220 - heading, which is blue at north for no
+        // nameable reason, and is why nothing in the app could be matched to
+        // this surface. Anchored to `panel`, the walker who arrives facing
+        // north is standing in exactly the mint the strip is made of.
+        expect(hueFor(0)).toBeCloseTo(hslChannels(palette.panel).hue, 5);
     });
 
-    it("stays on the screen at every bearing", () => {
+    it("tells every heading apart", () => {
+        // The whole wheel, deliberately. Narrowing it to the greens was tried
+        // in the palette pass and rejected: half the bearings become
+        // indistinguishable and the sweep stops saying anything about turning.
+        const hues = new Set<number>();
         for (let degrees = 0; degrees < 360; degrees += 15) {
-            const { x, y } = leanPosition((degrees * Math.PI) / 180);
-            expect(x).toBeGreaterThan(0);
-            expect(x).toBeLessThan(100);
-            expect(y).toBeGreaterThan(0);
-            expect(y).toBeLessThan(100);
+            hues.add(Math.round(hueFor((degrees * Math.PI) / 180)));
+        }
+
+        expect(hues.size).toBe(24);
+        expect(Math.max(...hues) - Math.min(...hues)).toBeGreaterThan(300);
+    });
+
+    it("turns the opposite way to the walker", () => {
+        // The map is rotated so the heading points up the screen. The wheel
+        // running the other way is what makes the colour feel attached to the
+        // world rather than to the phone.
+        expect(hueFor(Math.PI / 2)).toBeCloseTo(hueFor(0) - 90, 5);
+        expect(hueFor(-Math.PI / 2)).toBeCloseTo(hueFor(0) + 90, 5);
+    });
+
+    it("stays a usable hue after several turns", () => {
+        // mapHeading accumulates rather than wrapping — it is built by adding
+        // the shortest delta to the last one, so a walker who keeps turning
+        // the same way passes several full turns, and a negative hue would
+        // silently stop being a colour at all.
+        for (let turns = -3; turns <= 3; turns += 0.125) {
+            const hue = hueFor(turns * 2 * Math.PI + 0.3);
+            expect(hue).toBeGreaterThanOrEqual(0);
+            expect(hue).toBeLessThan(360);
         }
     });
 });

@@ -7,12 +7,11 @@
  * in and watches the whole approach, which is the only way that class of
  * defect shows up.
  *
- * Two claims are asserted, and they are the two the issue was written around.
- * First, the screen never empties: the strength read off whichever layer owns
- * it — the approach tint outside, the field inside — only ever rises, across
- * the handover included. Second, turning no longer changes the colour: the
- * field leans toward a bearing it holds while the map rotates under it, so the
- * gradient's position moves and its rgb does not.
+ * Two claims are asserted. First, the screen never empties: the strength read
+ * off whichever layer owns it — the approach tint outside, the field inside —
+ * only ever rises, across the handover included. Second, the two channels stay
+ * separate at the centre: turning sweeps the field's hue and leaves its weight
+ * alone, because the walker turning on the spot has not moved.
  *
  * To watch it rather than read it:
  *   npm run sim:arrival:iphone     (headed, held at each step)
@@ -21,6 +20,7 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import stateParks from "../src/data/stateParks.json" with { type: "json" };
 import { distanceInMeters, scaleCoordinates, type Coordinate } from "../src/utils/geo.js";
+import { palette, rgbChannels } from "../src/theme/palette.js";
 import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";
 import {
     dispatchDeviceOrientation,
@@ -154,18 +154,27 @@ async function screenStrength(page: Page) {
     });
 }
 
-/**
- * Whether the field is drawing its lean — one extra gradient over the bloom,
- * and the only thing on screen that says head tracking is live.
- */
-async function leanCount(page: Page) {
+/** `panel`, which is the field's colour with the walker facing north. */
+const ANCHOR_RGB = rgbChannels(palette.panel).split(" ").map(Number) as [number, number, number];
+
+/** The field's colour, ignoring how much of it there is. */
+async function fieldColour(page: Page) {
     return page.evaluate(() => {
         const field = document.querySelector<HTMLElement>('[data-testid="arrival-field"]');
         if (!field) {
-            return 0;
+            return null;
         }
-        return (getComputedStyle(field).backgroundImage.match(/radial-gradient/g) ?? []).length - 1;
+
+        const stop = getComputedStyle(field).backgroundImage.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        return stop
+            ? ([Number(stop[1]), Number(stop[2]), Number(stop[3])] as [number, number, number])
+            : null;
     });
+}
+
+/** How far apart two colours are, as the sum of their channels' distances. */
+function distanceFrom(a: [number, number, number], b: [number, number, number]) {
+    return a.reduce((total, channel, index) => total + Math.abs(channel - b[index]), 0);
 }
 
 async function settleAt(page: Page, context: BrowserContext, station: Station) {
@@ -238,7 +247,11 @@ test("walking in never empties the screen", async ({ page, context, baseURL }) =
     expect(readings[readings.length - 1].basemap).toBeLessThan(readings[0].basemap);
 });
 
-test("turning moves the field without changing its colour", async ({ page, context, baseURL }) => {
+test("turning sweeps the field's colour without changing its weight", async ({
+    page,
+    context,
+    baseURL,
+}) => {
     if (!baseURL) throw new Error("Missing Playwright baseURL.");
 
     const { park, bearing } = pickApproach();
@@ -256,9 +269,14 @@ test("turning moves the field without changing its colour", async ({ page, conte
      * Before anything else, because a real gyroscope reports whether or not
      * the device is moving and the app treats silence as a revoked grant
      * within 1.5 s of rotation enabling (rl-dqc.5). Start this after the walk
-     * settles and rotation has already auto-enabled, heard nothing and put
-     * itself into the blocked state — which is exactly what happened on webkit
-     * while this spec was being written.
+     * settles and rotation has already enabled, heard nothing and put itself
+     * into the blocked state — which is exactly what happened on webkit while
+     * this spec was being written.
+     *
+     * Held at a quarter turn rather than at zero, because zero is north and
+     * north is the anchor: the field's colour there is the same mint it shows
+     * with rotation off, so it could not be used to tell whether rotation is
+     * running yet.
      */
     await page.evaluate(() => {
         const win = window as Window & {
@@ -266,10 +284,10 @@ test("turning moves the field without changing its colour", async ({ page, conte
             __arrivalHeartbeatId?: number;
             __arrivalAlpha?: number;
         };
-        win.__arrivalAlpha = 0;
-        win.__dispatchDeviceOrientation(0, -90, 0);
+        win.__arrivalAlpha = 90;
+        win.__dispatchDeviceOrientation(90, -90, 0);
         win.__arrivalHeartbeatId = window.setInterval(() => {
-            win.__dispatchDeviceOrientation(win.__arrivalAlpha ?? 0, -90, 0);
+            win.__dispatchDeviceOrientation(win.__arrivalAlpha ?? 90, -90, 0);
         }, 200);
     });
 
@@ -293,17 +311,14 @@ test("turning moves the field without changing its colour", async ({ page, conte
      * where the grant is already stored, and where it does not the walker taps
      * for it. Which one happens depends on the engine and on how quickly the
      * strip settles, so this offers the tap on every poll and stops as soon as
-     * the field leans.
-     *
-     * The lean is the right thing to wait for. It is drawn only while head
-     * tracking is running, so it is the one on-screen witness that the
-     * rotation state actually reached this layer — which is the whole subject
-     * of this test.
+     * the field has swept off its anchor — which is the one on-screen witness
+     * that the rotation state reached this layer.
      */
     await expect
         .poll(
             async () => {
-                if (await leanCount(page)) {
+                const colour = await fieldColour(page);
+                if (colour && distanceFrom(colour, ANCHOR_RGB) > 8) {
                     return true;
                 }
 
@@ -323,7 +338,7 @@ test("turning moves the field without changing its colour", async ({ page, conte
         .toBe(true);
     await hold(page);
 
-    const samples: { alpha: number; lean: [number, number]; rotation: number; rgb: string[] }[] = [];
+    const samples: { alpha: number; rgb: [number, number, number]; weight: number }[] = [];
 
     for (const alpha of [0, 90, 180, 270]) {
         // The heartbeat repeats whatever this sets, so the device keeps
@@ -332,56 +347,69 @@ test("turning moves the field without changing its colour", async ({ page, conte
             (window as Window & { __arrivalAlpha?: number }).__arrivalAlpha = next;
         }, alpha);
         await dispatchDeviceOrientation(page, alpha);
-        await page.waitForTimeout(600);
+        // Past the field's own 350 ms, so the sweep has arrived rather than
+        // being read halfway through.
+        await page.waitForTimeout(900);
         await hold(page);
 
         const sample = await page.evaluate(() => {
             const field = document.querySelector<HTMLElement>('[data-testid="arrival-field"]')!;
             const image = getComputedStyle(field).backgroundImage;
-            const at = image.match(/at\s+([0-9.]+)%\s+([0-9.]+)%/);
-            return {
-                lean: at ? ([Number(at[1]), Number(at[2])] as [number, number]) : null,
-                rgb: [...image.matchAll(/rgba?\((\d+),\s*(\d+),\s*(\d+)/g)].map(
-                    (match) => `${match[1]} ${match[2]} ${match[3]}`
-                ),
-                rotation: window.__mapDebug?.rotation ?? 0,
-            };
+            const stops = [...image.matchAll(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9.]+))?\)/g)];
+            return stops.map((stop) => ({
+                rgb: [Number(stop[1]), Number(stop[2]), Number(stop[3])] as [number, number, number],
+                alpha: stop[4] === undefined ? 1 : Number(stop[4]),
+            }));
         });
 
-        expect(sample.lean, `the field is not leaning at alpha ${alpha}`).not.toBeNull();
-        samples.push({ alpha, lean: sample.lean!, rotation: sample.rotation, rgb: sample.rgb });
+        expect(sample.length, `the field is not drawing a gradient at alpha ${alpha}`).toBeGreaterThan(0);
+
+        const last = sample[sample.length - 1];
+        samples.push({ alpha, rgb: last.rgb, weight: last.alpha });
         console.log(
-            `[turn] alpha ${String(alpha).padStart(3)}°  lean ${sample.lean![0].toFixed(1)}% ${sample.lean![1].toFixed(1)}%  map rotation ${sample.rotation.toFixed(3)}`
+            `[turn] alpha ${String(alpha).padStart(3)}°  rgb ${last.rgb.join(",").padEnd(11)}  weight ${last.alpha.toFixed(3)}`
         );
     }
-
-    // Heading is no longer carried by hue. This is the assertion the old
-    // ambient wash could not have passed: its hue was the compass, so every
-    // one of these would have been a different colour.
-    const colours = new Set(samples.flatMap((sample) => sample.rgb));
-    expect(colours.size, `the field changed colour as it turned: ${[...colours].join(" / ")}`).toBe(1);
-
-    // It moved, though, and to four different places.
-    const positions = new Set(samples.map((sample) => sample.lean.join(",")));
-    expect(positions.size).toBe(samples.length);
 
     /*
-     * And it moved the right way. The lean holds a bearing while the screen
-     * turns under it, so its angle clockwise from the top of the screen has to
-     * be the map's own rotation — get the sign backwards and the bloom sweeps
-     * twice as fast in the wrong direction, which still passes both checks
-     * above and is visibly wrong on a walk.
+     * Every bearing gets its own colour and any two are told apart — the whole
+     * wheel, which is the palette pass's decision (rl-wmn). Narrowing it to
+     * the greens was tried there and rejected: half the bearings become
+     * indistinguishable and the sweep stops saying anything about turning.
      */
     for (const sample of samples) {
-        const leanAngle = Math.atan2(sample.lean[0] - 50, 50 - sample.lean[1]);
-        const difference = Math.atan2(
-            Math.sin(leanAngle - sample.rotation),
-            Math.cos(leanAngle - sample.rotation)
-        );
-        expect(
-            Math.abs(difference),
-            `the lean is not holding its bearing at alpha ${sample.alpha}: ` +
-                `lean ${leanAngle.toFixed(3)} rad against a map rotation of ${sample.rotation.toFixed(3)}`
-        ).toBeLessThan(0.05);
+        for (const other of samples) {
+            if (sample.alpha === other.alpha) {
+                continue;
+            }
+            expect(
+                distanceFrom(sample.rgb, other.rgb),
+                `${sample.alpha}° and ${other.alpha}° draw the same colour, ${sample.rgb.join(",")}`
+            ).toBeGreaterThan(20);
+        }
     }
+
+    /*
+     * And north is the palette. The sweep used to run 220 - heading, blue at
+     * north for no nameable reason, which is why nothing in the app could be
+     * matched to this surface; anchored to `panel`, a walker facing north is
+     * standing in exactly the mint the strip beside them is made of.
+     */
+    const north = samples.find((sample) => sample.alpha === 0)!;
+    expect(
+        distanceFrom(north.rgb, ANCHOR_RGB),
+        `facing north the field is ${north.rgb.join(",")}, not the panel mint ${ANCHOR_RGB.join(",")}`
+    ).toBeLessThan(4);
+
+    /*
+     * What turning does not do is change the weight. The sweep is a colour and
+     * only a colour: a walker turning on the spot has not moved, so the field
+     * has no business getting stronger or weaker while they do it. That
+     * channel belongs to the walk in.
+     */
+    const weights = new Set(samples.map((sample) => sample.weight));
+    expect(
+        weights.size,
+        `the field changed strength as it turned: ${[...weights].join(", ")}`
+    ).toBe(1);
 });

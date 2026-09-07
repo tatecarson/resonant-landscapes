@@ -2,7 +2,7 @@ import { memo, useMemo } from "react";
 
 import { useReduceVisuals } from "../hooks/useReduceVisuals";
 import { arrivalProgress } from "../utils/arrival";
-import { arrivalField, palette, rgbChannels } from "../theme/palette";
+import { arrivalField, hslChannels, palette } from "../theme/palette";
 
 interface ArrivalFieldProps {
     /** Metres to the centre of the park the walker is inside. */
@@ -22,8 +22,7 @@ interface ArrivalFieldProps {
  * Walking into a spot used to cross three unrelated states. The approach tint
  * switched off at the threshold, the glow under the spot faded out as the
  * walker moved onto it, and nothing replaced either until a full-screen wash
- * appeared three metres from the centre in a colour — a compass hue — that
- * nothing else in the app could be matched to. The screen was at its emptiest
+ * appeared three metres from the centre. The screen was at its emptiest
  * somewhere around six metres out, which is the moment it should have been at
  * its fullest, and the intensity curve was inverted exactly at arrival.
  *
@@ -34,6 +33,24 @@ interface ArrivalFieldProps {
  * in GeolocationMap) and the field takes the screen. Navigation ends and
  * listening begins, which is the true thing to say at that point: once the
  * walker is inside the recording the map has nothing left to tell them.
+ *
+ * WHAT TURNING DOES
+ *
+ * Once head tracking is on, the field's hue follows the compass, which is the
+ * palette pass's decision (rl-wmn) and is kept. rl-879 proposed moving heading
+ * off hue altogether, and that turned out to be the wrong trade: a lean —
+ * whether a bloom or a whole side of the screen — is a difference of about
+ * twenty values on a screen that is already almost all mint, and hue is the
+ * only channel with room to say something that size. What the issue was
+ * actually objecting to was a jump to full intensity in an unrelated colour
+ * three metres from the centre, and that is fixed by the dissolve rather than
+ * by the hue.
+ *
+ * The anchor moved instead. The sweep used to run `220 - heading`, which is
+ * blue at north for no reason anyone could name, and that is why nothing in
+ * the app could be matched to it. It now runs out from `panel`, so facing
+ * north is exactly the mint the walker arrived in and every other bearing is a
+ * mint-weight version of its own hue.
  *
  * The one seam left is deliberately the wrong way round. This mounts at full
  * strength while the tint it replaces takes 700 ms to fade its opacity out, so
@@ -46,15 +63,17 @@ interface ArrivalFieldProps {
 const HOLE_PERCENT = 38;
 
 /**
- * How far off centre the lean sits, in percent. Far enough to read as a
- * direction, near enough that it never leaves the screen on a phone.
+ * The field's colour, minus its hue: `panel` decomposed, so a change to the
+ * palette moves this with it rather than leaving a second set of numbers to
+ * drift. At heading zero the field is `panel` exactly.
  */
-const LEAN_OFFSET_PERCENT = 22;
+const ANCHOR = hslChannels(palette[arrivalField.sweep.anchor as "panel"]);
 
-const MINT = rgbChannels(palette.panel);
-
-function mint(alpha: number) {
-    return `rgb(${MINT} / ${alpha.toFixed(3)})`;
+function wash(hue: number, alpha: number) {
+    return (
+        `hsla(${hue.toFixed(1)}, ${ANCHOR.saturation.toFixed(1)}%, ` +
+        `${ANCHOR.lightness.toFixed(1)}%, ${alpha.toFixed(3)})`
+    );
 }
 
 function lerp(from: number, to: number, t: number) {
@@ -62,7 +81,7 @@ function lerp(from: number, to: number, t: number) {
 }
 
 /**
- * The field's four numbers at a given progress.
+ * The field's three numbers at a given progress.
  *
  * Split out from the component because monotonicity is the whole requirement
  * and it is the kind of thing that a later tuning pass breaks silently — the
@@ -79,7 +98,6 @@ export function arrivalFieldAlphas(progress: number, reduceVisuals: boolean) {
             edge: arrivalField.calm.edge,
             core: arrivalField.calm.core,
             hole: 0,
-            lean: 0,
         };
     }
 
@@ -87,69 +105,35 @@ export function arrivalFieldAlphas(progress: number, reduceVisuals: boolean) {
         edge: lerp(arrivalField.edge.floor, arrivalField.edge.peak, progress),
         core: lerp(arrivalField.core.floor, arrivalField.core.peak, progress),
         hole: HOLE_PERCENT * (1 - progress),
-        lean: arrivalField.lean * progress,
     };
 }
 
 /**
- * Where the lean sits, as a background-position pair.
+ * The hue for a heading: the whole wheel, so any two directions are told
+ * apart, running out from the palette rather than past it.
  *
- * The map is rotated so that the walker's heading points up the screen, which
- * is why heading cannot be a lean toward "where you are facing": that is the
- * top of the screen at every bearing and says nothing. So the lean holds a
- * bearing instead — it stays put in the world while the screen turns under it,
- * the same way the recording does when the walker turns their head. Turning is
- * the thing being confirmed, and a bloom that sweeps around the edge as you
- * rotate confirms it without asking anyone to decode a hue.
- *
- * The screen shows bearing `headingRadians` at the top (the view is rotated by
- * its negative), so a fixed bearing of zero sits at `-headingRadians`
- * clockwise from up, and x runs right while y runs down.
+ * Subtracted rather than added because the map is rotated so the walker's
+ * heading points up the screen. The wheel turning the other way is what makes
+ * the colour feel attached to the world instead of to the phone.
  */
-export function leanPosition(headingRadians: number) {
-    const x = 50 - LEAN_OFFSET_PERCENT * Math.sin(headingRadians);
-    const y = 50 - LEAN_OFFSET_PERCENT * Math.cos(headingRadians);
-    return { x, y };
+export function hueFor(headingRadians: number) {
+    const degrees = (headingRadians * 180) / Math.PI;
+    return (((ANCHOR.hue - degrees) % 360) + 360) % 360;
 }
 
 /**
- * `rgb(… / 0)` rather than `transparent`, and this is not pedantry: CSS
+ * `hsla(…, 0)` rather than `transparent`, and this is not pedantry: CSS
  * `transparent` is transparent *black*, so a gradient running to it takes the
  * long way through grey and puts a dirty band across the middle of the ramp.
  * The same fix is in ProximityWarmth, whose gradient this one has to be
  * indistinguishable from at the handover.
  */
-function fieldBackground(
-    alphas: ReturnType<typeof arrivalFieldAlphas>,
-    headingRadians: number,
-    showLean: boolean
-) {
-    const { x, y } = leanPosition(headingRadians);
-
-    /*
-     * Bottom layer: the edge bloom, which is ProximityWarmth's gradient
-     * continued. Top layer: the lean. Backgrounds composite, so adding the
-     * lean can only add colour — the field cannot dim by gaining one.
-     */
-    const bloom =
+function fieldBackground(alphas: ReturnType<typeof arrivalFieldAlphas>, hue: number) {
+    return (
         `radial-gradient(ellipse closest-side at center, ` +
-        `${mint(alphas.core)} ${alphas.hole.toFixed(1)}%, ` +
-        `${mint(alphas.edge)} 100%)`;
-
-    if (!showLean) {
-        return bloom;
-    }
-
-    /*
-     * Emitted even at zero alpha. A background transition only interpolates
-     * between lists of the same shape, so a lean that appeared on the first
-     * metre inside would make the field snap once instead of growing.
-     */
-    const lean =
-        `radial-gradient(circle closest-side at ${x.toFixed(1)}% ${y.toFixed(1)}%, ` +
-        `${mint(alphas.lean)} 0%, ${mint(0)} 70%)`;
-
-    return `${lean}, ${bloom}`;
+        `${wash(hue, alphas.core)} ${alphas.hole.toFixed(1)}%, ` +
+        `${wash(hue, alphas.edge)} 100%)`
+    );
 }
 
 const ArrivalField = memo(function ArrivalField({
@@ -159,15 +143,20 @@ const ArrivalField = memo(function ArrivalField({
 }: ArrivalFieldProps) {
     const reduceVisuals = useReduceVisuals();
     const progress = arrivalProgress(parkDistance);
+    /*
+     * Held at the anchor unless the walker turned rotation on. Before that the
+     * heading is a GPS course rather than a compass, so a field that swung
+     * with it would be reporting the noise in a walking pace.
+     *
+     * Reduced visuals holds it too. A full screen of colour moving under a
+     * phone at walking pace is what that setting exists to suppress, and a hue
+     * sweep is the largest-area motion in the app.
+     */
+    const hue = rotationActive && !reduceVisuals ? hueFor(headingRadians) : ANCHOR.hue;
 
     const background = useMemo(
-        () =>
-            fieldBackground(
-                arrivalFieldAlphas(progress, reduceVisuals),
-                headingRadians,
-                rotationActive && !reduceVisuals
-            ),
-        [progress, reduceVisuals, headingRadians, rotationActive]
+        () => fieldBackground(arrivalFieldAlphas(progress, reduceVisuals), hue),
+        [progress, reduceVisuals, hue]
     );
 
     return (
@@ -191,16 +180,21 @@ const ArrivalField = memo(function ArrivalField({
                 zIndex: 30,
                 background,
                 /*
-                 * Matched to ProximityWarmth's, so the handover at fifteen
-                 * metres cannot be seen. Not decoration either: a fix carries
-                 * several metres of error, and without this the field steps on
-                 * every jitter of the walker's position rather than tracking
-                 * the walk.
+                 * Short, and shorter than ProximityWarmth's 900 ms, because
+                 * this one property carries two things at different speeds.
+                 * Distance needs smoothing: a fix has several metres of error
+                 * in it, and with no transition the field steps on every
+                 * jitter rather than tracking the walk. Heading needs none —
+                 * it is a head turning, and lagging that by most of a second
+                 * is the difference between the screen answering the walker
+                 * and trailing them. This is the shortest span that still
+                 * hides the jitter.
                  *
                  * Reduced visuals gets no transition because it gets no
-                 * dissolve — one static state, arrived at instantly.
+                 * dissolve and no sweep: one static state, arrived at
+                 * instantly.
                  */
-                transition: reduceVisuals ? undefined : "background 900ms ease-out",
+                transition: reduceVisuals ? undefined : "background 350ms ease-out",
             }}
         />
     );
