@@ -9,6 +9,15 @@ body {
     top: 0;
     bottom: 0;
     width: 100%;
+    /*
+     * The ground the tiles sit on, and what is left when they have gone: the
+     * basemap fades out over the last fifteen metres of a walk (rl-879), so
+     * something has to be behind it, and the browser's default white is not
+     * the app. Cream is what every other ground in the piece is, so the field
+     * lands on the palette rather than on paper. It also covers the moment
+     * before the first tiles arrive, which used to flash white.
+     */
+    background: var(--rl-ground);
 }
 
 .example-map p,

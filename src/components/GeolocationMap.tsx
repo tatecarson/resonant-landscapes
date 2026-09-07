@@ -42,7 +42,7 @@ import { useInstallHint } from "../hooks/useInstallHint";
 import ProximityWarmth from "./ProximityWarmth";
 import { getVariantCenter } from "../utils/scaledParks";
 import { debugLog, isDebugEnabled } from "../config/debug";
-import { BASEMAP_ARRIVED_OPACITY, arrivalProgress } from "../utils/arrival";
+import { basemapOpacity } from "../utils/arrival";
 import {
     CENTER_ROTATION_RADIUS_METERS,
     MAX_ZOOM,
@@ -465,11 +465,12 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
 
     /**
      * The map dissolving is the other half of the arrival (rl-879). The field
-     * over it grows from the threshold to the centre, and the ground it is
-     * over recedes by the same curve, so the two are one motion rather than a
-     * tint that appears on top of a map that carries on as if nothing had
-     * happened. Once the walker is inside the recording the map has nothing
-     * left to tell them.
+     * over it grows from the threshold inward and the ground it is over
+     * recedes across the same band, so the two are one motion rather than a
+     * tint that appears on top of a map carrying on as if nothing had
+     * happened. By the centre the tiles are gone and the screen is colour:
+     * once the walker is inside the recording the map has nothing left to
+     * tell them.
      *
      * Imperative, and on the layer rather than through a prop, because that
      * layer is fetching tiles over the network: reconciling it on every fix
@@ -495,10 +496,9 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         // under someone walking is precisely the large-area motion that
         // setting exists to suppress, and of everyone on the walk they are the
         // likeliest to still want the paths.
-        const progress =
-            parkName && !prefersReducedMotion ? arrivalProgress(Math.floor(parkDistance)) : 0;
+        const opacity =
+            parkName && !prefersReducedMotion ? basemapOpacity(Math.floor(parkDistance)) : 1;
 
-        const opacity = 1 - (1 - BASEMAP_ARRIVED_OPACITY) * progress;
         basemap.setOpacity(opacity);
 
         if (isDebugEnabled()) {

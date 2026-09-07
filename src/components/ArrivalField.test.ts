@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { arrivalFieldAlphas, hueFor } from "./ArrivalField";
-import { arrivalProgress } from "../utils/arrival";
+import { arrivalProgress, basemapOpacity } from "../utils/arrival";
 import { arrivalField, hslChannels, palette } from "../theme/palette";
-import { ENTER_DISTANCE_METERS, EXIT_DISTANCE_METERS } from "../config/geofence";
+import {
+    CENTER_ROTATION_RADIUS_METERS,
+    ENTER_DISTANCE_METERS,
+    EXIT_DISTANCE_METERS,
+} from "../config/geofence";
 
 /**
  * The defect this field replaced was a curve that went the wrong way for six
@@ -104,6 +108,40 @@ describe("the arrival field", () => {
 
         expect(near).toEqual(centre);
         expect(near.edge).toBeLessThan(arrivalField.edge.peak);
+    });
+});
+
+describe("the basemap", () => {
+    it("goes as the field comes", () => {
+        // The two are one motion. Every metre that adds field takes map, which
+        // is the difference between a tint over a map and the map being
+        // replaced by what the walker came for.
+        let previous = 2;
+        for (const metres of WALK_IN) {
+            const opacity = basemapOpacity(metres);
+            expect(opacity, `the map came back at ${metres} m`).toBeLessThanOrEqual(previous);
+            previous = opacity;
+        }
+    });
+
+    it("is whole at the threshold and gone at the centre", () => {
+        expect(basemapOpacity(ENTER_DISTANCE_METERS)).toBe(1);
+        expect(basemapOpacity(CENTER_ROTATION_RADIUS_METERS)).toBe(0);
+        expect(basemapOpacity(0)).toBe(0);
+    });
+
+    it("clears exactly as turning starts to mean something", () => {
+        // Not a second threshold dropped into the dissolve: three metres is
+        // where the walk already counts the walker as standing at the centre,
+        // so the tiles finish clearing as rotation takes the screen and the
+        // sweep runs on colour rather than over a ghost of a street plan.
+        expect(basemapOpacity(CENTER_ROTATION_RADIUS_METERS + 0.5)).toBeGreaterThan(0);
+        expect(basemapOpacity(CENTER_ROTATION_RADIUS_METERS - 0.5)).toBe(0);
+    });
+
+    it("leaves the map alone outside the spot", () => {
+        expect(basemapOpacity(EXIT_DISTANCE_METERS)).toBe(1);
+        expect(basemapOpacity(Number.NaN)).toBe(1);
     });
 });
 

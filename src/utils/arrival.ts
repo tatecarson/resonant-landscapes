@@ -1,4 +1,4 @@
-import { ENTER_DISTANCE_METERS } from "../config/geofence";
+import { CENTER_ROTATION_RADIUS_METERS, ENTER_DISTANCE_METERS } from "../config/geofence";
 
 /**
  * How far through the arrival a walker is: 0 at the threshold, 1 standing on
@@ -34,13 +34,29 @@ export function arrivalProgress(distanceMeters: number): number {
 }
 
 /**
- * What is left of the basemap with the walker standing on the spot.
+ * What is left of the basemap at a given distance: all of it at the threshold,
+ * none of it by the time the walker is standing in the spot.
  *
- * Not zero. The tiles carry the paths and the buildings, and a walker who
- * turns round at the centre and wants to leave should not have to wait for a
- * fade to get their bearings back — but they are inside the recording now, and
- * a map at full strength is the app still insisting they are going somewhere.
- * Low enough that the field over it is plainly the subject; present enough to
- * still be a map.
+ * It goes entirely rather than thinning to a ghost. A map at fifteen percent
+ * is not a map anybody reads, it is a texture under the colour, and leaving it
+ * there was hedging on the one sentence this whole gesture exists to say —
+ * that once you are inside the recording, navigation is over. What is left is
+ * the field, the spot's own glow and the walker's marker, which are the three
+ * things that still have something to tell them.
+ *
+ * Gone by CENTER_ROTATION_RADIUS_METERS, which is not a second threshold
+ * dropped into the middle of the dissolve but the same one the walk already
+ * has: three metres is where the walker counts as standing at the centre and
+ * where turning starts to mean something. The tiles finish clearing exactly as
+ * rotation takes the screen, so the sweep runs on colour rather than over a
+ * ghost of a street plan.
  */
-export const BASEMAP_ARRIVED_OPACITY = 0.15;
+export function basemapOpacity(distanceMeters: number): number {
+    if (!Number.isFinite(distanceMeters)) {
+        return 1;
+    }
+
+    const span = ENTER_DISTANCE_METERS - CENTER_ROTATION_RADIUS_METERS;
+    const remaining = (distanceMeters - CENTER_ROTATION_RADIUS_METERS) / span;
+    return Math.min(1, Math.max(0, remaining));
+}

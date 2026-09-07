@@ -242,9 +242,19 @@ test("walking in never empties the screen", async ({ page, context, baseURL }) =
     // rather than spending the whole walk on one of them.
     expect(new Set(readings.map((reading) => reading.layer))).toEqual(new Set(["warmth", "field"]));
 
-    // The map goes as the field comes. Same curve, opposite directions, which
-    // is what makes the two read as one motion.
-    expect(readings[readings.length - 1].basemap).toBeLessThan(readings[0].basemap);
+    /*
+     * The map goes as the field comes, and it goes entirely. Same band,
+     * opposite directions, which is what makes the two read as one motion
+     * rather than a tint laid over a map that carries on regardless.
+     */
+    for (let i = 1; i < readings.length; i += 1) {
+        expect(
+            readings[i].basemap,
+            `the map came back walking from ${readings[i - 1].metres} m to ${readings[i].metres} m`
+        ).toBeLessThanOrEqual(readings[i - 1].basemap);
+    }
+    expect(readings[0].basemap).toBe(1);
+    expect(readings[readings.length - 1].basemap).toBe(0);
 });
 
 test("turning sweeps the field's colour without changing its weight", async ({
