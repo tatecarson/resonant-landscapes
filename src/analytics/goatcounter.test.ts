@@ -73,7 +73,8 @@ describe("goatcounter", () => {
         expect(appendChild).toHaveBeenCalledTimes(1);
         const script = createElement.mock.results[0].value;
         expect(script.src).toBe("https://gc.zgo.at/count.js");
-        expect(script.dataset.goatcounter).toBe("https://resonant-landscapes.goatcounter.com");
+        // The /count path is the endpoint; the bare site is the dashboard.
+        expect(script.dataset.goatcounter).toBe("https://resonant-landscapes.goatcounter.com/count");
     });
 
     it("queues an event fired before the script loads, and flushes on load", async () => {

@@ -36,8 +36,14 @@ function enabled(): boolean {
     return Boolean(SITE_CODE) && typeof window !== "undefined" && typeof document !== "undefined";
 }
 
+/**
+ * The full counting URL, `/count` included. count.js uses this verbatim and
+ * appends only a query string, so without the path every ping goes to the
+ * dashboard page instead — which answers a redirect that sendBeacon reports as
+ * success, so nothing counted and nothing complained.
+ */
 function endpoint(): string {
-    return `https://${SITE_CODE}.goatcounter.com`;
+    return `https://${SITE_CODE}.goatcounter.com/count`;
 }
 
 function count(options: CountOptions): void {
