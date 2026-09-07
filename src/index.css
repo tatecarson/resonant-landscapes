@@ -151,3 +151,41 @@
         min-height: 100svh;
     }
 }
+
+/*
+ * The modal panel's ceiling: never taller than the screen it is read on.
+ *
+ * .modal-viewport above sizes the *container*, which only decides where a
+ * short panel sits. It cannot help a tall one, and on real hardware these
+ * panels are the tall case: measured on BrowserStack (rl-uo5), the welcome
+ * panel's content is 757pt on an iPhone 14 and 772pt on an iPhone SE against
+ * 663pt and 548pt of visible screen, so START sat below the fold on the first
+ * screen whatever the container's min-height was. Capping the panel and
+ * letting its own body scroll is what puts the button back on that screen —
+ * it is pinned inside the panel by a sticky footer, in both modals.
+ *
+ * The gutter is the space the panel is not allowed to eat: the container's
+ * p-4 above it and, below it, the same max(1rem, safe-area) the container
+ * pads with, so the cap stays exact on a phone whose inset is larger than
+ * 1rem. On sm the container's padding is gone and the panel's own my-8 —
+ * 2rem top and bottom — takes over.
+ *
+ * svh with a vh fallback, matching .modal-viewport: same reason, same iOS
+ * 15.0-15.1 support floor.
+ */
+.modal-panel {
+    --modal-panel-gutter: calc(1rem + max(1rem, env(safe-area-inset-bottom)));
+    max-height: calc(100vh - var(--modal-panel-gutter));
+}
+
+@supports (max-height: 100svh) {
+    .modal-panel {
+        max-height: calc(100svh - var(--modal-panel-gutter));
+    }
+}
+
+@media (min-width: 640px) {
+    .modal-panel {
+        --modal-panel-gutter: 4rem;
+    }
+}

@@ -139,7 +139,7 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                             leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                             leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                         >
-                            <Dialog.Panel className="relative w-full rounded-2xl bg-panel p-8 shadow-2xl sm:my-8 sm:max-w-md">
+                            <Dialog.Panel className="modal-panel relative flex w-full flex-col overflow-y-auto overscroll-contain rounded-2xl bg-panel px-8 pt-8 shadow-2xl sm:my-8 sm:max-w-md">
                                 {/* decorative top rule */}
                                 <div className="mb-6 flex items-center gap-3">
                                     <div className="h-px flex-1 bg-ink/25" />
@@ -229,7 +229,29 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                         : welcome.accessAudioOnly}
                                 </p>
 
-                                <div className="mt-8">
+                                {/*
+                                  * The walk's one action, pinned to the bottom of the panel.
+                                  *
+                                  * Measured on BrowserStack real devices (rl-uo5): the panel's
+                                  * content is 757pt on an iPhone 14 and 772pt on an iPhone SE,
+                                  * against 663pt and 548pt of screen once Safari's toolbars are
+                                  * drawn. The panel is simply taller than the phone, so no
+                                  * min-height on its container can put START on the first screen
+                                  * — the button was two thirds of a page down, and a walker who
+                                  * did not think to scroll a screen that does not look scrollable
+                                  * had no way in.
+                                  *
+                                  * sticky rather than fixed: it pins to the panel's own scrollport
+                                  * (.modal-panel is the scroll container), so it sits inside the
+                                  * rounded corners, and on a desktop — where the panel is shorter
+                                  * than the window and nothing scrolls — it simply sits at the end
+                                  * of the content, which is where it already was.
+                                  *
+                                  * The unlock error travels with it. It is what the button did,
+                                  * and a sticky footer over the top of it would be the same
+                                  * disappearing act one layer down.
+                                  */}
+                                <div className="sticky bottom-0 -mx-8 mt-8 bg-panel px-8 pb-[max(2rem,env(safe-area-inset-bottom))] pt-4">
                                     <button
                                         type="button"
                                         // Not `disabled`: it would take the
@@ -254,48 +276,48 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                                 ? welcome.startAnyway
                                                 : welcome.start}
                                     </button>
-                                </div>
 
-                                {(lastUnlockError !== null || unlockFailed) && (
-                                    <div className="mt-3" data-testid="unlock-error">
-                                        <p className="font-mono text-[10px] uppercase tracking-widest text-status-error">
-                                            {welcome.unlockFailed}
-                                        </p>
-                                        {/*
-                                          * The exception itself is deliberately not
-                                          * above, the same way HoaRenderer keeps it out
-                                          * of the park strip. It cannot be acted on by
-                                          * someone about to set off, and it reads as a
-                                          * crash rather than a button to press again.
-                                          */}
-                                        {isDebugEnabled() && (
-                                            <pre
-                                                className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-lg bg-white/70 p-2 text-[10px] text-status-error"
-                                                data-testid="unlock-error-detail"
+                                    {(lastUnlockError !== null || unlockFailed) && (
+                                        <div className="mt-3" data-testid="unlock-error">
+                                            <p className="font-mono text-[10px] uppercase tracking-widest text-status-error">
+                                                {welcome.unlockFailed}
+                                            </p>
+                                            {/*
+                                              * The exception itself is deliberately not
+                                              * above, the same way HoaRenderer keeps it out
+                                              * of the park strip. It cannot be acted on by
+                                              * someone about to set off, and it reads as a
+                                              * crash rather than a button to press again.
+                                              */}
+                                            {isDebugEnabled() && (
+                                                <pre
+                                                    className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-lg bg-white/70 p-2 text-[10px] text-status-error"
+                                                    data-testid="unlock-error-detail"
+                                                >
+                                                    {lastUnlockError}
+                                                </pre>
+                                            )}
+                                            {/*
+                                              * Pressing Start again is the first thing to
+                                              * try, so this sits under it and reads quieter.
+                                              * A phone that will not unlock here sometimes
+                                              * unlocks from the park's own start button, and
+                                              * refusing to let them go and find out would
+                                              * end the walk on the doorstep.
+                                              */}
+                                            <button
+                                                type="button"
+                                                className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-panel mt-3 inline-flex min-h-[44px] items-center rounded-full px-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink/60 underline decoration-ink/30 underline-offset-2 transition-colors hover:text-ink"
+                                                data-testid="skip-unlock"
+                                                onClick={() => {
+                                                    setIsOpen(false);
+                                                }}
                                             >
-                                                {lastUnlockError}
-                                            </pre>
-                                        )}
-                                        {/*
-                                          * Pressing Start again is the first thing to
-                                          * try, so this sits under it and reads quieter.
-                                          * A phone that will not unlock here sometimes
-                                          * unlocks from the park's own start button, and
-                                          * refusing to let them go and find out would
-                                          * end the walk on the doorstep.
-                                          */}
-                                        <button
-                                            type="button"
-                                            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-panel mt-3 inline-flex min-h-[44px] items-center rounded-full px-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink/60 underline decoration-ink/30 underline-offset-2 transition-colors hover:text-ink"
-                                            data-testid="skip-unlock"
-                                            onClick={() => {
-                                                setIsOpen(false);
-                                            }}
-                                        >
-                                            {welcome.skipUnlock}
-                                        </button>
-                                    </div>
-                                )}
+                                                {welcome.skipUnlock}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </Dialog.Panel>
                         </Transition.Child>
                     </div>
