@@ -187,7 +187,7 @@ test.describe("reduced motion", () => {
     // And it must be the quiet form, not the full-strength field held still.
     // One layer, so no lean; and the calm ceiling, not the peak.
     if (before !== "none") {
-      expect(before).not.toContain("0.62");
+      expect(before).not.toContain("0.82");
       expect(before.match(/radial-gradient/g) ?? []).toHaveLength(1);
     }
   });

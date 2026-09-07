@@ -160,13 +160,13 @@ export const arrivalField = {
      * because the approach tint switches off at the same metre this switches
      * on and a walker must not be able to see the handover.
      */
-    edge: { floor: 0.5, peak: 0.62 },
+    edge: { floor: 0.5, peak: 0.82 },
     /**
      * The middle of the screen, which the approach tint deliberately leaves
      * clear so the map stays readable. It has nothing left to keep clear by
      * the centre, so this closes.
      */
-    core: { floor: 0, peak: 0.5 },
+    core: { floor: 0, peak: 0.74 },
     /**
      * The bloom that holds a bearing while the map turns under it. Small: it
      * is a lean on a field, not a second light source.

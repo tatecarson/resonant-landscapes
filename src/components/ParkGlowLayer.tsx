@@ -10,11 +10,15 @@ type Coordinate = [number, number];
 /** Every spot on the map, and the active one at the threshold. */
 const RESTING_OPACITY = 0.5;
 /**
- * The active spot with the walker standing on it. Enough to stay legible
- * under a full-screen field at `arrivalField.edge.peak`, which is what is
- * over it by then.
+ * The active spot with the walker standing on it.
+ *
+ * Set against what is over it rather than against how it looks alone: by the
+ * centre this is under a full-screen field at `arrivalField.core.peak`, which
+ * leaves about a quarter of it showing. Raising the field means raising this
+ * with it, or the last mark of where the spot is goes under the thing that is
+ * supposed to be celebrating arriving at it.
  */
-const ARRIVED_OPACITY = 0.75;
+const ARRIVED_OPACITY = 0.95;
 
 interface ParkGlowLayerProps {
     parks: { name: string; coords: Coordinate }[];
