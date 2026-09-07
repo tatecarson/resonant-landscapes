@@ -127,3 +127,103 @@
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
 }
+
+/*
+ * The modals' scroll container, sized to what the walker can actually see.
+ *
+ * inset-0 resolves against the layout viewport, which — under
+ * viewport-fit=cover, with a browser toolbar up (Safari's on iOS, Chrome's
+ * omnibox on Android) — is taller than the visible area. min-h-full then
+ * makes the bottom-anchored panel end under the browser chrome, and
+ * scrolling bottoms out with the START button still hidden (rl-uo5).
+ *
+ * svh is the smallest viewport: browser UI fully shown, on every browser,
+ * which is the state a walker is in before they have scrolled anything.
+ * The plain vh line is the fallback for the iOS 15.0-15.1 support floor,
+ * which predates the small-viewport units.
+ */
+.modal-viewport {
+    min-height: 100vh;
+}
+
+@supports (min-height: 100svh) {
+    .modal-viewport {
+        min-height: 100svh;
+    }
+}
+
+/*
+ * The modal panel's ceiling: never taller than the screen it is read on.
+ *
+ * .modal-viewport above sizes the *container*, which only decides where a
+ * short panel sits. It cannot help a tall one, and on real hardware these
+ * panels are the tall case: measured on BrowserStack (rl-uo5), the welcome
+ * panel's content is 757pt on an iPhone 14 and 772pt on an iPhone SE against
+ * 663pt and 548pt of visible screen, so START sat below the fold on the first
+ * screen whatever the container's min-height was. Capping the panel and
+ * letting its own body scroll is what puts the button back on that screen —
+ * it is pinned inside the panel by a sticky footer, in both modals.
+ *
+ * The gutter is the space the panel is not allowed to eat: the container's
+ * p-4 above it and, below it, the same max(1rem, safe-area) the container
+ * pads with, so the cap stays exact on a phone whose inset is larger than
+ * 1rem. On sm the container's padding is gone and the panel's own my-8 —
+ * 2rem top and bottom — takes over.
+ *
+ * svh with a vh fallback, matching .modal-viewport: same reason, same iOS
+ * 15.0-15.1 support floor.
+ */
+.modal-panel {
+    --modal-panel-gutter: calc(1rem + max(1rem, env(safe-area-inset-bottom)));
+    max-height: calc(100vh - var(--modal-panel-gutter));
+}
+
+@supports (max-height: 100svh) {
+    .modal-panel {
+        max-height: calc(100svh - var(--modal-panel-gutter));
+    }
+}
+
+@media (min-width: 640px) {
+    .modal-panel {
+        --modal-panel-gutter: 4rem;
+    }
+}
+
+/*
+ * Measured beats declared.
+ *
+ * Everything above sizes the modals with viewport units, and in Safari and
+ * Chrome those units are honest: on BrowserStack's iPhone 14 and SE, and in
+ * iOS 26 Safari, 100svh is exactly the visible height and the panel caps where
+ * it should. In Arc on iOS it is not — Arc floats its toolbar over a full-bleed
+ * webview and reports the whole screen through every unit, so the panel sized
+ * itself to a screen larger than the one it was on and the action ended under
+ * the bar.
+ *
+ * useVisualViewport writes what the browser reports as visible right now, and
+ * these rules use it in place of the unit. Three things are pinned to it: the
+ * scrollport's top and height, so a `fixed inset-0` cannot resolve against a
+ * layout viewport that reaches under the chrome; and the panel's ceiling.
+ *
+ * Behind an attribute rather than a var() fallback on purpose. `var(--x, 100svh)`
+ * on a browser that has neither the property nor the unit is invalid at
+ * computed-value time, which drops max-height entirely rather than falling
+ * back to the vh ladder above — the exact failure being fixed here.
+ */
+:root[data-viewport-measured] .modal-scroller {
+    top: var(--visual-viewport-top);
+    left: var(--visual-viewport-left);
+    right: auto;
+    bottom: auto;
+    width: var(--visual-viewport-width);
+    height: var(--visual-viewport-height);
+}
+
+:root[data-viewport-measured] .modal-viewport {
+    min-height: var(--visual-viewport-height);
+}
+
+:root[data-viewport-measured] .modal-panel {
+    max-height: calc(var(--visual-viewport-height) - var(--modal-panel-gutter));
+}
