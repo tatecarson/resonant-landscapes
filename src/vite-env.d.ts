@@ -1,11 +1,23 @@
 /// <reference types="vite/client" />
 
+interface ImportMetaEnv {
+  /** Tate's GoatCounter site code; unset means counting is off entirely. */
+  readonly VITE_GOATCOUNTER_SITE?: string;
+}
+
 // Type for iOS-specific static requestPermission on DeviceOrientationEvent
 type IOSDeviceOrientationEvent = typeof DeviceOrientationEvent & {
   requestPermission?: () => Promise<'granted' | 'denied'>;
 };
 
 interface Window {
+  /**
+   * GoatCounter's counting script, present only when the build has a site
+   * code and the script has loaded. See src/analytics/goatcounter.ts.
+   */
+  goatcounter?: {
+    count: (options?: { path?: string; event?: boolean; title?: string }) => void;
+  };
   __gimbalOrientation?: {
     fwdX: number; fwdY: number; fwdZ: number;
     upX: number; upY: number; upZ: number;
