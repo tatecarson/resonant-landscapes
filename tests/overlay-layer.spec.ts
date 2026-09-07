@@ -182,10 +182,30 @@ test.describe("the install affordance", () => {
         // this exact sequence, would have arrived.
         await page.waitForTimeout(6_000);
 
-        // The map, as the control: the absence has to mean the offer is
-        // gone, not that the walk never started.
+        // The map, as the control: an empty overlay list has to mean the walk
+        // came up, not that nothing did.
         await expect(page.locator("canvas").first()).toBeVisible({ timeout: 10_000 });
-        await expect(page.getByTestId("install-hint")).toHaveCount(0);
+
+        /*
+         * Asserted structurally rather than by name (rl-s6l). After rl-5yp
+         * the old check was `install-hint` count 0 — vacuously true, since
+         * the component and its testid no longer exist, and still green had
+         * a popup returned under any other name. What is allowed to be fixed
+         * to the display here is the warmth tint and nothing else: the
+         * between-parks state is the map and nothing else. Any overlay
+         * reintroduced, under any testid at all, makes this fail.
+         */
+        const overlays = await page.evaluate(() =>
+            Array.from(document.querySelectorAll<HTMLElement>("*"))
+                .filter((el) => getComputedStyle(el).position === "fixed")
+                .filter((el) => {
+                    const box = el.getBoundingClientRect();
+                    return box.width > 0 && box.height > 0;
+                })
+                .map((el) => el.getAttribute("data-testid") ?? el.tagName)
+                .filter((name) => name !== "proximity-warmth")
+        );
+        expect(overlays, `the between-parks state has overlays on the map: ${overlays.join(", ")}`).toEqual([]);
     });
 
     test("the field guide opens while the location banner is up", async ({ context, page }) => {
@@ -252,10 +272,18 @@ test.describe("the install affordance", () => {
         });
 
         await openHelp(page);
-        const button = page
-            .getByTestId("help-install")
-            .getByRole("button", { name: /add it/i });
+        const section = page.getByTestId("help-install");
+        const button = section.getByRole("button", { name: /add it/i });
         await expect(button).toBeVisible();
+
+        /*
+         * The prose switches with the mechanism (rl-8x0): a button present
+         * means the browser installs on request, so iPhone steps sitting
+         * above it would be instructions for a phone the walker is not
+         * holding.
+         */
+        await expect(section).toContainText(/home screen/i);
+        await expect(section).not.toContainText(/add to home screen/i);
 
         await button.click();
         await expect

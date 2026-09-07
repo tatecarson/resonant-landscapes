@@ -189,11 +189,13 @@ function HelpModal({ isOpen, setIsOpen, install }: HelpModalProps) {
                                   * The install affordance, the only one (rl-5yp).
                                   * The popup over the map is gone by decision:
                                   * an interruption asking for something is the
-                                  * opposite of a piece about wandering. Prose
-                                  * for every phone, because iOS cannot be
-                                  * asked to install from a button; the button
-                                  * appears only where the browser will do it
-                                  * on request, and once used — either way — it
+                                  * opposite of a piece about wandering. The
+                                  * prose switches with the mechanism (rl-8x0):
+                                  * where the button below installs on request,
+                                  * iPhone steps would be instructions for a
+                                  * phone the walker is not holding; where
+                                  * there is no button, the steps are the
+                                  * offer. Either way, once used, the button
                                   * does not come back this session.
                                   */}
                                 <div className="mt-6 rounded-2xl bg-white/25 p-4" data-testid="help-install">
@@ -201,7 +203,7 @@ function HelpModal({ isOpen, setIsOpen, install }: HelpModalProps) {
                                         {installCopy.helpTitle}
                                     </p>
                                     <p className="mt-2 font-space-mono text-[12px] leading-relaxed text-ink/75">
-                                        {installCopy.helpDetail}
+                                        {install ? installCopy.helpDetail : installCopy.helpDetailManual}
                                     </p>
                                     {install && (
                                         <button
