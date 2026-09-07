@@ -46,6 +46,13 @@ interface Window {
    * real stops rather than the requested ones. See MAX_ZOOM in geofence.ts.
    */
   __mapZoomBounds?: { minZoom: number; maxZoom: number } | null;
+  /**
+   * What is left of the basemap, mirrored under debug because the dissolve on
+   * arrival (rl-879) is otherwise unobservable: it is an opacity on an
+   * OpenLayers layer, and the canvas it paints to is tainted by cross-origin
+   * tiles, so a spec can neither reach the layer nor read the pixels.
+   */
+  __basemapOpacity?: number;
   __mapDebug?: {
     center: [number, number] | null;
     position: [number, number];

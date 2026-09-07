@@ -498,7 +498,12 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         const progress =
             parkName && !prefersReducedMotion ? arrivalProgress(Math.floor(parkDistance)) : 0;
 
-        basemap.setOpacity(1 - (1 - BASEMAP_ARRIVED_OPACITY) * progress);
+        const opacity = 1 - (1 - BASEMAP_ARRIVED_OPACITY) * progress;
+        basemap.setOpacity(opacity);
+
+        if (isDebugEnabled()) {
+            window.__basemapOpacity = opacity;
+        }
     }, [map, parkName, parkDistance, prefersReducedMotion]);
 
     const showCenteredGeolocationMarker =
