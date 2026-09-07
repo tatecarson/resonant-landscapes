@@ -136,6 +136,17 @@ export const app = {
     parkPanelCrashed: "This park did not open. Walk away and back, or reload the page.",
 } as const;
 
+/**
+ * Shared by both modals, which are the same panel twice.
+ *
+ * Shown while the panel has text below the fold. It is a visual affordance
+ * rather than information, so it is hidden from screen readers, which reach
+ * that text without being told it is there.
+ */
+export const modal = {
+    moreBelow: "More below",
+} as const;
+
 /** The field guide, opened from the map. */
 export const help = {
     title: "Help & About",
