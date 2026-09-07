@@ -33,7 +33,7 @@ import type { Variant } from "./App";
 /** The welcome screen, which is the only thing shown before the walk starts. */
 export const welcome = {
     title: "Resonant Landscapes",
-    subtitle: "a sound walk",
+    subtitle: "a locative sound walk",
     /**
      * One line per site, as a record rather than a chain of ternaries. Two
      * sites fit in a ternary; three is where it stops reading as a sentence
