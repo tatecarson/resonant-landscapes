@@ -127,3 +127,27 @@
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
 }
+
+/*
+ * The modals' scroll container, sized to what the walker can actually see.
+ *
+ * inset-0 resolves against the layout viewport, which — under
+ * viewport-fit=cover, with a browser toolbar up (Safari's on iOS, Chrome's
+ * omnibox on Android) — is taller than the visible area. min-h-full then
+ * makes the bottom-anchored panel end under the browser chrome, and
+ * scrolling bottoms out with the START button still hidden (rl-uo5).
+ *
+ * svh is the smallest viewport: browser UI fully shown, on every browser,
+ * which is the state a walker is in before they have scrolled anything.
+ * The plain vh line is the fallback for the iOS 15.0-15.1 support floor,
+ * which predates the small-viewport units.
+ */
+.modal-viewport {
+    min-height: 100vh;
+}
+
+@supports (min-height: 100svh) {
+    .modal-viewport {
+        min-height: 100svh;
+    }
+}
