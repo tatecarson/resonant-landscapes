@@ -154,6 +154,8 @@ test("welcome modal: the cap comes from the measured viewport, not the unit", as
             visible: window.visualViewport?.height ?? window.innerHeight,
             panelMaxHeight: panel ? parseFloat(getComputedStyle(panel).maxHeight) : null,
             scrollerHeight: scroller ? scroller.getBoundingClientRect().height : null,
+            scrollerWidth: scroller ? scroller.getBoundingClientRect().width : null,
+            visibleWidth: window.visualViewport?.width ?? window.innerWidth,
         };
     });
 
@@ -165,4 +167,7 @@ test("welcome modal: the cap comes from the measured viewport, not the unit", as
     // And the scrollport is the visible area itself, so a bottom-anchored
     // panel cannot land under browser chrome that the layout viewport ignores.
     expect(measured.scrollerHeight).toBeCloseTo(measured.visible, 0);
+    // Both axes: a walker who has pinch-zoomed and panned has moved the
+    // visible area sideways too, and index.html permits that zoom on purpose.
+    expect(measured.scrollerWidth).toBeCloseTo(measured.visibleWidth, 0);
 });

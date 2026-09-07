@@ -213,7 +213,10 @@
  */
 :root[data-viewport-measured] .modal-scroller {
     top: var(--visual-viewport-top);
+    left: var(--visual-viewport-left);
+    right: auto;
     bottom: auto;
+    width: var(--visual-viewport-width);
     height: var(--visual-viewport-height);
 }
 

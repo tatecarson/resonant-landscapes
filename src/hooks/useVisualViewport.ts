@@ -48,14 +48,19 @@ export function useVisualViewport(): void {
             if (!height) return;
 
             /*
-             * offsetTop is how far the visible area has been pushed down
-             * inside the layout viewport — non-zero on iOS when the page is
-             * pinch-zoomed or the toolbar is mid-collapse. The modal's
-             * scrollport is placed with it, so `fixed inset-0` cannot leave
-             * the panel sitting under the chrome.
+             * Both axes, and the offsets as well as the sizes. offsetTop and
+             * offsetLeft are how far the visible area has been pushed inside
+             * the layout viewport — non-zero on iOS when the toolbar is
+             * mid-collapse, and whenever the walker has pinch-zoomed and
+             * panned. Zoom is not an edge case here: index.html deliberately
+             * permits it (WCAG 1.4.4, and outdoors in glare it is the point),
+             * so a modal that tracked only the vertical axis would sit
+             * correctly down the screen and wrongly across it.
              */
             root.style.setProperty("--visual-viewport-height", `${height}px`);
+            root.style.setProperty("--visual-viewport-width", `${viewport?.width ?? window.innerWidth}px`);
             root.style.setProperty("--visual-viewport-top", `${viewport?.offsetTop ?? 0}px`);
+            root.style.setProperty("--visual-viewport-left", `${viewport?.offsetLeft ?? 0}px`);
             root.setAttribute("data-viewport-measured", "");
         };
 
