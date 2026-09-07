@@ -1,7 +1,8 @@
 import { useRef, Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAudioEngine, useAudioPlaybackState } from '../contexts/AudioContextProvider';
-import { help, install as installCopy } from '../copy';
+import { help, install as installCopy, modal } from '../copy';
+import { useMoreBelow } from "../hooks/useMoreBelow";
 import type { InstallOffer } from '../hooks/useInstallHint';
 import { detectPlatform } from '../utils/recoverySteps';
 import { countEvent } from '../analytics/goatcounter';
@@ -53,6 +54,7 @@ function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }:
           ? installCopy.helpDetail
           : installCopy.helpDetailMenu;
     const cancelButtonRef = useRef(null);
+    const { ref: panelRef, canScroll, moreBelow } = useMoreBelow<HTMLDivElement>();
     const { setKeepScreenAwake } = useAudioEngine();
     const {
         keepScreenAwake,
@@ -88,7 +90,7 @@ function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }:
                             leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                             leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                         >
-                            <Dialog.Panel className="modal-panel relative flex w-full flex-col overflow-y-auto overscroll-contain rounded-2xl bg-panel px-8 pt-8 shadow-2xl sm:my-8 sm:max-w-md">
+                            <Dialog.Panel ref={panelRef} className="modal-panel relative flex w-full flex-col overflow-y-auto overscroll-contain rounded-2xl bg-panel px-8 pt-8 shadow-2xl sm:my-8 sm:max-w-md">
                                 {/* decorative top rule */}
                                 <div className="mb-6 flex items-center gap-3">
                                     <div className="h-px flex-1 bg-ink/25" />
@@ -305,6 +307,25 @@ function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }:
                                   * same measured reason (rl-uo5): this panel is the taller of the
                                   * two, so Close is further off the bottom of the screen. */}
                                 <div className="sticky bottom-0 -mx-8 mt-8 bg-panel px-8 pb-[max(2rem,env(safe-area-inset-bottom))] pt-4 relative">
+                                    {/*
+                                      * The cue the fade cannot give. On a small phone the fold lands
+                                      * between two paragraphs as often as on a line, and an uncut
+                                      * paragraph does not look continued (rl-uo5).
+                                      *
+                                      * Its space is reserved whenever the panel scrolls, and only its
+                                      * opacity changes at the end, so reaching the bottom does not move
+                                      * the button out from under a thumb already on its way to it.
+                                      */}
+                                    {canScroll && (
+                                        <p
+                                            aria-hidden="true"
+                                            className={`mb-2 text-center font-mono text-[9px] uppercase tracking-[0.18em] text-ink/70 transition-opacity duration-200 ${
+                                                moreBelow ? "opacity-100" : "opacity-0"
+                                            }`}
+                                        >
+                                            {modal.moreBelow}
+                                        </p>
+                                    )}
                                     {/*
                                       * The line of prose the footer covers is cut mid-glyph without
                                       * this, which reads as broken text rather than as more text. The
