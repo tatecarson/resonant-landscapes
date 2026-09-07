@@ -1,0 +1,45 @@
+userName: ${BROWSERSTACK_USERNAME}
+accessKey: ${BROWSERSTACK_ACCESS_KEY}
+framework: playwright
+
+# One iPhone and one Android, for checking a single change on real hardware
+# without billing the full matrix (rl-06c.6, which is browserstack.yml and
+# stays as it is — seven platforms, scheduled weekly).
+#
+# Two rows because two is what most changes actually have an axis for. The
+# install prose is the example this file was written for: the wording is
+# chosen by the phone, so what needs proving is that a real iPhone gets the
+# share-sheet steps and a real Android does not. One device could not tell
+# those apart, and the other five would be the same answer again at five
+# times the minutes.
+#
+# Point it at whichever build you mean to walk:
+#
+#   PLAYWRIGHT_BASE_URL=https://deploy-preview-123--resonant-landscapes.netlify.app \
+#     npm run browserstack:two-devices -- -g "words this phone"
+#
+# Same constraints as the full matrix: real devices cannot reach a laptop's
+# localhost, so this needs a deployed URL, and geolocation is unsupported on
+# real iOS, so nothing here may depend on standing in a park.
+platforms:
+  - browserName: safari
+    deviceName: iPhone 14
+    osVersion: 18
+
+  - browserName: chrome
+    deviceName: Google Pixel 7
+    osVersion: 13
+
+parallelsPerPlatform: 1
+browserstackLocal: false
+
+projectName: Resonant-Landscapes
+buildName: BrowserStack-Two-Devices
+
+debug: true
+networkLogs: true
+testObservability: true
+
+playwrightConfigOptions:
+  use:
+    baseURL: ${PLAYWRIGHT_BASE_URL}

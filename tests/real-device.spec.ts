@@ -369,6 +369,43 @@ test("decodes this device's real spatial file to eight channels", async () => {
     expect(decoded.mono.levels[0].rms, "the mono bed decoded to silence").toBeGreaterThan(SILENT);
 });
 
+test("offers the install in words this phone can act on", async () => {
+    /*
+     * The one assertion in this file that a real device is uniquely able to
+     * make (rl-8x0). The guide's prose is chosen by the phone — iOS gets the
+     * share-sheet steps, because it has no install API and never gets a
+     * button; everything else gets the promise, because those steps describe
+     * a phone the walker is not holding. Every other runner fakes the user
+     * agent that decision reads, so a real iPhone and a real Android are the
+     * only place the branch is exercised honestly.
+     *
+     * It replaced `install ? … : …`, which was null in more states than iOS —
+     * including the moment after the button was used, which flipped the
+     * paragraph to iPhone steps in front of someone who had just installed
+     * the walk from a button.
+     */
+    await page.goto("/");
+
+    // Same match as the preflight test above: a device missing a capability
+    // renders "Start anyway", and the guide is behind the welcome either way.
+    await page.getByRole("button", { name: /^\s*start(\s+anyway)?\s*$/i }).click();
+    await page.getByRole("button", { name: "Open field guide" }).click();
+
+    const section = page.getByTestId("help-install");
+    await expect(section).toBeVisible({ timeout: 30_000 });
+    // Always, on every phone: what installing buys the walker is the offer.
+    await expect(section).toContainText(/home screen/i);
+
+    const isIOS = await page.evaluate(() => /iPhone|iPad|iPod/i.test(navigator.userAgent));
+    if (isIOS) {
+        // The only route on iOS is the walker doing it by hand, so the steps
+        // are the offer rather than a footnote to it.
+        await expect(section).toContainText(/press share/i);
+    } else {
+        await expect(section).not.toContainText(/press share/i);
+    }
+});
+
 test("ships a manifest the device can install from", async () => {
     await page.goto("/");
 
