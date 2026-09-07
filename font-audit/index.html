@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Font audit — rl-0l1</title>
+<!--
+  Samples for the font audit (rl-0l1), not part of the app build. Open it
+  directly in a browser; it needs network for the Google Fonts loads.
+
+  Section A: the display serif. Cormorant Garamond italic is the "cursive
+  looking" one Tate does not love; it is used in four places, always italic,
+  always light: the welcome and field-guide titles (48px), the park name in
+  the strip (22px), and the debug panel path. The candidates keep the
+  old-style character but with more ink in the strokes.
+  Section B: Space Mono, the workhorse — everything else on screen. Shown
+  with two alternatives in case the swap should go further.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Lora:ital,wght@0,400;0,500;1,400;1,500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300;1,6..72,400&family=Space+Mono&family=IBM+Plex+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper: #F6F1E7;
+    --panel: #8ecdc0;
+    --ink: #0b1a16;
+    --edge: #21493e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Space Mono", monospace;
+    padding: 2.5rem 1.25rem 5rem;
+    max-width: 60rem;
+    margin-inline: auto;
+  }
+  h1 { font-size: 15px; letter-spacing: 0.16em; text-transform: uppercase; }
+  .lede { font-size: 12px; line-height: 1.7; color: var(--ink); opacity: 0.75; max-width: 46rem; }
+  .rule { border: none; border-top: 1px solid rgb(11 26 22 / 0.25); margin: 2.5rem 0; }
+
+  /* A card = one family, with the exact mockups the app uses. */
+  .card {
+    background: rgb(255 255 255 / 0.45);
+    border: 1px solid rgb(11 26 22 / 0.15);
+    border-radius: 16px;
+    padding: 1.25rem 1.25rem 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .card .name {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    opacity: 0.7; margin-bottom: 1rem;
+  }
+  .current-tag { color: var(--edge); font-weight: bold; }
+
+  /* Mock 1: modal title, as in WelcomeModal/HelpModal (48px italic light). */
+  .title { font-size: 48px; font-weight: 300; font-style: italic; letter-spacing: -0.01em; line-height: 1.1; margin: 0 0 0.35rem; }
+  .subtitle { font-family: "Space Mono", monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.7; margin-bottom: 1rem; }
+
+  /* Mock 2: the park strip (mint band, park name 22px italic light). */
+  .strip {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 0.9rem 1.1rem 1.1rem;
+    margin-bottom: 0.9rem;
+  }
+  .parkname { font-size: 22px; font-weight: 300; font-style: italic; line-height: 1.2; margin: 0 0 0.15rem; }
+  .stripmeta { font-family: "Space Mono", monospace; font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(11 26 22 / 0.7); }
+
+  .note { font-size: 11px; line-height: 1.65; opacity: 0.7; margin: 0.35rem 0 0; max-width: 44rem; }
+
+  /* Section B: mono mockups. */
+  .mono-sample { margin-bottom: 0.9rem; }
+  .mono-body { font-size: 12px; line-height: 1.7; max-width: 40rem; }
+  .mono-label { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.85; }
+  .mono-button {
+    display: inline-block; background: var(--ink); color: #fff;
+    border-radius: 999px; padding: 0.55rem 1.1rem;
+    font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<h1>Font audit — rl-0l1</h1>
+<p class="lede">
+  Two families are loaded: Cormorant Garamond (the display serif — always
+  italic, always light: the welcome title, the field-guide title, the park
+  name in the strip) and Space Mono (everything else). Tate does not love the
+  cursive-looking serif. Each card below renders the app's real strings at
+  the app's real sizes on the app's real palette, so the comparison is
+  faithful. No site code changes until a pick is made.
+</p>
+
+<hr class="rule">
+<h1>Section A — the display serif</h1>
+<p class="lede">The mockups: a modal title ("Resonant Landscapes", 48&nbsp;px italic light) and the park strip (mint band, park name at 22&nbsp;px italic light). The serif appears in the app only in these display moments — no body text — so legibility at small size matters less than character at large size.</p>
+
+<div class="card">
+  <div class="name"><span>Cormorant Garamond</span><span class="current-tag">current</span></div>
+  <p class="title" style="font-family:'Cormorant Garamond', Georgia, serif;">Resonant Landscapes</p>
+  <p class="subtitle">a locative sound walk · field guide</p>
+  <div class="strip">
+    <p class="parkname" style="font-family:'Cormorant Garamond', Georgia, serif;">Custer State Park</p>
+    <p class="stripmeta">tracking · 213 m · heading 12°</p>
+  </div>
+  <p class="note">Why it reads "cursive": drawn for display at large sizes with hairline strokes, its italic is calligraphic and its light weight makes the hairlines thinner still. Elegant on paper, and easy to read as handwriting at 22&nbsp;px on a phone in sunlight.</p>
+</div>
+
+<div class="card">
+  <div class="name"><span>EB Garamond</span><span>closest relative, sturdier</span></div>
+  <p class="title" style="font-family:'EB Garamond', Georgia, serif;">Resonant Landscapes</p>
+  <p class="subtitle">a locative sound walk · field guide</p>
+  <div class="strip">
+    <p class="parkname" style="font-family:'EB Garamond', Georgia, serif;">Custer State Park</p>
+    <p class="stripmeta">tracking · 213 m · heading 12°</p>
+  </div>
+  <p class="note">Keeps the Garamond character but with real book proportions: more weight in the strokes, a truer italic (calligraphy with a spine, not a swoop). The smallest step away from what is there now — a swap Tate would feel as "less cursive" rather than "different font".</p>
+</div>
+
+<div class="card">
+  <div class="name"><span>Lora</span><span>contemporary, outdoorsy</span></div>
+  <p class="title" style="font-family:'Lora', Georgia, serif;">Resonant Landscapes</p>
+  <p class="subtitle">a locative sound walk · field guide</p>
+  <div class="strip">
+    <p class="parkname" style="font-family:'Lora', Georgia, serif;">Custer State Park</p>
+    <p class="stripmeta">tracking · 213 m · heading 12°</p>
+  </div>
+  <p class="note">A workhorse serif with a brushed, confident italic. Less romantic, more grounded — pairs naturally with a mono because both carry visible tool marks. Holds up best at the 22&nbsp;px strip size in motion and glare.</p>
+</div>
+
+<div class="card">
+  <div class="name"><span>Newsreader</span><span>editorial</span></div>
+  <p class="title" style="font-family:'Newsreader', Georgia, serif;">Resonant Landscapes</p>
+  <p class="subtitle">a locative sound walk · field guide</p>
+  <div class="strip">
+    <p class="parkname" style="font-family:'Newsreader', Georgia, serif;">Custer State Park</p>
+    <p class="stripmeta">tracking · 213 m · heading 12°</p>
+  </div>
+  <p class="note">Designed for news text at many optical sizes, so it is crisp at every size on screen. Its italic is restrained rather than calligraphic. Reads more "published" than "handwritten" — a quieter break from the current look than Lora.</p>
+</div>
+
+<div class="card">
+  <div class="name"><span>Fraunces</span><span>the characterful one</span></div>
+  <p class="title" style="font-family:'Fraunces', Georgia, serif;">Resonant Landscapes</p>
+  <p class="subtitle">a locative sound walk · field guide</p>
+  <div class="strip">
+    <p class="parkname" style="font-family:'Fraunces', Georgia, serif;">Custer State Park</p>
+    <p class="stripmeta">tracking · 213 m · heading 12°</p>
+  </div>
+  <p class="note">A soft old-style with deliberate wonk — a serif with personality rather than refinement. The most "artist's signage" of the set, which suits a piece about noticing a landscape. The risk is that it competes with the content instead of framing it.</p>
+</div>
+
+<hr class="rule">
+<h1>Section B — Space Mono, for completeness</h1>
+<p class="lede">The complaint named the cursive one, and Space Mono is the other half of every screen: all tips, labels, buttons and captions. Two alternatives, same mockups: a field-guide tip at 12&nbsp;px, an uppercase label at 11&nbsp;px with 0.16em tracking, and the install button.</p>
+
+<div class="card">
+  <div class="name"><span>Space Mono</span><span class="current-tag">current</span></div>
+  <p class="mono-label">Home screen</p>
+  <p class="mono-body">The walk can live on your home screen. Press share, then Add to Home Screen. It opens full screen, with no browser bars over the map, and recordings you hear are saved to the phone so they play again where the signal is thin.</p>
+  <p><span class="mono-button">Add it</span></p>
+  <p class="note">Distinctive retro terminals (the slashed zero, the curved quotes). Its quirkiness is the app's texture; at 12&nbsp;px in body roles it is also the hardest of the three to read at speed.</p>
+</div>
+
+<div class="card">
+  <div class="name"><span>IBM Plex Mono</span><span>alternative</span></div>
+  <p class="mono-label" style="font-family:'IBM Plex Mono', monospace;">Home screen</p>
+  <p class="mono-body" style="font-family:'IBM Plex Mono', monospace;">The walk can live on your home screen. Press share, then Add to Home Screen. It opens full screen, with no browser bars over the map, and recordings you hear are saved to the phone so they play again where the signal is thin.</p>
+  <p><span class="mono-button" style="font-family:'IBM Plex Mono', monospace;">Add it</span></p>
+  <p class="note">Quieter and more even than Space Mono; keeps a technical feel with more legibility in paragraphs. The choice if the field guide starts carrying more prose.</p>
+</div>
+
+<div class="card">
+  <div class="name"><span>Spline Sans Mono</span><span>alternative</span></div>
+  <p class="mono-label" style="font-family:'Spline Sans Mono', monospace;">Home screen</p>
+  <p class="mono-body" style="font-family:'Spline Sans Mono', monospace;">The walk can live on your home screen. Press share, then Add to Home Screen. It opens full screen, with no browser bars over the map, and recordings you hear are saved to the phone so they play again where the signal is thin.</p>
+  <p><span class="mono-button" style="font-family:'Spline Sans Mono', monospace;">Add it</span></p>
+  <p class="note">Rounded, low-contrast, friendly — the most "walk brochure" of the three. Narrow width keeps the labels from running long.</p>
+</div>
+
+<hr class="rule">
+<h1>Constraints carried over</h1>
+<p class="lede">
+  Every candidate is on Google Fonts (so the non-blocking load, the
+  preconnects and the swap strategy in index.html carry over unchanged);
+  every candidate ships woff2, so the service worker's
+  <code>globPatterns</code> precache picks it up with no change; all support
+  iOS&nbsp;15/Safari&nbsp;15; none touch zoom behaviour (WCAG&nbsp;1.4.4).
+  The one thing a swap does change is the fallback stack in tailwind.config
+  and — for Fraunces and Newsreader — the font request URL gains variable
+  axes, which is a slightly heavier request than Cormorant's static weights.
+  Nothing here is a reason not to swap; it is what the swap PR will carry.
+</p>
+
+</body>
+</html>
