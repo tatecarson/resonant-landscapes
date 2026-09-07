@@ -219,11 +219,7 @@ const startWalk = async (page: Page) => {
 };
 
 const preflight = (page: Page) => page.getByTestId("capability-preflight");
-/**
- * The panel's heading. Asserted by exact text rather than substring, because
- * "Part of the walk will not work here" contains the blocked heading and a
- * loose match would let the wrong one pass.
- */
+/** Match the heading exactly so the detail cannot satisfy the assertion. */
 const preflightHeading = (page: Page) => preflight(page).locator("p").first();
 const locationStatus = (page: Page) => page.getByTestId("location-status");
 
@@ -243,7 +239,7 @@ test.describe("before the walk: the welcome preflight", () => {
         await stubFixesAtPark(page);
         await page.goto("/");
 
-        await expect(preflightHeading(page)).toHaveText("Part of the walk will not work here");
+        await expect(preflightHeading(page)).toHaveText("Some features may be unavailable");
         await expect(preflight(page)).toContainText(/turning will not rotate the sound/i);
         // Still startable: losing rotation costs one feature, not the walk.
         await expect(page.getByRole("button", { name: /^\s*start\s*$/i })).toBeVisible();
@@ -266,7 +262,7 @@ test.describe("before the walk: the welcome preflight", () => {
         await page.goto("/");
 
         await expect(preflightHeading(page)).toHaveText("The walk will not work here");
-        await expect(preflight(page)).toContainText(/cannot play sound at all/i);
+        await expect(preflight(page)).toContainText(/cannot play sound for this walk/i);
         // One fault, not two: the decode line must stay quiet when there is
         // no AudioContext for it to hang off.
         await expect(preflight(page)).not.toContainText(/cannot play the park recordings/i);
@@ -323,7 +319,7 @@ test.describe("before the walk: opened inside another app", () => {
         await page.goto("/");
 
         await page.getByRole("button", { name: /copy the link/i }).click();
-        await expect(page.getByTestId("copy-link-status")).toContainText(/would not let the link be copied/i);
+        await expect(page.getByTestId("copy-link-status")).toContainText(/link could not be copied/i);
         await shotOf(page, WELCOME_PANEL, "13-in-app-browser-copy-refused");
     });
 });
@@ -454,9 +450,9 @@ test.describe("during the walk: rotation refused", () => {
 
         const recovery = page.getByTestId("permission-recovery-orientation");
         await expect(recovery).toBeVisible();
-        await expect(recovery).toContainText(/rotation is blocked/i);
+        await expect(recovery).toContainText(/rotation is unavailable/i);
         // Honest about the stakes: the walk is not over.
-        await expect(recovery).toContainText(/everything else still works/i);
+        await expect(recovery).toContainText(/listen without rotation/i);
         await expect(recovery.locator("ol li")).toHaveCount(3);
         // The button steps aside while the panel is up. Leaving it would offer
         // a retry that iOS answers "denied" without ever prompting again.

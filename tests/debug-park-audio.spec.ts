@@ -18,7 +18,7 @@ test('a direct debug visit can unlock during loading and play the audited record
     try {
         await expect.poll(() => requested).toContain('Custer-State-1-002');
         await expect.poll(() => page.evaluate(() => window.__audioDebug?.isLoading)).toBe(true);
-        await page.getByRole('button', { name: 'Start playback fallback', exact: true }).click();
+        await page.getByRole('button', { name: 'Start Audio', exact: true }).click();
         await expect.poll(() => page.evaluate(() => window.__audioDebug?.isAudioUnlocked)).toBe(true);
     } finally {
         release();

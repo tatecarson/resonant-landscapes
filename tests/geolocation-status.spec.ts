@@ -218,7 +218,7 @@ test("stays quiet when GPS accuracy is good enough for the geofences", async ({ 
   await expect(page.getByTestId("location-status")).toHaveCount(0, { timeout: 20_000 });
 });
 
-test("says the signal is lost when fixes stop arriving", async ({ page, context }) => {
+test("says location is not updating when fixes stop arriving", async ({ page, context }) => {
   // Three bounded waits in sequence — 20 s for a fix to be consumed, 20 s for
   // the status to clear, 25 s for the watchdog — ceiling at 65 s against a
   // 90 s default, before navigation and setup. The conditions that stretch
@@ -253,7 +253,7 @@ test("says the signal is lost when fixes stop arriving", async ({ page, context 
   // blue dot just sits there looking authoritative.
   await stopFixes(page);
 
-  await expect(page.getByTestId("location-status")).toContainText(/signal lost/i, {
+  await expect(page.getByTestId("location-status")).toContainText(/location not updating/i, {
     timeout: 25_000,
   });
 });
