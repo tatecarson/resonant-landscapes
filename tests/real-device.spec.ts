@@ -389,10 +389,36 @@ test("offers the install in words this phone can act on", async () => {
     // Same match as the preflight test above: a device missing a capability
     // renders "Start anyway", and the guide is behind the welcome either way.
     await page.getByRole("button", { name: /^\s*start(\s+anyway)?\s*$/i }).click();
-    await page.getByRole("button", { name: "Open field guide" }).click();
 
     const section = page.getByTestId("help-install");
-    await expect(section).toBeVisible({ timeout: 30_000 });
+
+    /*
+     * Retried, because starting the walk asks for location and a real phone
+     * answers that with a native permission alert that this suite cannot
+     * dismiss — BrowserStack's Playwright has no geolocation capability on
+     * real iOS, so the prompt is a permanent condition of the run rather
+     * than something to arrange away. While it is up, taps go to the alert
+     * and not to the page, and the SDK's click does not wait for a selector
+     * the way Playwright's own does: the first real-device run of this test
+     * failed on the iPhone with "No elements found" for the guide button and
+     * passed on the retry, which is the whole shape of the problem.
+     *
+     * So the open is the thing being retried, and the guide being open is
+     * how it knows it worked. A tap that lands on the alert costs a second.
+     */
+    await expect(async () => {
+        await page.getByRole("button", { name: "Open field guide" }).click();
+        await expect(section).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 60_000 });
+
+    /*
+     * Printed, not just asserted. The prompt sits over the guide on a real
+     * device, so whoever ran this cannot read the sentence off the session
+     * video even though the page underneath is correct — and the sentence is
+     * the entire subject of the test.
+     */
+    console.log(`[install prose] ${await section.innerText()}`);
+
     // Always, on every phone: what installing buys the walker is the offer.
     await expect(section).toContainText(/home screen/i);
 
