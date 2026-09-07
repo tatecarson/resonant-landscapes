@@ -1,6 +1,8 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Geolocation as OLGeoLoc } from "ol";
 import { LineString, Point } from "ol/geom";
+import TileLayer from "ol/layer/Tile";
+import type TileSource from "ol/source/Tile";
 import { unByKey } from "ol/Observable";
 import { fromLonLat, toLonLat } from "ol/proj";
 import {
@@ -40,6 +42,7 @@ import { useInstallHint } from "../hooks/useInstallHint";
 import ProximityWarmth from "./ProximityWarmth";
 import { getVariantCenter } from "../utils/scaledParks";
 import { debugLog, isDebugEnabled } from "../config/debug";
+import { BASEMAP_ARRIVED_OPACITY, arrivalProgress } from "../utils/arrival";
 import {
     CENTER_ROTATION_RADIUS_METERS,
     MAX_ZOOM,
@@ -459,6 +462,44 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
             }
         );
     }, [map, position, prefersReducedMotion]);
+
+    /**
+     * The map dissolving is the other half of the arrival (rl-879). The field
+     * over it grows from the threshold to the centre, and the ground it is
+     * over recedes by the same curve, so the two are one motion rather than a
+     * tint that appears on top of a map that carries on as if nothing had
+     * happened. Once the walker is inside the recording the map has nothing
+     * left to tell them.
+     *
+     * Imperative, and on the layer rather than through a prop, because that
+     * layer is fetching tiles over the network: reconciling it on every fix
+     * risks re-creating the source, and a basemap that re-downloads itself for
+     * fifteen metres is a worse bug than the one being fixed. There is exactly
+     * one tile layer in this map.
+     *
+     * Floored metres, in step with ParkGlowLayer, which is given the same. The
+     * raw distance moves on every jitter of the fix, and nothing here can be
+     * smoothed by a CSS transition the way the field above it is.
+     */
+    useEffect(() => {
+        const basemap = map
+            ?.getLayers()
+            .getArray()
+            .find((layer): layer is TileLayer<TileSource> => layer instanceof TileLayer);
+
+        if (!basemap) {
+            return;
+        }
+
+        // Reduced visuals keeps the map. A full screen of ground fading out
+        // under someone walking is precisely the large-area motion that
+        // setting exists to suppress, and of everyone on the walk they are the
+        // likeliest to still want the paths.
+        const progress =
+            parkName && !prefersReducedMotion ? arrivalProgress(Math.floor(parkDistance)) : 0;
+
+        basemap.setOpacity(1 - (1 - BASEMAP_ARRIVED_OPACITY) * progress);
+    }, [map, parkName, parkDistance, prefersReducedMotion]);
 
     const showCenteredGeolocationMarker =
         Boolean(position) &&

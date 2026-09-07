@@ -60,6 +60,30 @@ describe("palette", () => {
         }
     });
 
+    /**
+     * The comments in those SVGs are load-bearing prose, and prose is where
+     * this went wrong: a comment explaining why the markers cannot say
+     * `var(--rl-ink)` contained the two hyphens, which is illegal inside an
+     * XML comment. All three markers failed to decode — the walker's own
+     * position, the park dots and the heard dots were broken images in every
+     * build, and nothing noticed, because an SVG that does not parse is silent
+     * rather than loud.
+     */
+    it("keeps the marker SVGs parseable as XML", () => {
+        const dir = join(__dirname, "..", "assets");
+        const files = readdirSync(dir).filter((name) => name.endsWith(".svg"));
+
+        for (const file of files) {
+            const svg = readFileSync(join(dir, file), "utf8");
+            for (const comment of svg.match(/<!--[\s\S]*?-->/g) ?? []) {
+                expect(
+                    comment.slice(4, -3),
+                    `${file} has a double hyphen inside a comment, which no XML parser accepts`
+                ).not.toContain("--");
+            }
+        }
+    });
+
     it("builds a canvas colour from a token and an alpha", () => {
         expect(withAlpha(palette.ink, 0.25)).toBe("rgba(11, 26, 22, 0.25)");
         expect(rgbChannels(palette.panel)).toBe("142 205 192");

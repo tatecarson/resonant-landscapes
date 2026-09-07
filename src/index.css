@@ -41,10 +41,6 @@
     --rl-status-warning-rgb: 94 74 26;
     --rl-status-warning-surface: #f3e6c4;
     --rl-status-warning-surface-rgb: 243 230 196;
-    --rl-warmth-cold: #7e949c;
-    --rl-warmth-cold-rgb: 126 148 156;
-    --rl-warmth-warm: #e2a860;
-    --rl-warmth-warm-rgb: 226 168 96;
 }
 
 .rotation-affordance {

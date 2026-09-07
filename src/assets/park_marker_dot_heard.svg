@@ -4,7 +4,8 @@
 
     An SVG imported for its URL and handed to OpenLayers as an icon `src` is
     fetched as a document of its own: it has no access to the page's `:root`,
-    so `var(--rl-ink)` resolves to nothing and the shape renders black. These
+    so a `var()` reference to the palette's custom properties resolves to
+    nothing and the shape renders black. These
     literals are the one place in the app that has to repeat a token's value
     rather than reference it, and src/theme/palette.test.ts checks every one of
     them against src/theme/palette.js so they cannot drift.

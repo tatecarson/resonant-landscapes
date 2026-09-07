@@ -3,13 +3,23 @@ import { fromLonLat, getPointResolution } from "ol/proj";
 import type RenderEvent from "ol/render/Event";
 import { RLayerVector, useOL } from "rlayers";
 import { palette, withAlpha } from "../theme/palette";
+import { arrivalProgress } from "../utils/arrival";
 
 type Coordinate = [number, number];
+
+/** Every spot on the map, and the active one at the threshold. */
+const RESTING_OPACITY = 0.5;
+/**
+ * The active spot with the walker standing on it. Enough to stay legible
+ * under a full-screen field at `arrivalField.edge.peak`, which is what is
+ * over it by then.
+ */
+const ARRIVED_OPACITY = 0.75;
 
 interface ParkGlowLayerProps {
     parks: { name: string; coords: Coordinate }[];
     glowRadius?: number;       // meters — gradient fades to transparent at this radius
-    activeParkName?: string;   // fades the glow out as user walks inside
+    activeParkName?: string;   // brightens the glow as user walks inside
     activeParkDistance?: number; // meters, Math.floor'd
 }
 
@@ -52,11 +62,23 @@ function ParkGlowLayer({
                 continue;
             }
 
-            // Fade from 0.5 → 0 as user walks from 15m to center
+            /*
+             * The active spot strengthens as the walker arrives; it used to
+             * fade to nothing over the same fifteen metres.
+             *
+             * That fade was half of why arrival felt like a hole (rl-879): the
+             * basemap now dissolves across this band and the field over it
+             * grows, so a glow going out at the same time would take the last
+             * mark of where the spot actually is with it. This is the answer to
+             * "can the walker still find the centre once the map has gone" —
+             * it is the only thing left drawing the destination, and the
+             * walker's own marker on top of it is the only thing drawing them.
+             */
             const isActive = name === activeParkName && activeParkDistance !== undefined;
             const peakOpacity = isActive
-                ? 0.5 * Math.min(1, activeParkDistance! / 15)
-                : 0.5;
+                ? RESTING_OPACITY +
+                  (ARRIVED_OPACITY - RESTING_OPACITY) * arrivalProgress(activeParkDistance!)
+                : RESTING_OPACITY;
 
             if (peakOpacity <= 0) continue;
 
