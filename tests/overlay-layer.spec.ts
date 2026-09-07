@@ -11,10 +11,12 @@
  * inert. Nothing tested that, which is why the chip could repeat the mistake
  * without anything noticing.
  *
- * The chip itself is gone (rl-2l3) and the install offer inherited its slot,
- * which is exactly why these assertions outlived it: the invariant was never
- * about the chip, it is about anything that floats over the map while a modal
- * is open. Whatever lands in that stack next is what this file is for.
+ * The chip is gone (rl-2l3) and the install offer that inherited its slot is
+ * gone too (rl-5yp): nothing floats over the map any more, and the
+ * between-parks state is the map and nothing else. The invariant outlived
+ * them both — it was never about the chip, it is about anything that floats
+ * over the map while a modal is open. Whatever lands there next is what this
+ * file is for.
  */
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";
@@ -36,13 +38,12 @@ const WELL_OUTSIDE = { latitude: 44.01298, longitude: -97.11059202 };
  */
 test.use({ viewport: { width: 390, height: 844 } });
 
-// The ?debug query is load-bearing here. Three tests poll
+// The ?debug query is load-bearing here. Two tests poll
 // window.__audioDebug, which a production build gates behind the query
 // (src/config/debug.ts): on the bare path every poll reads undefined and
 // runs to its timeout against a deploy preview, failing no matter what the
 // app does — rl-9ek.5. In dev the flag changes nothing: the mirror is always
-// on. page.reload() keeps the query, so the second-visit half of the offer
-// test stays on the debug path too.
+// on.
 const mapPath = "/?debug";
 
 const openHelp = (page: Page) => page.getByRole("button", { name: "Open field guide" }).click();
@@ -113,7 +114,7 @@ test("no overlay's box reaches the field guide's close button", async ({ context
     const close = await closeButton(page).boundingBox();
     expect(close, "the close button is not on screen to be covered").not.toBeNull();
 
-    for (const testId of ["install-hint", "offline-notice"]) {
+    for (const testId of ["offline-notice"]) {
         const overlay = page.getByTestId(testId);
         if ((await overlay.count()) === 0) continue;
 
@@ -148,55 +149,24 @@ test("the park strip does not swallow the field guide's controls either", async 
 });
 
 /**
- * The install offer, which is the overlay rl-1u7.15 warned about.
- *
- * It is interactive, so unlike the offline notice it cannot simply stop
- * taking taps; it has to stand down like the chip. And it is offered once:
- * a refusal is an answer, and asking again is how a hint becomes a nag.
+ * The install affordance, which lives in the field guide and nowhere else
+ * (rl-5yp). The popup over the map is gone by decision, and the tests here
+ * protect both halves of that decision: nothing appears over the map, and
+ * the guide can still actually install the walk where the browser will be
+ * asked, rather than only describing it.
  */
-test.describe("the install offer", () => {
-    test("is not offered on a return visit before the walk has started", async ({ context, page }) => {
-        /*
-         * Reported from a phone: the offer appeared and the location prompt
-         * closed it. The gate was the stored set of heard parks, which is
-         * already full on the first frame of every return visit, so the offer
-         * arrived during start-up with a permission prompt over it and was
-         * pulled away as soon as a fix landed and a park strip took the
-         * bottom of the screen. An offer nobody can answer is worse than no
-         * offer.
-         *
-         * It waits on hearing a park in this session now.
-         */
-        await context.clearPermissions();
-        await page.addInitScript(() => {
-            window.localStorage.setItem(
-                "heardParks",
-                JSON.stringify(["Hartford Beach State Park"])
-            );
-        });
-        await page.goto(mapPath);
-        await dismissWelcomeModal(page);
-        await page.waitForTimeout(2_000);
-
-        await expect(page.getByTestId("install-hint")).toHaveCount(0);
-    });
-
-    test("is not offered before the walker has heard anything", async ({ context, page }) => {
-        // The banner pattern everyone dismisses without reading is the one
-        // that asks before the piece has done anything worth keeping.
-        await page.goto(mapPath);
-        await dismissWelcomeModal(page);
-        await dwellAt(context, page, WELL_OUTSIDE, 1_500);
-
-        await expect(page.getByTestId("install-hint")).toHaveCount(0);
-        // A control, so that an absent offer is not simply an absent map.
-        await expect(page.locator("canvas").first()).toBeVisible();
-    });
-
-    test("is offered after a park has been heard, and only until it is answered", async ({
+test.describe("the install affordance", () => {
+    test("never appears over the map, even after a park has been heard", async ({
         context,
         page,
     }) => {
+        /*
+         * The moment watched here is the one the offer used to choose on
+         * purpose: a park just heard, the walker back outside it, choosing
+         * where to go next. That was when the card was most likely to be
+         * accepted, and rl-5yp removed it anyway. The between-parks state is
+         * the map and nothing else.
+         */
         await page.goto(mapPath);
         await dismissWelcomeModal(page);
         await dwellAt(context, page, AT_CENTRE, 2_000);
@@ -208,114 +178,14 @@ test.describe("the install offer", () => {
             .toBe(true);
 
         await dwellAt(context, page, WELL_OUTSIDE, 4_000);
-        const hint = page.getByTestId("install-hint");
-        await expect(hint).toBeVisible({ timeout: 10_000 });
+        // Long enough that the old offer, which appeared within seconds of
+        // this exact sequence, would have arrived.
+        await page.waitForTimeout(6_000);
 
-        /*
-         * This used to assert that the offer and the nearest-park chip shared
-         * the bottom stack without sitting on each other. An earlier version
-         * gave the offer the whole slot and suppressed the chip, which took
-         * away the walker's only sense of where to go next at exactly the
-         * moment they had heard a park and were choosing the next one; two
-         * wayfinding specs caught it.
-         *
-         * The chip is gone (rl-2l3), so the offer has the stack to itself and
-         * there is no sibling left to overlap. What still needs asserting is
-         * the other half of what that stack does: keeping the offer inside
-         * the viewport rather than under the home indicator, which is what
-         * its safe-area padding is for and which no other test covers.
-         */
-        const hintBox = await hint.boundingBox();
-        const viewport = page.viewportSize();
-        expect(hintBox && viewport).toBeTruthy();
-        expect(
-            hintBox!.y + hintBox!.height <= viewport!.height,
-            "the install offer runs off the bottom of the screen"
-        ).toBe(true);
-
-        await hint.getByRole("button", { name: /not now/i }).click();
-        await expect(hint).toHaveCount(0);
-
-        /*
-         * Answered once, and answered for good. The park has to be heard
-         * again after the reload or this proves nothing: the offer now waits
-         * on hearing something in the current session, so an empty reload
-         * would show no hint whether or not the refusal was remembered.
-         */
-        await page.reload();
-        await dismissWelcomeModal(page);
-        await dwellAt(context, page, AT_CENTRE, 2_000);
-        await expect
-            .poll(() => page.evaluate(() => window.__audioDebug?.isPlaying ?? false), {
-                timeout: 40_000,
-                message: "audio never started on the second visit",
-            })
-            .toBe(true);
-        await dwellAt(context, page, WELL_OUTSIDE, 4_000);
-
-        // The map, as the control: the offer being absent has to mean it was
-        // refused for good, not that nothing came up at all.
+        // The map, as the control: the absence has to mean the offer is
+        // gone, not that the walk never started.
         await expect(page.locator("canvas").first()).toBeVisible({ timeout: 10_000 });
         await expect(page.getByTestId("install-hint")).toHaveCount(0);
-    });
-
-    test("is offered to a returning walker who hears a park they already know", async ({
-        context,
-        page,
-    }) => {
-        /*
-         * The case the session gate broke on its first attempt. markParkHeard
-         * returned early for a park already in the stored record, so the
-         * session flag was never set and a returning walker was never
-         * offered anything. Thirteen parks and a walk done more than once
-         * makes that nearly everyone, and it fails silently: no error, just
-         * an offer that never comes.
-         */
-        await page.addInitScript(() => {
-            window.localStorage.setItem(
-                "heardParks",
-                JSON.stringify(["Hartford Beach State Park"])
-            );
-        });
-        await page.goto(mapPath);
-        await dismissWelcomeModal(page);
-
-        // Nothing yet: the record is old, this session has heard nothing.
-        await dwellAt(context, page, WELL_OUTSIDE, 1_500);
-        await expect(page.getByTestId("install-hint")).toHaveCount(0);
-
-        // The same park again, which is the whole point.
-        await dwellAt(context, page, AT_CENTRE, 2_000);
-        await expect
-            .poll(() => page.evaluate(() => window.__audioDebug?.isPlaying ?? false), {
-                timeout: 40_000,
-                message: "audio never started",
-            })
-            .toBe(true);
-        await dwellAt(context, page, WELL_OUTSIDE, 4_000);
-
-        await expect(page.getByTestId("install-hint")).toBeVisible({ timeout: 10_000 });
-    });
-
-    test("stands down for the field guide, and comes back", async ({ context, page }) => {
-        await page.goto(mapPath);
-        await dismissWelcomeModal(page);
-        await dwellAt(context, page, AT_CENTRE, 2_000);
-        await expect
-            .poll(() => page.evaluate(() => window.__audioDebug?.isPlaying ?? false), {
-                timeout: 40_000,
-                message: "audio never started",
-            })
-            .toBe(true);
-        await dwellAt(context, page, WELL_OUTSIDE, 4_000);
-        await expect(page.getByTestId("install-hint")).toBeVisible({ timeout: 10_000 });
-
-        await openHelp(page);
-        await expect(page.getByTestId("install-hint")).toHaveCount(0);
-
-        await scrollGuideToEnd(page);
-        await closeButton(page).click();
-        await expect(closeButton(page)).toHaveCount(0, { timeout: 10_000 });
     });
 
     test("the field guide opens while the location banner is up", async ({ context, page }) => {
@@ -355,5 +225,51 @@ test.describe("the install offer", () => {
         await expect(line).toContainText(/home screen/i);
         // iOS has no install API, so the guide has to say the actual steps.
         await expect(line).toContainText(/add to home screen/i);
+    });
+
+    test("can raise the real install prompt where the browser offers one", async ({ page }) => {
+        /*
+         * A synthetic beforeinstallprompt, because a headless browser fires
+         * none. The hook cancels the event and keeps it exactly as it would
+         * Chrome's, so the only question worth answering is whether the
+         * guide's button reaches prompt() — the acceptance criterion is that
+         * the guide installs the walk, not that it describes it.
+         */
+        await page.goto(mapPath);
+        await dismissWelcomeModal(page);
+
+        await page.evaluate(() => {
+            let prompted = false;
+            const event = new Event("beforeinstallprompt") as Event & {
+                prompt: () => Promise<void>;
+            };
+            event.prompt = async () => {
+                prompted = true;
+            };
+            (window as unknown as { __installPrompt?: () => boolean }).__installPrompt =
+                () => prompted;
+            window.dispatchEvent(event);
+        });
+
+        await openHelp(page);
+        const button = page
+            .getByTestId("help-install")
+            .getByRole("button", { name: /add it/i });
+        await expect(button).toBeVisible();
+
+        await button.click();
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    () =>
+                        (window as unknown as { __installPrompt?: () => boolean })
+                            .__installPrompt?.() ?? false
+                )
+            )
+            .toBe(true);
+
+        // Used once: the event is consumed, so the button goes and does not
+        // come back this session, whatever the walker chose in the dialog.
+        await expect(button).toHaveCount(0);
     });
 });

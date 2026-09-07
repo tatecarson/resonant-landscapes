@@ -2,14 +2,21 @@ import { useRef, Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAudioEngine, useAudioPlaybackState } from '../contexts/AudioContextProvider';
 import { help, install as installCopy } from '../copy';
+import type { InstallOffer } from '../hooks/useInstallHint';
 import { useReduceVisualsPreference } from '../hooks/useReduceVisuals';
 
 interface HelpModalProps {
     isOpen: boolean;
     setIsOpen: (value: boolean) => void;
+    /**
+     * The install affordance, captured from the page's earliest moments and
+     * handed down from the map, which is always mounted when this guide
+     * could possibly be open (rl-5yp).
+     */
+    install: InstallOffer["install"];
 }
 
-function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
+function HelpModal({ isOpen, setIsOpen, install }: HelpModalProps) {
     const cancelButtonRef = useRef(null);
     const { setKeepScreenAwake } = useAudioEngine();
     const {
@@ -179,15 +186,15 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                 </div>
 
                                 {/*
-                                  * The permanent version of the install hint.
-                                  * That hint appears once and can be
-                                  * dismissed, and the field guide is where
-                                  * someone looks to find out what the walk
-                                  * can do, so the offer has to survive being
-                                  * refused. Prose rather than a control: iOS
-                                  * cannot be asked to install from a button,
-                                  * and a button that worked on one phone and
-                                  * not another would be worse than neither.
+                                  * The install affordance, the only one (rl-5yp).
+                                  * The popup over the map is gone by decision:
+                                  * an interruption asking for something is the
+                                  * opposite of a piece about wandering. Prose
+                                  * for every phone, because iOS cannot be
+                                  * asked to install from a button; the button
+                                  * appears only where the browser will do it
+                                  * on request, and once used — either way — it
+                                  * does not come back this session.
                                   */}
                                 <div className="mt-6 rounded-2xl bg-white/25 p-4" data-testid="help-install">
                                     <p className="font-space-mono text-[11px] uppercase tracking-[0.16em] text-ink/85">
@@ -196,6 +203,15 @@ function HelpModal({ isOpen, setIsOpen }: HelpModalProps) {
                                     <p className="mt-2 font-space-mono text-[12px] leading-relaxed text-ink/75">
                                         {installCopy.helpDetail}
                                     </p>
+                                    {install && (
+                                        <button
+                                            type="button"
+                                            onClick={() => void install()}
+                                            className="mt-3 inline-flex min-h-[44px] items-center rounded-full bg-ink px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-edge"
+                                        >
+                                            {installCopy.action}
+                                        </button>
+                                    )}
                                 </div>
 
                                 <div className="mt-8 mb-6 flex items-center gap-3">

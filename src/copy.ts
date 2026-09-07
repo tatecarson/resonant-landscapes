@@ -323,10 +323,21 @@ export const connection = {
 /**
  * Keeping the walk on the home screen.
  *
- * Two wordings because there are two mechanisms. Chromium can be asked to
- * install and will show its own dialog, so there the hint is a button. iOS
- * Safari has no such API at all: the only route is the walker doing it by
- * hand, so there the hint has to be instructions or it is not an offer.
+ * The offer lives in the field guide and nowhere else (rl-5yp). There used to
+ * be a card over the map, timed to appear just after the walker had heard a
+ * park, on the reasoning that this was the moment it was most likely to be
+ * accepted. That card is gone by decision, not by oversight: a popup asking
+ * for something is the opposite of a piece about wandering, and it was the
+ * last thing left covering the between-parks state. The cost is recorded
+ * here so it is not rediscovered later as a regression in installs — most
+ * walkers will never see the offer at all, because most walkers never open
+ * the field guide. That is the trade Tate chose: fewer interruptions over
+ * more installs.
+ *
+ * Two mechanisms still need two wordings. Chromium can be asked to install
+ * and will show its own dialog, so there the guide has a button. iOS Safari
+ * has no such API at all: the only route is the walker doing it by hand, so
+ * the prose has to be the instructions or it is not an offer.
  *
  * What it promises is what installing buys a walker: a full screen, not
  * having to find the link again, and now the real argument — recordings the
@@ -342,19 +353,7 @@ export const connection = {
  * phrasing keeps the condition in the sentence.
  */
 export const install = {
-    title: "Keep the walk on your home screen",
-    detail: {
-        ios: "Press the share button, then Add to Home Screen. It opens full screen, and parks the walk has saved still play where the signal is thin.",
-        android: "It opens full screen, and parks the walk has saved still play where the signal is thin.",
-        other: "It opens full screen, and parks the walk has saved still play where the signal is thin.",
-    },
     action: "Add it",
-    dismiss: "Not now",
-    /**
-     * The permanent version, for anyone who dismissed the hint, who wants it
-     * before their first park, or who is reading the guide to find out what
-     * the walk can do.
-     */
     helpTitle: "Home screen",
     helpDetail:
         "The walk can live on your home screen. On iPhone, press share and then Add to Home Screen. It opens full screen, with no browser bars over the map, and recordings you hear are saved to the phone so they play again where the signal is thin.",
