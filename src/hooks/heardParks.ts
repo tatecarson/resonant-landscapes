@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from "react";
 
+import { countEvent } from "../analytics/goatcounter";
+
 const STORAGE_KEY = "heardParks";
 
 /**
@@ -65,6 +67,10 @@ export function markParkHeard(parkName: string) {
     heard = new Set(heard).add(parkName);
     persist();
     for (const listener of listeners) listener();
+    // Only for a park newly recorded, never for a re-entry into one already
+    // in the set — the no-op return above has the same shape as the count
+    // (rl-lfk).
+    countEvent("park-heard");
 }
 
 /** Test seam, and what a "start the walk again" control would call. */

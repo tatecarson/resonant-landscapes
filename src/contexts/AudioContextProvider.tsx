@@ -11,6 +11,7 @@ import { createBufferLoader, getCacheKey, isAbortError } from "../audio/bufferLo
 import { shouldSurfaceDegradation, type SpatialDegradation } from "../audio/channelCheck";
 import { mergeDeliveryBuffers } from "../audio/mergeBuffers";
 import { createAudioDebugBridge, type AudioLoadDebug } from "../audio/audioDebugBridge";
+import { countEventOnce } from "../analytics/goatcounter";
 import { createAudioGraph, primeAudioContext } from "../audio/audioGraph";
 import { fetchAudioBytes, setOfflineCacheEventSink } from "../audio/offlineAudioCache";
 import { getMonoFallbackUrl } from "../utils/audioPaths";
@@ -441,6 +442,10 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         setIsPlaying(true);
         setNeedsAudioResume(false);
         audioDebug.sync("playback-started");
+        // The walk has actually started — sound coming out of the phone, not
+        // merely a page open. Once per page load: leaving and re-entering a
+        // park is still one walker who started a walk (rl-lfk).
+        countEventOnce("walk-started");
     }, [audioContext, buffers, resonanceAudioScene, audioDebug]);
 
     const primeOnce = useCallback((context: AudioContext) => {

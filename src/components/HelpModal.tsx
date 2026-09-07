@@ -4,6 +4,7 @@ import { useAudioEngine, useAudioPlaybackState } from '../contexts/AudioContextP
 import { help, install as installCopy } from '../copy';
 import type { InstallOffer } from '../hooks/useInstallHint';
 import { detectPlatform } from '../utils/recoverySteps';
+import { countEvent } from '../analytics/goatcounter';
 import { useReduceVisualsPreference } from '../hooks/useReduceVisuals';
 
 interface HelpModalProps {
@@ -252,7 +253,10 @@ function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }:
                                     {install && (
                                         <button
                                             type="button"
-                                            onClick={() => void install()}
+                                            onClick={() => {
+                                                countEvent("install-prompt");
+                                                void install();
+                                            }}
                                             className="mt-3 inline-flex min-h-[44px] items-center rounded-full bg-ink px-4 py-2 font-space-mono text-xs uppercase tracking-widest text-white transition-colors hover:bg-edge"
                                         >
                                             {installCopy.action}

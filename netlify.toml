@@ -5,6 +5,24 @@
 [build.environment]
   NODE_VERSION = "22"
 
+# Counting runs on the real site and nowhere else (rl-lfk).
+#
+# A Netlify build variable applies to every context unless something says
+# otherwise, so setting VITE_GOATCOUNTER_SITE in the dashboard would have
+# every deploy preview and branch build counting too — which is Tate walking
+# through his own work, filed as visitors, in the one number the installation
+# is being judged by. Blanking it for those contexts overrides the dashboard,
+# and does it here rather than in a UI setting that cannot be seen from the
+# code or reviewed with the change that depends on it.
+#
+# An empty string rather than a removal because that is what a context
+# override can express; the module treats it as unset and injects nothing.
+[context.deploy-preview.environment]
+  VITE_GOATCOUNTER_SITE = ""
+
+[context.branch-deploy.environment]
+  VITE_GOATCOUNTER_SITE = ""
+
 # Vite fingerprints these filenames, so a changed file is a changed URL and the
 # old one can be cached forever. Without this they were revalidated on every
 # visit — over cellular, outdoors, before the walk starts.
@@ -61,7 +79,7 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://tiles.stadiamaps.com; connect-src 'self' https://resonant-landscapes.b-cdn.net https://tiles.stadiamaps.com; worker-src 'self'; manifest-src 'self'; media-src 'self'"
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-eval' https://gc.zgo.at; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://tiles.stadiamaps.com https://*.goatcounter.com; connect-src 'self' https://resonant-landscapes.b-cdn.net https://tiles.stadiamaps.com https://*.goatcounter.com; worker-src 'self'; manifest-src 'self'; media-src 'self'"
     X-Content-Type-Options = "nosniff"
     # frame-ancestors above is the one browsers honour now; this is for the
     # ones that do not read it.

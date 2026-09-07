@@ -47,6 +47,30 @@ describe("netlify caching rules", () => {
         expect(cacheControlFor("/manifest.webmanifest")).toMatch(/max-age=0/);
     });
 
+    it("counts on the real site and nowhere else", () => {
+        // A Netlify build variable reaches every context by default, so the
+        // dashboard value that turns counting on would turn it on for deploy
+        // previews and branch builds as well — Tate walking through his own
+        // work, filed as visitors. Neither of these can be checked anywhere
+        // but production, which is what this file is for.
+        for (const context of ["deploy-preview", "branch-deploy"]) {
+            const section = new RegExp(
+                String.raw`\[context\.${context}\.environment\]\s*\n\s*VITE_GOATCOUNTER_SITE\s*=\s*""`
+            );
+            expect(toml, `${context} builds would carry the site code`).toMatch(section);
+        }
+    });
+
+    it("lets the counting script through the policy that would block it", () => {
+        // The script is served from gc.zgo.at, which is not *.goatcounter.com
+        // — the host the endpoint is on. Allowing only the latter blocks the
+        // script outright, and the failure is a console error on a phone in a
+        // field and a dashboard that stays at zero.
+        const policy = toml.match(/Content-Security-Policy\s*=\s*"([^"]+)"/)?.[1] ?? "";
+        const scriptSrc = policy.match(/script-src([^;]*)/)?.[1] ?? "";
+        expect(scriptSrc, "count.js is served from gc.zgo.at").toContain("https://gc.zgo.at");
+    });
+
     it("still falls back to the SPA entry point for every route", () => {
         // The walk has a /debug path route as well as hash routes, and the
         // service worker's navigateFallback only covers navigations it
