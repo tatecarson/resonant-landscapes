@@ -6,6 +6,7 @@ import { app } from "./copy";
 import { isDebugEnabled } from "./config/debug";
 import AudioContextProvider from "./contexts/AudioContextProvider";
 import { useReduceVisualsAttribute } from "./hooks/useReduceVisuals";
+import { useVisualViewport } from "./hooks/useVisualViewport";
 import OfflineNotice from "./components/OfflineNotice";
 // import './App.css'
 
@@ -80,6 +81,9 @@ function App() {
   const [isDebugRoute, setIsDebugRoute] = useState(() => isDebugLocation(window.location));
   const [variant, setVariant] = useState<Variant>(() => detectVariant(window.location));
   const [mockPosition, setMockPosition] = useState<MockPosition | null>(() => detectMockPosition(window.location));
+
+  // Publishes the measured visible area to CSS for the modals (rl-uo5).
+  useVisualViewport();
 
   useEffect(() => {
     const syncRoute = () => {

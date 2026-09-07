@@ -189,3 +189,38 @@
         --modal-panel-gutter: 4rem;
     }
 }
+
+/*
+ * Measured beats declared.
+ *
+ * Everything above sizes the modals with viewport units, and on the devices
+ * that could be automated those units are honest: on BrowserStack's iPhone 14
+ * and SE, and in iOS 26 Safari, 100svh is exactly the visible height and the
+ * panel caps where it should. On a hand-held iPhone it was not — the action
+ * scrolled away with the text, which only happens when the panel never became
+ * a scroll container, so its cap either did not apply or applied a height
+ * taller than the screen.
+ *
+ * useVisualViewport writes what the browser reports as visible right now, and
+ * these rules use it in place of the unit. Three things are pinned to it: the
+ * scrollport's top and height, so a `fixed inset-0` cannot resolve against a
+ * layout viewport that reaches under the chrome; and the panel's ceiling.
+ *
+ * Behind an attribute rather than a var() fallback on purpose. `var(--x, 100svh)`
+ * on a browser that has neither the property nor the unit is invalid at
+ * computed-value time, which drops max-height entirely rather than falling
+ * back to the vh ladder above — the exact failure being fixed here.
+ */
+:root[data-viewport-measured] .modal-scroller {
+    top: var(--visual-viewport-top);
+    bottom: auto;
+    height: var(--visual-viewport-height);
+}
+
+:root[data-viewport-measured] .modal-viewport {
+    min-height: var(--visual-viewport-height);
+}
+
+:root[data-viewport-measured] .modal-panel {
+    max-height: calc(var(--visual-viewport-height) - var(--modal-panel-gutter));
+}

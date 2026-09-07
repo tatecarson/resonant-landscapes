@@ -1,0 +1,69 @@
+<!doctype html>
+<!--
+  rl-uo5 diagnostics, temporary. Delete this file once the modal sizing is
+  confirmed on hand-held hardware.
+
+  It exists because a real iPhone disagreed with every device that could be
+  automated: on BrowserStack's iPhone 14 and SE, and in iOS 26 Safari, 100svh
+  is exactly the visible height, and on a phone in a hand it was not. This
+  page replicates the modals' structure class for class and prints what the
+  browser claims, so a viewport unit that is not the visible height shows up
+  as a number rather than as a clipped button.
+-->
+<meta name="viewport" content="initial-scale=1.0, width=device-width, viewport-fit=cover">
+<title>viewport probe (rl-uo5, temporary)</title>
+<style>
+  *{box-sizing:border-box} body{margin:0;font:13px ui-monospace,Menlo,monospace;background:#556}
+  .scroller{position:fixed;inset:0;width:100vw;overflow-y:auto}
+  .container{display:flex;align-items:flex-end;justify-content:center;
+             min-height:100%;padding:1rem;padding-bottom:max(1rem,env(safe-area-inset-bottom))}
+  @supports (min-height:100svh){.container{min-height:100svh}}
+  .panel{width:100%;max-height:calc(100svh - (1rem + max(1rem,env(safe-area-inset-bottom))));
+         overflow-y:auto;border-radius:16px;background:#8ecdc0;color:#0b1a16;padding:12px}
+  .filler{height:900px;background:linear-gradient(#8ecdc0,#6fb3a6)}
+  .action{position:sticky;bottom:0;margin:0 -12px;padding:12px;background:#0b1a16;color:#fff;text-align:center;font-weight:700}
+  #out{white-space:pre;line-height:1.45}
+  b{color:#7a2020}
+</style>
+<div class="scroller"><div class="container"><div class="panel">
+  <div id="out">measuring…</div>
+  <div class="filler"></div>
+  <div class="action">ACTION BUTTON — must be fully visible</div>
+</div></div></div>
+<script>
+const probe = (unit) => { const d=document.createElement('div');
+  d.style.cssText='box-sizing:content-box;position:fixed;top:0;left:0;width:0;visibility:hidden;height:100'+unit;
+  document.body.appendChild(d); const h=d.getBoundingClientRect().height; d.remove(); return Math.round(h*10)/10; };
+const inset = () => { const d=document.createElement('div');
+  d.style.cssText='position:fixed;top:0;left:0;width:0;height:0;padding-bottom:env(safe-area-inset-bottom)';
+  document.body.appendChild(d); const v=parseFloat(getComputedStyle(d).paddingBottom)||0; d.remove(); return v; };
+const R = (el) => { const r=el.getBoundingClientRect(); return Math.round(r.top)+'..'+Math.round(r.bottom); };
+function read(){
+  const vv=window.visualViewport, sc=document.querySelector('.scroller'),
+        co=document.querySelector('.container'), pa=document.querySelector('.panel'),
+        ac=document.querySelector('.action');
+  const visible = vv ? vv.height : innerHeight;
+  const acr = ac.getBoundingClientRect();
+  document.getElementById('out').innerHTML =
+    'innerHeight        ' + innerHeight + '\n' +
+    'visualViewport.h   ' + (vv?Math.round(vv.height*10)/10:'-') + '\n' +
+    'vv.offsetTop       ' + (vv?Math.round(vv.offsetTop*10)/10:'-') + '\n' +
+    'docEl.clientHeight ' + document.documentElement.clientHeight + '\n' +
+    '100svh             ' + probe('svh') + '\n' +
+    '100lvh             ' + probe('lvh') + '\n' +
+    '100vh              ' + probe('vh') + '\n' +
+    'safe-area-bottom   ' + inset() + '\n' +
+    '--\n' +
+    'fixed .scroller    ' + R(sc) + '\n' +
+    '.container         ' + R(co) + '\n' +
+    '.panel             ' + R(pa) + '\n' +
+    'ACTION             ' + R(ac) + '\n' +
+    'clear below action ' + (acr.bottom<=visible ? Math.round(visible-acr.bottom) : '<b>OFF BY '+Math.round(acr.bottom-visible)+'</b>') + '\n' +
+    '--\n' +
+    'dpr                ' + devicePixelRatio + '\n' +
+    'UA                 ' + navigator.userAgent.replace(/(.{30})/g,'$1\n                   ');
+}
+read(); addEventListener('resize',read); addEventListener('scroll',read,true);
+if(window.visualViewport){visualViewport.addEventListener('resize',read);visualViewport.addEventListener('scroll',read);}
+setInterval(read,400);
+</script>

@@ -134,3 +134,35 @@ test("welcome modal: a panel that fits carries no cue and no gap for one", async
     expect(fits, "the desktop panel is scrolling — this check proves nothing").toBe(true);
     await expect(panel.getByText(/more below/i)).toHaveCount(0);
 });
+
+test("welcome modal: the cap comes from the measured viewport, not the unit", async ({ page }) => {
+    // The unit was the bug. svh is honest on every device that could be
+    // automated — BrowserStack's iPhone 14 and SE, iOS 26 Safari — and was not
+    // on a hand-held iPhone, where the action scrolled away with the text
+    // because the panel never became a scroll container (rl-uo5).
+    await page.setViewportSize({ width: 390, height: 663 });
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: START })).toBeAttached({ timeout: 15_000 });
+
+    const measured = await page.evaluate(() => {
+        const root = document.documentElement;
+        const panel = document.querySelector<HTMLElement>(".modal-panel");
+        const scroller = document.querySelector<HTMLElement>(".modal-scroller");
+        return {
+            attribute: root.hasAttribute("data-viewport-measured"),
+            published: root.style.getPropertyValue("--visual-viewport-height"),
+            visible: window.visualViewport?.height ?? window.innerHeight,
+            panelMaxHeight: panel ? parseFloat(getComputedStyle(panel).maxHeight) : null,
+            scrollerHeight: scroller ? scroller.getBoundingClientRect().height : null,
+        };
+    });
+
+    expect(measured.attribute, "the measured path is not switched on").toBe(true);
+    expect(measured.published).toBe(`${measured.visible}px`);
+    // The gutter is 1rem above the panel plus max(1rem, safe-area) below it,
+    // which is 32px wherever the inset is not larger than 1rem.
+    expect(measured.panelMaxHeight).toBeCloseTo(measured.visible - 32, 0);
+    // And the scrollport is the visible area itself, so a bottom-anchored
+    // panel cannot land under browser chrome that the layout viewport ignores.
+    expect(measured.scrollerHeight).toBeCloseTo(measured.visible, 0);
+});

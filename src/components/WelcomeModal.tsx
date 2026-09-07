@@ -130,7 +130,7 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                     <div className="fixed inset-0 bg-ink/60 transition-opacity" />
                 </Transition.Child>
 
-                <div className="fixed inset-0 w-screen overflow-y-auto">
+                <div className="modal-scroller fixed inset-0 w-screen overflow-y-auto">
                     <div className="modal-viewport flex min-h-full items-end justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center sm:p-0 sm:pb-0">
                         <Transition.Child
                             as={Fragment}
