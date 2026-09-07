@@ -90,9 +90,9 @@ test("says what is actually true with no signal", async ({ page, context }) => {
     // widens into a blanket "works offline". An unconditional promise would
     // be the same class of lie as the strip reporting playback into a
     // silenced phone — a first visit held entirely offline plays nothing.
-    await expect(notice).toContainText(/no signal/i);
-    await expect(notice).toContainText(/already saved/i);
-    await expect(notice).toContainText(/will not download/i);
+    await expect(notice).toContainText(/you are offline/i);
+    await expect(notice).toContainText(/saved recordings can play offline/i);
+    await expect(notice).toContainText(/new recordings and missing map areas need a connection/i);
     await expect(notice).not.toContainText(/works offline|available offline|fully offline/i);
 
     await context.setOffline(false);

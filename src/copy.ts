@@ -47,15 +47,15 @@ export const welcome = {
                 "Walk Chatham's campus to hear the soundscapes of South Dakota's 13 state parks.",
         })[variant],
     steps: [
-        "As you approach a park, a menu opens. Walk closer to the center icon and the volume increases with proximity.",
-        "At the center of a listening spot, turn with your phone to hear the recording in 360 degrees.",
-        "Close the menu to load a different recording. Walk away or press stop to end.",
+        "As you approach a listening spot, its park name and audio controls appear. Walk toward the center icon to hear the sound grow louder.",
+        "At the center, tap Enable rotation if it appears. Turn with your phone to change which direction you hear.",
+        "Walk to another listening spot to hear another park. Walk away or tap Stop to stop the sound.",
     ],
     headphones: "Use headphones. Non-noise-canceling ones work best.",
     /** iOS asks for motion access separately, and only when rotation is used. */
     accessWithRotation:
-        "Start will request audio access. Rotation access comes later, when you need it.",
-    accessAudioOnly: "Start will request audio access.",
+        "Tap Start to turn on sound for the walk. Your phone may ask permission when you enable rotation at a listening spot.",
+    accessAudioOnly: "Tap Start to turn on sound for the walk.",
     start: "Start",
     /** Shown instead of Start when something essential is missing. */
     startAnyway: "Start anyway",
@@ -101,7 +101,7 @@ export const welcome = {
         blocked: "The walk will not work here",
         needsPhone: "This walk needs a phone",
         inAppBrowser: "Open this in your phone's browser",
-        partial: "Part of the walk will not work here",
+        partial: "Some features may be unavailable",
     },
     /**
      * Shown when the page is sitting inside another app's browser. There is
@@ -118,7 +118,7 @@ export const welcome = {
         copyLink: "Copy link",
         copyLinkAriaLabel: "Copy the link to this walk",
         copied: "Copied. Paste it into Safari or Chrome.",
-        copyFailed: "This app would not let the link be copied. Use its menu to open this page in your browser.",
+        copyFailed: "The link could not be copied. Use this app's menu to open the page in your browser.",
     },
 } as const;
 
@@ -145,25 +145,25 @@ export const help = {
         // reason is that a phone holding on to a WiFi network it has walked
         // out of range of will stall requests rather than fall back to
         // cellular, which stops park audio loading mid-walk.
-        "Audio not loading as you walk? Turn WiFi off so the phone uses cellular.",
+        "Audio not loading? If you have cellular data, try turning WiFi off.",
         // Was "No sound? Refresh the page or reopen the browser", which is a
         // shrug. The silent switch is the common cause and the one the walker
         // can actually check.
-        "No sound? Check your phone is not on silent and turn the volume up.",
-        "Enable geolocation in your phone and browser settings.",
-        "Made for phones. Use Safari on iPhone or Chrome on Android. The welcome screen tells you if your browser cannot do something.",
+        "No sound? Turn up the media volume. On iPhone, turn off silent mode.",
+        "Allow location for this site and in your phone settings.",
+        "Made for phones. Use Safari on iPhone or Chrome on Android. The welcome screen checks for missing features.",
     ],
     questionsLabel: "Questions?",
     author: "Tate Carson",
     authorEmail: "mailto:tate.carson@dsu.edu",
     keepAwake: {
         title: "Keep screen awake",
-        detail: "Prevents screen lock while park audio plays. Uses more battery.",
+        detail: "Keeps the screen on while audio plays and this page is visible. Uses more battery.",
         ariaLabel: "Keep screen awake while audio plays",
-        unsupported: "Screen wake lock is not supported by this browser.",
-        refused: "The phone refused the wake lock. Playback recovery remains active.",
-        active: "Screen wake lock active.",
-        armed: "Turns on when audio starts.",
+        unsupported: "This browser cannot keep the screen on.",
+        refused: "The screen may still lock. If the sound stops, return here and tap Resume Audio if it appears.",
+        active: "Keeping the screen on.",
+        armed: "On for playback while this page is visible.",
         off: "Off.",
     },
     reduceVisuals: {
@@ -208,16 +208,16 @@ export const location = {
         detail: "Your device could not find you. Step outside, then reload the page.",
     },
     stale: {
-        title: "Signal lost",
-        detail: "Your position has stopped updating, and parks will not start until it does. Give it a moment.",
+        title: "Location not updating",
+        detail: "The map is using your last known position. Give it a moment to find you again.",
     },
     imprecise: {
-        title: "GPS is imprecise here",
+        title: "Location is imprecise here",
         /** The number separates "drifting a little" from "useless under these trees". */
         detail: (accuracyMeters: number | null, enterDistance: number) =>
             accuracyMeters === null
-                ? `Your position is less accurate than the ${enterDistance} m listening areas, so parks may start late or not at all.`
-                : `Your position is accurate to about ${accuracyMeters} m, wider than the ${enterDistance} m listening areas. Parks may start late, early, or not at all.`,
+                ? `Your position is uncertain. Sound starts within ${enterDistance} m of a listening spot, so parks may start at the wrong time.`
+                : `Your phone estimates your position within about ${accuracyMeters} m. Sound starts within ${enterDistance} m of a listening spot. Parks may start early, late, or not at all.`,
     },
 } as const;
 
@@ -237,7 +237,7 @@ export const audio = {
     start: "Start Audio",
     stopAriaLabel: "Stop playback",
     resumeAriaLabel: "Resume audio after interruption",
-    startAriaLabel: "Start playback fallback",
+    startAriaLabel: "Start Audio",
     loading: {
         initializing: "Starting audio",
         preparing: "Loading audio",
@@ -252,8 +252,8 @@ export const audio = {
         error: "Audio unavailable for this park.",
         preparing: "Loading audio.",
         playing: "Audio playing.",
-        interrupted: "Audio paused.",
-        stopped: "Playback stopped. Activate start audio to resume.",
+        interrupted: "Audio paused. Activate Resume Audio to continue.",
+        stopped: "Playback stopped. Activate Start Audio to play again.",
         ready: "Audio ready. Activate start audio to begin.",
     },
     error: {
@@ -263,7 +263,7 @@ export const audio = {
          * reads as a crash, and is meaningless to someone standing in a park.
          * The detail still goes to the console and the debug panel.
          */
-        detail: "This park's recording did not load. Check your signal, then try again.",
+        detail: "This park's sound could not start. Try again. If it still fails, check your connection or reload the page.",
         retry: "Retry audio load",
     },
     /** Shown when the browser could not play the 8-channel recording. */
@@ -301,22 +301,15 @@ export const audio = {
 } as const;
 
 /**
- * What is true with no signal.
- *
- * Still modest, but about the right things now. The walk opens without a
- * connection because its own files are held on the phone, and recordings it
- * has already fetched are held too — so a park the walk has saved plays
- * again with no signal at all. What stays impossible offline is anything
- * the walk has not already paid for: a recording it has never downloaded,
- * and parts of the map the walker has never looked at. The notice says both
- * halves, because the second half is what stops the first from reading as a
- * promise about the whole walk.
+ * navigator.onLine reports offline, not cellular signal strength. Audio saves
+ * can fail or be evicted, and map tiles have a separate bounded store. Name
+ * what remains possible without promising every previously heard park.
  */
 export const connection = {
     offline: {
-        title: "No signal",
+        title: "You are offline",
         detail:
-            "The walk stays open. Recordings the walk has already saved will still play; new ones will not download, and parts of the map you have not looked at will not appear until the signal returns.",
+            "The walk stays open. Saved recordings can play offline. New recordings and missing map areas need a connection.",
     },
 } as const;
 
@@ -344,18 +337,9 @@ export const connection = {
  * anything gets a third wording, because the promise alone is an offer with
  * no way to accept it (rl-8x0).
  *
- * What it promises is what installing buys a walker: a full screen, not
- * having to find the link again, and now the real argument — recordings the
- * walk has saved stay on the phone, so parks still play where the signal is
- * thin. This is the claim the install affordance was waiting for: before
- * rl-1u7.8.2 cached recordings and tiles, an installed walk opened offline
- * to a blank map that could find you and play nothing, and promising it
- * would have been true of the app and false of the walker.
- *
- * What the copy still does not say: that the walk "works offline" outright.
- * A park plays with no signal only if its recording was saved while there
- * was signal, and a first visit held entirely offline plays nothing. The
- * phrasing keeps the condition in the sentence.
+ * Installing makes the walk easier to find. Audio saving also happens in a
+ * browser tab and is best effort; installing neither guarantees retention
+ * nor downloads the whole walk.
  */
 export const install = {
     action: "Add it",
@@ -364,7 +348,7 @@ export const install = {
      * Where the button installs on request, the prose is the promise alone.
      */
     helpDetail:
-        "The walk can live on your home screen. It opens full screen, with no browser bars over the map, and recordings you hear are saved to the phone so they play again where the signal is thin.",
+        "Keep the walk on your home screen to find it again. Saved recordings can play offline, but your phone may remove them to free space.",
     /**
      * Chromium, before it has offered a button. The event Chrome fires is
      * gated on engagement and throttled on repeat visits, so a walker who
@@ -380,19 +364,19 @@ export const install = {
      * at the menu will find.
      */
     helpDetailMenu:
-        "The walk can live on your home screen. Open the browser menu and choose Install app. It opens full screen, with no browser bars over the map, and recordings you hear are saved to the phone so they play again where the signal is thin.",
+        "Keep the walk on your home screen to find it again. Open the browser menu and choose Install app. Saved recordings can play offline, but your phone may remove them to free space.",
     /**
      * Where there is no button, the steps are the offer.
      */
     helpDetailManual:
-        "The walk can live on your home screen. Press share, then Add to Home Screen. It opens full screen, with no browser bars over the map, and recordings you hear are saved to the phone so they play again where the signal is thin.",
+        "Add the walk to your home screen to find it again. On iPhone, open it in Safari, tap Share, then Add to Home Screen. Saved recordings can play offline, but your phone may remove them to free space.",
 } as const;
 
 /** Rotation, which iOS gates behind its own permission prompt. */
 export const rotation = {
-    allowAccess: "Allow Orientation Access",
+    allowAccess: "Enable rotation",
     heading: "heading",
-    /** Offered when the walk can continue without the refused permission. */
+    /** Offered when rotation was refused or motion readings never arrived. */
     continueWithout: "Continue without it",
 } as const;
 
@@ -413,11 +397,11 @@ export const map = {
 export const capability = {
     phone: {
         label: "A phone",
-        detail: "This is a walk. It needs a phone you carry outdoors. On a computer you can look at the map, but nothing will play as you move.",
+        detail: "This walk is made for a phone you carry outdoors. You can also open the map on a computer.",
     },
     audio: {
         label: "Sound",
-        detail: "This browser cannot play sound at all. Open this link in Safari on an iPhone, or Chrome on Android.",
+        detail: "This browser cannot play sound for this walk. Open this link in Safari on an iPhone, or Chrome on Android.",
     },
     decode: {
         label: "Park recordings",
@@ -433,7 +417,7 @@ export const capability = {
     },
     orientation: {
         label: "Turning",
-        detail: "This device cannot tell which way it is facing, so turning will not rotate the sound. Everything else works. The volume still follows your distance.",
+        detail: "This browser cannot read which way your phone faces, so turning will not rotate the sound. Rotation is optional for listening.",
     },
 } as const;
 
@@ -448,13 +432,13 @@ export const capability = {
 export const recovery = {
     titles: {
         location: "Location is blocked",
-        orientation: "Rotation is blocked",
+        orientation: "Rotation is unavailable",
     },
     /** One line on what is lost, so the walker can decide whether to bother. */
     stakes: {
         location: "The walk uses your location. Nothing will play until you turn it on.",
         orientation:
-            "Everything else still works. The volume follows your distance. Only turning is affected.",
+            "Turning will not rotate the sound. You can listen without rotation.",
     },
     steps: {
         location: {
@@ -480,18 +464,19 @@ export const recovery = {
             // quitting Safari clears it. There is no Settings switch on any
             // supported iOS. See README's verified-behaviour table.
             ios: [
-                "There is no iOS setting for this, only the prompt, and Safari remembers your answer. It has to be asked again.",
-                "Quit Safari from the app switcher, open the link again, walk to the center of a listening spot, and tap Enable Rotation. Choose Allow this time.",
-                "Still not asking? Delete this site's entry under Settings → Apps → Safari → Advanced → Website Data. Do not tap Remove All Website Data. Then tap Enable Rotation again.",
+                "Safari may remember a refused rotation request. If motion readings are missing, reopening Safari can also help.",
+                "Quit Safari from the app switcher, open the link again, walk to the center of a listening spot, and tap Enable rotation if it appears. Choose Allow if asked.",
+                "Still not asking? Delete this site's entry under Settings → Apps → Safari → Advanced → Website Data. Do not tap Remove All Website Data. Reopen the walk, return to the center, and enable rotation again.",
             ],
             android: [
-                "Chrome does not ask permission for this. Either this site is blocked, or your phone has no compass.",
-                "Reload the page and tap Enable Rotation again.",
-                "If it still does nothing, the rest of the walk works. The volume follows your distance.",
+                "Chrome may be blocking motion sensors, or your phone may not be sending motion readings.",
+                "In Chrome, open Settings → Site settings → Motion sensors and allow access.",
+                "Reload the page, return to the center of a listening spot, and tap Enable rotation if it appears.",
+                "If rotation still does not work, you can listen without it.",
             ],
             other: [
                 "Allow motion and orientation access for this site in your browser settings.",
-                "Reload the page and tap Enable Rotation again.",
+                "Reload the page, return to the center of a listening spot, and tap Enable rotation if it appears.",
             ],
         },
     },

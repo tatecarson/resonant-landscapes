@@ -76,7 +76,7 @@ describe("getRecoverySteps", () => {
             for (const ua of [IOS, ANDROID, DESKTOP]) {
                 const steps = getRecoverySteps(capability, ua);
                 expect(steps.length).toBeGreaterThanOrEqual(2);
-                expect(steps[steps.length - 1]).toMatch(/reload|Enable Rotation|Allow|works/i);
+                expect(steps[steps.length - 1]).toMatch(/reload|enable rotation|Allow|listen without/i);
             }
         }
     });
@@ -85,7 +85,7 @@ describe("getRecoverySteps", () => {
         // Losing location ends the walk; losing rotation does not, and telling
         // someone outdoors that it does would be a lie.
         expect(RECOVERY_STAKES.location).toMatch(/nothing will play/i);
-        expect(RECOVERY_STAKES.orientation).toMatch(/still works/i);
+        expect(RECOVERY_STAKES.orientation).toMatch(/listen without rotation/i);
         expect(RECOVERY_TITLES.location).not.toBe(RECOVERY_TITLES.orientation);
     });
 });
