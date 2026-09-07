@@ -11,9 +11,9 @@ interface ProximityWarmthProps {
     parks: { name: string; scaledCoords: Coordinate }[];
     heardParks: ReadonlySet<string>;
     /**
-     * False while a park strip is on screen. Standing in a park has its own
-     * ambient wash, and two full-screen tints arguing with each other is
-     * neither of them.
+     * False from the moment a park opens, where ArrivalField takes the screen
+     * over. Not a switch a walker can see: the field starts in this colour at
+     * this alpha with this geometry, and only then begins to grow.
      */
     active: boolean;
 }
@@ -71,25 +71,38 @@ const COLD_AT_METERS = 120;
 const FALLOFF = 2;
 
 /**
- * Cool slate to amber, interpolated in RGB rather than through a hue wheel:
- * every path between these two hues on the wheel runs through either green or
- * magenta, and a map that goes briefly green on the way to warm reads as a
- * fault rather than a signal.
+ * One colour, at more or less of it. Mint — `panel`, the same value the park
+ * strip and every other walker-facing surface is made of.
  *
- * Hue carries this, not brightness. A dim-to-bright ramp is the first thing to
- * disappear on a phone held outdoors in sun, which is the only place this
- * runs.
+ * It used to run a cool slate to an amber, and the amber was invented: nothing
+ * else in the app was that colour, and what eventually replaced it three
+ * metres from the centre was a wash whose hue swept the whole wheel with the
+ * compass, so the last fifteen metres of every walk crossed three unrelated
+ * palettes with a hole in the middle of them. Running the
+ * approach, the arrival and the rotation as the walk's own colour getting more
+ * present is what makes them one gesture (rl-879), and it is why the two ramp
+ * ends this file used to interpolate between are gone from the palette
+ * entirely rather than recoloured.
+ *
+ * What carries the signal now is saturation against the basemap: the map is a
+ * warm cream, and mint is the one thing on it that is neither cream nor the
+ * muted greens of its parks. Cold is not a second colour, it is this one at
+ * almost nothing.
  */
-const COLD_RGB = channels(palette.warmthCold);
-const WARM_RGB = channels(palette.warmthWarm);
+const WARMTH_RGB = rgbChannels(palette.panel);
 const COLD_ALPHA = 0.1;
 /**
  * Set by looking, not by taste. The first value here was 0.34 and it could not
  * be seen at all against this basemap — the map is a warm cream to begin with,
- * so an amber wash has very little to push against, and a strength that reads
- * as obvious in a swatch disappears once it is over the map it has to sit on.
+ * so a wash has very little to push against, and a strength that reads as
+ * obvious in a swatch disappears once it is over the map it has to sit on.
  * Screenshots at 0.30 and 0.60 on the iphone-13 profile put the usable floor
  * somewhere between; 0.5 is Tate's call from those.
+ *
+ * ArrivalField picks up at exactly this number. The approach tint switches off
+ * at the same metre the field switches on, and a walker must not be able to
+ * see the handover, so moving this means moving `arrivalField.edge.floor` in
+ * the palette with it.
  *
  * Expect this to want raising rather than lowering after a walk. Everything
  * here was judged on a desk monitor indoors, and the piece is read on a phone
@@ -104,16 +117,6 @@ const WARM_ALPHA = 0.5;
  * nothing at all to find a recording by, which is worse than a strong tint.
  */
 const REDUCED_WARM_ALPHA = 0.35;
-
-/**
- * The palette's channel string as the three numbers this file interpolates
- * between. The ramp is computed per fix, so it needs the components, not a
- * colour it can hand to CSS whole.
- */
-function channels(hex: string): [number, number, number] {
-    const [r, g, b] = rgbChannels(hex).split(" ").map(Number);
-    return [r, g, b];
-}
 
 function clamp01(value: number) {
     return Math.min(1, Math.max(0, value));
@@ -157,10 +160,6 @@ export function warmthFor(
     return linear ** FALLOFF;
 }
 
-function mix(from: number, to: number, t: number) {
-    return Math.round(from + (to - from) * t);
-}
-
 const ProximityWarmth = memo(function ProximityWarmth({
     userLonLat,
     parks,
@@ -175,11 +174,6 @@ const ProximityWarmth = memo(function ProximityWarmth({
 
     const ceiling = reduceVisuals ? REDUCED_WARM_ALPHA : WARM_ALPHA;
     const alpha = COLD_ALPHA + (ceiling - COLD_ALPHA) * warmth;
-    const rgb = [
-        mix(COLD_RGB[0], WARM_RGB[0], warmth),
-        mix(COLD_RGB[1], WARM_RGB[1], warmth),
-        mix(COLD_RGB[2], WARM_RGB[2], warmth),
-    ];
 
     return (
         <div
@@ -208,7 +202,14 @@ const ProximityWarmth = memo(function ProximityWarmth({
                  * the closest side puts full colour at the middle of every
                  * edge, which is what an edge bloom means.
                  */
-                background: `radial-gradient(ellipse closest-side at center, transparent 38%, rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha.toFixed(3)}) 100%)`,
+                /*
+                 * `rgb(… / 0)` rather than `transparent`, which is transparent
+                 * *black*: a gradient running to it takes the long way through
+                 * grey and lays a dirty band across the middle of the ramp.
+                 * ArrivalField's gradient is written the same way, because the
+                 * two have to be indistinguishable where they meet.
+                 */
+                background: `radial-gradient(ellipse closest-side at center, rgb(${WARMTH_RGB} / 0) 38%, rgb(${WARMTH_RGB} / ${alpha.toFixed(3)}) 100%)`,
                 /* Always transitioned, reduced visuals included. This is not
                  * decoration: a fix carries several metres of error, and
                  * without it the tint steps on every jitter of the walker's

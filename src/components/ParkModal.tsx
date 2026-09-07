@@ -2,7 +2,7 @@ import { useRef, memo, useState, useEffect, useMemo } from 'react'
 import { useAudioPlaybackState } from "../contexts/AudioContextProvider";
 import { useRenderDebug } from "../hooks/useRenderDebug";
 import HOARenderer from './HoaRenderer';
-import AmbientGradient from './AmbientGradient';
+import ArrivalField from './ArrivalField';
 import PermissionRecovery from './PermissionRecovery';
 import { park as parkCopy } from '../copy';
 import { hasStoredOrientationPermission, requestDeviceOrientationPermission } from "../utils/deviceOrientation";
@@ -171,7 +171,18 @@ function ParkModal({
 
     return (
         <>
-                <AmbientGradient active={rotationActive && !suppressed} headingRadians={mapHeading} />
+                {/*
+                  * Mounted for the whole park rather than only once rotation
+                  * is on, and never suppressed for the field guide. It is not
+                  * an effect that belongs to head tracking any more — it is
+                  * the last fifteen metres of the walk, and a walker who never
+                  * grants orientation used to arrive at nothing at all.
+                  */}
+                <ArrivalField
+                    parkDistance={parkDistance}
+                    headingRadians={mapHeading}
+                    rotationActive={rotationActive}
+                />
 
                 <div
                     ref={suppressedStripRef}

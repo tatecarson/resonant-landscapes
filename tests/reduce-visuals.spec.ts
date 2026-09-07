@@ -3,12 +3,14 @@
  *
  * The switch, the stored preference and the layers that draw are three
  * separate pieces, and a control that saves a preference nothing reads is the
- * easiest version of this feature to ship by accident. Asserted on the ambient
- * gradient, which drops its opacity transition when visuals are calmed, so
- * this fails if the wiring is cut anywhere between the modal and the layer.
+ * easiest version of this feature to ship by accident. Asserted on the arrival
+ * field, which is drawn quieter and held still when visuals are calmed — one
+ * static state for the whole park instead of a dissolve — so this fails if the
+ * wiring is cut anywhere between the modal and the layer.
  */
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { dismissWelcomeModal, seedOrientationPermission } from "./helpers/app-flow";
+import { arrivalField } from "../src/theme/palette";
 
 const AT_PARK = { latitude: 44.01320393, longitude: -97.11059202 };
 /**
@@ -61,13 +63,13 @@ declare global {
 }
 
 /**
- * The gradient only exists while a park panel is mounted, so the walker has to
+ * The field only exists while a park panel is mounted, so the walker has to
  * actually arrive before there is anything to assert on. One setGeolocation is
  * not enough: the app interpolates over a history of fixes and a single one
  * never renders, which passed locally on timing luck and timed out on CI.
  */
 async function walkIntoParkUntilGradient(context: BrowserContext, page: Page) {
-    const gradient = page.getByTestId("ambient-gradient");
+    const gradient = page.getByTestId("arrival-field");
     const deadline = Date.now() + 30_000;
 
     while (Date.now() < deadline) {
@@ -76,11 +78,42 @@ async function walkIntoParkUntilGradient(context: BrowserContext, page: Page) {
         await page.waitForTimeout(500);
     }
 
-    throw new Error("never arrived at a park: the ambient gradient did not mount");
+    throw new Error("never arrived at a park: the arrival field did not mount");
 }
 
-const gradientClass = (page: Page) =>
-    page.getByTestId("ambient-gradient").getAttribute("class");
+/**
+ * The strength the field is drawn at, taken from the last stop of its
+ * gradient — the screen edge, which is the part a walker sees most of.
+ *
+ * Neither the class nor the transition can be the witness any more. The field
+ * transitions its gradient rather than its opacity, and `data-motion="calm"`
+ * already forces every transition-duration in the document to 0.01 ms whether
+ * or not this particular layer has heard of the preference — a check on the
+ * duration passes on the stylesheet alone. What only the component can do is
+ * draw itself quieter, so that is what is asserted.
+ */
+async function fieldEdgeAlpha(page: Page) {
+    const image = await page
+        .getByTestId("arrival-field")
+        .evaluate((el) => getComputedStyle(el).backgroundImage);
+    const alphas = [...image.matchAll(/rgba\([^)]*?,\s*([0-9.]+)\)/g)].map((match) =>
+        Number(match[1])
+    );
+
+    if (!alphas.length) {
+        throw new Error(`the arrival field is not drawing a gradient: ${image}`);
+    }
+
+    return alphas[alphas.length - 1];
+}
+
+/**
+ * The two ends the switch chooses between, from the palette rather than typed
+ * out here: the full field at the centre of a park, and the calm one, which is
+ * one static state at a lower ceiling.
+ */
+const CALM_EDGE = arrivalField.calm.edge;
+const FULL_EDGE_FLOOR = arrivalField.edge.floor;
 
 const calmerSwitch = (page: Page) =>
     page.getByRole("switch", { name: /calmer visuals/i });
@@ -98,14 +131,14 @@ test.beforeEach(async ({ page, context, baseURL }) => {
 
 test("turning the switch on calms a map layer, not just a stored value", async ({ page }) => {
     await expect(calmerSwitch(page)).toHaveAttribute("aria-checked", "false");
-    expect(await gradientClass(page)).toContain("transition-opacity");
+    expect(await fieldEdgeAlpha(page)).toBeGreaterThanOrEqual(FULL_EDGE_FLOOR);
 
     await calmerSwitch(page).click();
 
     await expect(calmerSwitch(page)).toHaveAttribute("aria-checked", "true");
     await expect
-        .poll(async () => await gradientClass(page), { timeout: 5_000 })
-        .not.toContain("transition-opacity");
+        .poll(async () => await fieldEdgeAlpha(page), { timeout: 5_000 })
+        .toBe(CALM_EDGE);
 });
 
 test("turning it back off restores them", async ({ page }) => {
@@ -118,8 +151,8 @@ test("turning it back off restores them", async ({ page }) => {
 
     await expect(calmerSwitch(page)).toHaveAttribute("aria-checked", "false");
     await expect
-        .poll(async () => await gradientClass(page), { timeout: 5_000 })
-        .toContain("transition-opacity");
+        .poll(async () => await fieldEdgeAlpha(page), { timeout: 5_000 })
+        .toBeGreaterThanOrEqual(FULL_EDGE_FLOOR);
 });
 
 test("the choice survives a reload", async ({ page, context }) => {
@@ -134,12 +167,12 @@ test("the choice survives a reload", async ({ page, context }) => {
     // A preference that resets every time the walker reopens the piece is not
     // a preference, and this one is set precisely because a walk is long.
     await expect(calmerSwitch(page)).toHaveAttribute("aria-checked", "true");
-    expect(await gradientClass(page)).not.toContain("transition-opacity");
+    expect(await fieldEdgeAlpha(page)).toBe(CALM_EDGE);
 });
 
 test("calming the visuals stops the decorative layers redrawing", async ({ context, page }) => {
     // The gap the other tests here leave: they prove the switch reaches the
-    // ambient gradient, which is a div. The rings and rays are canvas draws on
+    // arrival field, which is a div. The rings and rays are canvas draws on
     // their own animation loop, and nothing asserted those ever stopped.
     await instrumentArcs(page);
     await context.setGeolocation(APPROACHING);

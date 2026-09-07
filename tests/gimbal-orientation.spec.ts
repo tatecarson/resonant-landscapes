@@ -57,8 +57,18 @@ type MapDebugSnapshot = {
 // null without it — so a spec relying on ?mock loses its position too.
 const mapPath = "/?debug";
 
-async function readAmbientGradient(page: import("@playwright/test").Page) {
-  return page.getByTestId("ambient-gradient").evaluate((el) => getComputedStyle(el).backgroundImage);
+/**
+ * The arrival field's background, which is the visible witness that heading is
+ * reaching the screen.
+ *
+ * It used to be a hue: the wash cycled the whole colour wheel with the
+ * compass. Heading now leans the field toward a fixed bearing instead
+ * (rl-879), so what changes across the three alphas below is the bloom's
+ * position rather than its colour — the string still differs, and it still
+ * differs for the same reason.
+ */
+async function readArrivalField(page: import("@playwright/test").Page) {
+  return page.getByTestId("arrival-field").evaluate((el) => getComputedStyle(el).backgroundImage);
 }
 
 async function readMapDebug(page: import("@playwright/test").Page) {
@@ -236,18 +246,18 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   await dispatchDeviceOrientation(page, 0);
   await page.waitForTimeout(200);
   const o0 = await page.evaluate<GimbalOrientationSnapshot>(() => (window as Window).__gimbalOrientation!);
-  const bg0 = await readAmbientGradient(page);
+  const bg0 = await readArrivalField(page);
   const map0 = await readMapDebug(page);
 
   await dispatchDeviceOrientation(page, 90);
   await page.waitForTimeout(200);
   const o90 = await page.evaluate<GimbalOrientationSnapshot>(() => (window as Window).__gimbalOrientation!);
-  const bg90 = await readAmbientGradient(page);
+  const bg90 = await readArrivalField(page);
   const map90 = await readMapDebug(page);
 
   await dispatchDeviceOrientation(page, 180);
   await page.waitForTimeout(200);
-  const bg180 = await readAmbientGradient(page);
+  const bg180 = await readArrivalField(page);
   const map180 = await readMapDebug(page);
 
   console.log(`[test] alpha=  0° → fwd=(${o0.fwdX.toFixed(3)}, ${o0.fwdY.toFixed(3)}, ${o0.fwdZ.toFixed(3)})`);
@@ -262,7 +272,7 @@ test("GimbalArrow updates listener orientation when device rotates", async ({
   expect(distanceBetweenPoints(map90!.center!, map90!.position)).toBeLessThan(0.001);
   expect(distanceBetweenPoints(map180!.center!, map180!.position)).toBeLessThan(0.001);
   console.log("[test] forward vector changes with rotation ✓");
-  console.log(`[test] ambient gradient updated ✓ ${bg0} -> ${bg90} -> ${bg180}`);
+  console.log(`[test] arrival field leaned ✓ ${bg0} -> ${bg90} -> ${bg180}`);
   console.log("[test] map center stays pinned to user position ✓");
 
   // Pixel-space check: the rendered marker (the user dot) must stay at viewport

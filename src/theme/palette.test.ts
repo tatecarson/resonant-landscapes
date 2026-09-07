@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { palette, rgbChannels, withAlpha, cssVariableName } from "./palette";
+import { palette, rgbChannels, hslChannels, withAlpha, cssVariableName } from "./palette";
 
 const read = (path: string) => readFileSync(join(__dirname, "..", "..", path), "utf8");
 
@@ -60,9 +60,47 @@ describe("palette", () => {
         }
     });
 
+    /**
+     * The comments in those SVGs are load-bearing prose, and prose is where
+     * this went wrong: a comment explaining why the markers cannot say
+     * `var(--rl-ink)` contained the two hyphens, which is illegal inside an
+     * XML comment. All three markers failed to decode — the walker's own
+     * position, the park dots and the heard dots were broken images in every
+     * build, and nothing noticed, because an SVG that does not parse is silent
+     * rather than loud.
+     */
+    it("keeps the marker SVGs parseable as XML", () => {
+        const dir = join(__dirname, "..", "assets");
+        const files = readdirSync(dir).filter((name) => name.endsWith(".svg"));
+
+        for (const file of files) {
+            const svg = readFileSync(join(dir, file), "utf8");
+            for (const comment of svg.match(/<!--[\s\S]*?-->/g) ?? []) {
+                expect(
+                    comment.slice(4, -3),
+                    `${file} has a double hyphen inside a comment, which no XML parser accepts`
+                ).not.toContain("--");
+            }
+        }
+    });
+
     it("builds a canvas colour from a token and an alpha", () => {
         expect(withAlpha(palette.ink, 0.25)).toBe("rgba(11, 26, 22, 0.25)");
         expect(rgbChannels(palette.panel)).toBe("142 205 192");
         expect(cssVariableName("statusErrorSurface")).toBe("--rl-status-error-surface");
+    });
+
+    it("decomposes a token into the channels the arrival field sweeps", () => {
+        // The field rotates `panel`'s hue with the compass and keeps its
+        // saturation and lightness, so every heading is a mint-weight version
+        // of its own colour rather than a primary.
+        const mint = hslChannels(palette.panel);
+        expect(mint.hue).toBeCloseTo(167.6, 1);
+        expect(mint.saturation).toBeCloseTo(38.7, 1);
+        expect(mint.lightness).toBeCloseTo(68.0, 1);
+
+        // Grey has no hue to sweep, and the arithmetic divides by a span of
+        // zero to find one.
+        expect(hslChannels("#808080")).toEqual({ hue: 0, saturation: 0, lightness: 50.19607843137255 });
     });
 });

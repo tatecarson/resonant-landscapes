@@ -125,61 +125,78 @@ export const palette = {
     statusErrorSurface: "#f7ddd5",
     statusWarning: "#5e4a1a",      // 4.71 on mint, 7.55 on cream, 6.85 on its surface
     statusWarningSurface: "#f3e6c4",
-
-    /**
-     * The two ends of the proximity warmth ramp, which interpolates between
-     * them by distance to the nearest unheard recording.
-     *
-     * Named here rather than recoloured. These are the one place in the app
-     * where colour is computed from live data instead of chosen, the hue is
-     * the signal (see ProximityWarmth), and both values were set by looking at
-     * screenshots on an iphone-13 profile rather than picked from a ramp.
-     * Folding them into the greens would break the thing they are for: every
-     * path between them on the hue wheel runs through green, so a green
-     * endpoint has nowhere to travel.
-     */
-    warmthCold: "#7e949c",
-    warmthWarm: "#e2a860",
 };
 
 /**
- * The ambient wash inside a park, which is the one surface whose hue is not
- * chosen here at all: it tracks the walker's compass heading across the whole
- * wheel (see AmbientGradient), so the palette cannot name its colour. What the
- * palette does govern is its weight.
+ * The field a walker walks into, and the one surface whose strength is
+ * computed rather than chosen. Its colour is not here because it has none of
+ * its own: it is `panel`, the mint every walker-facing surface is already
+ * made of, and the whole point of the arrival (rl-879) is that one colour
+ * gets more present rather than three colours taking turns.
  *
- * The sweep used to run at 80% saturation and 0.75 alpha, which put a
- * full-screen primary over the map — blue, then green, then amber, then
- * magenta as the walker turned. It was the loudest thing in the app and the
- * only one that did not look like the rest of it.
+ * WHAT THESE NUMBERS ARE
  *
- * The mapping is untouched: every heading still gets its own hue and any two
- * of them are still told apart. Only the saturation, lightness and alpha moved,
- * so each hue now arrives at the weight everything else is drawn at. Narrowing
- * the hue range instead was tried and rejected — confined to the greens, half
- * the headings become indistinguishable and the wash stops saying anything
- * about turning.
+ * Alphas on that mint, at the two ends of the last fifteen metres. `edge`
+ * runs from the strength the approach tint hands over at to the strength the
+ * screen ends on; `core` is the middle of the screen, which starts clear and
+ * closes up as the walker arrives. Nothing here may fall as the walk goes in
+ * — a screen that empties on arrival is the defect this replaced.
  *
- * Saturation and alpha move together. At 30% saturation the old 0.75 alpha is
- * a grey veil rather than a tint, which is why both numbers changed.
+ * The wash that used to live here swept the entire hue wheel with the
+ * compass: blue at one bearing, magenta at another, and nothing in the app
+ * could be matched to it. The palette pass before this one (rl-wmn) pulled
+ * its weight down to 0.42 but had to leave the hue alone, because hue was
+ * the only thing carrying heading and narrowing it to the greens made half
+ * the bearings identical. Heading now leans the field toward a fixed bearing
+ * instead (see ArrivalField), which is what freed the colour.
  *
- * Expect these to want raising after a walk rather than lowering, for the same
- * reason ProximityWarmth's alphas did: judged on a desk monitor indoors, read
- * on a phone outdoors.
+ * Expect these to want raising after a walk rather than lowering, for the
+ * same reason ProximityWarmth's alphas did: judged on a desk monitor indoors,
+ * read on a phone outdoors.
  */
-export const ambientWash = {
-    /** The centre of the wash, at full strength. */
-    core: { saturation: 30, lightness: 48, alpha: 0.42 },
-    /** 40% out, on the way to transparent at 80%. */
-    edge: { saturation: 26, lightness: 44, alpha: 0.22 },
+export const arrivalField = {
     /**
-     * The calm form: the same presence with the hue held still, for the walker
-     * who turned visuals down. Quieter again than the moving version, because
-     * what reduced visuals is protecting against is a large area of colour
-     * changing under a screen held at walking pace.
+     * The screen's edges. The floor is ProximityWarmth's WARM_ALPHA exactly,
+     * because the approach tint switches off at the same metre this switches
+     * on and a walker must not be able to see the handover.
      */
-    calmCore: { saturation: 26, lightness: 46, alpha: 0.16 },
-    calmEdge: { saturation: 22, lightness: 42, alpha: 0.10 },
+    edge: { floor: 0.5, peak: 0.82 },
+    /**
+     * The middle of the screen, which the approach tint deliberately leaves
+     * clear so the map stays readable. It has nothing left to keep clear by
+     * the centre, so this closes.
+     */
+    core: { floor: 0, peak: 0.74 },
+    /**
+     * What turning does, once head tracking is on: the field keeps every one
+     * of the weights above and rotates its hue with the compass.
+     *
+     * This is the palette pass's decision (rl-wmn), kept. Every heading gets
+     * its own hue and any two are still told apart; narrowing the range to the
+     * greens was tried there and rejected, because half the bearings become
+     * indistinguishable and the wash stops saying anything about turning.
+     *
+     * What moved is where the wheel is anchored. The old mapping was
+     * `220 - heading`, which is blue at north for no reason anyone could
+     * name, and it is why nothing in the app could be matched to this surface.
+     * Anchoring it to `panel` instead means facing north is exactly the mint
+     * the walker arrived in, and turning sweeps out from the palette rather
+     * than past it.
+     *
+     * Saturation and lightness are `panel`'s too, so every heading is a
+     * mint-weight version of its hue rather than a primary. That is the same
+     * idea as the wash's own 30%/48%, at the weight this field was tuned to.
+     */
+    sweep: { anchor: "panel" },
+    /**
+     * The calm form: one static state for the whole park rather than a
+     * dissolve, and no lean, for the walker who turned visuals down. What
+     * reduced visuals is protecting against is a large area of colour moving
+     * under a screen held at walking pace, which is exactly what the dissolve
+     * is. Quieter as well as still, matching ProximityWarmth's reduced
+     * ceiling at the floor end.
+     */
+    calm: { edge: 0.35, core: 0.3 },
 };
 
 /**
@@ -189,6 +206,38 @@ export const ambientWash = {
 export function rgbChannels(hex) {
     const value = hex.replace("#", "");
     return [0, 2, 4].map((i) => parseInt(value.slice(i, i + 2), 16)).join(" ");
+}
+
+/**
+ * A token as hue, saturation and lightness.
+ *
+ * For the one surface whose colour is computed rather than chosen: the arrival
+ * field rotates its hue with the compass and keeps everything else, so it
+ * needs the components of a token rather than the token itself. Deriving them
+ * here rather than writing a second set of numbers is the point — a change to
+ * `panel` moves the field with it.
+ */
+export function hslChannels(hex) {
+    const value = hex.replace("#", "");
+    const [r, g, b] = [0, 2, 4].map((i) => parseInt(value.slice(i, i + 2), 16) / 255);
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const lightness = (max + min) / 2;
+    const span = max - min;
+
+    if (span === 0) {
+        return { hue: 0, saturation: 0, lightness: lightness * 100 };
+    }
+
+    const saturation = span / (1 - Math.abs(2 * lightness - 1));
+    const hue =
+        max === r
+            ? ((g - b) / span + (g < b ? 6 : 0))
+            : max === g
+              ? (b - r) / span + 2
+              : (r - g) / span + 4;
+
+    return { hue: hue * 60, saturation: saturation * 100, lightness: lightness * 100 };
 }
 
 /**

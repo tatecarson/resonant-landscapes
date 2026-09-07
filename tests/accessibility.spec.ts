@@ -158,10 +158,11 @@ test.describe("reduced motion", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
   });
 
-  test("holds the compass gradient still instead of sweeping it with heading", async ({ page, context }) => {
-    // A full-screen wash at 0.75 alpha whose hue tracks the compass is the
-    // vestibular and photosensitivity concern in a walking piece — it moves
-    // whenever the walker turns.
+  test("holds the arrival field still instead of dissolving into it", async ({ page, context }) => {
+    // A full screen of colour growing under a walker over the last fifteen
+    // metres, and leaning as they turn, is the vestibular and
+    // photosensitivity concern in a walking piece. Calmed, the field is one
+    // static state: it still marks the threshold, it just does not move.
     await context.grantPermissions(["geolocation"]);
     await context.setGeolocation({ latitude: 44.01271, longitude: -97.11065 });
     await page.addInitScript(() => {
@@ -172,18 +173,22 @@ test.describe("reduced motion", () => {
     await startWalk(page);
     await walkIntoPark(page, context);
 
-    const gradient = page.getByTestId("ambient-gradient");
-    await expect(gradient).toBeAttached();
+    const field = page.getByTestId("arrival-field");
+    await expect(field).toBeAttached();
 
-    const read = () => gradient.evaluate((el) => getComputedStyle(el).backgroundImage);
+    const read = () => field.evaluate((el) => getComputedStyle(el).backgroundImage);
     const before = await read();
+    // Long enough to cross several fixes, which is what would move it: the
+    // walker is standing inside a park and the distance is still arriving.
     await page.waitForTimeout(1_500);
     const after = await read();
 
     expect(after).toBe(before);
-    // And it must be the quiet form, not the full-strength wash held still.
+    // And it must be the quiet form, not the full-strength field held still.
+    // One layer, so no lean; and the calm ceiling, not the peak.
     if (before !== "none") {
-      expect(before).not.toContain("0.75");
+      expect(before).not.toContain("0.82");
+      expect(before.match(/radial-gradient/g) ?? []).toHaveLength(1);
     }
   });
 
