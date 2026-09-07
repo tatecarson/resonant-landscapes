@@ -9,20 +9,29 @@ import { useEffect } from "react";
  * iPhone 14 and SE, and in iOS 26 Safari, that unit is honest: 100svh equals
  * innerHeight equals the visible height, and the panels cap correctly.
  *
- * On a real hand-held iPhone it was not. START scrolled with the text instead
- * of staying pinned, which only happens when the panel never became a scroll
- * container — that is, when its max-height did not apply or applied a height
- * taller than the screen. A sticky footer inside a panel that does not scroll
- * has no scrollport to stick to, so it travels with the content and off the
- * bottom of the screen.
+ * In Arc on iOS it was not, and that is the case this exists for. Every iOS
+ * browser is a WKWebView; what differs is what the host app says about its own
+ * chrome. Safari owns its toolbar inside WebKit, so svh already excludes it,
+ * and Chrome sizes its webview to the area above its own bar. Arc floats its
+ * bar over a full-bleed webview and says nothing — not through the units, and
+ * not through env(safe-area-inset-bottom), which reads 0 there. The page sized
+ * itself correctly for a viewport it had been told the wrong number for, and
+ * START ended under the bar.
  *
- * So: stop asking the browser what a viewport unit means and read what it says
- * is visible right now. visualViewport is the one measurement that tracks the
- * toolbar as it collapses and re-expands, and it has been in every iOS Safari
- * since 13. Written to the root as custom properties, with an attribute that
- * says they are there — the attribute is what lets the CSS keep the svh ladder
- * as its fallback rather than depending on a var() fallback, which would take
- * the whole declaration down with it on a browser that has neither.
+ * The symptom was the button scrolling away with the text rather than staying
+ * pinned, which happens only when the panel never became a scroll container:
+ * a sticky footer inside a panel that does not scroll has no scrollport to
+ * stick to, so it travels with the content and off the bottom of the screen.
+ *
+ * visualViewport is the one thing Arc reports honestly, and it is also what
+ * tracks Safari's toolbar as it collapses and re-expands. It has been in every
+ * iOS Safari since 13. So: stop asking what a viewport unit means and read
+ * what the browser says is visible right now.
+ *
+ * Written to the root as custom properties, with an attribute that says they
+ * are there. The attribute is what lets the CSS keep the svh ladder as its
+ * fallback rather than depending on a var() fallback, which would take the
+ * whole declaration down with it on a browser that has neither.
  *
  * Nothing here removes the properties on unmount. They describe the window,
  * not this component, and a modal closing does not make them wrong.

@@ -193,13 +193,13 @@
 /*
  * Measured beats declared.
  *
- * Everything above sizes the modals with viewport units, and on the devices
- * that could be automated those units are honest: on BrowserStack's iPhone 14
- * and SE, and in iOS 26 Safari, 100svh is exactly the visible height and the
- * panel caps where it should. On a hand-held iPhone it was not — the action
- * scrolled away with the text, which only happens when the panel never became
- * a scroll container, so its cap either did not apply or applied a height
- * taller than the screen.
+ * Everything above sizes the modals with viewport units, and in Safari and
+ * Chrome those units are honest: on BrowserStack's iPhone 14 and SE, and in
+ * iOS 26 Safari, 100svh is exactly the visible height and the panel caps where
+ * it should. In Arc on iOS it is not — Arc floats its toolbar over a full-bleed
+ * webview and reports the whole screen through every unit, so the panel sized
+ * itself to a screen larger than the one it was on and the action ended under
+ * the bar.
  *
  * useVisualViewport writes what the browser reports as visible right now, and
  * these rules use it in place of the unit. Three things are pinned to it: the
