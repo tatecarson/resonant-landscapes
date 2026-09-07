@@ -369,6 +369,69 @@ test("decodes this device's real spatial file to eight channels", async () => {
     expect(decoded.mono.levels[0].rms, "the mono bed decoded to silence").toBeGreaterThan(SILENT);
 });
 
+test("offers the install in words this phone can act on", async () => {
+    /*
+     * The one assertion in this file that a real device is uniquely able to
+     * make (rl-8x0). The guide's prose is chosen by the phone — iOS gets the
+     * share-sheet steps, because it has no install API and never gets a
+     * button; everything else gets the promise, because those steps describe
+     * a phone the walker is not holding. Every other runner fakes the user
+     * agent that decision reads, so a real iPhone and a real Android are the
+     * only place the branch is exercised honestly.
+     *
+     * It replaced `install ? … : …`, which was null in more states than iOS —
+     * including the moment after the button was used, which flipped the
+     * paragraph to iPhone steps in front of someone who had just installed
+     * the walk from a button.
+     */
+    await page.goto("/");
+
+    // Same match as the preflight test above: a device missing a capability
+    // renders "Start anyway", and the guide is behind the welcome either way.
+    await page.getByRole("button", { name: /^\s*start(\s+anyway)?\s*$/i }).click();
+
+    const section = page.getByTestId("help-install");
+
+    /*
+     * Retried, because starting the walk asks for location and a real phone
+     * answers that with a native permission alert that this suite cannot
+     * dismiss — BrowserStack's Playwright has no geolocation capability on
+     * real iOS, so the prompt is a permanent condition of the run rather
+     * than something to arrange away. While it is up, taps go to the alert
+     * and not to the page, and the SDK's click does not wait for a selector
+     * the way Playwright's own does: the first real-device run of this test
+     * failed on the iPhone with "No elements found" for the guide button and
+     * passed on the retry, which is the whole shape of the problem.
+     *
+     * So the open is the thing being retried, and the guide being open is
+     * how it knows it worked. A tap that lands on the alert costs a second.
+     */
+    await expect(async () => {
+        await page.getByRole("button", { name: "Open field guide" }).click();
+        await expect(section).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 60_000 });
+
+    /*
+     * Printed, not just asserted. The prompt sits over the guide on a real
+     * device, so whoever ran this cannot read the sentence off the session
+     * video even though the page underneath is correct — and the sentence is
+     * the entire subject of the test.
+     */
+    console.log(`[install prose] ${await section.innerText()}`);
+
+    // Always, on every phone: what installing buys the walker is the offer.
+    await expect(section).toContainText(/home screen/i);
+
+    const isIOS = await page.evaluate(() => /iPhone|iPad|iPod/i.test(navigator.userAgent));
+    if (isIOS) {
+        // The only route on iOS is the walker doing it by hand, so the steps
+        // are the offer rather than a footnote to it.
+        await expect(section).toContainText(/press share/i);
+    } else {
+        await expect(section).not.toContainText(/press share/i);
+    }
+});
+
 test("ships a manifest the device can install from", async () => {
     await page.goto("/");
 

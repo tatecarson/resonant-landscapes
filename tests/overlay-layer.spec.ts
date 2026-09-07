@@ -182,10 +182,30 @@ test.describe("the install affordance", () => {
         // this exact sequence, would have arrived.
         await page.waitForTimeout(6_000);
 
-        // The map, as the control: the absence has to mean the offer is
-        // gone, not that the walk never started.
+        // The map, as the control: an empty overlay list has to mean the walk
+        // came up, not that nothing did.
         await expect(page.locator("canvas").first()).toBeVisible({ timeout: 10_000 });
-        await expect(page.getByTestId("install-hint")).toHaveCount(0);
+
+        /*
+         * Asserted structurally rather than by name (rl-s6l). After rl-5yp
+         * the old check was `install-hint` count 0 — vacuously true, since
+         * the component and its testid no longer exist, and still green had
+         * a popup returned under any other name. What is allowed to be fixed
+         * to the display here is the warmth tint and nothing else: the
+         * between-parks state is the map and nothing else. Any overlay
+         * reintroduced, under any testid at all, makes this fail.
+         */
+        const overlays = await page.evaluate(() =>
+            Array.from(document.querySelectorAll<HTMLElement>("*"))
+                .filter((el) => getComputedStyle(el).position === "fixed")
+                .filter((el) => {
+                    const box = el.getBoundingClientRect();
+                    return box.width > 0 && box.height > 0;
+                })
+                .map((el) => el.getAttribute("data-testid") ?? el.tagName)
+                .filter((name) => name !== "proximity-warmth")
+        );
+        expect(overlays, `the between-parks state has overlays on the map: ${overlays.join(", ")}`).toEqual([]);
     });
 
     test("the field guide opens while the location banner is up", async ({ context, page }) => {
@@ -216,6 +236,19 @@ test.describe("the install affordance", () => {
     });
 
     test("the field guide explains it permanently, for anyone who said no", async ({ page }) => {
+        /*
+         * As an iPhone, because that is who the steps are for. The prose is
+         * chosen by the phone rather than by whether a button happened to be
+         * offered (rl-8x0), so asserting the steps on the chromium runner's
+         * own user agent would assert the wrong branch — and would have gone
+         * green while a Chrome walker was being told to press share.
+         */
+        await page.addInitScript(() => {
+            Object.defineProperty(navigator, "userAgent", {
+                get: () =>
+                    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+            });
+        });
         await page.goto(mapPath);
         await dismissWelcomeModal(page);
         await openHelp(page);
@@ -225,6 +258,30 @@ test.describe("the install affordance", () => {
         await expect(line).toContainText(/home screen/i);
         // iOS has no install API, so the guide has to say the actual steps.
         await expect(line).toContainText(/add to home screen/i);
+    });
+
+    test("tells a chromium phone where the menu item is until it is offered one", async ({
+        page,
+    }) => {
+        /*
+         * The state a Pixel is in for the first minute of a walk, and the one
+         * that had no wording of its own (rl-8x0). Chrome gates
+         * beforeinstallprompt on engagement and throttles it on repeat
+         * visits, so there is no button yet on a phone that installs
+         * perfectly well — and the promise on its own is an offer with no way
+         * to accept it. No event is dispatched here, which is exactly the
+         * condition being described.
+         */
+        await page.goto(mapPath);
+        await dismissWelcomeModal(page);
+        await openHelp(page);
+
+        const section = page.getByTestId("help-install");
+        await expect(section).toBeVisible();
+        await expect(section.getByRole("button", { name: /add it/i })).toHaveCount(0);
+        await expect(section).toContainText(/browser menu/i);
+        // Not the iPhone route, which is what this used to say here.
+        await expect(section).not.toContainText(/press share/i);
     });
 
     test("can raise the real install prompt where the browser offers one", async ({ page }) => {
@@ -252,10 +309,18 @@ test.describe("the install affordance", () => {
         });
 
         await openHelp(page);
-        const button = page
-            .getByTestId("help-install")
-            .getByRole("button", { name: /add it/i });
+        const section = page.getByTestId("help-install");
+        const button = section.getByRole("button", { name: /add it/i });
         await expect(button).toBeVisible();
+
+        /*
+         * The prose switches with the mechanism (rl-8x0): a button present
+         * means the browser installs on request, so iPhone steps sitting
+         * above it would be instructions for a phone the walker is not
+         * holding.
+         */
+        await expect(section).toContainText(/home screen/i);
+        await expect(section).not.toContainText(/add to home screen/i);
 
         await button.click();
         await expect
@@ -271,5 +336,17 @@ test.describe("the install affordance", () => {
         // Used once: the event is consumed, so the button goes and does not
         // come back this session, whatever the walker chose in the dialog.
         await expect(button).toHaveCount(0);
+
+        /*
+         * And the prose does not change when it goes. Losing the button is
+         * how `install` becomes null, so wording keyed to that would flip
+         * right here — in the open panel, for a walker who has just installed
+         * the walk from a button. Both of the other two wordings would be
+         * wrong for them: the iPhone steps describe a phone they are not
+         * holding, and the menu item is for a browser that has not offered
+         * anything, which this one just did.
+         */
+        await expect(section).not.toContainText(/press share/i);
+        await expect(section).not.toContainText(/browser menu/i);
     });
 });

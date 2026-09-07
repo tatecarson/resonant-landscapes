@@ -717,7 +717,7 @@ export default function GeolocationMap({
      * it. The map is always mounted, so the capture is too; the guide only
      * reads the answer (rl-5yp).
      */
-    const { install: guideInstall } = useInstallHint();
+    const guideInstall = useInstallHint();
 
     useRenderDebug("GeolocationMap", {
         debug,
@@ -750,7 +750,9 @@ export default function GeolocationMap({
                 <HelpModal
                     isOpen={helpIsOpen}
                     setIsOpen={setHelpIsOpen}
-                    install={guideInstall}
+                    install={guideInstall.install}
+                    browserCanInstall={guideInstall.browserCanInstall}
+                    installed={guideInstall.installed}
                 />
             )}
             <RLayerTile

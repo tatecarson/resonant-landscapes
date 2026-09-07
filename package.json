@@ -60,7 +60,8 @@
     "sim:arrival:iphone": "ARRIVAL_HOLD_MS=1200 playwright test tests/arrival-dissolve.spec.ts --project=iphone-13 --headed",
     "sim:path:install": "playwright install chromium webkit",
     "render:sites": "tsx scripts/dump-placements.ts && python3 scripts/render-site-layout.py",
-    "browserstack:real-devices": "PLAYWRIGHT_BASE_URL=\"${PLAYWRIGHT_BASE_URL:-https://resonant-landscapes.netlify.app}\" browserstack-node-sdk playwright test --config=playwright.browserstack.config.ts"
+    "browserstack:real-devices": "PLAYWRIGHT_BASE_URL=\"${PLAYWRIGHT_BASE_URL:-https://resonant-landscapes.netlify.app}\" browserstack-node-sdk playwright test --config=playwright.browserstack.config.ts",
+    "browserstack:two-devices": "BROWSERSTACK_CONFIG_FILE=browserstack.two-devices.yml browserstack-node-sdk playwright test --config=playwright.browserstack.config.ts"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.18",
