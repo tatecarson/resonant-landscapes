@@ -133,6 +133,59 @@ test("no overlay's box reaches the field guide's close button", async ({ context
     await expect(closeButton(page)).toHaveCount(0, { timeout: 10_000 });
 });
 
+test("the colour field paints under the field guide, not over it", async ({ context, page }) => {
+    /*
+     * The other half of the invariant, and the one geometry cannot reach.
+     *
+     * The arrival field is fixed inset-0: it always shares space with the
+     * guide, so no bounding-box check can say anything about it. What matters
+     * is paint order, and at the centre of a listening spot the field is at
+     * full strength — which is exactly where a walker reported the guide
+     * being hard to read, because the dialog shipped in a relative z-10
+     * stacking context and the field sits at 30.
+     *
+     * Asserted as the numbers rather than as a screenshot: the composite of a
+     * translucent wash over a mint panel is a few values per channel in some
+     * states and a wall of colour in others, so a pixel threshold that caught
+     * this bug would have to be tuned to one moment of one ramp. Which layer
+     * is on top is the thing that was wrong and the thing that stays true
+     * however the ramp is tuned.
+     */
+    await page.goto(mapPath);
+    await dismissWelcomeModal(page);
+    await dwellAt(context, page, AT_CENTRE, 2_000);
+    await expect(page.getByTestId("arrival-field")).toBeAttached({ timeout: 30_000 });
+
+    await openHelp(page);
+    await expect(closeButton(page)).toBeVisible();
+
+    const layers = await page.evaluate(() => {
+        // The z-index that actually decides the paint, which is the one on the
+        // nearest positioned ancestor that sets it — the dialog panel itself
+        // is static inside the portal wrapper that carries the value.
+        const effectiveZ = (start: Element | null) => {
+            for (let el = start; el; el = el.parentElement) {
+                const style = getComputedStyle(el);
+                if (style.position !== "static" && style.zIndex !== "auto") {
+                    return Number(style.zIndex);
+                }
+            }
+            return null;
+        };
+        return {
+            field: effectiveZ(document.querySelector('[data-testid="arrival-field"]')),
+            dialog: effectiveZ(document.querySelector('[role="dialog"]')),
+        };
+    });
+
+    expect(layers.field, "the arrival field is not on screen to be layered").not.toBeNull();
+    expect(layers.dialog, "the field guide has no stacking context of its own").not.toBeNull();
+    expect(
+        layers.dialog!,
+        `the field guide (${layers.dialog}) is under the colour field (${layers.field})`
+    ).toBeGreaterThan(layers.field!);
+});
+
 test("the park strip does not swallow the field guide's controls either", async ({ context, page }) => {
     // The precedent the chip should have followed, and which nothing has ever
     // asserted. ParkModal takes helpIsOpen and goes inert; if that regressed,

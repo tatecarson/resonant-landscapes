@@ -117,7 +117,13 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
               * only ways out are Start, and the deliberate one offered below
               * once Start has failed.
               */}
-            <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} onClose={() => {}}>
+            {/*
+              * z-1300, matching HelpModal and for the same reason: the dialog
+              * is portaled to the body and has to clear every fixed overlay,
+              * up to the map controls at 1200 in layers.css. At the stock
+              * z-10 the colour fields composited over the panel.
+              */}
+            <Dialog as="div" className="relative z-[1300]" initialFocus={cancelButtonRef} onClose={() => {}}>
                 <Transition.Child
                     as={Fragment}
                     enter="ease-out duration-300"
