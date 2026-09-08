@@ -66,7 +66,21 @@ function HelpModal({ isOpen, setIsOpen, install, browserCanInstall, installed }:
 
     return (
         <Transition.Root show={isOpen} as={Fragment}>
-            <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} onClose={setIsOpen}>
+            {/*
+              * z-1300, not the stock z-10 this shipped with. Headless UI
+              * portals the dialog to the body, so its z-index competes with
+              * every fixed overlay in the app: the colour fields at 30, the
+              * park strip and offline notice at 50, the debug panel at 60,
+              * and — because .map is positioned without a z-index and so
+              * starts no stacking context of its own — the map's own controls
+              * at 1100 and 1200 in layers.css.
+              *
+              * At 10 the arrival field composited over the panel, and at the
+              * centre of a listening spot, where that field is at full
+              * strength, is exactly when the guide was unreadable. A modal is
+              * the one thing that is always on top.
+              */}
+            <Dialog as="div" className="relative z-[1300]" initialFocus={cancelButtonRef} onClose={setIsOpen}>
                 <Transition.Child
                     as={Fragment}
                     enter="ease-out duration-300"
