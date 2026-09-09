@@ -95,3 +95,41 @@ test("production build keeps the unlock exception off the welcome screen", async
   await page.getByRole("button", { name: /^\s*start\s*$/i }).click();
   await expect(page.getByTestId("unlock-error-detail")).toContainText(message);
 });
+
+test("the shipped manifest lets an install capture the walk it was made from", async ({
+  page,
+  request,
+}) => {
+  /*
+   * The walk a home-screen icon opens (rl-51w).
+   *
+   * start_url used to be "/", the DSU walk, so an installed copy could not
+   * reach Terrace or Chatham at all: it opened South Dakota every time, on a
+   * placement 59 km from a walker standing in Terrace Park. With no address
+   * bar in a standalone window there was nothing to correct it with, and an
+   * empty map is what a walk on the wrong placement looks like.
+   *
+   * Absent, the manifest spec sets start_url to the document URL, so the icon
+   * opens whatever was on screen at the moment of install. The assertion is
+   * therefore on the key NOT being there, which is a strange thing to assert
+   * and the reason it is asserted against a real build: vite-plugin-pwa
+   * merges the manifest over defaults of its own that include start_url "/",
+   * so this key comes back on its own if the explicit undefined in
+   * vite.config.ts is ever tidied away.
+   */
+  await page.goto("/");
+  const href = await page.locator('link[rel="manifest"]').getAttribute("href");
+  expect(href, "no manifest is linked from the document").not.toBeNull();
+
+  const response = await request.get(href!);
+  expect(response.ok(), `manifest did not load from ${href}`).toBe(true);
+  const manifest = await response.json();
+
+  expect(
+    "start_url" in manifest,
+    `start_url is back in the manifest as ${JSON.stringify(manifest.start_url)}, so every install opens that walk`
+  ).toBe(false);
+  // scope stays, and stays wide: it would otherwise default to the start_url's
+  // directory, and the three walks are one app.
+  expect(manifest.scope).toBe("/");
+});

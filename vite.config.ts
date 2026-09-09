@@ -132,7 +132,43 @@ export default defineConfig({
         background_color: "#F6F1E7",
         display: "standalone",
         orientation: "portrait",
-        start_url: "/",
+        /*
+         * No start_url, deliberately, so an install captures the walk that is
+         * on screen.
+         *
+         * It used to be "/", which is the DSU walk, and that made the
+         * installed app unable to reach the other two sites at all: a walker
+         * who added Terrace to their home screen opened South Dakota every
+         * time, on a placement 59 km from where they were standing. That is
+         * the same silent failure as rl-c8f — a walk on the wrong placement
+         * looks exactly like a walk with nothing near it — with no URL to
+         * correct it, because the installed app has no address bar.
+         *
+         * Absence is the fix rather than an oversight. The manifest spec
+         * processes a missing start_url by setting it to the document URL, so
+         * the route being walked at the moment of install is the route the
+         * icon opens. iOS reaches the same place from the other direction: it
+         * uses the current page URL for a home-screen add unless a manifest
+         * start_url overrides it, which is precisely what this member was
+         * doing.
+         *
+         * scope stays "/" and stays explicit. It would otherwise default to
+         * the start_url's directory, which now varies per install, and the
+         * three walks are one app that must not fall out of scope.
+         *
+         * One consequence to know about: id defaults to start_url too, so the
+         * three routes install as three separate icons. That is the intent —
+         * three walks, three apps — but they currently share a name, so they
+         * are told apart only by their position on the home screen (rl-l8m).
+         *
+         * Spelled `undefined` rather than deleted, and the difference is not
+         * stylistic: vite-plugin-pwa merges this object over defaults of its
+         * own that include start_url "/", so simply removing the line puts
+         * the DSU walk back in the built manifest. An explicit undefined
+         * overrides the default and JSON.stringify then drops the key, which
+         * production-surfaces.spec.ts asserts against the real build.
+         */
+        start_url: undefined,
         scope: "/",
         icons: [
           { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
