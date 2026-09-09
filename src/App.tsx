@@ -23,6 +23,25 @@ export type Variant = "dsu" | "terrace" | "chatham";
  * Still reachable in a production build with ?debug, which is what lets the
  * mobile suites drive a deploy preview.
  */
+/**
+ * A route with its trailing slashes taken off, so `/terrace` and `/terrace/`
+ * are the same walk.
+ *
+ * Not a tidying pass. A walker in Terrace Park opened `/terrace/`, which fell
+ * through every check below to the DSU placement 59 km away, and got a map
+ * with no marker and no glow anywhere on it — nothing on screen said which
+ * walk was loaded, and iOS Safari hides the path in its address bar, so there
+ * was no way to see the slash either (rl-c8f). A share sheet, a typed URL, a
+ * link with a slash on the end and a QR code printed by someone else all
+ * produce this, and the failure is silent every time.
+ *
+ * The root is left as "/" rather than reduced to "": nothing matches on it,
+ * but it should read as a path.
+ */
+function normalizeRoute(route: string) {
+  return route.replace(/\/+$/, "") || "/";
+}
+
 function isDebugLocation(location: Location) {
   if (!isDebugEnabled()) {
     return false;
@@ -30,15 +49,19 @@ function isDebugLocation(location: Location) {
   // startsWith rather than an exact match: the hash carries its own query
   // string, so #/debug?debug — the natural way to ask for the debug route on a
   // production build — used to fall through to the ordinary app in silence.
-  return location.pathname.endsWith("/debug") || location.hash.startsWith("#/debug");
+  return (
+    normalizeRoute(location.pathname).endsWith("/debug") ||
+    normalizeRoute(location.hash.split("?")[0]).startsWith("#/debug")
+  );
 }
 
 function detectVariant(location: Location): Variant {
-  const hashRoute = location.hash.replace(/^#/, "").split("?")[0];
-  if (hashRoute === "/terrace" || location.pathname.endsWith("/terrace")) {
+  const hashRoute = normalizeRoute(location.hash.replace(/^#/, "").split("?")[0]);
+  const path = normalizeRoute(location.pathname);
+  if (hashRoute === "/terrace" || path.endsWith("/terrace")) {
     return "terrace";
   }
-  if (hashRoute === "/chatham" || location.pathname.endsWith("/chatham")) {
+  if (hashRoute === "/chatham" || path.endsWith("/chatham")) {
     return "chatham";
   }
   return "dsu";
