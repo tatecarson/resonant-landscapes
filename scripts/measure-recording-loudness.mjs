@@ -30,8 +30,13 @@
  *     corpus is quiet ambience with a rare loud transient, so this, not the
  *     sample peak, is what bounds gain; the limiter catches the rest.
  *
- * The policy (target, ceiling, cap) lives in src/audio/recordingGain.ts where
- * it can be tested; this only writes measurements.
+ * Recordings that recordingGain.ts's own rule turns the second order down in
+ * are rendered a second time with that turndown in place, and both
+ * measurements are kept, so the gain matches what plays.
+ *
+ * The policy (target, ceiling, cap, turndown) lives in
+ * src/audio/recordingGain.ts where it can be tested; this only writes
+ * measurements, and asks that module which recordings to re-render.
  *
  * Needs ffmpeg on PATH and Playwright's Chromium (npx playwright install
  * chromium). Starts its own Vite server; audio streams from the CDN inside
@@ -167,21 +172,37 @@ function round1(value) {
 async function listRecordings(page) {
   return page.evaluate(async (userAgent) => {
     const { getParkAudioVariants } = await import("/src/utils/audioPaths.ts");
-    const { recordingBaseFromUrl, HIGHPASS_HZ, HIGHPASS_STAGES } = await import("/src/audio/recordingGain.ts");
+    const { recordingBaseFromUrl, HIGHPASS_HZ, HIGHPASS_STAGES, SECOND_ORDER_TURNDOWN_DB } =
+      await import("/src/audio/recordingGain.ts");
     const { default: parks } = await import("/src/data/stateParks.json");
     const recordings = parks
       .flatMap((park) => getParkAudioVariants(park.name, parks, userAgent) ?? [])
       .map((urls) => ({ base: recordingBaseFromUrl(urls[0]), urls }));
-    return { recordings, highpassHz: HIGHPASS_HZ, highpassStages: HIGHPASS_STAGES };
+    return {
+      recordings,
+      highpassHz: HIGHPASS_HZ,
+      highpassStages: HIGHPASS_STAGES,
+      secondOrderTurndownDb: SECOND_ORDER_TURNDOWN_DB,
+    };
   }, LOSSLESS_USER_AGENT);
 }
 
+/** recordingGain.ts's decision, per recording, on its untreated measurement. */
+async function secondOrderDecisions(page, measurements) {
+  return page.evaluate(async (measurements) => {
+    const { secondOrderGainDbFor } = await import("/src/audio/recordingGain.ts");
+    return Object.fromEntries(
+      Object.entries(measurements).map(([base, loudness]) => [base, secondOrderGainDbFor(loudness)])
+    );
+  }, measurements);
+}
+
 /** Render one recording at a park's centre and hand back the stereo output. */
-async function renderRecording(page, urls) {
-  const result = await page.evaluate(async (urls) => {
+async function renderRecording(page, urls, secondOrderGainDb) {
+  const result = await page.evaluate(async ({ urls, secondOrderGainDb }) => {
     const { mergeDeliveryBuffers } = await import("/src/audio/mergeBuffers.ts");
     const { createSoundfieldScene, createSoundfieldInput } = await import("/src/audio/soundfield.ts");
-    const { createRecordingHighpass } = await import("/src/audio/recordingGain.ts");
+    const { createRecordingHighpass, createSecondOrderTrim } = await import("/src/audio/recordingGain.ts");
 
     const probe = new OfflineAudioContext(1, 1, 44100);
     const decoded = await Promise.all(urls.map(async (url) => {
@@ -212,7 +233,13 @@ async function renderRecording(page, urls) {
     source.buffer = buffer;
     const highpass = createRecordingHighpass(context, buffer.numberOfChannels);
     source.connect(highpass.input);
-    highpass.output.connect(input.inputForChannels(buffer.numberOfChannels));
+    let tail = highpass.output;
+    if (secondOrderGainDb) {
+      const trim = createSecondOrderTrim(context, secondOrderGainDb);
+      tail.connect(trim.input);
+      tail = trim.output;
+    }
+    tail.connect(input.inputForChannels(buffer.numberOfChannels));
     source.start();
 
     const rendered = await context.startRendering();
@@ -228,7 +255,7 @@ async function renderRecording(page, urls) {
       sampleRate,
       channels: [0, 1].map((channel) => toBase64(rendered.getChannelData(channel))),
     };
-  }, urls);
+  }, { urls, secondOrderGainDb });
 
   const channels = result.channels.map((encoded) => {
     const bytes = Buffer.from(encoded, "base64");
@@ -237,8 +264,8 @@ async function renderRecording(page, urls) {
   return { sampleRate: result.sampleRate, channels };
 }
 
-async function measure(page, urls) {
-  const { sampleRate, channels } = await renderRecording(page, urls);
+async function measure(page, urls, secondOrderGainDb = 0) {
+  const { sampleRate, channels } = await renderRecording(page, urls, secondOrderGainDb);
   const peakDb = samplePeakDb(channels);
   return {
     outLufs: round1(await integratedLufs(channels[0], channels[1], sampleRate, -peakDb)),
@@ -283,6 +310,17 @@ async function main() {
       }
     }, CONCURRENCY);
 
+    const decisions = await secondOrderDecisions(pages[0], results);
+    const turnedDown = recordingsToMeasure.filter(({ base }) => results[base] && decisions[base]);
+    log(`[loudness] re-rendering ${turnedDown.length} with the second order turned down`);
+    await runPool(turnedDown, async ({ base, urls }, runner) => {
+      try {
+        results[base].secondOrderTurnedDown = await measure(pages[runner], urls, decisions[base]);
+      } catch (error) {
+        failures.push(`${base} (second order turned down): ${error.message}`);
+      }
+    }, CONCURRENCY);
+
     if (failures.length) {
       log(`[loudness] ${failures.length} failed:\n  ${failures.join("\n  ")}`);
       process.exitCode = 1;
@@ -296,14 +334,22 @@ async function main() {
 
     if (CHECK) {
       const committed = JSON.parse(await readFile(OUT_PATH, "utf8"));
-      const drifted = Object.entries(recordings).filter(([base, now]) => {
-        const then = committed.recordings[base];
-        return !then || ["outLufs", "peakDb", "p9999Db"].some(
+      const differs = (then, now) => {
+        if (!then || !now) return then !== now;
+        return ["outLufs", "peakDb", "p9999Db"].some(
           (key) => Math.abs(then[key] - now[key]) > CHECK_TOLERANCE_DB
         );
+      };
+      const drifted = Object.entries(recordings).filter(([base, now]) => {
+        const then = committed.recordings[base];
+        return !then || differs(then, now) || differs(then.secondOrderTurnedDown, now.secondOrderTurnedDown);
       });
-      if (committed.highpassHz !== listing.highpassHz || committed.highpassStages !== listing.highpassStages) {
-        log("[loudness] the committed table was measured through a different high-pass");
+      if (
+        committed.highpassHz !== listing.highpassHz
+        || committed.highpassStages !== listing.highpassStages
+        || committed.secondOrderTurndownDb !== listing.secondOrderTurndownDb
+      ) {
+        log("[loudness] the committed table was measured through different processing");
         process.exitCode = 1;
       }
       if (drifted.length) {
@@ -322,6 +368,7 @@ async function main() {
         "Generated by scripts/measure-recording-loudness.mjs: binaural output at a park's centre, before master gain. Do not edit by hand.",
       highpassHz: listing.highpassHz,
       highpassStages: listing.highpassStages,
+      secondOrderTurndownDb: listing.secondOrderTurndownDb,
       recordings,
     };
     await writeFile(OUT_PATH, `${JSON.stringify(table, null, 2)}\n`);

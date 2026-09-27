@@ -18,6 +18,7 @@
  */
 import loudnessTable from "../data/recordingLoudness.json";
 import { LIMITER_SETTINGS, MASTER_GAIN } from "./audioGraph";
+import { AMBISONIC_ORDER, SOUNDFIELD_CHANNELS } from "./soundfield";
 
 /** Two cascaded Butterworth stages at 80 Hz: 24 dB/octave below it. */
 export const HIGHPASS_HZ = 80;
@@ -58,6 +59,25 @@ export const MAX_LIMITING_DB = 6;
  */
 export const MAX_BOOST_DB = 40;
 
+/**
+ * How far the second-order components are turned down in a recording the
+ * boost cap cannot bring to target. Those recordings are mostly noise floor,
+ * and most of that floor is in the second order, 10 to 15 dB hotter than W
+ * between 80 Hz and 1 kHz where a real soundfield would put it well below.
+ * Lifting them 40 dB lifted that with them. Chosen by ear against a
+ * per-order spectral denoiser, which cost the quiet recordings more of what
+ * little they have; turning the second order down only softens how sharply
+ * sounds are placed, and changes no direction, since it treats every
+ * component of the order alike.
+ *
+ * Not applied more widely: in the recordings that are easy to hear, the
+ * second order carries real sound (Palisades loses 3.4 dB without it).
+ */
+export const SECOND_ORDER_TURNDOWN_DB = -12;
+
+/** ACN numbers each order n from n², so the second order starts at 4. */
+const FIRST_SECOND_ORDER_CHANNEL = AMBISONIC_ORDER ** 2;
+
 /** Binaural output at a park's centre, after the high-pass, before master gain. */
 export type RecordingLoudness = {
     /** EBU R128 integrated loudness. */
@@ -68,10 +88,16 @@ export type RecordingLoudness = {
     p9999Db: number;
 };
 
+export type RecordingEntry = RecordingLoudness & {
+    /** Measured again with the second order turned down, for the recordings that get it. */
+    secondOrderTurnedDown?: RecordingLoudness;
+};
+
 type LoudnessTable = {
     highpassHz: number;
     highpassStages: number;
-    recordings: Record<string, RecordingLoudness>;
+    secondOrderTurndownDb: number;
+    recordings: Record<string, RecordingEntry>;
 };
 
 const table = loudnessTable as LoudnessTable;
@@ -86,9 +112,42 @@ export function gainDbFor(loudness: RecordingLoudness): number {
     );
 }
 
+/**
+ * The second-order gain a recording gets, decided on its untreated
+ * measurement: turned down when even the full boost cannot reach the target.
+ */
+export function secondOrderGainDbFor(untreated: RecordingLoudness): number {
+    return TARGET_LUFS - MASTER_GAIN_DB - untreated.outLufs > MAX_BOOST_DB
+        ? SECOND_ORDER_TURNDOWN_DB
+        : 0;
+}
+
+export type RecordingLevel = {
+    gainDb: number;
+    secondOrderGainDb: number;
+    /** The measurement the gain was taken from. */
+    loudness: RecordingLoudness;
+};
+
+/**
+ * Both corrections for one recording. The gain comes from the measurement
+ * that matches what plays: the turned-down one where the second order is
+ * turned down. A table missing that measurement is stale; the turndown still
+ * applies and the gain falls back to the untreated figures, which for these
+ * recordings sits at the boost cap either way.
+ */
+export function levelFor(entry: RecordingEntry): RecordingLevel {
+    const secondOrderGainDb = secondOrderGainDbFor(entry);
+    const loudness = secondOrderGainDb && entry.secondOrderTurnedDown
+        ? entry.secondOrderTurnedDown
+        : entry;
+    return { gainDb: gainDbFor(loudness), secondOrderGainDb, loudness };
+}
+
 /** Where a measured recording lands at the speaker, before the limiter. */
-export function speakerLufsFor(loudness: RecordingLoudness): number {
-    return loudness.outLufs + gainDbFor(loudness) + MASTER_GAIN_DB;
+export function speakerLufsFor(entry: RecordingEntry): number {
+    const { gainDb, loudness } = levelFor(entry);
+    return loudness.outLufs + gainDb + MASTER_GAIN_DB;
 }
 
 /**
@@ -104,26 +163,37 @@ export function dbToLinear(db: number): number {
     return 10 ** (db / 20);
 }
 
+export type PlaybackLevel = {
+    /** Linear gain for the fade node to land on. */
+    gain: number;
+    secondOrderGainDb: number;
+};
+
 /**
- * Linear gain for the recording a set of delivery URLs loads. A recording
- * missing from the table plays unchanged: quieter than its neighbours, which
- * is how everything played before this, rather than silent or clipped.
+ * Playback corrections for the recording a set of delivery URLs loads. A
+ * recording missing from the table plays unchanged: quieter than its
+ * neighbours, which is how everything played before this, rather than silent
+ * or clipped.
  *
  * The table is measured on the nine-channel soundfield path. The W-only
  * fallback, for a browser that cannot keep eight channels, takes the same
  * gain through a point source; its absolute level is unmeasured, but the
- * gain still ranks the recordings the same way.
+ * gain still ranks the recordings the same way. It has no second order, so
+ * the turndown does not reach it.
  */
-export function recordingGainFor(
+export function playbackLevelFor(
     urls: readonly string[],
-    recordings: Record<string, RecordingLoudness> = table.recordings,
-): number {
+    recordings: Record<string, RecordingEntry> = table.recordings,
+): PlaybackLevel {
     const base = urls.length ? recordingBaseFromUrl(urls[0]) : null;
-    const loudness = base ? recordings[base] : undefined;
-    return loudness ? dbToLinear(gainDbFor(loudness)) : 1;
+    const entry = base ? recordings[base] : undefined;
+    if (!entry) return { gain: 1, secondOrderGainDb: 0 };
+    const { gainDb, secondOrderGainDb } = levelFor(entry);
+    return { gain: dbToLinear(gainDb), secondOrderGainDb };
 }
 
-export type RecordingHighpass = {
+/** A node chain spliced into the playback path. */
+export type RecordingStage = {
     input: AudioNode;
     output: AudioNode;
     disconnect: () => void;
@@ -137,7 +207,7 @@ export type RecordingHighpass = {
 export function createRecordingHighpass(
     context: BaseAudioContext,
     channelCount: number,
-): RecordingHighpass {
+): RecordingStage {
     const stages = Array.from({ length: HIGHPASS_STAGES }, () => {
         const filter = context.createBiquadFilter();
         filter.type = "highpass";
@@ -160,8 +230,45 @@ export function createRecordingHighpass(
     };
 }
 
-/** The filter settings the table was measured through. */
-export const measuredHighpass = {
-    hz: table.highpassHz,
-    stages: table.highpassStages,
+/**
+ * Scale the second-order components of a nine-channel soundfield by
+ * `gainDb`, leaving W and the first order alone. Web Audio has no per-channel
+ * gain, so the field is split, the five second-order channels each pass
+ * through their own gain, and it is merged back in the same ACN order.
+ */
+export function createSecondOrderTrim(
+    context: BaseAudioContext,
+    gainDb: number,
+): RecordingStage {
+    const splitter = context.createChannelSplitter(SOUNDFIELD_CHANNELS);
+    const merger = context.createChannelMerger(SOUNDFIELD_CHANNELS);
+    merger.channelInterpretation = "discrete";
+    const trims: GainNode[] = [];
+    for (let channel = 0; channel < SOUNDFIELD_CHANNELS; channel += 1) {
+        if (channel < FIRST_SECOND_ORDER_CHANNEL) {
+            splitter.connect(merger, channel, channel);
+            continue;
+        }
+        const trim = context.createGain();
+        trim.gain.value = dbToLinear(gainDb);
+        splitter.connect(trim, channel);
+        trim.connect(merger, 0, channel);
+        trims.push(trim);
+    }
+    return {
+        input: splitter,
+        output: merger,
+        disconnect: () => {
+            splitter.disconnect();
+            for (const trim of trims) trim.disconnect();
+            merger.disconnect();
+        },
+    };
+}
+
+/** The processing the table was measured through. */
+export const measuredWith = {
+    highpassHz: table.highpassHz,
+    highpassStages: table.highpassStages,
+    secondOrderTurndownDb: table.secondOrderTurndownDb,
 } as const;

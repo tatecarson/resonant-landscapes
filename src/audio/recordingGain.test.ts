@@ -10,18 +10,22 @@ import {
     MAX_BOOST_DB,
     MAX_LIMITING_DB,
     PEAK_CEILING_DB,
+    SECOND_ORDER_TURNDOWN_DB,
     TARGET_LUFS,
     createRecordingHighpass,
+    createSecondOrderTrim,
     dbToLinear,
     gainDbFor,
-    measuredHighpass,
+    levelFor,
+    measuredWith,
+    playbackLevelFor,
     recordingBaseFromUrl,
-    recordingGainFor,
+    secondOrderGainDbFor,
     speakerLufsFor,
-    type RecordingLoudness,
+    type RecordingEntry,
 } from "./recordingGain";
 
-const recordings = (loudnessTable as { recordings: Record<string, RecordingLoudness> }).recordings;
+const recordings = (loudnessTable as { recordings: Record<string, RecordingEntry> }).recordings;
 const SAFARI = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Version/18.0 Mobile/15E148 Safari/604.1";
 const CHROME = "Mozilla/5.0 (Linux; Android 14) Chrome/128.0 Mobile Safari/537.36";
 const MASTER_GAIN_DB = 20 * Math.log10(MASTER_GAIN);
@@ -67,21 +71,68 @@ describe("recordingBaseFromUrl", () => {
     });
 });
 
-describe("recordingGainFor", () => {
-    it("returns the linear gain for the recording the URLs load", () => {
+describe("secondOrderGainDbFor", () => {
+    it("turns the second order down when even the full boost cannot reach the target", () => {
+        const needs = (boostDb: number) => ({
+            outLufs: TARGET_LUFS - 20 * Math.log10(MASTER_GAIN) - boostDb,
+            peakDb: -60,
+            p9999Db: -70,
+        });
+        expect(secondOrderGainDbFor(needs(MAX_BOOST_DB + 0.1))).toBe(SECOND_ORDER_TURNDOWN_DB);
+        expect(secondOrderGainDbFor(needs(MAX_BOOST_DB - 0.1))).toBe(0);
+    });
+});
+
+describe("levelFor", () => {
+    const untreated = { outLufs: -75, peakDb: -45, p9999Db: -55 };
+    const turnedDown = { outLufs: -78, peakDb: -46, p9999Db: -57 };
+
+    it("takes the gain from the turned-down measurement when the turndown applies", () => {
+        const level = levelFor({ ...untreated, secondOrderTurnedDown: turnedDown });
+        expect(level.secondOrderGainDb).toBe(SECOND_ORDER_TURNDOWN_DB);
+        expect(level.loudness).toBe(turnedDown);
+    });
+
+    it("still turns the second order down when the table lacks that measurement", () => {
+        const level = levelFor(untreated);
+        expect(level.secondOrderGainDb).toBe(SECOND_ORDER_TURNDOWN_DB);
+        expect(level.loudness).toBe(untreated);
+    });
+});
+
+describe("playbackLevelFor", () => {
+    it("returns the corrections for the recording the URLs load", () => {
         const [variant] = getParkAudioVariants("Bear Butte State Park", stateParks, SAFARI) ?? [];
-        expect(recordingGainFor(variant)).toBeCloseTo(dbToLinear(gainDbFor(recordings["Bear-Butte-1-001"])), 10);
+        const { gainDb, secondOrderGainDb } = levelFor(recordings["Bear-Butte-1-001"]);
+        expect(playbackLevelFor(variant)).toEqual({ gain: dbToLinear(gainDb), secondOrderGainDb });
+    });
+
+    it("turns the second order down for a noise-dominated recording", () => {
+        const url = "https://resonant-landscapes.b-cdn.net/sounds-flac/Bear-Butte-3-002_8ch.flac";
+        expect(playbackLevelFor([url]).secondOrderGainDb).toBe(SECOND_ORDER_TURNDOWN_DB);
     });
 
     it("plays an unmeasured recording unchanged", () => {
-        expect(recordingGainFor(["https://resonant-landscapes.b-cdn.net/sounds/Nowhere-1-001_8ch.m4a"])).toBe(1);
-        expect(recordingGainFor([])).toBe(1);
+        const unchanged = { gain: 1, secondOrderGainDb: 0 };
+        expect(playbackLevelFor(["https://resonant-landscapes.b-cdn.net/sounds/Nowhere-1-001_8ch.m4a"])).toEqual(unchanged);
+        expect(playbackLevelFor([])).toEqual(unchanged);
     });
 });
 
 describe("the measured table", () => {
-    it("was measured through the filter the app plays through", () => {
-        expect(measuredHighpass).toEqual({ hz: HIGHPASS_HZ, stages: HIGHPASS_STAGES });
+    it("was measured through the processing the app plays through", () => {
+        expect(measuredWith).toEqual({
+            highpassHz: HIGHPASS_HZ,
+            highpassStages: HIGHPASS_STAGES,
+            secondOrderTurndownDb: SECOND_ORDER_TURNDOWN_DB,
+        });
+    });
+
+    it("has a turned-down measurement for exactly the recordings that get the turndown", () => {
+        const mismatched = Object.entries(recordings)
+            .filter(([, entry]) => Boolean(secondOrderGainDbFor(entry)) !== Boolean(entry.secondOrderTurnedDown))
+            .map(([base]) => base);
+        expect(mismatched).toEqual([]);
     });
 
     it("covers every recording a walker can be served", () => {
@@ -100,16 +151,20 @@ describe("the measured table", () => {
     });
 
     it("leaves no recording as quiet as the quietest used to be", () => {
-        // Before levelling the quietest parks came out below -70 LUFS.
-        expect(Math.min(...Object.values(recordings).map(speakerLufsFor))).toBeGreaterThan(TARGET_LUFS - 10);
+        // Before levelling the quietest parks came out near -71 LUFS, 48 dB
+        // under the target. The noise-dominated ones still sit up to ~12 dB
+        // under it, by choice: past the boost cap their floor rises with
+        // them, and their second order is turned down besides.
+        expect(Math.min(...Object.values(recordings).map(speakerLufsFor))).toBeGreaterThan(TARGET_LUFS - 15);
     });
 
     it("keeps every recording's p99.99 level under the limiter, and its peak within the allowance", () => {
         expect(PEAK_CEILING_DB).toBe(LIMITER_SETTINGS.threshold);
-        for (const r of Object.values(recordings)) {
-            const gain = gainDbFor(r) + MASTER_GAIN_DB;
-            expect(r.p9999Db + gain).toBeLessThanOrEqual(PEAK_CEILING_DB + 1e-9);
-            expect(r.peakDb + gain).toBeLessThanOrEqual(PEAK_CEILING_DB + MAX_LIMITING_DB + 1e-9);
+        for (const entry of Object.values(recordings)) {
+            const { gainDb, loudness } = levelFor(entry);
+            const gain = gainDb + MASTER_GAIN_DB;
+            expect(loudness.p9999Db + gain).toBeLessThanOrEqual(PEAK_CEILING_DB + 1e-9);
+            expect(loudness.peakDb + gain).toBeLessThanOrEqual(PEAK_CEILING_DB + MAX_LIMITING_DB + 1e-9);
         }
     });
 });
@@ -179,5 +234,61 @@ describe("createRecordingHighpass", () => {
         const { context, filters } = fakeContext();
         createRecordingHighpass(context, 1).disconnect();
         expect(filters.every((filter) => filter.disconnected)).toBe(true);
+    });
+});
+
+describe("createSecondOrderTrim", () => {
+    type Link = { from: string; to: string; output: number; input: number };
+
+    function fakeContext() {
+        const links: Link[] = [];
+        const gains: { name: string; gain: { value: number } }[] = [];
+        const disconnected: string[] = [];
+        const fakeNode = (name: string) => ({
+            name,
+            channelInterpretation: "speakers",
+            connect: (target: { name: string }, output = 0, input = 0) => {
+                links.push({ from: name, to: target.name, output, input });
+            },
+            disconnect: () => {
+                disconnected.push(name);
+            },
+        });
+        const context = {
+            createChannelSplitter: () => fakeNode("splitter"),
+            createChannelMerger: () => fakeNode("merger"),
+            createGain: () => {
+                const gain = Object.assign(fakeNode(`trim${gains.length}`), { gain: { value: 1 } });
+                gains.push(gain);
+                return gain;
+            },
+        };
+        return { context: context as unknown as BaseAudioContext, links, gains, disconnected };
+    }
+
+    it("passes W and the first order straight through, in place", () => {
+        const { context, links } = fakeContext();
+        createSecondOrderTrim(context, SECOND_ORDER_TURNDOWN_DB);
+        for (const channel of [0, 1, 2, 3]) {
+            expect(links).toContainEqual({ from: "splitter", to: "merger", output: channel, input: channel });
+        }
+    });
+
+    it("scales each second-order channel through its own gain, back into the same slot", () => {
+        const { context, links, gains } = fakeContext();
+        createSecondOrderTrim(context, SECOND_ORDER_TURNDOWN_DB);
+        expect(gains).toHaveLength(5);
+        gains.forEach((gain, index) => {
+            const channel = 4 + index;
+            expect(gain.gain.value).toBeCloseTo(dbToLinear(SECOND_ORDER_TURNDOWN_DB), 10);
+            expect(links).toContainEqual({ from: "splitter", to: gain.name, output: channel, input: 0 });
+            expect(links).toContainEqual({ from: gain.name, to: "merger", output: 0, input: channel });
+        });
+    });
+
+    it("disconnects everything it built", () => {
+        const { context, disconnected } = fakeContext();
+        createSecondOrderTrim(context, SECOND_ORDER_TURNDOWN_DB).disconnect();
+        expect(disconnected).toEqual(["splitter", "trim0", "trim1", "trim2", "trim3", "trim4", "merger"]);
     });
 });
