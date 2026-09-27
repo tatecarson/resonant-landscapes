@@ -101,7 +101,7 @@ test("welcome modal: a panel taller than the screen scrolls inside itself", asyn
     await expectFullyOnFirstScreen(page, "after scrolling to the end");
 });
 
-test("welcome modal: says there is more below, and stops saying it at the end", async ({ page }) => {
+test("welcome modal: offers a way to continue reading and clears it at the end", async ({ page }) => {
     // The fade alone is not a cue. On a 375x548 screen the fold falls between
     // two paragraphs, so nothing is visibly cut and the panel looks complete
     // when 41% of it is not (rl-uo5) — three of the four walk instructions,
@@ -111,28 +111,34 @@ test("welcome modal: says there is more below, and stops saying it at the end", 
     await expect(page.getByRole("button", { name: START })).toBeAttached({ timeout: 15_000 });
 
     const panel = page.locator(".modal-panel");
-    const cue = panel.getByText(/more below/i);
+    const cue = panel.locator("button").filter({ hasText: /continue reading/i });
     await expect(cue).toBeVisible();
     await expect(cue).toHaveCSS("opacity", "1");
+
+    await cue.click();
+    await expect.poll(() => panel.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
 
     await panel.evaluate((element) => element.scrollTo({ top: element.scrollHeight }));
     // The space it occupied stays occupied: the button must not slide up
     // under a thumb already travelling towards it.
     await expect(cue).toHaveCSS("opacity", "0");
+    await expect(cue).toBeDisabled();
     await expect(cue).toBeAttached();
 
     await expectFullyOnFirstScreen(page, "at the end of the panel");
 });
 
 test("welcome modal: a panel that fits carries no cue and no gap for one", async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 900 });
+    // Tall enough for the whole panel. 900 was, until rl-edv.2 added the
+    // location note; the height is this check's precondition, not its claim.
+    await page.setViewportSize({ width: 1280, height: 1000 });
     await page.goto("/");
     await expect(page.getByRole("button", { name: START })).toBeAttached({ timeout: 15_000 });
 
     const panel = page.locator(".modal-panel");
     const fits = await panel.evaluate((element) => element.scrollHeight <= element.clientHeight + 1);
     expect(fits, "the desktop panel is scrolling — this check proves nothing").toBe(true);
-    await expect(panel.getByText(/more below/i)).toHaveCount(0);
+    await expect(panel.getByRole("button", { name: /continue reading/i })).toHaveCount(0);
 });
 
 test("welcome modal: the cap comes from the measured viewport, not the unit", async ({ page }) => {

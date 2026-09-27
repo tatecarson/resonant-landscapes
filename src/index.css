@@ -70,6 +70,54 @@
 }
 
 /*
+ * The offer's arrival (rl-edv.5). It used to take the placeholder's place
+ * with nothing to mark the change, so a first-time walker read it as the
+ * placeholder, not a new action. The glyph turns once, which is also what the
+ * button is about, and the line above it rises in. Both run once and stop;
+ * the calm rules below collapse them to their final frame.
+ */
+.rotation-affordance__glyph {
+  display: inline-block;
+  animation: rotation-affordance-turn 1.1s cubic-bezier(0.3, 0.7, 0.2, 1) 0.15s both;
+}
+
+@keyframes rotation-affordance-turn {
+  from {
+    transform: rotate(-360deg);
+  }
+
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+/*
+ * On, the glyph keeps turning, slowly: the one sign on the panel that the
+ * sound is following the walker. Calm mode stops it through the rules below,
+ * which leave it still and upright.
+ */
+.rotation-toggle__glyph--on {
+  display: inline-block;
+  animation: rotation-affordance-turn 6s linear infinite;
+}
+
+.rotation-callout {
+  animation: rotation-callout-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes rotation-callout-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/*
  * The calm treatment, written once and applied from two places below: the
  * system setting while the walk is still starting up, and the data-motion
  * attribute once JavaScript has published the walker's effective preference.

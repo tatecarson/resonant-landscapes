@@ -48,9 +48,30 @@ export const welcome = {
         })[variant],
     steps: [
         "As you approach a listening spot, its park name and audio controls appear. Walk toward the center icon to hear the sound grow louder.",
-        "At the center, tap Enable rotation if it appears. Turn with your phone to change which direction you hear.",
+        "At the center, tap Enable rotation when it appears. Turn with your phone to change which direction you hear.",
         "Walk to another listening spot to hear another park. Walk away or tap Stop to stop the sound.",
     ],
+    /**
+     * Location, said before it can fail (rl-edv.2). The field-test walker met
+     * it only as an error once she was already at a listening spot, and asked
+     * for exactly this: a note up front to turn location on in Settings. The
+     * paths match the "Location is blocked" steps in recovery below, so the
+     * two places never disagree about where the switch is.
+     */
+    location: {
+        heading: "Before you start",
+        body: {
+            // Only the master switch. Safari Websites set to Never was
+            // expected to block location too, but on Tate's iPhone
+            // (2026-09-27) Safari still asked and Allow worked, so it is not
+            // a before-you-start step; it stays in the recovery steps as a
+            // fallback. Dropping it also kept the note above the fold once
+            // #137's larger "Continue reading" control raised it.
+            ios: "The walk uses your location. Check that Settings → Privacy & Security → Location Services is on, then tap Allow when your browser asks.",
+            android: "The walk uses your location. Check Settings → Location is on. Then tap Allow when your browser asks.",
+            other: "The walk uses your location. Check location is on for your phone, then tap Allow when your browser asks.",
+        },
+    },
     headphones: "Use headphones. Non-noise-canceling ones work best.",
     /** iOS asks for motion access separately, and only when rotation is used. */
     accessWithRotation:
@@ -136,15 +157,9 @@ export const app = {
     parkPanelCrashed: "This park did not open. Walk away and back, or reload the page.",
 } as const;
 
-/**
- * Shared by both modals, which are the same panel twice.
- *
- * Shown while the panel has text below the fold. It is a visual affordance
- * rather than information, so it is hidden from screen readers, which reach
- * that text without being told it is there.
- */
+/** Shared scroll prompt for the welcome and help panels. */
 export const modal = {
-    moreBelow: "More below",
+    continueReading: "Continue reading",
 } as const;
 
 /** The field guide, opened from the map. */
@@ -235,7 +250,9 @@ export const location = {
      * Under timeout and failed. The Settings switch first, because that is the
      * cause a walker cannot fix by moving; the browser's own site permission
      * is "Location is blocked"'s business, since a site denial is reported.
-     * iPhone wording matches the welcome screen's "Before you start" note.
+     * On iPhone the first step is the switch the welcome screen's note names;
+     * Safari Websites comes second, as the fallback the recovery steps also
+     * give, since on a real iPhone Never still let Safari ask (2026-09-27).
      */
     notFoundSteps: {
         ios: [
@@ -270,10 +287,23 @@ export const location = {
 
 /** The park strip. */
 export const park = {
-    tracking: "↻ tracking",
-    trackingAriaLabel: "Spatial tracking active",
-    stopTracking: "× stop tracking",
     enableRotation: "Enable rotation",
+    /**
+     * The same control once rotation is on. It replaced an 8px "↻ tracking"
+     * tag beside the park name, which truncated the name on small phones, and
+     * a 9px "× stop tracking" link: a walker went from an obvious button to
+     * two captions, with no clear moment of "it's on".
+     */
+    rotationOn: "Rotation on",
+    /** Contains the visible label, so voice control can say what it sees. */
+    rotationOnAriaLabel: "Rotation on, spatial tracking active. Activate to turn it off.",
+    /**
+     * Said once the walker reaches a spot's centre, above the offer. The offer
+     * alone was a label with no reason attached, and arrived where a
+     * placeholder had been, so a first-time walker never read it as new.
+     */
+    atCenter: "You're at the center.",
+    rotationHint: "Enable rotation, then turn with your phone to face each sound.",
     recordingOf: (number: number, total: number) => `recording ${number} of ${total}`,
 } as const;
 
@@ -491,7 +521,7 @@ export const recovery = {
         location: {
             ios: [
                 "In Safari, tap the page menu beside the address bar. It is a small rectangle icon on iOS 26 and reads AA on older versions. Then Website Settings → Location → Allow.",
-                "Still blocked? Settings → Privacy & Security → Location Services, and turn on Location Services, Safari Websites, and Precise Location.",
+                "Still blocked? In Settings → Privacy & Security → Location Services, turn Location Services on. Then scroll down, tap Safari Websites, choose anything but Never, and turn on Precise Location.",
                 "Come back here and reload the page.",
             ],
             android: [

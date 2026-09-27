@@ -121,6 +121,27 @@ describe("walker-facing copy", () => {
     });
 });
 
+describe("welcome.location", () => {
+    // The note on the welcome screen and the "Location is blocked" steps name
+    // the same switches. If one moves, the walker is sent two places.
+    it("names the same Settings path as the iPhone recovery steps", () => {
+        const recoveryPath = "Settings → Privacy & Security → Location Services";
+        expect(copy.welcome.location.body.ios).toContain(recoveryPath);
+        expect(copy.recovery.steps.location.ios.join(" ")).toContain(recoveryPath);
+        // The recovery steps say where Safari Websites is and what it must
+        // not be set to. The welcome note leaves it out: on a real iPhone,
+        // Never still let Safari ask, so it is a fallback, not a first step.
+        const recovery = copy.recovery.steps.location.ios.join(" ");
+        expect(recovery).toContain("scroll down");
+        expect(recovery).toContain("Safari Websites");
+        expect(recovery).toContain("Never");
+    });
+
+    it("names the same Settings path as the Android recovery steps", () => {
+        const recoveryPath = "Settings → Location";
+        expect(copy.welcome.location.body.android).toContain(recoveryPath);
+        expect(copy.recovery.steps.location.android.join(" ")).toContain(recoveryPath);
+
 describe("location", () => {
     // A walker with location off in Settings, standing outside, was told to
     // step outside (rl-edv.1). Nothing says so before anything has failed.
@@ -141,8 +162,10 @@ describe("location", () => {
             expect(steps[steps.length - 1]).toMatch(/reload the page/);
         }
         const ios = copy.location.notFoundSteps.ios.join(" ");
-        expect(ios).toContain("Settings → Privacy & Security → Location Services");
-        // Same wording as the welcome screen's note, so the two agree.
+        // The switch the welcome screen's note names, first.
+        expect(copy.welcome.location.body.ios).toContain("Settings → Privacy & Security → Location Services");
+        expect(copy.location.notFoundSteps.ios[0]).toContain("Settings → Privacy & Security → Location Services");
+        // Then the fallback the recovery steps also give.
         expect(ios).toContain("scroll down to Safari Websites and make sure it isn't set to Never");
         expect(copy.location.notFoundSteps.android.join(" ")).toContain("Settings → Location");
     });
