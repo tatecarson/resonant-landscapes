@@ -61,7 +61,10 @@ export const welcome = {
     location: {
         heading: "Before you start",
         body: {
-            ios: "The walk uses your location. Check Settings → Privacy & Security → Location Services is on, including Safari Websites. Then tap Allow when your browser asks.",
+            // "Safari Websites" is a row in the app list under the master
+            // switch, not a switch of its own; "including Safari Websites"
+            // assumed the walker already knew the list was there.
+            ios: "The walk uses your location. In Settings → Privacy & Security → Location Services, turn Location Services on. Then scroll down to Safari Websites and make sure it isn't set to Never. Tap Allow when your browser asks.",
             android: "The walk uses your location. Check Settings → Location is on. Then tap Allow when your browser asks.",
             other: "The walk uses your location. Check location is on for your phone, then tap Allow when your browser asks.",
         },
@@ -470,7 +473,7 @@ export const recovery = {
         location: {
             ios: [
                 "In Safari, tap the page menu beside the address bar. It is a small rectangle icon on iOS 26 and reads AA on older versions. Then Website Settings → Location → Allow.",
-                "Still blocked? Settings → Privacy & Security → Location Services, and turn on Location Services, Safari Websites, and Precise Location.",
+                "Still blocked? In Settings → Privacy & Security → Location Services, turn Location Services on. Then scroll down, tap Safari Websites, choose anything but Never, and turn on Precise Location.",
                 "Come back here and reload the page.",
             ],
             android: [
