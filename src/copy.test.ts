@@ -122,24 +122,34 @@ describe("walker-facing copy", () => {
 });
 
 describe("location", () => {
-    const launchMessages = [copy.location.acquiring, copy.location.timeout, copy.location.failed];
+    // A walker with location off in Settings, standing outside, was told to
+    // step outside (rl-edv.1). Nothing says so before anything has failed.
+    it("does not tell a walker to go outside while it is still looking", () => {
+        expect(copy.location.acquiring.detail).not.toMatch(/outside|outdoors/i);
+    });
 
-    // A field-test walker asked what "step outside" meant (rl-edv.3). Wherever
-    // the walk suggests moving, it says why.
-    it("never suggests stepping outside without the reason", () => {
-        for (const { detail } of launchMessages) {
-            if (/step outside|go outside/i.test(detail)) {
-                expect(detail).toMatch(/GPS works best outdoors|GPS signal/);
-            }
+    it("leads the no-location messages with the cause moving cannot fix", () => {
+        for (const { detail } of [copy.location.timeout, copy.location.failed]) {
+            expect(detail).toMatch(/turned off/);
+            expect(detail).not.toMatch(/outside|outdoors/i);
         }
     });
 
-    // Someone already outdoors needs the other common cause, which going
-    // outside does not fix: location switched off for the browser.
-    it("tells a walker who has waited too long to check location is on", () => {
-        for (const { detail } of [copy.location.timeout, copy.location.failed]) {
-            expect(detail).toMatch(/location is on for this browser in Settings/);
+    it("gives Settings taps for each phone, ending with a reload", () => {
+        for (const steps of Object.values(copy.location.notFoundSteps)) {
+            expect(steps.length).toBeGreaterThanOrEqual(2);
+            expect(steps[steps.length - 1]).toMatch(/reload the page/);
         }
+        const ios = copy.location.notFoundSteps.ios.join(" ");
+        expect(ios).toContain("Settings → Privacy & Security → Location Services");
+        // Same wording as the welcome screen's note, so the two agree.
+        expect(ios).toContain("scroll down to Safari Websites and make sure it isn't set to Never");
+        expect(copy.location.notFoundSteps.android.join(" ")).toContain("Settings → Location");
+    });
+
+    it("keeps the indoors advice, with its reason, as the second thing to try", () => {
+        expect(copy.location.outdoorsHint).toMatch(/^Indoors\?/);
+        expect(copy.location.outdoorsHint).toMatch(/GPS works best outdoors/);
     });
 
     it("keeps the mid-walk messages free of advice to go outside", () => {

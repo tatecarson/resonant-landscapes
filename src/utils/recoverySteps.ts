@@ -15,7 +15,7 @@
  * which is also the only moment they are worth reading.
  */
 
-import { recovery } from "../copy";
+import { location, recovery } from "../copy";
 
 export type BlockedCapability = "location" | "orientation";
 export type WalkPlatform = "ios" | "android" | "other";
@@ -38,6 +38,15 @@ export const RECOVERY_TITLES: Record<BlockedCapability, string> = recovery.title
  * Location is fatal to the walk; orientation is not.
  */
 export const RECOVERY_STAKES: Record<BlockedCapability, string> = recovery.stakes;
+
+/**
+ * What to try when there is no location at all but no denial either: the
+ * silence or "position unavailable" that location switched off in Settings
+ * produces (rl-edv.1). See location.notFoundSteps in copy.
+ */
+export function getLocationNotFoundSteps(userAgent = ""): readonly string[] {
+    return location.notFoundSteps[detectPlatform(userAgent)];
+}
 
 export function getRecoverySteps(
     capability: BlockedCapability,

@@ -205,26 +205,55 @@ export const help = {
  * rest happen mid-walk at a listening spot, where they are already outside and
  * possibly standing against a building, so those state the situation and stop.
  *
- * "Step outside" used to arrive bare, and a field-test walker asked what it
- * meant (rl-edv.3). It now carries its reason, and the two that mean the wait
- * has gone on too long also say what to try for someone already outdoors:
- * the other common cause, location switched off for the browser, which going
- * outside does not fix. Plain words throughout: "open sky" and "GPS fix" were
- * tried first and read as jargon.
+ * A field-test walker had location switched off in Settings and was standing
+ * outside, and the walk told her to step outside (rl-edv.1, rl-edv.3). With
+ * location off, the browser does not say "denied": it goes silent, or reports
+ * no position, and both used to read as weak GPS. Only an explicit denial
+ * reached the "Location is blocked" steps.
+ *
+ * So when there is no location at all, the actionable cause comes first, with
+ * the Settings taps for the walker's phone, and the indoors advice follows as
+ * one line. Nothing suggests going outside before anything has failed. Plain
+ * words throughout: "open sky" and "GPS fix" were tried and read as jargon.
  */
 export const location = {
     acquiring: {
         title: "Finding you…",
-        detail: "GPS works best outdoors. If this takes more than a moment, step outside.",
+        detail: "This usually takes a few seconds.",
     },
+    /** No position after the wait: it may yet arrive, hence "yet". */
     timeout: {
         title: "Can't find your location yet",
-        detail: "GPS works best outdoors, so inside a building this can take a while. Already outside? Check that location is on for this browser in Settings.",
+        detail: "Location may be turned off for your phone or this browser.",
     },
+    /** The phone answered that it has no position. */
     failed: {
         title: "Can't find your location",
-        detail: "Your phone couldn't get a GPS signal. Go outside, away from tall buildings, and check that location is on for this browser in Settings. Then reload the page.",
+        detail: "Location may be turned off for your phone or this browser.",
     },
+    /**
+     * Under timeout and failed. The Settings switch first, because that is the
+     * cause a walker cannot fix by moving; the browser's own site permission
+     * is "Location is blocked"'s business, since a site denial is reported.
+     * iPhone wording matches the welcome screen's "Before you start" note.
+     */
+    notFoundSteps: {
+        ios: [
+            "Open Settings → Privacy & Security → Location Services and turn Location Services on.",
+            "On the same screen, scroll down to Safari Websites and make sure it isn't set to Never.",
+            "Come back here and reload the page.",
+        ],
+        android: [
+            "Swipe down from the top of the screen and turn on Location, or open Settings → Location.",
+            "Come back here and reload the page.",
+        ],
+        other: [
+            "In your phone's Settings, turn on location for the phone and for this browser.",
+            "Come back here and reload the page.",
+        ],
+    },
+    /** Last, for the walker whose settings are fine and who is simply indoors. */
+    outdoorsHint: "Indoors? GPS works best outdoors, so try stepping outside.",
     stale: {
         title: "Location not updating",
         detail: "The map is using your last known position. Give it a moment to find you again.",
