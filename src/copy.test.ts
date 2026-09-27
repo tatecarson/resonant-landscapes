@@ -120,3 +120,30 @@ describe("walker-facing copy", () => {
         expect(offenders).toEqual([]);
     });
 });
+
+describe("location", () => {
+    const launchMessages = [copy.location.acquiring, copy.location.timeout, copy.location.failed];
+
+    // A field-test walker asked what "step outside" meant (rl-edv.3). Wherever
+    // the walk suggests moving, it says why.
+    it("never suggests stepping outside without the reason", () => {
+        for (const { detail } of launchMessages) {
+            if (/step outside|move under/i.test(detail)) {
+                expect(detail).toMatch(/open sky/i);
+            }
+        }
+    });
+
+    // Someone already outdoors needs the other common cause, which open sky
+    // does not fix: location switched off for the browser.
+    it("tells a walker who has waited too long to check location is on", () => {
+        for (const { detail } of [copy.location.timeout, copy.location.failed]) {
+            expect(detail).toMatch(/location is on for this browser in Settings/);
+        }
+    });
+
+    it("keeps the mid-walk messages free of advice to go outside", () => {
+        expect(copy.location.stale.detail).not.toMatch(/outside|open sky/i);
+        expect(copy.location.imprecise.detail(12, 15)).not.toMatch(/outside|open sky/i);
+    });
+});

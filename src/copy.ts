@@ -200,23 +200,29 @@ export const help = {
 /**
  * What the map says when it cannot place the walker.
  *
- * Split by when each one fires. The first two happen at launch, where the
+ * Split by when each one fires. The first three happen at launch, where the
  * walker may still be indoors, so stepping outside is a real thing to do. The
  * rest happen mid-walk at a listening spot, where they are already outside and
  * possibly standing against a building, so those state the situation and stop.
+ *
+ * "Step outside" used to arrive bare, and a field-test walker asked what it
+ * meant (rl-edv.3). It now carries its reason, and the two that mean the wait
+ * has gone on too long also say what to try for someone already outdoors:
+ * the other common cause, location switched off for the browser, which no
+ * amount of open sky fixes.
  */
 export const location = {
     acquiring: {
         title: "Finding you…",
-        detail: "Step outside if this takes more than a moment.",
+        detail: "GPS needs open sky. If this takes more than a moment, step outside.",
     },
     timeout: {
         title: "Can't find your location yet",
-        detail: "This is taking longer than usual. Stepping outside can help.",
+        detail: "GPS needs open sky, so indoors this can take a while. Already outside? Check that location is on for this browser in Settings.",
     },
     failed: {
         title: "Can't find your location",
-        detail: "Your device could not find you. Step outside, then reload the page.",
+        detail: "Your phone could not get a GPS fix. Move under open sky and check that location is on for this browser in Settings, then reload the page.",
     },
     stale: {
         title: "Location not updating",
