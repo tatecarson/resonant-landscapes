@@ -51,7 +51,12 @@ import {
 } from "../config/geofence";
 import stateParks from "../data/stateParks.json";
 import { pickSoundPath } from "../utils/audioPaths";
-import { RECOVERY_TITLES, RECOVERY_STAKES, getRecoverySteps } from "../utils/recoverySteps";
+import {
+    RECOVERY_TITLES,
+    RECOVERY_STAKES,
+    getLocationNotFoundSteps,
+    getRecoverySteps,
+} from "../utils/recoverySteps";
 import { app, location as locationCopy, map as mapCopy } from "../copy";
 import type { Variant, MockPosition } from "../App";
 import locationIcon from "../assets/geolocation_marker_heading.svg";
@@ -63,7 +68,7 @@ function locationStatusMessage(
     error: GeolocationFailure | null,
     accuracyMeters: number | null,
     enterDistance: number
-): { title: string; detail: string; steps?: readonly string[] } | null {
+): { title: string; detail: string; steps?: readonly string[]; hint?: string } | null {
     if (status === "stale") {
         return locationCopy.stale;
     }
@@ -95,11 +100,16 @@ function locationStatusMessage(
         };
     }
 
-    if (error?.code === GEOLOCATION_TIMEOUT) {
-        return locationCopy.timeout;
-    }
-
-    return locationCopy.failed;
+    // No location and no denial. Location switched off in Settings looks
+    // exactly like this from here - silence, or "position unavailable" - so
+    // the Settings taps lead and the indoors advice follows (rl-edv.1). A
+    // walker outside with location off used to be told to step outside.
+    const notFound = error?.code === GEOLOCATION_TIMEOUT ? locationCopy.timeout : locationCopy.failed;
+    return {
+        ...notFound,
+        steps: getLocationNotFoundSteps(navigator.userAgent),
+        hint: locationCopy.outdoorsHint,
+    };
 }
 
 const LocationStatusOverlay = memo(function LocationStatusOverlay({
@@ -139,6 +149,9 @@ const LocationStatusOverlay = memo(function LocationStatusOverlay({
                                 </li>
                             ))}
                         </ol>
+                    )}
+                    {message.hint && (
+                        <p className="location-status__hint">{message.hint}</p>
                     )}
                 </div>
             ) : (

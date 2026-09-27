@@ -78,6 +78,37 @@ test("stops claiming to be searching when no fix ever arrives", async ({ page })
   await expect(status).toContainText(/finding you/i, { timeout: 15_000 });
   await expect(status).toContainText(/can't find your location/i, { timeout: 25_000 });
   await expect(status).not.toContainText(/blocked/i);
+  // Location off in Settings looks exactly like this, so the Settings taps
+  // lead and the indoors advice follows (rl-edv.1, rl-edv.3).
+  await expect(status).toContainText(/turned off/);
+  await expect(status.locator("ol li").first()).toContainText(/Settings/);
+  await expect(status).toContainText(/Indoors\? GPS works best outdoors/);
+});
+
+test("a phone reporting no position gets the Settings steps too, not just 'go outside'", async ({ page }) => {
+  // What location switched off in Settings can produce instead of silence.
+  await stubPermissionState(page, "granted");
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "geolocation", {
+      configurable: true,
+      value: {
+        watchPosition: (_success: unknown, error: (failure: unknown) => void) => {
+          setTimeout(() => error({ code: 2, message: "Position unavailable" }), 300);
+          return 1;
+        },
+        clearWatch: () => {},
+        getCurrentPosition: () => {},
+      },
+    });
+  });
+  await openMap(page);
+
+  const status = page.getByTestId("location-status");
+  await expect(status).toContainText(/can't find your location/i, { timeout: 15_000 });
+  await expect(status).toContainText(/turned off/);
+  await expect(status.locator("ol li").first()).toContainText(/Settings/);
+  await expect(status).toContainText(/Indoors\? GPS works best outdoors/);
+  await expect(status).not.toContainText(/blocked/i);
 });
 
 test("clears the acquiring message once a fix arrives", async ({ page, context }) => {

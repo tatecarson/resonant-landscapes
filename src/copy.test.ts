@@ -143,3 +143,42 @@ describe("welcome.location", () => {
         expect(copy.recovery.steps.location.android.join(" ")).toContain(recoveryPath);
     });
 });
+
+describe("location", () => {
+    // A walker with location off in Settings, standing outside, was told to
+    // step outside (rl-edv.1). Nothing says so before anything has failed.
+    it("does not tell a walker to go outside while it is still looking", () => {
+        expect(copy.location.acquiring.detail).not.toMatch(/outside|outdoors/i);
+    });
+
+    it("leads the no-location messages with the cause moving cannot fix", () => {
+        for (const { detail } of [copy.location.timeout, copy.location.failed]) {
+            expect(detail).toMatch(/turned off/);
+            expect(detail).not.toMatch(/outside|outdoors/i);
+        }
+    });
+
+    it("gives Settings taps for each phone, ending with a reload", () => {
+        for (const steps of Object.values(copy.location.notFoundSteps)) {
+            expect(steps.length).toBeGreaterThanOrEqual(2);
+            expect(steps[steps.length - 1]).toMatch(/reload the page/);
+        }
+        const ios = copy.location.notFoundSteps.ios.join(" ");
+        // The switch the welcome screen's note names, first.
+        expect(copy.welcome.location.body.ios).toContain("Settings → Privacy & Security → Location Services");
+        expect(copy.location.notFoundSteps.ios[0]).toContain("Settings → Privacy & Security → Location Services");
+        // Then the fallback the recovery steps also give.
+        expect(ios).toContain("scroll down to Safari Websites and make sure it isn't set to Never");
+        expect(copy.location.notFoundSteps.android.join(" ")).toContain("Settings → Location");
+    });
+
+    it("keeps the indoors advice, with its reason, as the second thing to try", () => {
+        expect(copy.location.outdoorsHint).toMatch(/^Indoors\?/);
+        expect(copy.location.outdoorsHint).toMatch(/GPS works best outdoors/);
+    });
+
+    it("keeps the mid-walk messages free of advice to go outside", () => {
+        expect(copy.location.stale.detail).not.toMatch(/outside|outdoors/i);
+        expect(copy.location.imprecise.detail(12, 15)).not.toMatch(/outside|outdoors/i);
+    });
+});
