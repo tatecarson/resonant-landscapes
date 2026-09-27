@@ -13,6 +13,7 @@ import { mergeDeliveryBuffers } from "../audio/mergeBuffers";
 import { createAudioDebugBridge, type AudioLoadDebug } from "../audio/audioDebugBridge";
 import { countEventOnce } from "../analytics/goatcounter";
 import { createAudioGraph, primeAudioContext } from "../audio/audioGraph";
+import { createRecordingHighpass, recordingGainFor } from "../audio/recordingGain";
 import { fetchAudioBytes, setOfflineCacheEventSink } from "../audio/offlineAudioCache";
 import { getMonoFallbackUrl } from "../utils/audioPaths";
 import { debugLog } from "../config/debug";
@@ -153,6 +154,9 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const audioPrimedRef = useRef(false);
     const bufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
     const fadeGainRef = useRef<GainNode | null>(null);
+    // Each loaded buffer's level correction (rl-edv.4), keyed by the buffer
+    // itself so it can never be applied to a different recording's audio.
+    const recordingGainsRef = useRef(new WeakMap<AudioBuffer, number>());
     const soundfieldInputRef = useRef<ReturnType<typeof createSoundfieldInput> | null>(null);
     const parkDistanceRef = useRef(0);
     const setParkDistance = useCallback((metres: number) => {
@@ -338,6 +342,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
 
             // Protect this buffer for as long as it is the active park.
             pinActiveBuffer(getCacheKey(urls));
+            recordingGainsRef.current.set(contentBuffer, recordingGainFor(urls));
             setBuffers(contentBuffer);
             audioDebug.recordEvent("buffers-loaded");
             return "loaded";
@@ -408,13 +413,19 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         // Starting a buffer at full amplitude puts a step discontinuity into
         // the stream — an audible click. Crossing the exit radius used to call
         // stop() the same way, so GPS jitter at the boundary clicked on every
-        // re-trigger. Fade through a dedicated gain node instead.
+        // re-trigger. Fade through a dedicated gain node instead. The fade
+        // lands on the recording's level correction rather than unity, so the
+        // one node does both jobs and stopSound's fade-out needs no change.
+        const recordingGain = recordingGainsRef.current.get(buffers) ?? 1;
         const fadeGain = audioContext.createGain();
         fadeGain.gain.setValueAtTime(0, audioContext.currentTime);
-        fadeGain.gain.linearRampToValueAtTime(1, audioContext.currentTime + FADE_SECONDS);
+        fadeGain.gain.linearRampToValueAtTime(recordingGain, audioContext.currentTime + FADE_SECONDS);
         fadeGainRef.current = fadeGain;
 
-        bufferSource.connect(fadeGain);
+        // Rumble out before the gain, or the gain would lift it too.
+        const highpass = createRecordingHighpass(audioContext, buffers.numberOfChannels);
+        bufferSource.connect(highpass.input);
+        highpass.output.connect(fadeGain);
         fadeGain.channelCount = buffers.numberOfChannels;
         fadeGain.channelCountMode = "explicit";
         fadeGain.channelInterpretation = "discrete";
@@ -423,6 +434,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             // Disconnect here rather than in stopSound: tearing the graph down
             // synchronously would cut the fade-out it just scheduled.
             bufferSource.disconnect();
+            highpass.disconnect();
             fadeGain.disconnect();
             if (fadeGainRef.current === fadeGain) {
                 fadeGainRef.current = null;
