@@ -314,6 +314,25 @@ body {
     padding: 0;
 }
 
+/*
+ * On a phone the centred card reached the field guide button at top right
+ * (.example-control: 1rem in, 2.6rem wide) and hid it (rl-3if). It still took
+ * presses through the card, but a button nobody can see is not one they will
+ * press, and the guide is where the help for a failing location lives. So on
+ * narrow screens the card runs from the left gutter to just short of that
+ * column. From about 30rem up the centred 22rem card clears it on its own.
+ * The zoom buttons below the "?" come out from under it too, as a side effect;
+ * pinch zoom made them the lesser concern.
+ */
+@media (max-width: 32rem) {
+    .location-status-control {
+        left: 1rem;
+        right: calc(1rem + 2.6rem + 0.5rem);
+        width: auto;
+        transform: none;
+    }
+}
+
 .location-status {
     /*
      * Not interactive, despite the wrapper's comment claiming the card is.
