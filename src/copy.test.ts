@@ -120,3 +120,21 @@ describe("walker-facing copy", () => {
         expect(offenders).toEqual([]);
     });
 });
+
+describe("welcome.location", () => {
+    // The note on the welcome screen and the "Location is blocked" steps name
+    // the same switches. If one moves, the walker is sent two places.
+    it("names the same Settings path as the iPhone recovery steps", () => {
+        const recoveryPath = "Settings → Privacy & Security → Location Services";
+        expect(copy.welcome.location.body.ios).toContain(recoveryPath);
+        expect(copy.recovery.steps.location.ios.join(" ")).toContain(recoveryPath);
+        expect(copy.welcome.location.body.ios).toContain("Safari Websites");
+        expect(copy.recovery.steps.location.ios.join(" ")).toContain("Safari Websites");
+    });
+
+    it("names the same Settings path as the Android recovery steps", () => {
+        const recoveryPath = "Settings → Location";
+        expect(copy.welcome.location.body.android).toContain(recoveryPath);
+        expect(copy.recovery.steps.location.android.join(" ")).toContain(recoveryPath);
+    });
+});

@@ -125,7 +125,9 @@ test("welcome modal: says there is more below, and stops saying it at the end", 
 });
 
 test("welcome modal: a panel that fits carries no cue and no gap for one", async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 900 });
+    // Tall enough for the whole panel. 900 was, until rl-edv.2 added the
+    // location note; the height is this check's precondition, not its claim.
+    await page.setViewportSize({ width: 1280, height: 1000 });
     await page.goto("/");
     await expect(page.getByRole("button", { name: START })).toBeAttached({ timeout: 15_000 });
 
