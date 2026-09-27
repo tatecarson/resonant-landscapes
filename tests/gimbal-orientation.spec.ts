@@ -21,7 +21,10 @@ import {
 } from "./helpers/device-orientation";
 
 const HARTFORD_BEACH_CENTER = { latitude: 44.01320393, longitude: -97.11059202 };
+/** 5.6 m north: off the 3 m centre, inside ordinary GPS drift, still in the park. */
 const HARTFORD_BEACH_OUTSIDE_CENTER = { latitude: 44.01325393, longitude: -97.11059202 };
+/** 33 m north: past the 18 m exit, so the park itself closes. */
+const HARTFORD_BEACH_LEFT_PARK = { latitude: 44.01350393, longitude: -97.11059202 };
 type GimbalOrientationSnapshot = {
   fwdX: number;
   fwdY: number;
@@ -358,7 +361,7 @@ test("shows the rotation affordance before tracking is enabled at center", async
   }
 });
 
-test("rotation tracking stops after leaving the center radius", async ({
+test("rotation tracking survives GPS drift at the spot and stops on leaving the park", async ({
   context,
   page,
   baseURL,
@@ -423,9 +426,18 @@ test("rotation tracking stops after leaving the center radius", async ({
     })
     .not.toBeNull();
 
+  // Drift a few metres off the spot, as phone GPS does standing still.
+  // Rotation used to switch off here (rl-edv.5); it belongs to the spot the
+  // walker reached now, and stays on. The centred marker keeps its own 3 m
+  // rule and still steps aside.
   await context.setGeolocation(HARTFORD_BEACH_OUTSIDE_CENTER);
-  await expect(trackingLabel).toHaveCount(0, { timeout: 10_000 });
   await expect(centeredMarker).toHaveClass(/centered-geolocation-control--hidden/, { timeout: 10_000 });
+  await page.waitForTimeout(2_000);
+  await expect(trackingLabel).toBeVisible();
+
+  // Leaving the park is what ends it.
+  await context.setGeolocation(HARTFORD_BEACH_LEFT_PARK);
+  await expect(trackingLabel).toHaveCount(0, { timeout: 10_000 });
 
   // The gimbal should now be torn down: silence the heartbeat so the frozen
   // check below is measuring that, and not a stopped interval.
