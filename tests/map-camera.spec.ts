@@ -19,8 +19,12 @@ import { MAX_ZOOM, MIN_ZOOM, RESTING_ZOOM } from "../src/config/geofence";
 /** Hartford Beach, the scaled park the other specs walk to. */
 const PARK = { latitude: 44.01320393, longitude: -97.11059202 };
 
-/** The ceiling OpenLayers actually applies. See MAX_ZOOM in geofence.ts. */
-const EFFECTIVE_MAX_ZOOM = MIN_ZOOM + 3;
+/**
+ * The ceiling OpenLayers actually applies. See MAX_ZOOM in geofence.ts.
+ * Written as a number rather than derived from MIN_ZOOM: the floor moved a
+ * whole level out in rl-edv.6 precisely so this would not move with it.
+ */
+const EFFECTIVE_MAX_ZOOM = 19.72582728647343;
 
 test.use({ viewport: { width: 390, height: 844 } });
 
@@ -151,8 +155,8 @@ test.describe("the map holds one scale", () => {
         expect(bounds?.minZoom).toBeCloseTo(MIN_ZOOM, 6);
 
         // The ceiling is not. MAX_ZOOM asks for 19.9999999 and OpenLayers
-        // derives minZoom + Math.floor(log2(maxRes/minRes)), so the 3.274 span
-        // floors to 3 and the real stop is MIN_ZOOM + 3. This is pinned rather
+        // derives minZoom + Math.floor(log2(maxRes/minRes)), so the 4.274 span
+        // floors to 4 and the real stop is MIN_ZOOM + 4. This is pinned rather
         // than fixed: 19.7258 is about 51 m across a screen, which is a fine
         // place to stop zooming in. It cost a measurement session to find, so
         // it should not be able to change quietly.
