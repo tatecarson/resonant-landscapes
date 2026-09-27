@@ -43,6 +43,12 @@ function ParkModal({
     const reachedCenter = userOrientation;
     const showRotationButton = canOfferRotation({ isPlaying, reachedCenter });
     const offeringRotation = showRotationButton && !rotationActive && !rotationBlocked;
+    // One control, two states: the offer before, the switch-off after. Hidden
+    // only while the recovery panel stands in for it.
+    const showRotationToggle = showRotationButton && !rotationBlocked;
+    // Explained once per arrival. A walker who turned rotation off on purpose
+    // has read it, and saying it again would be nagging.
+    const explainRotation = offeringRotation && !rotationDismissed;
 
     useRenderDebug("ParkModal", {
         parkName,
@@ -220,14 +226,6 @@ function ParkModal({
                             <p className="font-display text-[22px] leading-tight font-medium text-ink min-w-0 truncate">
                                 {parkName}
                             </p>
-                            {rotationActive && (
-                                <span
-                                    className="mt-1 flex-shrink-0 font-mono text-[8px] uppercase tracking-[0.2em] text-ink/70"
-                                    aria-label={parkCopy.trackingAriaLabel}
-                                >
-                                    {parkCopy.tracking}
-                                </span>
-                            )}
                         </div>
 
                         <div className="mt-0.5 flex items-center gap-1.5">
@@ -258,7 +256,7 @@ function ParkModal({
                           * explains something, and the controls it explains
                           * stay where the thumb already found them.
                           */}
-                        {offeringRotation && (
+                        {explainRotation && (
                             <div
                                 data-testid="rotation-callout"
                                 role="status"
@@ -287,42 +285,49 @@ function ParkModal({
                             silent-phone hint stacks above Stop. */}
                         <div className="flex items-end justify-between gap-4">
 
-                            {/* Left: rotation secondary action */}
+                            {/*
+                              * Left: rotation, one control in two states. Off,
+                              * it is the offer; on, it is filled and says so,
+                              * and tapping it turns rotation off. Hidden while
+                              * the recovery panel is up: once iOS has been told
+                              * no, requestPermission resolves "denied" without
+                              * prompting, so the offer would be a no-op that
+                              * still looks live. "Continue without it" brings
+                              * it back.
+                              */}
                             <div className="flex-shrink-0">
-                                {rotationActive && (
+                                {showRotationToggle ? (
                                     <button
+                                        type="button"
+                                        data-testid="rotation-toggle"
+                                        data-state={rotationActive ? "on" : "off"}
+                                        aria-label={rotationActive ? parkCopy.rotationOnAriaLabel : undefined}
                                         onClick={() => {
-                                            setRotationDismissed(true);
-                                            setRotationActive(false);
+                                            if (rotationActive) {
+                                                setRotationDismissed(true);
+                                                setRotationActive(false);
+                                            } else {
+                                                void enableRotation();
+                                            }
                                         }}
-                                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-panel rounded-full inline-flex min-h-[44px] items-center px-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink/70 transition-colors hover:text-ink"
+                                        className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-panel inline-flex min-h-[44px] items-center gap-2 rounded-full px-4 py-2 font-mono text-xs uppercase tracking-widest transition-colors ${
+                                            rotationActive
+                                                ? "rotation-toggle--on bg-accent text-on-ink hover:bg-accent-soft"
+                                                : "rotation-affordance text-ink hover:bg-white/30"
+                                        }`}
                                     >
-                                        {parkCopy.stopTracking}
-                                    </button>
-                                )}
-                                {/*
-                                  * Hidden while the recovery panel is up. Once
-                                  * iOS has been told no, requestPermission
-                                  * resolves "denied" without prompting, so the
-                                  * button is a no-op that still looks live —
-                                  * the same dead end the panel exists to fix.
-                                  * "Continue without it" brings it back.
-                                  */}
-                                {offeringRotation && (
-                                    <button
-                                        onClick={() => { void enableRotation(); }}
-                                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-panel rotation-affordance inline-flex min-h-[44px] items-center gap-2 rounded-full px-4 py-2 font-mono text-xs uppercase tracking-widest text-ink transition-colors hover:bg-white/30"
-                                    >
-                                        <span className="rotation-affordance__glyph text-sm leading-none" aria-hidden="true">
+                                        <span
+                                            className={`${rotationActive ? "rotation-toggle__glyph--on" : "rotation-affordance__glyph"} text-sm leading-none`}
+                                            aria-hidden="true"
+                                        >
                                             ↻
                                         </span>
-                                        <span>{parkCopy.enableRotation}</span>
+                                        <span>{rotationActive ? parkCopy.rotationOn : parkCopy.enableRotation}</span>
                                     </button>
-                                )}
-                                {/* Also stands in while the recovery panel has
-                                    taken the button's place, so the row keeps
-                                    its balance instead of going half empty. */}
-                                {!rotationActive && (!showRotationButton || rotationBlocked) && (
+                                ) : (
+                                    // Holds the row's balance while there is
+                                    // nothing to offer, or the recovery panel
+                                    // has taken the control's place.
                                     <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink/25 select-none">
                                         ✦
                                     </span>

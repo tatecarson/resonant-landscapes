@@ -86,4 +86,28 @@ test("a walker standing near the spot with ordinary GPS is offered rotation, pla
     await standAt(context, 7);
     await page.waitForTimeout(2_500);
     await expect(offer).toBeVisible();
+
+    // Tapped, the same control turns on and says so, at the same size. It
+    // used to vanish into an 8px tag beside the park name, which truncated
+    // the name on this width, and a 9px "stop tracking" link.
+    const toggle = page.getByTestId("rotation-toggle");
+    await offer.click();
+    await expect(toggle).toHaveAttribute("data-state", "on");
+    await expect(toggle).toHaveText(/Rotation on/i);
+    await expect(page.getByLabel("Spatial tracking active")).toBeVisible();
+    await expect(callout).toHaveCount(0);
+    const onBox = await toggle.boundingBox();
+    expect(onBox!.height).toBeCloseTo(stopBox!.height, 0);
+    expect(
+        await parkName.evaluate((node) => node.scrollWidth <= node.clientWidth),
+        "the park name is truncated",
+    ).toBe(true);
+
+    // Tapped again, rotation is off and the offer is back, without repeating
+    // the explanation to a walker who just turned it off on purpose.
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("data-state", "off");
+    await expect(page.getByLabel("Spatial tracking active")).toHaveCount(0);
+    await expect(offer).toBeVisible();
+    await expect(callout).toHaveCount(0);
 });

@@ -91,6 +91,16 @@
   }
 }
 
+/*
+ * On, the glyph keeps turning, slowly: the one sign on the panel that the
+ * sound is following the walker. Calm mode stops it through the rules below,
+ * which leave it still and upright.
+ */
+.rotation-toggle__glyph--on {
+  display: inline-block;
+  animation: rotation-affordance-turn 6s linear infinite;
+}
+
 .rotation-callout {
   animation: rotation-callout-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
