@@ -61,10 +61,13 @@ export const welcome = {
     location: {
         heading: "Before you start",
         body: {
-            // "Safari Websites" is a row in the app list under the master
-            // switch, not a switch of its own; "including Safari Websites"
-            // assumed the walker already knew the list was there.
-            ios: "The walk uses your location. In Settings → Privacy & Security → Location Services, turn Location Services on. Then scroll down to Safari Websites and make sure it isn't set to Never. Tap Allow when your browser asks.",
+            // Only the master switch. Safari Websites set to Never was
+            // expected to block location too, but on Tate's iPhone
+            // (2026-09-27) Safari still asked and Allow worked, so it is not
+            // a before-you-start step; it stays in the recovery steps as a
+            // fallback. Dropping it also kept the note above the fold once
+            // #137's larger "Continue reading" control raised it.
+            ios: "The walk uses your location. Check that Settings → Privacy & Security → Location Services is on, then tap Allow when your browser asks.",
             android: "The walk uses your location. Check Settings → Location is on. Then tap Allow when your browser asks.",
             other: "The walk uses your location. Check location is on for your phone, then tap Allow when your browser asks.",
         },

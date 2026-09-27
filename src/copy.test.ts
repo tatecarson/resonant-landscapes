@@ -128,12 +128,13 @@ describe("welcome.location", () => {
         const recoveryPath = "Settings → Privacy & Security → Location Services";
         expect(copy.welcome.location.body.ios).toContain(recoveryPath);
         expect(copy.recovery.steps.location.ios.join(" ")).toContain(recoveryPath);
-        // Both say where Safari Websites is and what it must not be set to.
-        for (const text of [copy.welcome.location.body.ios, copy.recovery.steps.location.ios.join(" ")]) {
-            expect(text).toContain("scroll down");
-            expect(text).toContain("Safari Websites");
-            expect(text).toContain("Never");
-        }
+        // The recovery steps say where Safari Websites is and what it must
+        // not be set to. The welcome note leaves it out: on a real iPhone,
+        // Never still let Safari ask, so it is a fallback, not a first step.
+        const recovery = copy.recovery.steps.location.ios.join(" ");
+        expect(recovery).toContain("scroll down");
+        expect(recovery).toContain("Safari Websites");
+        expect(recovery).toContain("Never");
     });
 
     it("names the same Settings path as the Android recovery steps", () => {
