@@ -141,6 +141,8 @@ describe("welcome.location", () => {
         const recoveryPath = "Settings → Location";
         expect(copy.welcome.location.body.android).toContain(recoveryPath);
         expect(copy.recovery.steps.location.android.join(" ")).toContain(recoveryPath);
+    });
+});
 
 describe("location", () => {
     // A walker with location off in Settings, standing outside, was told to
