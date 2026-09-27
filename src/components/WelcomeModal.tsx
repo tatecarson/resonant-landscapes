@@ -3,8 +3,9 @@ import { Dialog, Transition } from '@headlessui/react'
 import { useAudioContext } from "../contexts/AudioContextProvider";
 import { readPreflightEnv, runPreflight } from "../utils/capabilities";
 import { isDebugEnabled } from "../config/debug";
-import { modal, welcome } from "../copy";
+import { welcome } from "../copy";
 import { useMoreBelow } from "../hooks/useMoreBelow";
+import { ScrollContinuation } from "./ScrollContinuation";
 import { detectPlatform } from "../utils/recoverySteps";
 import type { Variant } from "../App";
 
@@ -280,25 +281,7 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                   * disappearing act one layer down.
                                   */}
                                 <div className="sticky bottom-0 -mx-8 mt-8 bg-panel px-8 pb-[max(2rem,env(safe-area-inset-bottom))] pt-4 relative">
-                                    {/*
-                                      * The cue the fade cannot give. On a small phone the fold lands
-                                      * between two paragraphs as often as on a line, and an uncut
-                                      * paragraph does not look continued (rl-uo5).
-                                      *
-                                      * Its space is reserved whenever the panel scrolls, and only its
-                                      * opacity changes at the end, so reaching the bottom does not move
-                                      * the button out from under a thumb already on its way to it.
-                                      */}
-                                    {canScroll && (
-                                        <p
-                                            aria-hidden="true"
-                                            className={`mb-2 text-center font-mono text-[9px] uppercase tracking-[0.18em] text-ink/70 transition-opacity duration-200 ${
-                                                moreBelow ? "opacity-100" : "opacity-0"
-                                            }`}
-                                        >
-                                            {modal.moreBelow}
-                                        </p>
-                                    )}
+                                    <ScrollContinuation canScroll={canScroll} moreBelow={moreBelow} />
                                     {/*
                                       * The line of prose the footer covers is cut mid-glyph without
                                       * this, which reads as broken text rather than as more text. The
