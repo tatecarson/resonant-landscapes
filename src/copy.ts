@@ -48,7 +48,7 @@ export const welcome = {
         })[variant],
     steps: [
         "As you approach a listening spot, its park name and audio controls appear. Walk toward the center icon to hear the sound grow louder.",
-        "At the center, tap Enable rotation if it appears. Turn with your phone to change which direction you hear.",
+        "At the center, tap Enable rotation when it appears. Turn with your phone to change which direction you hear.",
         "Walk to another listening spot to hear another park. Walk away or tap Stop to stop the sound.",
     ],
     headphones: "Use headphones. Non-noise-canceling ones work best.",
@@ -228,10 +228,23 @@ export const location = {
 
 /** The park strip. */
 export const park = {
-    tracking: "↻ tracking",
-    trackingAriaLabel: "Spatial tracking active",
-    stopTracking: "× stop tracking",
     enableRotation: "Enable rotation",
+    /**
+     * The same control once rotation is on. It replaced an 8px "↻ tracking"
+     * tag beside the park name, which truncated the name on small phones, and
+     * a 9px "× stop tracking" link: a walker went from an obvious button to
+     * two captions, with no clear moment of "it's on".
+     */
+    rotationOn: "Rotation on",
+    /** Contains the visible label, so voice control can say what it sees. */
+    rotationOnAriaLabel: "Rotation on, spatial tracking active. Activate to turn it off.",
+    /**
+     * Said once the walker reaches a spot's centre, above the offer. The offer
+     * alone was a label with no reason attached, and arrived where a
+     * placeholder had been, so a first-time walker never read it as new.
+     */
+    atCenter: "You're at the center.",
+    rotationHint: "Enable rotation, then turn with your phone to face each sound.",
     recordingOf: (number: number, total: number) => `recording ${number} of ${total}`,
 } as const;
 
