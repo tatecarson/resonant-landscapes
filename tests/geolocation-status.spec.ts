@@ -79,7 +79,7 @@ test("stops claiming to be searching when no fix ever arrives", async ({ page })
   await expect(status).toContainText(/can't find your location/i, { timeout: 25_000 });
   await expect(status).not.toContainText(/blocked/i);
   // Why moving helps, and what to try if they are already outdoors (rl-edv.3).
-  await expect(status).toContainText(/open sky/i);
+  await expect(status).toContainText(/GPS works best outdoors/);
   await expect(status).toContainText(/location is on for this browser in Settings/);
 });
 

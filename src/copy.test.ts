@@ -128,14 +128,14 @@ describe("location", () => {
     // the walk suggests moving, it says why.
     it("never suggests stepping outside without the reason", () => {
         for (const { detail } of launchMessages) {
-            if (/step outside|move under/i.test(detail)) {
-                expect(detail).toMatch(/open sky/i);
+            if (/step outside|go outside/i.test(detail)) {
+                expect(detail).toMatch(/GPS works best outdoors|GPS signal/);
             }
         }
     });
 
-    // Someone already outdoors needs the other common cause, which open sky
-    // does not fix: location switched off for the browser.
+    // Someone already outdoors needs the other common cause, which going
+    // outside does not fix: location switched off for the browser.
     it("tells a walker who has waited too long to check location is on", () => {
         for (const { detail } of [copy.location.timeout, copy.location.failed]) {
             expect(detail).toMatch(/location is on for this browser in Settings/);
@@ -143,7 +143,7 @@ describe("location", () => {
     });
 
     it("keeps the mid-walk messages free of advice to go outside", () => {
-        expect(copy.location.stale.detail).not.toMatch(/outside|open sky/i);
-        expect(copy.location.imprecise.detail(12, 15)).not.toMatch(/outside|open sky/i);
+        expect(copy.location.stale.detail).not.toMatch(/outside|outdoors/i);
+        expect(copy.location.imprecise.detail(12, 15)).not.toMatch(/outside|outdoors/i);
     });
 });

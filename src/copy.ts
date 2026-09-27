@@ -208,21 +208,22 @@ export const help = {
  * "Step outside" used to arrive bare, and a field-test walker asked what it
  * meant (rl-edv.3). It now carries its reason, and the two that mean the wait
  * has gone on too long also say what to try for someone already outdoors:
- * the other common cause, location switched off for the browser, which no
- * amount of open sky fixes.
+ * the other common cause, location switched off for the browser, which going
+ * outside does not fix. Plain words throughout: "open sky" and "GPS fix" were
+ * tried first and read as jargon.
  */
 export const location = {
     acquiring: {
         title: "Finding you…",
-        detail: "GPS needs open sky. If this takes more than a moment, step outside.",
+        detail: "GPS works best outdoors. If this takes more than a moment, step outside.",
     },
     timeout: {
         title: "Can't find your location yet",
-        detail: "GPS needs open sky, so indoors this can take a while. Already outside? Check that location is on for this browser in Settings.",
+        detail: "GPS works best outdoors, so inside a building this can take a while. Already outside? Check that location is on for this browser in Settings.",
     },
     failed: {
         title: "Can't find your location",
-        detail: "Your phone could not get a GPS fix. Move under open sky and check that location is on for this browser in Settings, then reload the page.",
+        detail: "Your phone couldn't get a GPS signal. Go outside, away from tall buildings, and check that location is on for this browser in Settings. Then reload the page.",
     },
     stale: {
         title: "Location not updating",
