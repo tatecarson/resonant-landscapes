@@ -51,6 +51,27 @@ export const welcome = {
         "At the center, tap Enable rotation when it appears. Turn with your phone to change which direction you hear.",
         "Walk to another listening spot to hear another park. Walk away or tap Stop to stop the sound.",
     ],
+    /**
+     * Location, said before it can fail (rl-edv.2). The field-test walker met
+     * it only as an error once she was already at a listening spot, and asked
+     * for exactly this: a note up front to turn location on in Settings. The
+     * paths match the "Location is blocked" steps in recovery below, so the
+     * two places never disagree about where the switch is.
+     */
+    location: {
+        heading: "Before you start",
+        body: {
+            // Only the master switch. Safari Websites set to Never was
+            // expected to block location too, but on Tate's iPhone
+            // (2026-09-27) Safari still asked and Allow worked, so it is not
+            // a before-you-start step; it stays in the recovery steps as a
+            // fallback. Dropping it also kept the note above the fold once
+            // #137's larger "Continue reading" control raised it.
+            ios: "The walk uses your location. Check that Settings → Privacy & Security → Location Services is on, then tap Allow when your browser asks.",
+            android: "The walk uses your location. Check Settings → Location is on. Then tap Allow when your browser asks.",
+            other: "The walk uses your location. Check location is on for your phone, then tap Allow when your browser asks.",
+        },
+    },
     headphones: "Use headphones. Non-noise-canceling ones work best.",
     /** iOS asks for motion access separately, and only when rotation is used. */
     accessWithRotation:
@@ -462,7 +483,7 @@ export const recovery = {
         location: {
             ios: [
                 "In Safari, tap the page menu beside the address bar. It is a small rectangle icon on iOS 26 and reads AA on older versions. Then Website Settings → Location → Allow.",
-                "Still blocked? Settings → Privacy & Security → Location Services, and turn on Location Services, Safari Websites, and Precise Location.",
+                "Still blocked? In Settings → Privacy & Security → Location Services, turn Location Services on. Then scroll down, tap Safari Websites, choose anything but Never, and turn on Precise Location.",
                 "Come back here and reload the page.",
             ],
             android: [

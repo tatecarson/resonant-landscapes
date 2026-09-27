@@ -222,6 +222,26 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
                                     </div>
                                 )}
 
+                                {/*
+                                  * Where the capability warnings above already sit: the
+                                  * screen's "check this first" slot. Lower down it was
+                                  * under the fold of an iPhone SE, behind "more below",
+                                  * and a walker could tap Start without meeting it
+                                  * (rl-edv.2) - on the phone most likely to have Location
+                                  * Services off.
+                                  */}
+                                <div
+                                    className="mb-7 border-l-2 border-ink/35 pl-3 font-mono"
+                                    data-testid="welcome-location-note"
+                                >
+                                    <p className="text-[10px] uppercase tracking-widest text-ink/70">
+                                        {welcome.location.heading}
+                                    </p>
+                                    <p className="mt-1 text-[12px] leading-relaxed text-ink/80">
+                                        {welcome.location.body[platform]}
+                                    </p>
+                                </div>
+
                                 <div className="font-mono space-y-4 text-[12px] leading-relaxed text-ink/75">
                                     <p>{welcome.intro(variant)}</p>
                                     {welcome.steps.map((step) => (

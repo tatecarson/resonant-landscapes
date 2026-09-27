@@ -120,3 +120,26 @@ describe("walker-facing copy", () => {
         expect(offenders).toEqual([]);
     });
 });
+
+describe("welcome.location", () => {
+    // The note on the welcome screen and the "Location is blocked" steps name
+    // the same switches. If one moves, the walker is sent two places.
+    it("names the same Settings path as the iPhone recovery steps", () => {
+        const recoveryPath = "Settings → Privacy & Security → Location Services";
+        expect(copy.welcome.location.body.ios).toContain(recoveryPath);
+        expect(copy.recovery.steps.location.ios.join(" ")).toContain(recoveryPath);
+        // The recovery steps say where Safari Websites is and what it must
+        // not be set to. The welcome note leaves it out: on a real iPhone,
+        // Never still let Safari ask, so it is a fallback, not a first step.
+        const recovery = copy.recovery.steps.location.ios.join(" ");
+        expect(recovery).toContain("scroll down");
+        expect(recovery).toContain("Safari Websites");
+        expect(recovery).toContain("Never");
+    });
+
+    it("names the same Settings path as the Android recovery steps", () => {
+        const recoveryPath = "Settings → Location";
+        expect(copy.welcome.location.body.android).toContain(recoveryPath);
+        expect(copy.recovery.steps.location.android.join(" ")).toContain(recoveryPath);
+    });
+});
