@@ -4,6 +4,7 @@ import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
 import stateParks from '../data/stateParks.json';
 import terraceNoGoPolygons from '../data/terraceNoGoPolygons.json';
 import chathamNoGoPolygons from '../data/chathamNoGoPolygons.json';
+import chathamSurveyedNoGo from '../data/chathamSurveyedNoGo.json';
 import chathamCampus from '../data/chathamCampus.json';
 import { scaleCoordinates, type Coordinate } from './geo';
 import type { Feature, MultiPolygon, Point, Polygon } from 'geojson';
@@ -377,11 +378,30 @@ const CHATHAM_BOUNDS: SiteBounds = {
 // remap off the campus boundary.
 const CHATHAM_BUFFER = 0.00045;
 
+/**
+ * Ground found unwalkable on foot that OpenStreetMap does not know about.
+ *
+ * Kept out of chathamNoGoPolygons.json on purpose: that file is regenerated
+ * whole by scripts/fetch-chatham-nogo.py, and anything typed into it by hand
+ * would vanish on the next run. This one is only ever edited by hand, after
+ * someone has stood there.
+ *
+ * The soccer field (rl-wc3.3.1). OSM maps the pitch surface and nothing
+ * else, and Oakwood Lakes cleared it by 3 m. The 2026-09-30 field walk found
+ * that strip inside the fence, which is padlocked whenever the field is not
+ * in use. The fence is not mapped, so this is the pitch pushed out 10 m on
+ * every side: wide enough to take in the strip the point stood in, and with
+ * the 8 m clearance on top, nothing settles against the fence either.
+ */
+const CHATHAM_NO_GO: NoGoSet = {
+    features: [...chathamNoGoPolygons.features, ...chathamSurveyedNoGo.features],
+};
+
 function chathamScaledPoints() {
     return remapIntoSite(
         CHATHAM_BOUNDS,
         CHATHAM_BUFFER,
-        chathamNoGoPolygons,
+        CHATHAM_NO_GO,
         chathamCampus as Feature<Polygon>
     );
 }

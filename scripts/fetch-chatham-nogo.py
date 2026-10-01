@@ -20,6 +20,10 @@ sitting exactly on it: they are buffered to a carriageway width instead.
 
 Accessible here means not dangerous to walk to, which is the bar Tate set for
 this site. It does not mean wheelchair accessible; the campus is on a hill.
+
+This run overwrites its output whole, so ground found unwalkable on foot that
+OSM does not map (the locked soccer field enclosure, say) does not go in it.
+That lives in src/data/chathamSurveyedNoGo.json, edited by hand.
 """
 
 import json

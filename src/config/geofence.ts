@@ -42,13 +42,13 @@ export const CENTER_LATCH_RADIUS_METERS = 5;
 /**
  * Zoom floor: how far out a walker may pinch. About 780 m across a 375 px
  * phone, which holds every listening spot of every site at once, whichever
- * way the map has turned: the farthest-apart pair is 693 m at Chatham and
+ * way the map has turned: the farthest-apart pair is 638 m at Chatham and
  * 520 m at Terrace. geofence.test.ts pins that per site.
  *
  * It sat one level higher, at about 390 m, until a first-time walker at the
  * field test said she could not see the whole map (rl-edv.6). That fitted DSU
  * and nothing else, and because the map turns with the walker's heading,
- * Chatham's 686 m north-south run could need all of it across the narrow
+ * Chatham's 633 m north-south run could need all of it across the narrow
  * side of the screen.
  *
  * It moved by exactly one level, not to the smallest value that fits, for the
