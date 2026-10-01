@@ -39,13 +39,14 @@ LISTENING_RADIUS_M = 15
 SITES = {
     "terrace": {
         "title": "Terrace Park, Sioux Falls",
-        "nogo": "terraceNoGoPolygons.json",
+        "nogo": ["terraceNoGoPolygons.json"],
         "boundary": None,
         "start": None,
     },
     "chatham": {
         "title": "Chatham University, Shadyside campus",
-        "nogo": "chathamNoGoPolygons.json",
+        # The OSM import, then what the field walk found that OSM lacks.
+        "nogo": ["chathamNoGoPolygons.json", "chathamSurveyedNoGo.json"],
         "boundary": "chathamCampus.json",
         # 5798 Woodland Road, the Susan Bergman Gurrentz '56 Art Gallery, where
         # the walk begins. Nominatim resolves the house number only as far as
@@ -55,7 +56,7 @@ SITES = {
     },
     "dsu": {
         "title": "Dakota State University, Madison",
-        "nogo": None,
+        "nogo": [],
         "boundary": None,
         "start": None,
     },
@@ -103,6 +104,9 @@ KIND_STYLE = {
     "street": (ROAD, 0.55),
     "pitch": ("#a8c0a0", 0.7),
     "playground": ("#a8c0a0", 0.7),
+    # Locked enclosures found on foot. Light, because the pitch inside one
+    # should still read as a pitch.
+    "fenced": ("#8a7f6c", 0.3),
 }
 
 
@@ -135,8 +139,8 @@ def render(variant: str) -> pathlib.Path:
         axes.add_patch(MplPolygon(boundary_ring, closed=True, facecolor=SAGE_FILL,
                                   edgecolor=SAGE, linewidth=1.4, alpha=0.45, zorder=1))
 
-    if spec["nogo"]:
-        for feature in json.loads((DATA / spec["nogo"]).read_text())["features"]:
+    for nogo_file in spec["nogo"]:
+        for feature in json.loads((DATA / nogo_file).read_text())["features"]:
             colour, alpha = KIND_STYLE.get(feature["properties"].get("kind"), (ROAD, 0.5))
             for ring in rings(feature):
                 axes.add_patch(MplPolygon(ring, closed=True, facecolor=colour,

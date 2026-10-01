@@ -4,9 +4,15 @@ import { distanceInMeters, type Coordinate } from "./geo";
 import { point } from "@turf/helpers";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import chathamNoGoPolygons from "../data/chathamNoGoPolygons.json";
+import chathamSurveyedNoGo from "../data/chathamSurveyedNoGo.json";
 import chathamCampus from "../data/chathamCampus.json";
 import terraceNoGoPolygons from "../data/terraceNoGoPolygons.json";
 import type { Feature, Polygon } from "geojson";
+
+/** What placement avoids at Chatham: the OSM import plus what was found on foot. */
+const chathamNoGo = {
+    features: [...chathamNoGoPolygons.features, ...chathamSurveyedNoGo.features],
+};
 
 /**
  * The map's opening view. It used to be [0, 0] zoom 20 — the Gulf of Guinea —
@@ -84,13 +90,13 @@ describe("the Chatham placement", () => {
         }
     });
 
-    it("puts no park in a building, a car park or a road", () => {
+    it("puts no park in a building, a car park, a road or a locked field", () => {
         // The snap only ever moves a pin somewhere that is not in this set,
         // which is why the roads have to be in it: without them it would
         // happily push a point off a building and into Woodland Road.
         for (const park of points) {
             const candidate = point(park.scaledCoords as Coordinate);
-            const hit = (chathamNoGoPolygons.features as unknown[]).find((feature) => {
+            const hit = (chathamNoGo.features as unknown[]).find((feature) => {
                 try {
                     return booleanPointInPolygon(candidate, feature as Feature<Polygon>);
                 } catch {
@@ -202,9 +208,66 @@ describe("room around each point", () => {
     it("gives every Chatham point somewhere to stand", () => {
         for (const park of getScaledPoints("chatham")) {
             expect(
-                clearanceOf(park.scaledCoords as Coordinate, chathamNoGoPolygons),
+                clearanceOf(park.scaledCoords as Coordinate, chathamNoGo),
                 `${park.name} is wedged against something`
             ).toBeGreaterThanOrEqual(8);
         }
+    });
+});
+
+/**
+ * What the 2026-09-30 field walk found, held in place.
+ *
+ * Mike walked all thirteen Chatham points with the app running. Nine were
+ * fine outright. Union Grove, behind Dilworth Hall, is reachable but muddy.
+ * Palisades and Lake Herman can be reached at the edge but not the centre,
+ * and sound starts at the edge. Oakwood Lakes sat inside the soccer field's
+ * fence, which is padlocked, and has moved (rl-wc3.3.1).
+ *
+ * Placement is computed, so any change to the no-go data or the placement
+ * code can move a point, and nothing in the other tests would object: a
+ * moved point is still on campus, still clear of buildings, still spaced.
+ * What it no longer is, is walked. These are the positions that were stood
+ * at. If one of them moves, walk it again and update it here.
+ */
+describe("the Chatham points the field walk checked", () => {
+    const WALKED_2026_09_30: Record<string, Coordinate> = {
+        "Sica Hollow State Park": [-79.923763, 40.446603],
+        "Roy Lake State Park": [-79.923127, 40.446821],
+        "Fort Sisseton Historic State Park": [-79.92324, 40.447017],
+        "Hartford Beach State Park": [-79.924308, 40.446069],
+        "Fisher Grove State Park": [-79.924539, 40.446377],
+        "Lake Herman State Park": [-79.924779, 40.446731],
+        "Palisades State Park": [-79.925066, 40.447182],
+        "Good Earth State Park": [-79.924723, 40.447373],
+        "Newton Hills State Park": [-79.924624, 40.44761],
+        "Union Grove State Park": [-79.925237, 40.447418],
+        "Custer State Park": [-79.925953, 40.450879],
+        "Bear Butte State Park": [-79.924915, 40.45005],
+    };
+    const points = getScaledPoints("chatham");
+
+    it("leaves every walked point where it was walked", () => {
+        for (const [name, walked] of Object.entries(WALKED_2026_09_30)) {
+            const park = points.find((p) => p.name === name);
+            expect(park, `${name} is missing`).toBeDefined();
+            expect(
+                distanceInMeters(park!.scaledCoords as Coordinate, walked),
+                `${name} has moved off the spot that was walked`
+            ).toBeLessThan(1);
+        }
+    });
+
+    it("keeps Oakwood Lakes out of the locked soccer field", () => {
+        const oakwood = points.find((p) => p.name === "Oakwood Lakes State Park")!;
+        const enclosure = chathamSurveyedNoGo.features.find(
+            (f) => f.properties.kind === "fenced"
+        ) as Feature<Polygon>;
+        expect(booleanPointInPolygon(point(oakwood.scaledCoords as Coordinate), enclosure)).toBe(false);
+        // Where it stood on the walk, three metres off the pitch and inside
+        // the fence. The new spot has to be somewhere else, not a nudge.
+        expect(
+            distanceInMeters(oakwood.scaledCoords as Coordinate, [-79.924725, 40.444714])
+        ).toBeGreaterThan(15);
     });
 });

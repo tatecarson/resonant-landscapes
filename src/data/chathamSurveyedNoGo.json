@@ -1,0 +1,1 @@
+{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Soccer field enclosure","kind":"fenced","source":"field","surveyed":"2026-09-30","around_osm_id":154817166},"geometry":{"type":"Polygon","coordinates":[[[-79.924908,40.445591],[-79.92473,40.444645],[-79.923815,40.444722],[-79.923974,40.445695],[-79.924908,40.445591]]]}}]}
