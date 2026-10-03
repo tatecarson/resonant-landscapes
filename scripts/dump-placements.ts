@@ -8,7 +8,12 @@
  */
 import { writeFileSync } from 'node:fs';
 
-import { getScaledPoints, getVariantCenter } from '../src/utils/scaledParks';
+import {
+    CHATHAM_SOUTH_LIMIT,
+    chathamFieldPins,
+    getScaledPoints,
+    getVariantCenter,
+} from '../src/utils/scaledParks';
 
 type Variant = 'dsu' | 'terrace' | 'chatham';
 
@@ -19,9 +24,11 @@ const payload = Object.fromEntries(
         variant,
         {
             center: getVariantCenter(variant),
+            southLimit: variant === 'chatham' ? CHATHAM_SOUTH_LIMIT : null,
             points: getScaledPoints(variant).map(park => ({
                 name: park.name,
                 coords: park.scaledCoords,
+                pinned: variant === 'chatham' && park.name in chathamFieldPins,
             })),
         },
     ])

@@ -121,6 +121,7 @@ def render(variant: str) -> pathlib.Path:
     spec = SITES[variant]
     placements = json.loads((DATA / "placements.generated.json").read_text())[variant]
     points = [(p["name"], p["coords"][0], p["coords"][1]) for p in placements["points"]]
+    pinned = {p["name"] for p in placements["points"] if p.get("pinned")}
 
     lats = [lat for _, _, lat in points]
     lons = [lon for _, lon, _ in points]
@@ -155,10 +156,24 @@ def render(variant: str) -> pathlib.Path:
         axes.add_patch(Ellipse((lon, lat), 2 * radius_lon, 2 * radius_lat,
                                facecolor=SAGE, edgecolor=SAGE, alpha=0.18,
                                linewidth=0.8, zorder=3))
-        axes.plot(lon, lat, "o", markersize=3.5, color=INK, zorder=5)
+        # Hand-placed from a field walk: a diamond, so a reviewer can tell
+        # which positions came from someone standing there.
+        marker = "D" if name in pinned else "o"
+        axes.plot(lon, lat, marker, markersize=3.5, color=INK, zorder=5)
         axes.annotate(name.replace(" State Park", "").replace(" Historic", ""),
                       (lon, lat), textcoords="offset points", xytext=(6, 4),
                       fontsize=6.5, color=INK, zorder=6)
+
+    # The southern limit Mike set: nothing past the Art & Design Center.
+    if placements.get("southLimit") and boundary_ring:
+        limit = placements["southLimit"]
+        west = min(p[0] for p in boundary_ring)
+        east = max(p[0] for p in boundary_ring)
+        axes.plot([west, east], [limit, limit], linestyle=(0, (4, 3)),
+                  color=ALERT, linewidth=1, zorder=4)
+        axes.annotate("south limit: Art & Design Center", (west, limit),
+                      textcoords="offset points", xytext=(2, 3),
+                      fontsize=6.5, color=ALERT, zorder=6)
 
     if spec["start"]:
         slon, slat, label = spec["start"]

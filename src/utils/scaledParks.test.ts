@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { getScaledPoints, getVariantCenter } from "./scaledParks";
+import {
+    CHATHAM_SOUTH_LIMIT,
+    chathamFieldPins,
+    getScaledPoints,
+    getVariantCenter,
+} from "./scaledParks";
 import { distanceInMeters, type Coordinate } from "./geo";
 import { point } from "@turf/helpers";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
@@ -205,8 +210,11 @@ describe("room around each point", () => {
         }
     });
 
-    it("gives every Chatham point somewhere to stand", () => {
+    // Not the hand-placed ones. Clearance stands in for a look at the ground,
+    // and those were chosen by someone who had looked.
+    it("gives every computed Chatham point somewhere to stand", () => {
         for (const park of getScaledPoints("chatham")) {
+            if (park.name in chathamFieldPins) continue;
             expect(
                 clearanceOf(park.scaledCoords as Coordinate, chathamNoGo),
                 `${park.name} is wedged against something`
@@ -224,6 +232,10 @@ describe("room around each point", () => {
  * and sound starts at the edge. Oakwood Lakes sat inside the soccer field's
  * fence, which is padlocked, and has moved (rl-wc3.3.1).
  *
+ * Those four have since been placed by hand from his second walk (rl-iys)
+ * and are held by the next block, so the nine fine ones are what is left
+ * here.
+ *
  * Placement is computed, so any change to the no-go data or the placement
  * code can move a point, and nothing in the other tests would object: a
  * moved point is still on campus, still clear of buildings, still spaced.
@@ -237,11 +249,8 @@ describe("the Chatham points the field walk checked", () => {
         "Fort Sisseton Historic State Park": [-79.92324, 40.447017],
         "Hartford Beach State Park": [-79.924308, 40.446069],
         "Fisher Grove State Park": [-79.924539, 40.446377],
-        "Lake Herman State Park": [-79.924779, 40.446731],
-        "Palisades State Park": [-79.925066, 40.447182],
         "Good Earth State Park": [-79.924723, 40.447373],
         "Newton Hills State Park": [-79.924624, 40.44761],
-        "Union Grove State Park": [-79.925237, 40.447418],
         "Custer State Park": [-79.925953, 40.450879],
         "Bear Butte State Park": [-79.924915, 40.45005],
     };
@@ -269,5 +278,51 @@ describe("the Chatham points the field walk checked", () => {
         expect(
             distanceInMeters(oakwood.scaledCoords as Coordinate, [-79.924725, 40.444714])
         ).toBeGreaterThan(15);
+    });
+});
+
+/**
+ * What Mike's 2026-10-03 walk changed (rl-iys).
+ *
+ * He went back to the four the first walk flagged and said where each should
+ * go, and drew a southern boundary: nothing past the south end of the Art &
+ * Design Center, because beyond it are a campus house's backyard and private
+ * homes. Oakwood Lakes was there.
+ */
+describe("the Chatham points placed by hand", () => {
+    const points = getScaledPoints("chatham");
+
+    it("puts each hand-placed park on its pin", () => {
+        expect(Object.keys(chathamFieldPins)).toHaveLength(4);
+        for (const [name, pin] of Object.entries(chathamFieldPins)) {
+            const park = points.find((p) => p.name === name);
+            expect(park, `${name} is not a park`).toBeDefined();
+            expect(park!.scaledCoords).toEqual(pin);
+        }
+    });
+
+    it("moves each of them somewhere new, not a nudge", () => {
+        const before: Record<string, Coordinate> = {
+            "Lake Herman State Park": [-79.924779, 40.446731],
+            "Palisades State Park": [-79.925066, 40.447182],
+            "Union Grove State Park": [-79.925237, 40.447418],
+            "Oakwood Lakes State Park": [-79.924965, 40.445194],
+        };
+        for (const [name, was] of Object.entries(before)) {
+            const park = points.find((p) => p.name === name)!;
+            expect(
+                distanceInMeters(park.scaledCoords as Coordinate, was),
+                `${name} has barely moved`
+            ).toBeGreaterThan(10);
+        }
+    });
+
+    it("keeps every point at or north of the Art & Design Center's south end", () => {
+        for (const park of points) {
+            const [, lat] = park.scaledCoords as Coordinate;
+            expect(lat, `${park.name} is south of the Art & Design Center`).toBeGreaterThanOrEqual(
+                CHATHAM_SOUTH_LIMIT
+            );
+        }
     });
 });
