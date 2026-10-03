@@ -397,13 +397,66 @@ const CHATHAM_NO_GO: NoGoSet = {
     features: [...chathamNoGoPolygons.features, ...chathamSurveyedNoGo.features],
 };
 
+/**
+ * Parks placed by hand from Mike's 2026-10-03 walk (rl-iys).
+ *
+ * The 2026-09-30 walk found these four reachable only at the edge, or not
+ * worth reaching. Mike went back and said where each should go. His notes
+ * were in words, so the coordinates were read off aerial imagery against the
+ * OSM outlines. Nobody has stood at them yet; check them on foot at install.
+ *
+ * They replace the computed position after the remap has run, rather than
+ * going in as fixed points before it. Going in first was tried: the remap
+ * then routed Good Earth and Newton Hills around the new Palisades and Union
+ * Grove, and those two had already been walked. Swapping afterwards leaves
+ * the other nine exactly where they were stood at. Spacing between the pins
+ * and the rest is held by the tests instead.
+ *
+ * They do not have the 8 m of clearance the computed points are held to.
+ * That rule exists because the remap cannot see the ground. These were
+ * chosen by someone who had seen it.
+ */
+export const chathamFieldPins: Record<string, Coordinate> = {
+    // West of the AFC, in the trees on the outside of the bend where the
+    // lane turns north past the Carriage House. The map draws that lane as a
+    // road. It is not one. Moved across the bend, onto the open strip between
+    // the lane and the Carriage House's south wall.
+    'Lake Herman State Park': [-79.92467, 40.44697],
+    // Between Dilworth and the Carriage House, where a large retaining wall
+    // blocks the middle. Moved east and up, to just below Dilworth's
+    // south-east corner, with about 8 m to each building.
+    'Palisades State Park': [-79.92499, 40.4473],
+    // Behind Dilworth, on ground that turns to mud in the rainy season.
+    // Moved to just north of the building, about 7 m off its north end.
+    'Union Grove State Park': [-79.92524, 40.44782],
+    // Was in a campus house's backyard, beside private homes. Now just west
+    // of the Art & Design Center's south-west corner, outside the soccer
+    // field enclosure.
+    'Oakwood Lakes State Park': [-79.92447, 40.44568],
+};
+
+/**
+ * The southern edge of the usable campus: the Art & Design Center's
+ * southernmost corner in OSM.
+ *
+ * The campus polygon runs on past it into a campus house's backyard and
+ * private homes, and Mike set this as the line on his 2026-10-03 walk. It is
+ * held by a test, not fed to the remap. Cutting the site polygon here moved
+ * eight walked points: the eastern parks land south of this line before being
+ * pulled onto the site, so moving the line moves where they are pulled to.
+ */
+export const CHATHAM_SOUTH_LIMIT = 40.445584;
+
 function chathamScaledPoints() {
     return remapIntoSite(
         CHATHAM_BOUNDS,
         CHATHAM_BUFFER,
         CHATHAM_NO_GO,
         chathamCampus as Feature<Polygon>
-    );
+    ).map(park => {
+        const pin = chathamFieldPins[park.name];
+        return pin ? { ...park, scaledCoords: pin } : park;
+    });
 }
 
 // ---- Test parks (debug route) ------------------------------------------
