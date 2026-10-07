@@ -7,6 +7,7 @@ import { welcome } from "../copy";
 import { useMoreBelow } from "../hooks/useMoreBelow";
 import { ScrollContinuation } from "./ScrollContinuation";
 import { detectPlatform } from "../utils/recoverySteps";
+import { requestCompassForMap } from "../utils/deviceOrientation";
 import type { Variant } from "../App";
 
 interface WelcomeModalProps {
@@ -81,6 +82,11 @@ function WelcomeModal({ isOpen, setIsOpen, variant = "dsu" }: WelcomeModalProps)
             () => setShowStarting(true),
             STARTING_LABEL_DELAY_MS
         );
+
+        // Before the first await, while this is still the tap: iOS only
+        // answers a compass request made inside one. Not awaited. The walk
+        // starts whatever the answer, and a refusal only costs the arrow.
+        void requestCompassForMap();
 
         try {
             // Awaited whole, not raced against a timer here: the bound that

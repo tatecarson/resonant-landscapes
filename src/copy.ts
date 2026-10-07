@@ -73,9 +73,9 @@ export const welcome = {
         },
     },
     headphones: "Use headphones. Non-noise-canceling ones work best.",
-    /** iOS asks for motion access separately, and only when rotation is used. */
+    /** iOS asks for motion access separately, from the Start tap. */
     accessWithRotation:
-        "Tap Start to turn on sound for the walk. Your phone may ask permission when you enable rotation at a listening spot.",
+        "Tap Start to turn on sound for the walk. Your phone will ask to use motion and orientation. Allow it so the map shows which way you face.",
     accessAudioOnly: "Tap Start to turn on sound for the walk.",
     start: "Start",
     /** Shown instead of Start when something essential is missing. */

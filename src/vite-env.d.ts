@@ -69,8 +69,15 @@ interface Window {
     center: [number, number] | null;
     position: [number, number];
     rotation: number;
+    /** What the view actually holds; frozen while follow is suspended. */
+    viewRotation: number;
     centerOnUser: boolean;
     markerPixel: [number, number] | null;
     viewportSize: [number, number] | null;
+  };
+  /** The walker's arrow on the map: turned to the heading, in map space. */
+  __positionMarker?: {
+    rotation: number;
+    rotateWithView: boolean;
   };
 }

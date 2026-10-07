@@ -85,6 +85,10 @@ describe("the Chatham placement", () => {
     it("puts all 13 parks on the campus", () => {
         expect(points).toHaveLength(13);
         for (const park of points) {
+            // Hand pins were chosen standing on the ground, which knows the
+            // campus better than the OSM outline does. Sica Hollow's sits
+            // about 13 m past it (rl-1e7).
+            if (park.name in chathamFieldPins) continue;
             expect(
                 booleanPointInPolygon(
                     point(park.scaledCoords as Coordinate),
@@ -99,9 +103,20 @@ describe("the Chatham placement", () => {
         // The snap only ever moves a pin somewhere that is not in this set,
         // which is why the roads have to be in it: without them it would
         // happily push a point off a building and into Woodland Road.
+        //
+        // One exception, chosen on foot. Roads are buffered 12 m either side
+        // of the centreline for trunk roads, which is wider than Fifth
+        // Avenue's carriageway, and Custer's pin is on the pavement 8 m from
+        // the centreline: inside the buffer, out of the traffic (rl-9cp).
+        const inRoadBufferOnPurpose: Record<string, string> = {
+            "Custer State Park": "Fifth Avenue",
+        };
         for (const park of points) {
             const candidate = point(park.scaledCoords as Coordinate);
+            const allowedRoad = inRoadBufferOnPurpose[park.name];
             const hit = (chathamNoGo.features as unknown[]).find((feature) => {
+                const props = (feature as { properties?: { kind?: string; name?: string } }).properties;
+                if (allowedRoad && props?.kind === "road" && props.name === allowedRoad) return false;
                 try {
                     return booleanPointInPolygon(candidate, feature as Feature<Polygon>);
                 } catch {
@@ -233,8 +248,9 @@ describe("room around each point", () => {
  * fence, which is padlocked, and has moved (rl-wc3.3.1).
  *
  * Those four have since been placed by hand from his second walk (rl-iys)
- * and are held by the next block, so the nine fine ones are what is left
- * here.
+ * and are held by the next block. So have two of the nine: Sica Hollow,
+ * which stood in a driveway (rl-1e7), and Custer, on the steps up to an
+ * apartment building (rl-9cp). The other seven are what is left here.
  *
  * Placement is computed, so any change to the no-go data or the placement
  * code can move a point, and nothing in the other tests would object: a
@@ -244,14 +260,12 @@ describe("room around each point", () => {
  */
 describe("the Chatham points the field walk checked", () => {
     const WALKED_2026_09_30: Record<string, Coordinate> = {
-        "Sica Hollow State Park": [-79.923763, 40.446603],
         "Roy Lake State Park": [-79.923127, 40.446821],
         "Fort Sisseton Historic State Park": [-79.92324, 40.447017],
         "Hartford Beach State Park": [-79.924308, 40.446069],
         "Fisher Grove State Park": [-79.924539, 40.446377],
         "Good Earth State Park": [-79.924723, 40.447373],
         "Newton Hills State Park": [-79.924624, 40.44761],
-        "Custer State Park": [-79.925953, 40.450879],
         "Bear Butte State Park": [-79.924915, 40.45005],
     };
     const points = getScaledPoints("chatham");
@@ -293,7 +307,7 @@ describe("the Chatham points placed by hand", () => {
     const points = getScaledPoints("chatham");
 
     it("puts each hand-placed park on its pin", () => {
-        expect(Object.keys(chathamFieldPins)).toHaveLength(4);
+        expect(Object.keys(chathamFieldPins)).toHaveLength(6);
         for (const [name, pin] of Object.entries(chathamFieldPins)) {
             const park = points.find((p) => p.name === name);
             expect(park, `${name} is not a park`).toBeDefined();
@@ -307,6 +321,10 @@ describe("the Chatham points placed by hand", () => {
             "Palisades State Park": [-79.925066, 40.447182],
             "Union Grove State Park": [-79.925237, 40.447418],
             "Oakwood Lakes State Park": [-79.924965, 40.445194],
+            // In a driveway on Murray Hill Place (rl-1e7).
+            "Sica Hollow State Park": [-79.923763, 40.446603],
+            // On the steps up to an apartment building (rl-9cp).
+            "Custer State Park": [-79.925953, 40.450879],
         };
         for (const [name, was] of Object.entries(before)) {
             const park = points.find((p) => p.name === name)!;

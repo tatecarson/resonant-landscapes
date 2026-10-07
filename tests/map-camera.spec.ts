@@ -257,3 +257,59 @@ test.describe("the walker can look around", () => {
         expect(await zoom(page)).toBeCloseTo(RESTING_ZOOM, 3);
     });
 });
+
+/** Face a compass direction, as Chromium reports one and the app reads it. */
+async function face(page: Page, degrees: number) {
+    await page.evaluate((deg) => {
+        // A plain Event with the fields on it: WebKit will not construct a
+        // DeviceOrientationEvent from script.
+        const event = new Event("deviceorientationabsolute");
+        Object.assign(event, { alpha: (360 - deg) % 360, beta: 0, gamma: 0, absolute: true });
+        window.dispatchEvent(event);
+    }, degrees);
+    await page.waitForTimeout(400);
+}
+
+const toDegrees = (radians: number) => ((((radians * 180) / Math.PI) % 360) + 360) % 360;
+
+/** Which way the arrow points on screen, clockwise from straight up. */
+const arrowOnScreen = (page: Page) =>
+    page.evaluate(() => {
+        const marker = window.__positionMarker;
+        const view = window.__mapDebug?.viewRotation;
+        return marker && view !== undefined ? marker.rotation + view : null;
+    });
+
+const viewRotation = (page: Page) => page.evaluate(() => window.__mapDebug?.viewRotation ?? null);
+
+/**
+ * The arrow after a pan (rl-d0z).
+ *
+ * The arrow was drawn pointing up the screen and the map turned under it, so
+ * once a pan stopped the map turning the arrow pointed up whichever way the
+ * walker faced. At Chatham that read as a compass that had broken until the
+ * page was reloaded.
+ */
+test.describe("the arrow shows which way the walker faces", () => {
+    test("points up while the map follows and turns with the walker", async ({ page }) => {
+        await startWalk(page);
+        await face(page, 90);
+
+        expect(toDegrees((await viewRotation(page))!)).toBeCloseTo(270, 0);
+        const arrow = toDegrees((await arrowOnScreen(page))!);
+        expect(Math.min(arrow, 360 - arrow)).toBeLessThan(1);
+    });
+
+    test("keeps pointing the way they face once they have panned", async ({ page }) => {
+        await startWalk(page);
+        await face(page, 90);
+        await panTheMap(page);
+        await face(page, 180);
+
+        // The map holds still under the walker's hand...
+        expect(toDegrees((await viewRotation(page))!)).toBeCloseTo(270, 0);
+        // ...and the arrow turns instead: south, on a map with east at the
+        // top, is a quarter turn to the right.
+        expect(toDegrees((await arrowOnScreen(page))!)).toBeCloseTo(90, 0);
+    });
+});

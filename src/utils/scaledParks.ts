@@ -398,7 +398,8 @@ const CHATHAM_NO_GO: NoGoSet = {
 };
 
 /**
- * Parks placed by hand from Mike's 2026-10-03 walk (rl-iys).
+ * Parks placed by hand from Mike's 2026-10-03 walk (rl-iys), and Sica
+ * Hollow and Custer from Tate's on 2026-10-07 (rl-1e7, rl-9cp).
  *
  * The 2026-09-30 walk found these four reachable only at the edge, or not
  * worth reaching. Mike went back and said where each should go. His notes
@@ -433,6 +434,20 @@ export const chathamFieldPins: Record<string, Coordinate> = {
     // of the Art & Design Center's south-west corner, outside the soccer
     // field enclosure.
     'Oakwood Lakes State Park': [-79.92447, 40.44568],
+    // Was on Murray Hill Place, in a driveway. Tate stood at the new spot on
+    // 2026-10-07 and sent a screenshot of the map; the six pins in it fit the
+    // placed coordinates to a pixel, which puts the location dot here, about
+    // 34 m south-east of the old point and 10 m from the road (rl-1e7). This
+    // is about 13 m outside the OSM campus outline, which a hand pin may be.
+    'Sica Hollow State Park': [-79.9235, 40.44637],
+    // Was on the steps up to an apartment building, which nobody can stand
+    // in. Tate stood at the new spot on 2026-10-07. Only Custer showed in his
+    // screenshot, so the fit used Fifth Avenue instead: its angle on screen
+    // and Custer's distance from it give the rotation and scale, and the
+    // scale agrees with the 15 m ring. About 16 m north-west, towards Fifth
+    // Avenue and 8 m from its centreline, inside the road buffer. Part of
+    // the circle is in the street; the centre is on the pavement (rl-9cp).
+    'Custer State Park': [-79.926013, 40.451015],
 };
 
 /**
