@@ -13,6 +13,13 @@ import { detectPlatform } from '../utils/recoverySteps';
 import { isDebugEnabled } from '../config/debug';
 
 const SILENCE_HINT_DURATION_MS = 8_000;
+/**
+ * How long after a failed download the walk tries again by itself. Long
+ * enough that a phone with no signal is not hammering a dead radio; short
+ * enough that a walker standing still while the signal comes back hears the
+ * park without touching anything.
+ */
+const AUTO_RETRY_MS = 10_000;
 
 interface HOARendererProps {
     parkName: string;
@@ -52,6 +59,7 @@ const HOARenderer = ({
         buffers,
         engineError,
         loadError,
+        loadErrorRetryable,
         lastUnlockError,
         spatialDegradation,
         lastLoadReason,
@@ -328,6 +336,30 @@ const HOARenderer = ({
         void loadParkAudio(parkName, () => activeParkNameRef.current === parkName);
     }, [cancelPendingLoad, clearLoadError, loadParkAudio, parkName]);
 
+    /**
+     * Keep trying while the walker is still at the park.
+     *
+     * A failed download used to wait for someone to find Retry, and most
+     * people reloaded the page instead, which on a weak signal starts the
+     * whole app over (rl-kv0). Only for failures the network caused: a
+     * recording this phone cannot play fails the same way every time, and
+     * retrying it would spend ten megabytes to learn nothing. Leaving the
+     * park unmounts this, which is what stops it.
+     */
+    const canRetryOnItsOwn = Boolean(loadError) && loadErrorRetryable && !pathError && !engineError;
+    useEffect(() => {
+        if (!canRetryOnItsOwn) {
+            return;
+        }
+        const timer = window.setTimeout(retryLoading, AUTO_RETRY_MS);
+        // Signal coming back is the best moment of all.
+        window.addEventListener("online", retryLoading);
+        return () => {
+            window.clearTimeout(timer);
+            window.removeEventListener("online", retryLoading);
+        };
+    }, [canRetryOnItsOwn, retryLoading]);
+
     return (
         <div id="secSource">
             <p className="sr-only" data-testid="audio-announcement" role="status" aria-live="polite">
@@ -356,7 +388,9 @@ const HOARenderer = ({
                 {activeError && (
                     <div className="max-w-sm rounded-2xl border border-status-error/25 bg-status-error-surface p-3 text-sm text-status-error shadow-sm">
                         <p className="font-semibold">{audioCopy.error.title}</p>
-                        <p className="mt-1">{audioCopy.error.detail}</p>
+                        <p className="mt-1">
+                            {canRetryOnItsOwn ? audioCopy.error.detailRetrying : audioCopy.error.detail}
+                        </p>
                         {/*
                           * The exception itself is deliberately not here. It
                           * cannot be acted on by someone standing in a park, and
