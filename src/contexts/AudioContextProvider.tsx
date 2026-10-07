@@ -20,7 +20,7 @@ import {
     type PlaybackLevel,
     type RecordingStage,
 } from "../audio/recordingGain";
-import { fetchAudioBytes, setOfflineCacheEventSink } from "../audio/offlineAudioCache";
+import { fetchAudioBytes, isNetworkFailure, setOfflineCacheEventSink } from "../audio/offlineAudioCache";
 import { getMonoFallbackUrl } from "../utils/audioPaths";
 import { debugLog } from "../config/debug";
 
@@ -46,6 +46,27 @@ const KEEP_SCREEN_AWAKE_STORAGE_KEY = "keepScreenAwakeDuringPlayback";
  * gesture, so it must not be reported to the walker as one.
  */
 const UNLOCK_SETTLE_MS = 3_000;
+
+/**
+ * Why there is no sound, as far as the AudioContext can say. Only "running"
+ * makes any. Safari also reports a non-standard "interrupted" after a call,
+ * a lock or another app's audio, which the spec's type does not list.
+ */
+const isContextRunning = (context: AudioContext) => String(context.state) === "running";
+
+/**
+ * Resolve once `promise` settles or `ms` has passed, whichever is first.
+ * For resume(), which Safari leaves pending forever outside a tap.
+ */
+function settleWithin(promise: Promise<unknown>, ms: number): Promise<void> {
+    return new Promise((resolve) => {
+        const timer = window.setTimeout(resolve, ms);
+        promise.then(
+            () => { window.clearTimeout(timer); resolve(); },
+            () => { window.clearTimeout(timer); resolve(); }
+        );
+    });
+}
 
 interface AudioEngineContextType {
     audioContext: AudioContext | null;
@@ -78,6 +99,8 @@ interface AudioPlaybackStateContextType {
     buffers: AudioBuffer | null;
     engineError: string | null;
     loadError: string | null;
+    /** The load failed on the network, so trying again later may work. */
+    loadErrorRetryable: boolean;
     lastUnlockError: string | null;
     /**
      * Set once the browser is caught downmixing the 8-channel spatial file.
@@ -119,6 +142,7 @@ const AudioPlaybackStateContext = createContext<AudioPlaybackStateContextType>({
     buffers: null,
     engineError: null,
     loadError: null,
+    loadErrorRetryable: false,
     lastUnlockError: null,
     spatialDegradation: null,
     lastLoadReason: null,
@@ -142,6 +166,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
     const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
     const [engineError, setEngineError] = useState<string | null>(null);
     const [loadError, setLoadError] = useState<string | null>(null);
+    const [loadErrorRetryable, setLoadErrorRetryable] = useState(false);
     const [lastUnlockError, setLastUnlockError] = useState<string | null>(null);
     const [spatialDegradation, setSpatialDegradation] = useState<SpatialDegradation | null>(null);
     const [lastLoad, setLastLoad] = useState<AudioLoadDebug | null>(null);
@@ -170,6 +195,9 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         soundfieldInputRef.current?.setDistance(metres);
     }, []);
     const isPlayingRef = useRef(false);
+    // Bumped by every play, stop and park change, so a play that was waiting
+    // on resume() can tell it has been overtaken and stand down.
+    const playRequestIdRef = useRef(0);
     const activeLoadRequestIdRef = useRef(0);
     const bufferCacheRef = useRef(createBufferCache({ maxEntries: MAX_CACHED_PARKS }));
     // Key of the buffer currently pinned for playback, and the keys of the
@@ -277,6 +305,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
 
     const cancelPendingLoad = useCallback(() => {
         activeLoadRequestIdRef.current += 1;
+        playRequestIdRef.current += 1;
         // Stop the bytes, not just the bookkeeping: an abandoned park download
         // otherwise keeps competing for bandwidth with the one being entered.
         if (activeLoadUrlsRef.current) {
@@ -359,6 +388,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             }
             console.error("Error loading buffers:", error);
             setLoadError(error instanceof Error ? error.message : String(error));
+            setLoadErrorRetryable(isNetworkFailure(error));
             setBuffers(null);
             audioDebug.recordEvent("load-error");
             return "error";
@@ -508,8 +538,10 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         setNeedsAudioResume(true);
         audioDebug.sync("interruption-resume-requested");
         try {
-            await context.resume();
-            const resumed = String(context.state) === "running";
+            // Bounded: this also runs when the page comes back into view,
+            // which is not a tap, and Safari leaves that resume pending.
+            await settleWithin(context.resume(), UNLOCK_SETTLE_MS);
+            const resumed = isContextRunning(context);
             setNeedsAudioResume(!resumed);
             if (resumed) {
                 setIsAudioUnlocked(true);
@@ -572,6 +604,25 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [primeOnce, audioDebug]);
 
+    /**
+     * Start the park's recording, and if the phone will not make sound yet,
+     * say so with a button rather than a label.
+     *
+     * Arriving at a park is not a tap. When iOS has suspended the context in
+     * the meantime (a locked screen, the page in the background) the resume
+     * asked for here is one Safari never answers, so this used to wait on it
+     * forever. Autoplay had already fired and Start Audio only appears after
+     * an error, so the strip said "Audio ready" over silence until the page
+     * was reloaded. A context Safari calls "interrupted" was worse: it is not
+     * "suspended", so playback started straight into it, the strip showed
+     * Stop, and nothing ever changed state to raise the Resume prompt
+     * (rl-o4b).
+     *
+     * Now the resume gets the same bounded wait Start gives it, playback is
+     * set up either way, and a context still not running leaves Resume Audio
+     * on screen. One tap on it is a gesture Safari accepts, and the recording
+     * is already waiting on the other side of it.
+     */
     const playSound = useCallback(() => {
         if (!audioContext || !resonanceAudioScene || isPlaying) {
             audioDebug.sync("play-ignored");
@@ -583,27 +634,41 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
             return;
         }
 
-        if (audioContext.state === 'suspended') {
-            audioDebug.sync("resume-requested");
-            audioContext.resume().then(() => {
-                debugLog('Audio context resumed.');
-                setIsAudioUnlocked(true);
-                setLastUnlockError(null);
-                audioDebug.sync("context-resumed");
-                proceedWithPlayback();
-            }).catch((error) => {
-                console.error('Error resuming AudioContext:', error);
-                setLastUnlockError(error instanceof Error ? error.message : String(error));
-                audioDebug.sync("resume-error");
-            });
-        } else {
+        const requestId = ++playRequestIdRef.current;
+
+        if (isContextRunning(audioContext)) {
             setIsAudioUnlocked(true);
             setLastUnlockError(null);
             proceedWithPlayback();
+            return;
         }
+
+        audioDebug.sync("resume-requested");
+        const resume = audioContext.resume();
+        resume.then(() => {
+            debugLog('Audio context resumed.');
+            audioDebug.sync("context-resumed");
+        }).catch((error) => {
+            console.error('Error resuming AudioContext:', error);
+            audioDebug.sync("resume-error");
+        });
+
+        void settleWithin(resume, UNLOCK_SETTLE_MS).then(() => {
+            // The walker left, stopped, or another play took over meanwhile.
+            if (requestId !== playRequestIdRef.current) return;
+            proceedWithPlayback();
+            if (isContextRunning(audioContext)) {
+                setIsAudioUnlocked(true);
+                setLastUnlockError(null);
+            } else {
+                setNeedsAudioResume(true);
+                audioDebug.sync("resume-needs-tap");
+            }
+        });
     }, [audioContext, buffers, isPlaying, proceedWithPlayback, resonanceAudioScene, audioDebug]);
 
     const stopSound = useCallback(() => {
+        playRequestIdRef.current += 1;
         if (bufferSourceRef.current && isPlaying) {
             debugLog('Stopping sound...');
             const bufferSource = bufferSourceRef.current;
@@ -679,8 +744,14 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         isPlayingRef.current = isPlaying;
         if (!isPlaying) {
             setNeedsAudioResume(false);
+            return;
         }
-    }, [isPlaying]);
+        // Playback can start on a context that is already not running, and
+        // then no statechange ever comes to say so. Check on the way in.
+        if (audioContext && !isContextRunning(audioContext) && String(audioContext.state) !== "closed") {
+            setNeedsAudioResume(true);
+        }
+    }, [audioContext, isPlaying]);
 
     useEffect(() => {
         if (!audioContext) return;
@@ -779,6 +850,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         buffers,
         engineError,
         loadError,
+        loadErrorRetryable,
         lastUnlockError,
         spatialDegradation,
         lastLoadReason: lastLoad?.reason ?? null,
@@ -797,6 +869,7 @@ const AudioContextProvider = ({ children }: { children: React.ReactNode }) => {
         isPlaying,
         isAudioUnlocked,
         loadError,
+        loadErrorRetryable,
         lastUnlockError,
         spatialDegradation,
         lastLoad,
