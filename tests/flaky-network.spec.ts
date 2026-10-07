@@ -83,13 +83,9 @@ async function stubNetwork(page: Page, mode: NetMode) {
         const w = window as never as {
             __net: { mode: string; calls: number; stalled: string[] };
             __audioFetchTiming: unknown;
-            __loadedOnce: boolean;
         };
         w.__net = { mode: initial, calls: 0, stalled: [] };
         w.__audioFetchTiming = timing;
-        // Set once per document. A reload would lose it, which is how the
-        // specs below prove nothing was reloaded.
-        w.__loadedOnce = true;
 
         const proto = window.AudioContext.prototype;
         const realDecode = proto.decodeAudioData;
@@ -147,7 +143,13 @@ async function captureAudioContext(page: Page) {
 }
 
 async function start(page: Page) {
-    await page.goto("/?debug");
+    // Keep the preview drawer from covering the audio controls.
+    await page.goto("/?debug&ntl-drawer-state=hidden", { waitUntil: "domcontentloaded" });
+    // Mark only this document. An init script would restore the marker
+    // after every reload and make the no-reload checks pass incorrectly.
+    await page.evaluate(() => {
+        (window as Window & { __loadedOnce?: boolean }).__loadedOnce = true;
+    });
     await page.getByRole("button", { name: /^\s*start\s*$/i }).click();
     await page.waitForFunction(() => window.__mapDebug !== undefined, null, { timeout: 20_000 });
 }
@@ -166,6 +168,16 @@ const retryButton = (page: Page) => page.getByRole("button", { name: /retry audi
 
 const notReloaded = (page: Page) =>
     page.evaluate(() => (window as never as { __loadedOnce?: boolean }).__loadedOnce === true);
+
+test("the reload guard detects an actual page reload", async ({ page }) => {
+    await stubWalk(page, 120);
+    await stubNetwork(page, "up");
+    await start(page);
+
+    expect(await notReloaded(page)).toBe(true);
+    await page.reload({ waitUntil: "domcontentloaded" });
+    expect(await notReloaded(page)).toBe(false);
+});
 
 test.describe("the walk on a bad connection", () => {
     test("a download that stops arriving is tried again, and the park plays", async ({ page }) => {
