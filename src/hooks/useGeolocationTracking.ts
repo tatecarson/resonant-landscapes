@@ -7,6 +7,7 @@ import { getScaledPoints, testParks } from "../utils/scaledParks";
 import type { Variant, MockPosition } from "../App";
 import { distanceInMeters } from "../utils/geo";
 import { scanParks } from "../utils/parkSelection";
+import { selectMapHeading, type HeadingSample } from "../utils/mapHeading";
 import {
     CENTER_LATCH_RADIUS_METERS,
     ENTER_DISTANCE_METERS,
@@ -49,7 +50,6 @@ const POSITION_EPSILON_METERS = 0.5;
 const HEADING_EPSILON_RADIANS = 0.01; // ~0.6 degrees
 const GPS_HEADING_ENTER_MPS = 1.2;
 const GPS_HEADING_EXIT_MPS = 0.6;
-const GPS_SPEED_FRESHNESS_MS = 3000;
 
 /** W3C GeolocationPositionError codes, as reported through OpenLayers. */
 export const GEOLOCATION_PERMISSION_DENIED = 1;
@@ -122,9 +122,8 @@ export function useGeolocationTracking({
     const positionsRef = useRef(new LineString([], "XYZM"));
     const animationFrameRef = useRef<number | null>(null);
     const lastRenderedPositionRef = useRef<number[] | null>(null);
-    const compassHeadingRef = useRef<number | null>(null);
-    const lastGpsSpeedRef = useRef(0);
-    const lastGpsSpeedAtRef = useRef(0);
+    const compassHeadingRef = useRef<HeadingSample>(null);
+    const gpsHeadingRef = useRef<HeadingSample>(null);
     const usingGpsHeadingRef = useRef(false);
     const hasAbsoluteEventRef = useRef(false);
     const mapHeadingRef = useRef(0);
@@ -372,13 +371,17 @@ export function useGeolocationTracking({
         setMapHeading(next);
     }, []);
 
-    const isCompassHeadingActive = useCallback(() => {
-        const age = Date.now() - lastGpsSpeedAtRef.current;
-        if (age > GPS_SPEED_FRESHNESS_MS) {
-            return true;
-        }
-        return !usingGpsHeadingRef.current;
+    const currentHeading = useCallback(() => {
+        return selectMapHeading(compassHeadingRef.current, gpsHeadingRef.current,
+            usingGpsHeadingRef.current, mapHeadingRef.current, Date.now());
     }, []);
+
+    useEffect(() => {
+        // Sensor silence has no event. Reconsider the source when a compass
+        // sample expires, even if the next position fix has not arrived yet.
+        const timer = window.setInterval(() => commitMapHeading(currentHeading()), 250);
+        return () => window.clearInterval(timer);
+    }, [commitMapHeading, currentHeading]);
 
     useEffect(() => {
         const handler = (event: DeviceOrientationEvent, isAbsoluteEvent: boolean) => {
@@ -401,25 +404,18 @@ export function useGeolocationTracking({
                 }
                 degrees = (360 - event.alpha) % 360;
             }
-            if (degrees === null || Number.isNaN(degrees)) {
+            if (degrees === null || !Number.isFinite(degrees)) {
                 return;
             }
             const radians = (degrees * Math.PI) / 180;
-            compassHeadingRef.current = radians;
-
-            if (!isCompassHeadingActive()) {
-                return;
-            }
+            compassHeadingRef.current = { radians, receivedAt: Date.now() };
 
             if (compassRafRef.current !== null) {
                 return;
             }
             compassRafRef.current = requestAnimationFrame(() => {
                 compassRafRef.current = null;
-                const latest = compassHeadingRef.current;
-                if (latest === null) return;
-                if (!isCompassHeadingActive()) return;
-                commitMapHeading(latest);
+                commitMapHeading(currentHeading());
             });
         };
 
@@ -437,7 +433,7 @@ export function useGeolocationTracking({
                 compassRafRef.current = null;
             }
         };
-    }, [commitMapHeading, isCompassHeadingActive]);
+    }, [commitMapHeading, currentHeading]);
 
     const onGeolocationChange = useCallback((event: { target: OLGeoLoc }) => {
         const geoloc = event.target as OLGeoLoc;
@@ -467,20 +463,18 @@ export function useGeolocationTracking({
         const prevHeading = previous && previous[2];
         const gpsHeading = geoloc.getHeading();
         const speed = geoloc.getSpeed() ?? 0;
-        lastGpsSpeedRef.current = speed;
-        lastGpsSpeedAtRef.current = m;
+        const validGpsHeading = typeof gpsHeading === "number" && Number.isFinite(gpsHeading);
+        gpsHeadingRef.current = validGpsHeading ? { radians: gpsHeading, receivedAt: m } : null;
 
         if (usingGpsHeadingRef.current) {
-            if (speed < GPS_HEADING_EXIT_MPS || gpsHeading === undefined) {
+            if (!Number.isFinite(speed) || speed < GPS_HEADING_EXIT_MPS || !validGpsHeading) {
                 usingGpsHeadingRef.current = false;
             }
-        } else if (speed >= GPS_HEADING_ENTER_MPS && gpsHeading !== undefined) {
+        } else if (Number.isFinite(speed) && speed >= GPS_HEADING_ENTER_MPS && validGpsHeading) {
             usingGpsHeadingRef.current = true;
         }
 
-        const rawHeading = usingGpsHeadingRef.current
-            ? (gpsHeading as number)
-            : compassHeadingRef.current ?? gpsHeading ?? 0;
+        const rawHeading = currentHeading();
 
         let newHeading = rawHeading;
         if (prevHeading !== undefined) {
@@ -505,7 +499,7 @@ export function useGeolocationTracking({
 
         updateView(m);
         startAnimationLoop();
-    }, [commitMapHeading, startAnimationLoop, updateView]);
+    }, [commitMapHeading, currentHeading, startAnimationLoop, updateView]);
 
     useEffect(() => {
         return () => {
