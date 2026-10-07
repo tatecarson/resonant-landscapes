@@ -246,6 +246,35 @@ test.describe("before the walk: the welcome preflight", () => {
         await shotOf(page, WELCOME_PANEL, "02-preflight-no-orientation");
     });
 
+    test("asks an iPhone for the compass from Start, without switching rotation on", async ({ page }) => {
+        // The map's arrow needs the compass on the way to the first spot,
+        // and iOS only asks from a tap. Enable rotation at a spot was the
+        // only tap that asked, so the arrow went unanswered until then
+        // (rl-d0z). Nothing is stored: that grant is what turns head
+        // rotation on at a spot, and it stays the walker's choice.
+        await stubFixesAtPark(page);
+        await page.addInitScript(() => {
+            const w = window as unknown as { __compassAsks: number };
+            w.__compassAsks = 0;
+            (window.DeviceOrientationEvent as unknown as {
+                requestPermission: () => Promise<string>;
+            }).requestPermission = async () => {
+                w.__compassAsks += 1;
+                return "granted";
+            };
+        });
+        await page.goto("/");
+        await expect(page.getByText(/ask to use motion and orientation/i)).toBeVisible();
+        await startWalk(page);
+
+        await expect
+            .poll(() => page.evaluate(() => (window as unknown as { __compassAsks: number }).__compassAsks))
+            .toBe(1);
+        expect(
+            await page.evaluate(() => window.localStorage.getItem("deviceOrientationPermission"))
+        ).toBeNull();
+    });
+
     test("blocks and offers to start anyway when location is missing entirely", async ({ page }) => {
         await removeCapability(page, "geolocation");
         await page.goto("/");

@@ -96,6 +96,43 @@ export function watchOrientationAvailability(
   return cleanup;
 }
 
+/**
+ * Ask iOS for the compass, for the map's sake, from the Start tap.
+ *
+ * Without this the only request was the Enable rotation button at a
+ * listening spot, so on an iPhone no orientation event arrived on the way
+ * there. The map then turned only from the GPS course, which needs a brisk
+ * walk, and fell back to north whenever the walker slowed: the arrow was
+ * right some of the time and wrong the rest, on the stretch where it is
+ * the only thing pointing at the next spot (rl-d0z).
+ *
+ * Nothing is stored. The stored grant is what auto-enables head rotation at
+ * a spot, and that stays the walker's choice; asking again from Enable
+ * rotation answers at once without a second prompt.
+ *
+ * Must be called inside the tap itself: iOS refuses the request otherwise.
+ * Elsewhere there is nothing to ask, and this does nothing.
+ */
+export function requestCompassForMap(): Promise<boolean> {
+  if (typeof window === "undefined" || typeof DeviceOrientationEvent === "undefined") {
+    return Promise.resolve(false);
+  }
+
+  const DOE = DeviceOrientationEvent as IOSDeviceOrientationEvent;
+  if (typeof DOE.requestPermission !== "function") {
+    return Promise.resolve(true);
+  }
+
+  try {
+    return DOE.requestPermission().then(
+      (permission) => permission === "granted",
+      () => false
+    );
+  } catch {
+    return Promise.resolve(false);
+  }
+}
+
 export async function requestDeviceOrientationPermission(): Promise<boolean> {
   if (typeof window === "undefined" || typeof DeviceOrientationEvent === "undefined") {
     return false;

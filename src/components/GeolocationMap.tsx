@@ -4,6 +4,7 @@ import { LineString, Point } from "ol/geom";
 import TileLayer from "ol/layer/Tile";
 import type TileSource from "ol/source/Tile";
 import { unByKey } from "ol/Observable";
+import { Icon, Style } from "ol/style";
 import { fromLonLat, toLonLat } from "ol/proj";
 import {
     RControl,
@@ -226,13 +227,19 @@ function ZoomBoundsController({
     return null;
 }
 
+/** Where the icon's dot sits, so it turns about the dot and not the tip. */
+const LOCATION_ICON_ANCHOR = [0.5, 52 / 96];
+
 const GeolocationPositionLayer = memo(function GeolocationPositionLayer({
     position,
     accuracy,
+    heading,
     showPositionIcon = true,
 }: {
     position: number[] | null;
     accuracy: LineString | null;
+    /** Radians clockwise from north, the same heading the map turns by. */
+    heading: number;
     showPositionIcon?: boolean;
 }): JSX.Element {
     useRenderDebug("GeolocationPositionLayer", {
@@ -241,13 +248,50 @@ const GeolocationPositionLayer = memo(function GeolocationPositionLayer({
         showPositionIcon,
     });
 
+    /*
+     * The arrow is turned to the heading on the ground, and the view's own
+     * rotation is added on top of that.
+     *
+     * It used to be drawn pointing up the screen, which was only right
+     * because the map turned under it. Once the walker panned or pinched,
+     * the map stopped turning and the arrow kept pointing up, so it said
+     * nothing about which way they faced until Recenter (rl-d0z). Turned in
+     * map space, it points the right way in both states: while following,
+     * the view's -heading cancels it and it points up exactly as before.
+     */
+    const markerStyle = useMemo(
+        () =>
+            new Style({
+                image: new Icon({
+                    src: locationIcon,
+                    anchor: LOCATION_ICON_ANCHOR,
+                    scale: 0.62,
+                    rotation: heading,
+                    rotateWithView: true,
+                }),
+            }),
+        [heading]
+    );
+
+    useEffect(() => {
+        if (!isDebugEnabled()) {
+            return;
+        }
+        const icon = markerStyle.getImage();
+        window.__positionMarker = {
+            rotation: icon?.getRotation() ?? 0,
+            rotateWithView: icon?.getRotateWithView() ?? false,
+        };
+    }, [markerStyle]);
+
     return (
         <RLayerVector zIndex={10}>
             <RStyle.RStyle>
-                <RStyle.RIcon src={locationIcon} anchor={[0.5, 52 / 96]} scale={0.62} />
                 <RStyle.RStroke color={withAlpha(palette.edge, 0.28)} width={2} />
             </RStyle.RStyle>
-            {showPositionIcon && position && <RFeature geometry={new Point(position)}></RFeature>}
+            {showPositionIcon && position && (
+                <RFeature geometry={new Point(position)} style={markerStyle}></RFeature>
+            )}
             {accuracy && <RFeature geometry={accuracy as LineString}></RFeature>}
         </RLayerVector>
     );
@@ -519,8 +563,12 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         }
     }, [map, parkName, parkDistance, prefersReducedMotion]);
 
+    // Pinned to the middle of the screen, so it is only true while the map
+    // is centred on the walker. Once they pan it would sit over some other
+    // patch of ground, so the map's own marker takes over.
     const showCenteredGeolocationMarker =
         Boolean(position) &&
+        !followSuspended &&
         userOrientationEnabled &&
         parkDistance <= CENTER_ROTATION_RADIUS_METERS;
 
@@ -549,6 +597,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                 center: view.getCenter() as [number, number] | null,
                 position: [position[0], position[1]],
                 rotation,
+                viewRotation: view.getRotation(),
                 centerOnUser: !followSuspended,
                 markerPixel: markerPixel as [number, number] | null,
                 viewportSize: viewportSize as [number, number] | null,
@@ -589,6 +638,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
             <GeolocationPositionLayer
                 position={position}
                 accuracy={accuracy}
+                heading={mapHeading}
                 showPositionIcon={!showCenteredGeolocationMarker}
             />
             <CenteredGeolocationMarker active={showCenteredGeolocationMarker} />

@@ -85,6 +85,10 @@ describe("the Chatham placement", () => {
     it("puts all 13 parks on the campus", () => {
         expect(points).toHaveLength(13);
         for (const park of points) {
+            // Hand pins were chosen standing on the ground, which knows the
+            // campus better than the OSM outline does. Sica Hollow's sits
+            // about 13 m past it (rl-1e7).
+            if (park.name in chathamFieldPins) continue;
             expect(
                 booleanPointInPolygon(
                     point(park.scaledCoords as Coordinate),
@@ -233,8 +237,9 @@ describe("room around each point", () => {
  * fence, which is padlocked, and has moved (rl-wc3.3.1).
  *
  * Those four have since been placed by hand from his second walk (rl-iys)
- * and are held by the next block, so the nine fine ones are what is left
- * here.
+ * and are held by the next block. So has Sica Hollow, one of the nine: it
+ * was fine to stand at but stood in a driveway (rl-1e7). The other eight are
+ * what is left here.
  *
  * Placement is computed, so any change to the no-go data or the placement
  * code can move a point, and nothing in the other tests would object: a
@@ -244,7 +249,6 @@ describe("room around each point", () => {
  */
 describe("the Chatham points the field walk checked", () => {
     const WALKED_2026_09_30: Record<string, Coordinate> = {
-        "Sica Hollow State Park": [-79.923763, 40.446603],
         "Roy Lake State Park": [-79.923127, 40.446821],
         "Fort Sisseton Historic State Park": [-79.92324, 40.447017],
         "Hartford Beach State Park": [-79.924308, 40.446069],
@@ -293,7 +297,7 @@ describe("the Chatham points placed by hand", () => {
     const points = getScaledPoints("chatham");
 
     it("puts each hand-placed park on its pin", () => {
-        expect(Object.keys(chathamFieldPins)).toHaveLength(4);
+        expect(Object.keys(chathamFieldPins)).toHaveLength(5);
         for (const [name, pin] of Object.entries(chathamFieldPins)) {
             const park = points.find((p) => p.name === name);
             expect(park, `${name} is not a park`).toBeDefined();
@@ -307,6 +311,8 @@ describe("the Chatham points placed by hand", () => {
             "Palisades State Park": [-79.925066, 40.447182],
             "Union Grove State Park": [-79.925237, 40.447418],
             "Oakwood Lakes State Park": [-79.924965, 40.445194],
+            // In a driveway on Murray Hill Place (rl-1e7).
+            "Sica Hollow State Park": [-79.923763, 40.446603],
         };
         for (const [name, was] of Object.entries(before)) {
             const park = points.find((p) => p.name === name)!;
