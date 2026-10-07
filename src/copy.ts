@@ -341,6 +341,12 @@ export const audio = {
          * The detail still goes to the console and the debug panel.
          */
         detail: "This park's sound could not start. Try again. If it still fails, check your connection or reload the page.",
+        /**
+         * When the download is what failed. The walk keeps trying by itself
+         * while the walker is at the park, so there is nothing they have to
+         * do, and reloading is no longer the advice (rl-kv0).
+         */
+        detailRetrying: "The sound did not finish downloading. It will keep trying while you are here, or you can tap Retry.",
         retry: "Retry audio load",
     },
     /** Shown when the browser could not play the 8-channel recording. */

@@ -86,6 +86,9 @@ describe("fetchAudioBytes", () => {
 
     beforeEach(async () => {
         harness = await loadHarness();
+        // Retries are on by default; these cases are about what is served,
+        // not how patiently, so they should not sit through the real pauses.
+        harness.offlineCache.setFetchTimingForTests({ backoffMs: [0] });
     });
 
     afterEach(() => {
@@ -189,6 +192,150 @@ describe("fetchAudioBytes", () => {
 
         expect(events).toContain("cache-write");
         expect(events).toContain("cache-hit");
+    });
+});
+
+/**
+ * A network that drops out rather than one that is simply absent (rl-kv0).
+ *
+ * The walk used to wait on a stalled download for ever: no error, so no
+ * Retry button, and "Loading audio" until the walker reloaded the page.
+ */
+describe("fetchAudioBytes on a network that drops out", () => {
+    let harness: Harness;
+    const [spatialUrl] = hartfordVariant();
+
+    /** A body that sends `first` bytes and then goes quiet, holding the connection open. */
+    function stallingResponse(first: number, signal?: AbortSignal | null) {
+        const body = new ReadableStream<Uint8Array>({
+            start(controller) {
+                controller.enqueue(new Uint8Array(first));
+                signal?.addEventListener("abort", () => controller.error(new DOMException("Aborted", "AbortError")));
+            },
+        });
+        return new Response(body, { status: 200 });
+    }
+
+    /** A body that keeps arriving, slowly: `pieces` chunks, `gapMs` apart. */
+    function tricklingResponse(pieces: number, gapMs: number) {
+        let sent = 0;
+        const body = new ReadableStream<Uint8Array>({
+            async pull(controller) {
+                await new Promise((resolve) => setTimeout(resolve, gapMs));
+                controller.enqueue(new Uint8Array(10));
+                sent += 1;
+                if (sent === pieces) controller.close();
+            },
+        });
+        return new Response(body, { status: 200 });
+    }
+
+    /** A request that is never answered, until it is aborted. */
+    function neverAnswered(signal?: AbortSignal | null) {
+        return new Promise<Response>((_, reject) => {
+            signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+        });
+    }
+
+    beforeEach(async () => {
+        harness = await loadHarness();
+        harness.offlineCache.setFetchTimingForTests({
+            connectMs: 40,
+            stallMs: 40,
+            attempts: 3,
+            backoffMs: [5],
+        });
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it("gives up on a download that stops arriving, and tries again", async () => {
+        let calls = 0;
+        harness.fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => {
+            calls += 1;
+            return calls === 1 ? stallingResponse(50, init?.signal) : okResponse(100);
+        });
+
+        const result = await harness.offlineCache.fetchAudioBytes(spatialUrl, new AbortController().signal);
+        expect(result.bytes.byteLength).toBe(100);
+        expect(calls).toBe(2);
+    });
+
+    it("gives up on a server that never answers, and tries again", async () => {
+        let calls = 0;
+        harness.fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => {
+            calls += 1;
+            return calls === 1 ? neverAnswered(init?.signal) : okResponse(100);
+        });
+
+        const result = await harness.offlineCache.fetchAudioBytes(spatialUrl, new AbortController().signal);
+        expect(result.bytes.byteLength).toBe(100);
+        expect(calls).toBe(2);
+    });
+
+    it("lets a slow download finish as long as it keeps arriving", async () => {
+        // Ten pieces 15 ms apart is 150 ms in all, far past the 40 ms
+        // watchdog, but never 40 ms without progress.
+        harness.fetchMock.mockImplementation(async () => tricklingResponse(10, 15));
+
+        const result = await harness.offlineCache.fetchAudioBytes(spatialUrl, new AbortController().signal);
+        expect(result.bytes.byteLength).toBe(100);
+        expect(harness.fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("asks a struggling server again, but not about a file it does not have", async () => {
+        let calls = 0;
+        harness.fetchMock.mockImplementation(async () => {
+            calls += 1;
+            return calls === 1 ? new Response(null, { status: 503 }) : okResponse(100);
+        });
+        const result = await harness.offlineCache.fetchAudioBytes(spatialUrl, new AbortController().signal);
+        expect(result.bytes.byteLength).toBe(100);
+
+        harness.fetchMock.mockReset();
+        harness.fetchMock.mockImplementation(async () => new Response(null, { status: 404 }));
+        const [, otherUrl] = hartfordVariant();
+        await expect(harness.offlineCache.fetchAudioBytes(otherUrl, new AbortController().signal))
+            .rejects.toThrow("404");
+        expect(harness.fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("stops after its last try and reports the failure", async () => {
+        harness.fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => stallingResponse(50, init?.signal));
+
+        await expect(harness.offlineCache.fetchAudioBytes(spatialUrl, new AbortController().signal))
+            .rejects.toThrow(harness.offlineCache.AudioFetchStalledError);
+        expect(harness.fetchMock).toHaveBeenCalledTimes(3);
+    });
+
+    it("answers from the cache at once rather than waiting out the retries", async () => {
+        harness.fetchMock.mockImplementation(async () => okResponse(100));
+        await harness.offlineCache.fetchAudioBytes(spatialUrl, new AbortController().signal);
+        await flushMicrotasks();
+
+        harness.fetchMock.mockReset();
+        harness.fetchMock.mockImplementation(async () => {
+            throw new Error("network unreachable");
+        });
+        const result = await harness.offlineCache.fetchAudioBytes(spatialUrl, new AbortController().signal);
+        expect(result.fromCache).toBe(true);
+        expect(harness.fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("stops waiting to retry the moment the load is abandoned", async () => {
+        harness.offlineCache.setFetchTimingForTests({ attempts: 3, backoffMs: [10_000] });
+        harness.fetchMock.mockImplementation(async () => {
+            throw new Error("network unreachable");
+        });
+        const controller = new AbortController();
+        const load = harness.offlineCache.fetchAudioBytes(spatialUrl, controller.signal);
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        controller.abort();
+
+        await expect(load).rejects.toThrow("Aborted");
+        expect(harness.fetchMock).toHaveBeenCalledTimes(1);
     });
 });
 

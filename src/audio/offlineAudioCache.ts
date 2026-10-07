@@ -62,7 +62,9 @@ export type OfflineCacheEvent =
     | { kind: "cache-write"; url: string }
     | { kind: "cache-write-failed"; url: string; error: string }
     | { kind: "cache-hit"; url: string }
-    | { kind: "cache-evicted"; urls: string[] };
+    | { kind: "cache-evicted"; urls: string[] }
+    | { kind: "fetch-stalled"; url: string; attempt: number }
+    | { kind: "fetch-retry"; url: string; attempt: number; error: string };
 
 type EventSink = (event: OfflineCacheEvent) => void;
 let eventSink: EventSink | null = null;
@@ -398,7 +400,172 @@ async function readCached(url: string): Promise<ArrayBuffer | null> {
 }
 
 /**
- * The fetch seam, network-first with the cache as its fallback.
+ * How long a download may go without progress, and how often it is tried.
+ *
+ * There was no limit at all. A phone on thin 5G can hold a connection open
+ * that has stopped delivering anything, and fetch waits on it indefinitely:
+ * no error, so no Retry button, just "Loading audio" until the walker gave
+ * up and reloaded the page (rl-kv0). The watchdog measures silence, not
+ * duration, so a slow download that keeps arriving is never cut off; only
+ * one that has stopped is.
+ */
+export interface AudioFetchTiming {
+    /** From the request to the first response headers. */
+    connectMs: number;
+    /** Longest gap between two pieces of the body. */
+    stallMs: number;
+    /** Tries per file, the first included. */
+    attempts: number;
+    /** Pause before each retry; the last value repeats. */
+    backoffMs: number[];
+}
+
+const DEFAULT_FETCH_TIMING: AudioFetchTiming = {
+    connectMs: 20_000,
+    stallMs: 15_000,
+    attempts: 3,
+    backoffMs: [1_000, 3_000],
+};
+
+let fetchTimingOverride: Partial<AudioFetchTiming> | null = null;
+
+/** Test seam. The real walk never calls this. */
+export function setFetchTimingForTests(timing: Partial<AudioFetchTiming> | null) {
+    fetchTimingOverride = timing;
+}
+
+/**
+ * The timing in force. Browser specs cannot reach the module, so they may set
+ * window.__audioFetchTiming before the page loads; nothing else does.
+ */
+function fetchTiming(): AudioFetchTiming {
+    const fromPage = typeof window !== "undefined"
+        ? (window as Window & { __audioFetchTiming?: Partial<AudioFetchTiming> }).__audioFetchTiming
+        : undefined;
+    return { ...DEFAULT_FETCH_TIMING, ...fromPage, ...fetchTimingOverride };
+}
+
+/** A download that stopped arriving, as opposed to one that failed. */
+export class AudioFetchStalledError extends Error {
+    constructor(url: string) {
+        super(`Download stopped arriving: ${url}`);
+        this.name = "AudioFetchStalledError";
+    }
+}
+
+/** The server answered, with a status that is not the file. */
+export class AudioFetchStatusError extends Error {
+    constructor(url: string, readonly status: number) {
+        super(`Failed to fetch ${url} (${status})`);
+        this.name = "AudioFetchStatusError";
+    }
+}
+
+/**
+ * Whether a failed load is the network's fault, and so worth trying again
+ * later on its own. A file that decodes wrong or is missing will fail the same
+ * way every time, and retrying it would download ten megabytes to find out.
+ * fetch reports a dropped connection as a TypeError in every engine.
+ */
+export function isNetworkFailure(error: unknown): boolean {
+    if (error instanceof AudioFetchStalledError) return true;
+    if (error instanceof AudioFetchStatusError) return isTransientStatus(error.status);
+    return error instanceof TypeError;
+}
+
+/** Worth asking again: the server or the path is struggling, not refusing. */
+const isTransientStatus = (status: number) =>
+    status === 408 || status === 425 || status === 429 || status >= 500;
+
+function waitFor(ms: number, signal: AbortSignal): Promise<void> {
+    return new Promise((resolve, reject) => {
+        if (signal.aborted) {
+            reject(new DOMException("Aborted", "AbortError"));
+            return;
+        }
+        const timer = setTimeout(() => {
+            signal.removeEventListener("abort", onAbort);
+            resolve();
+        }, ms);
+        const onAbort = () => {
+            clearTimeout(timer);
+            reject(new DOMException("Aborted", "AbortError"));
+        };
+        signal.addEventListener("abort", onAbort, { once: true });
+    });
+}
+
+type Attempt =
+    | { ok: true; bytes: ArrayBuffer; response: Response }
+    | { ok: false; response: Response };
+
+/**
+ * One try at one file, under a watchdog that aborts it the moment it has
+ * gone quiet for too long. The caller's signal still cancels it outright.
+ */
+async function fetchOnce(url: string, signal: AbortSignal, timing: AudioFetchTiming, attempt: number): Promise<Attempt> {
+    const controller = new AbortController();
+    const forwardAbort = () => controller.abort();
+    if (signal.aborted) controller.abort();
+    signal.addEventListener("abort", forwardAbort, { once: true });
+
+    let stalled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const arm = (ms: number) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            stalled = true;
+            emit({ kind: "fetch-stalled", url, attempt });
+            controller.abort();
+        }, ms);
+    };
+
+    try {
+        arm(timing.connectMs);
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) {
+            void response.body?.cancel().catch(() => {});
+            return { ok: false, response };
+        }
+
+        arm(timing.stallMs);
+        const reader = response.body?.getReader();
+        if (!reader) {
+            return { ok: true, bytes: await response.arrayBuffer(), response };
+        }
+        const chunks: Uint8Array[] = [];
+        let length = 0;
+        for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+            length += value.byteLength;
+            arm(timing.stallMs);
+        }
+        const joined = new Uint8Array(length);
+        let offset = 0;
+        for (const chunk of chunks) {
+            joined.set(chunk, offset);
+            offset += chunk.byteLength;
+        }
+        return { ok: true, bytes: joined.buffer, response };
+    } catch (error) {
+        if (stalled && !signal.aborted) throw new AudioFetchStalledError(url);
+        throw error;
+    } finally {
+        clearTimeout(timer);
+        signal.removeEventListener("abort", forwardAbort);
+    }
+}
+
+/**
+ * The fetch seam, network-first with the cache as its fallback, and patient
+ * with a network that drops out.
+ *
+ * Each file is tried up to `attempts` times. A failure is answered from the
+ * cache first when the cache holds the file, so a walk with no signal at all
+ * replays at once instead of sitting through the retries; only a file the
+ * walk does not hold waits for the network to come back.
  *
  * The signal is respected the way the loader expects: an aborted load throws,
  * cache or no cache, and a response that arrived whole for a load that was
@@ -411,46 +578,47 @@ async function readCached(url: string): Promise<ArrayBuffer | null> {
  * past — the exact cost the abort was raised to avoid.
  */
 export async function fetchAudioBytes(url: string, signal: AbortSignal): Promise<AudioBytesResult> {
-    let response: Response;
-    try {
-        response = await fetch(url, { signal });
-    } catch (error) {
-        if (signal.aborted) throw error;
-        const cached = await readCached(url);
-        if (cached) return { bytes: cached, fromCache: true };
-        throw error;
+    const timing = fetchTiming();
+    let lastError: unknown = null;
+    let checkedCache = false;
+
+    for (let attempt = 1; attempt <= timing.attempts; attempt += 1) {
+        try {
+            const result = await fetchOnce(url, signal, timing, attempt);
+            if (result.ok) {
+                if (!signal.aborted) {
+                    // A copy, taken now: the decoder detaches the original.
+                    void writeThrough(url, new Response(result.bytes.slice(0), {
+                        headers: result.response.headers,
+                    }));
+                }
+                return { bytes: result.bytes, fromCache: false };
+            }
+            lastError = new AudioFetchStatusError(url, result.response.status);
+            if (!isTransientStatus(result.response.status)) break;
+        } catch (error) {
+            if (signal.aborted) throw error;
+            lastError = error;
+        }
+
+        if (!checkedCache) {
+            checkedCache = true;
+            const cached = await readCached(url);
+            if (cached) return { bytes: cached, fromCache: true };
+        }
+        if (attempt < timing.attempts) {
+            const message = lastError instanceof Error ? lastError.message : String(lastError);
+            emit({ kind: "fetch-retry", url, attempt: attempt + 1, error: message });
+            const pause = timing.backoffMs[Math.min(attempt - 1, timing.backoffMs.length - 1)] ?? 0;
+            await waitFor(pause, signal);
+        }
     }
 
-    if (!response.ok) {
+    if (!checkedCache) {
         const cached = await readCached(url);
         if (cached) return { bytes: cached, fromCache: true };
-        throw new Error(`Failed to fetch ${url} (${response.status})`);
     }
-
-    // Clone while the body is still readable — a clone taken after the
-    // arrayBuffer lands is an empty shell. Keep a response that arrived
-    // whole even if the load was abandoned after it did: the bytes cost the
-    // same either way, and the park they belong to is usually the one being
-    // walked towards. A fetch that threw mid-flight never reaches this line.
-    const saved = signal.aborted ? null : response.clone();
-    let bytes: ArrayBuffer;
-    try {
-        bytes = await response.arrayBuffer();
-    } catch (error) {
-        // The body died part-way down: signal lost mid-download, which is the
-        // thin-signal case this cache is for. Same fallback as a fetch that
-        // never connected — and the clone is cancelled rather than left
-        // holding a locked stream over the half of the park that did arrive.
-        void saved?.body?.cancel().catch(() => {});
-        if (signal.aborted) throw error;
-        const cached = await readCached(url);
-        if (cached) return { bytes: cached, fromCache: true };
-        throw error;
-    }
-    if (saved) {
-        void writeThrough(url, saved);
-    }
-    return { bytes, fromCache: false };
+    throw lastError;
 }
 
 /**

@@ -36,6 +36,7 @@ export type AudioEvent =
     | "resume-requested"
     | "context-resumed"
     | "resume-error"
+    | "resume-needs-tap"
     | "audio-unlocked"
     | "unlock-error"
     | "interruption-resume-requested"
