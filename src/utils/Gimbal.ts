@@ -52,6 +52,20 @@ class Gimbal {
     pitch = 0;
     roll = 0;
 
+    /**
+     * How far the walker has turned since the last recalibration, in radians,
+     * clockwise from above: turning right is positive.
+     *
+     * Not `yaw`. yaw is measured about the phone's own axis at calibration, so
+     * a body turn only reads as yaw when the phone is held upright: measured
+     * at a 45 degree reading angle a quarter turn came out as 55 degrees of
+     * yaw with 45 of pitch and 55 of roll, and held flat as no yaw at all
+     * (rl-vnjn). alpha is the turn about the vertical whatever the tilt, and
+     * on iOS it is the compass, which the map already trusts.
+     */
+    turn = 0;
+    private alphaAtCalibration = 0;
+
     quaternion: Quat = identityQuat();
     quatOrigin: Quat = identityQuat();
     eulerOrigin: Vec3 = { x: 0, y: 0, z: 0 };
@@ -122,6 +136,7 @@ class Gimbal {
     /** Re-zero the axes against the current pose. */
     performRecalibration() {
         this.quatOrigin = invertQuat(this.sensorQuaternion());
+        this.alphaAtCalibration = this.data.alpha;
         this.recalRequested = false;
     }
 
@@ -206,6 +221,10 @@ class Gimbal {
 
         // Roll is left (-) or right (+) rotation around the local z-axis.
         this.roll = Math.atan2(-this.vectorUp.x, this.vectorUp.y);
+
+        // alpha grows anticlockwise; a turn to the right is positive here.
+        const turn = (this.alphaAtCalibration - this.data.alpha) * RAD;
+        this.turn = Math.atan2(Math.sin(turn), Math.cos(turn));
 
         this.needsUpdate = false;
     }

@@ -21,6 +21,8 @@ interface Window {
   __gimbalOrientation?: {
     fwdX: number; fwdY: number; fwdZ: number;
     upX: number; upY: number; upZ: number;
+    /** Radians turned since rotation came on, clockwise from above. */
+    turn: number;
     updatedAt: number;
   };
   __audioDebug?: {

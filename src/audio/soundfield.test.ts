@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createSoundfieldInput, gainAtDistance, listenerRotationMatrix, setSoundfieldGimbalOrientation } from "./soundfield";
+import { createSoundfieldInput, gainAtDistance, listenerRotationMatrix, setSoundfieldTurn } from "./soundfield";
 
 const node = () => ({
     connect: vi.fn(), gain: { value: 1, setTargetAtTime: vi.fn() },
@@ -58,18 +58,32 @@ describe("listener orientation", () => {
             .toEqual([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
     });
 
-    it("converts Gimbal's inverse basis for neutral, right and upward poses", () => {
+    // Turning only (rl-vnjn): the field turns about the vertical with the
+    // walker and stays level whatever the phone is doing.
+    it("faces front at no turn and right after a quarter turn right", () => {
         const scene = { setListenerFromMatrix: vi.fn() };
-        for (const [f, u, forward, up] of [
-            [[0,0,1], [0,1,0], [0,0,-1], [0,1,0]],
-            [[1,0,0], [0,1,0], [1,0,0], [0,1,0]],
-            [[0,1,0], [0,0,-1], [0,1,0], [0,0,1]],
-        ]) {
-            setSoundfieldGimbalOrientation(scene,
-                { x:f[0], y:f[1], z:f[2] }, { x:u[0], y:u[1], z:u[2] });
+        for (const [turn, forward] of [
+            [0, [0, 0, -1]],
+            [Math.PI / 2, [1, 0, 0]],
+            [Math.PI, [0, 0, 1]],
+            [-Math.PI / 2, [-1, 0, 0]],
+        ] as const) {
+            setSoundfieldTurn(scene, turn);
             const actual = scene.setListenerFromMatrix.mock.lastCall?.[0].elements as number[];
-            listenerRotationMatrix(forward, up).forEach((value, index) =>
+            listenerRotationMatrix(forward, [0, 1, 0]).forEach((value, index) =>
                 expect(actual[index]).toBeCloseTo(value, 8));
+        }
+    });
+
+    it("never tilts the field, at any turn", () => {
+        const scene = { setListenerFromMatrix: vi.fn() };
+        for (let degrees = -180; degrees <= 180; degrees += 15) {
+            setSoundfieldTurn(scene, (degrees * Math.PI) / 180);
+            const actual = scene.setListenerFromMatrix.mock.lastCall?.[0].elements as number[];
+            // The vertical component maps to itself: up stays up.
+            expect(actual[5]).toBeCloseTo(1, 8);
+            expect(actual[1]).toBeCloseTo(0, 8);
+            expect(actual[9]).toBeCloseTo(0, 8);
         }
     });
 });
