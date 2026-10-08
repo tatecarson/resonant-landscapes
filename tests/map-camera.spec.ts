@@ -313,3 +313,127 @@ test.describe("the arrow shows which way the walker faces", () => {
         expect(toDegrees((await arrowOnScreen(page))!)).toBeCloseTo(90, 0);
     });
 });
+
+/** Where the walker's dot sits, in pixels from the middle of the map. */
+const markerOffCentre = (page: Page) =>
+    page.evaluate(() => {
+        const debug = window.__mapDebug;
+        if (!debug?.markerPixel || !debug.viewportSize) return null;
+        return Math.hypot(
+            debug.markerPixel[0] - debug.viewportSize[0] / 2,
+            debug.markerPixel[1] - debug.viewportSize[1] / 2
+        );
+    });
+
+/**
+ * The map keeps following and turning, like a phone's own navigation
+ * (rl-3vib).
+ *
+ * At Chatham any touch that slid the map by a pixel, and every zoom, let go
+ * of it: the arrow kept turning but the map stopped following and stopped
+ * turning until Recenter was found. Zooming now never lets go, a touch has
+ * to travel to count as a pan, and a pan comes back by itself.
+ */
+test.describe("the map follows the walker like navigation", () => {
+    test("zooming with the buttons keeps it following and turning", async ({ page }) => {
+        await startWalk(page);
+        await face(page, 90);
+        await page.locator("button.ol-zoom-out").click();
+        await page.locator("button.ol-zoom-out").click();
+        await page.waitForTimeout(800);
+
+        expect(await zoom(page), "zoom-out did not change the zoom").toBeLessThan(RESTING_ZOOM - 0.5);
+        expect(await centerOnUser(page)).toBe(true);
+        await expect(page.getByTestId("recenter")).toHaveAttribute("data-visible", "false");
+
+        await face(page, 180);
+        expect(toDegrees((await viewRotation(page))!)).toBeCloseTo(180, 0);
+    });
+
+    test("scrolling to zoom keeps it following", async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== "chromium", "A scroll wheel is a desktop thing.");
+        await startWalk(page);
+        await page.waitForTimeout(1500);
+        const box = await page.locator(".map").boundingBox();
+        await page.mouse.move(box!.x + box!.width * 0.8, box!.y + box!.height * 0.3);
+        await page.mouse.wheel(0, 400);
+        await page.waitForTimeout(1200);
+
+        expect(await zoom(page)).toBeLessThan(RESTING_ZOOM - 0.2);
+        expect(await centerOnUser(page)).toBe(true);
+        expect(await markerOffCentre(page)).toBeLessThan(3);
+    });
+
+    test("a touch that slides a few pixels does not let go", async ({ page }) => {
+        await startWalk(page);
+        await page.waitForTimeout(1500);
+        const box = await page.locator(".map").boundingBox();
+        const x = box!.x + box!.width / 2;
+        const y = box!.y + box!.height / 2;
+        await page.mouse.move(x, y);
+        await page.mouse.down();
+        await page.mouse.move(x + 4, y + 3, { steps: 3 });
+        await page.mouse.up();
+        await page.waitForTimeout(800);
+
+        expect(await centerOnUser(page)).toBe(true);
+        await expect(page.getByTestId("recenter")).toHaveAttribute("data-visible", "false");
+        expect(await markerOffCentre(page)).toBeLessThan(3);
+    });
+
+    test("a pan comes back on its own, at the zoom the walker chose", async ({ page }) => {
+        test.setTimeout(45_000);
+        await startWalk(page);
+        await face(page, 90);
+        await panTheMap(page);
+        expect(await centerOnUser(page)).toBe(false);
+
+        await page.locator("button.ol-zoom-out").click();
+        await page.waitForTimeout(600);
+        const chosen = (await zoom(page))!;
+        expect(chosen).toBeLessThan(RESTING_ZOOM - 0.2);
+
+        // Turned while looking around; the map waits.
+        await face(page, 180);
+        expect(toDegrees((await viewRotation(page))!)).toBeCloseTo(270, 0);
+
+        // Eight seconds untouched, and it is following again, turned to the
+        // way the walker now faces, at their zoom rather than the resting one.
+        await expect.poll(() => centerOnUser(page), { timeout: 12_000 }).toBe(true);
+        await expect(page.getByTestId("recenter")).toHaveAttribute("data-visible", "false");
+        expect(await zoom(page)).toBeCloseTo(chosen, 2);
+        await face(page, 200);
+        expect(toDegrees((await viewRotation(page))!)).toBeCloseTo(160, 0);
+    });
+
+    test("a two-finger pinch zooms without letting go", async ({ page, context }, testInfo) => {
+        test.skip(testInfo.project.name !== "pixel-7", "Real touch input needs Chromium on a touch device.");
+        await startWalk(page);
+        await face(page, 90);
+        await page.waitForTimeout(1500);
+        const box = (await page.locator(".map").boundingBox())!;
+        const cx = box.x + box.width / 2;
+        const cy = box.y + box.height / 3;
+
+        const cdp = await context.newCDPSession(page);
+        const fingers = (spread: number) => [
+            { x: cx - spread, y: cy, id: 1 },
+            { x: cx + spread, y: cy, id: 2 },
+        ];
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: fingers(60) });
+        for (let spread = 60; spread >= 20; spread -= 5) {
+            await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: fingers(spread) });
+            await page.waitForTimeout(30);
+        }
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+        await page.waitForTimeout(1200);
+
+        expect(await zoom(page), "the pinch did not zoom").toBeLessThan(RESTING_ZOOM - 0.3);
+        expect(await centerOnUser(page)).toBe(true);
+        await expect(page.getByTestId("recenter")).toHaveAttribute("data-visible", "false");
+        expect(await markerOffCentre(page)).toBeLessThan(3);
+        // And it still turns, rather than keeping a twist from the fingers.
+        await face(page, 180);
+        expect(toDegrees((await viewRotation(page))!)).toBeCloseTo(180, 0);
+    });
+});
