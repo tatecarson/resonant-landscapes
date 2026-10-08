@@ -5,6 +5,7 @@ import TileLayer from "ol/layer/Tile";
 import type TileSource from "ol/source/Tile";
 import { unByKey } from "ol/Observable";
 import { Icon, Style } from "ol/style";
+import { DragRotate, MouseWheelZoom, PinchRotate } from "ol/interaction";
 import { fromLonLat, toLonLat } from "ol/proj";
 import {
     RControl,
@@ -63,6 +64,11 @@ import type { Variant, MockPosition } from "../App";
 import locationIcon from "../assets/geolocation_marker_heading.svg";
 import { palette, withAlpha } from "../theme/palette";
 
+
+/** How far a finger has to travel before a touch counts as a pan, in CSS px. */
+const PAN_THRESHOLD_PX = 12;
+/** How long a panned map waits, untouched, before following again. */
+const AUTO_RECENTER_MS = 8_000;
 
 function locationStatusMessage(
     status: LocationStatus,
@@ -464,35 +470,29 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     }, [map]);
 
     /**
-     * The map follows the walker until they drag or pinch it, and then stops
-     * until they ask for it back.
+     * The map follows the walker and turns with them, like a phone's own
+     * navigation, and lets go only for a deliberate pan.
      *
      * It used to call setCenter on every position fix with nothing able to
      * interrupt it, so a pan snapped back within a second and the map could
      * not be used to look anywhere but at your own feet. Every comparable
      * piece allows this: 37 of the 38 locative audio tours surveyed by Roth et
      * al. (LBS 2023) support pan, and 38 of 38 support zoom.
+     *
+     * The fix for that went too far the other way. Any touch that slid the
+     * map by a pixel, which is OpenLayers' drag tolerance and most taps, and
+     * every pinch or scroll to zoom, released the map until Recenter was
+     * found. At Chatham that read as the map no longer turning or following
+     * at all (rl-3vib). Now zooming never releases it, a touch has to travel
+     * PAN_THRESHOLD_PX to count as a pan, and a panned map comes back by
+     * itself AUTO_RECENTER_MS after the finger lifts, at whatever zoom the
+     * walker chose.
      */
     const [followSuspended, setFollowSuspended] = useState(false);
+    const followSuspendedRef = useRef(false);
+    followSuspendedRef.current = followSuspended;
 
-    useEffect(() => {
-        if (!map) {
-            return;
-        }
-
-        const suspend = () => setFollowSuspended(true);
-        const dragKey = map.on("pointerdrag", suspend);
-        // Wheel and pinch never reach pointerdrag; both arrive here.
-        const viewport = map.getViewport();
-        viewport.addEventListener("wheel", suspend, { passive: true });
-
-        return () => {
-            unByKey(dragKey);
-            viewport.removeEventListener("wheel", suspend);
-        };
-    }, [map]);
-
-    const recenter = useCallback(() => {
+    const recenter = useCallback((keepZoom = false) => {
         const view = map?.getView();
         if (!view || !position) {
             return;
@@ -501,7 +501,13 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         view.animate(
             {
                 center: [position[0], position[1]] as [number, number],
-                zoom: RESTING_ZOOM,
+                // Turn back to the walker's heading on the way, rather than
+                // snapping to it the frame following resumes.
+                rotation: -mapHeading,
+                // The button restores the walk's one scale. Coming back on
+                // its own keeps the zoom the walker picked: they may have
+                // zoomed out on purpose to see the next spot.
+                zoom: keepZoom ? undefined : RESTING_ZOOM,
                 // Reduced motion gets the same destination, arrived at instantly.
                 duration: prefersReducedMotion ? 0 : 400,
             },
@@ -518,7 +524,70 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
                 }
             }
         );
-    }, [map, position, prefersReducedMotion]);
+    }, [map, mapHeading, position, prefersReducedMotion]);
+    const recenterRef = useRef(recenter);
+    recenterRef.current = recenter;
+
+    useEffect(() => {
+        if (!map) {
+            return;
+        }
+
+        // The compass turns this map. A two-finger twist fighting it would
+        // be undone on the next reading, so it is not offered. Zooming by
+        // wheel stays on the walker instead of the pointer, since the map is
+        // about to put the walker back in the middle anyway.
+        for (const interaction of [...map.getInteractions().getArray()]) {
+            if (interaction instanceof PinchRotate || interaction instanceof DragRotate) {
+                map.removeInteraction(interaction);
+            } else if (interaction instanceof MouseWheelZoom) {
+                interaction.setMouseAnchor(false);
+            }
+        }
+
+        const viewport = map.getViewport();
+        const down = new Map<number, [number, number]>();
+        let pinching = false;
+        let returnTimer: number | undefined;
+
+        const onDown = (event: PointerEvent) => {
+            down.set(event.pointerId, [event.clientX, event.clientY]);
+            // A second finger makes it a pinch, which is a zoom, for the
+            // rest of this touch.
+            if (down.size > 1) pinching = true;
+            window.clearTimeout(returnTimer);
+        };
+        const onMove = (event: PointerEvent) => {
+            const start = down.get(event.pointerId);
+            if (!start || pinching || followSuspendedRef.current) return;
+            if (Math.hypot(event.clientX - start[0], event.clientY - start[1]) > PAN_THRESHOLD_PX) {
+                setFollowSuspended(true);
+            }
+        };
+        const onUp = (event: PointerEvent) => {
+            if (!down.delete(event.pointerId) || down.size > 0) return;
+            pinching = false;
+            if (!followSuspendedRef.current) return;
+            window.clearTimeout(returnTimer);
+            returnTimer = window.setTimeout(() => {
+                if (followSuspendedRef.current) recenterRef.current(true);
+            }, AUTO_RECENTER_MS);
+        };
+
+        viewport.addEventListener("pointerdown", onDown);
+        // On the document: a drag can leave the map before the finger lifts.
+        document.addEventListener("pointermove", onMove);
+        document.addEventListener("pointerup", onUp);
+        document.addEventListener("pointercancel", onUp);
+
+        return () => {
+            window.clearTimeout(returnTimer);
+            viewport.removeEventListener("pointerdown", onDown);
+            document.removeEventListener("pointermove", onMove);
+            document.removeEventListener("pointerup", onUp);
+            document.removeEventListener("pointercancel", onUp);
+        };
+    }, [map]);
 
     /**
      * The map dissolving is the other half of the arrival (rl-879). The field
@@ -579,7 +648,10 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         }
 
         const rotation = -mapHeading;
-        if (!followSuspended) {
+        // Not mid-pinch or mid-zoom: setCenter cancels a running animation,
+        // so following through one would stop the zoom halfway. The moveend
+        // listener below catches up as soon as it settles.
+        if (!followSuspended && !view.getAnimating() && !view.getInteracting()) {
             view.setCenter([position[0], position[1]] as [number, number]);
             view.setRotation(rotation);
         }
@@ -606,6 +678,31 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
 
         return () => unByKey(renderKey);
     }, [map, position, mapHeading, followSuspended]);
+
+    // Put the walker back in the middle once a zoom or a short touch has
+    // settled. Standing still, no new fix or heading may come to do it, and
+    // a pinch zooms about the fingers rather than about the walker.
+    const followTargetRef = useRef({ position, mapHeading });
+    followTargetRef.current = { position, mapHeading };
+    useEffect(() => {
+        if (!map) {
+            return;
+        }
+        const key = map.on("moveend", () => {
+            const view = map.getView();
+            const { position: target, mapHeading: heading } = followTargetRef.current;
+            if (followSuspendedRef.current || !target || view.getAnimating() || view.getInteracting()) {
+                return;
+            }
+            const center = view.getCenter();
+            if (center && center[0] === target[0] && center[1] === target[1] && view.getRotation() === -heading) {
+                return;
+            }
+            view.setCenter([target[0], target[1]] as [number, number]);
+            view.setRotation(-heading);
+        });
+        return () => unByKey(key);
+    }, [map]);
 
 
     return (
@@ -663,7 +760,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
             <RControl.RCustom className="recenter-control">
                 <button
                     type="button"
-                    onClick={recenter}
+                    onClick={() => recenter()}
                     className="recenter-button"
                     data-testid="recenter"
                     aria-label={mapCopy.recenterAriaLabel}
