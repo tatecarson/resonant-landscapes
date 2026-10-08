@@ -1,4 +1,4 @@
-import { setSoundfieldGimbalOrientation } from "../audio/soundfield";
+import { setSoundfieldTurn } from "../audio/soundfield";
 import React, { useRef, useEffect, useCallback } from 'react';
 
 import Gimbal from '../utils/Gimbal';
@@ -82,22 +82,26 @@ const GimbalArrow = ({
         const renderLoop = () => {
             gimbal.update();
 
-            const { vectorFwd, vectorUp } = gimbal;
+            // Turning only. Tilt and tip are how the phone is held, not where
+            // the walker is facing, so the field stays level (rl-vnjn).
+            const { turn } = gimbal;
 
             if (resonanceAudioScene) {
-                setSoundfieldGimbalOrientation(resonanceAudioScene, vectorFwd, vectorUp);
+                setSoundfieldTurn(resonanceAudioScene, turn);
             }
 
             if (isDebugEnabled()) {
+                // The pose the soundfield was given, in Web Audio's frame.
                 window.__gimbalOrientation = {
-                    fwdX: vectorFwd.x, fwdY: vectorFwd.y, fwdZ: vectorFwd.z,
-                    upX: vectorUp.x, upY: vectorUp.y, upZ: vectorUp.z,
+                    fwdX: Math.sin(turn), fwdY: 0, fwdZ: -Math.cos(turn),
+                    upX: 0, upY: 1, upZ: 0,
+                    turn,
                     updatedAt: Date.now(),
                 };
             }
 
             if (yawDisplayRef.current) {
-                const deg = Math.round(gimbal.yaw * (180 / Math.PI));
+                const deg = Math.round(turn * (180 / Math.PI));
                 yawDisplayRef.current.textContent = `${deg}°`;
             }
 

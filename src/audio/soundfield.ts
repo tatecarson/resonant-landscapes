@@ -84,14 +84,18 @@ export function setSoundfieldOrientation(
     scene.setListenerFromMatrix({ elements: listenerRotationMatrix(forward, up) });
 }
 
-/** Gimbal exposes columns of the inverse sensor rotation with +Z forward.
- * Transpose that basis to recover the physical listener pose used above. */
-export function setSoundfieldGimbalOrientation(
+/**
+ * Turn the listener about the vertical only, keeping the soundfield level.
+ *
+ * The phone is in the walker's hand, not on their head. How they turn their
+ * body is roughly how they turn their head, but how they tilt or tip the phone
+ * is only how they are holding it, and letting that tilt the whole recording
+ * was noise (rl-vnjn). `turn` is radians clockwise from above, so a quarter
+ * turn right faces +X in Web Audio's frame (right +X, up +Y, front -Z).
+ */
+export function setSoundfieldTurn(
     scene: Pick<ResonanceAudio, "setListenerFromMatrix">,
-    f: { x: number; y: number; z: number },
-    u: { x: number; y: number; z: number }
+    turn: number
 ) {
-    const rightY = u.z * f.x - u.x * f.z;
-    const rightZ = u.x * f.y - u.y * f.x;
-    setSoundfieldOrientation(scene, [-rightZ, -u.z, -f.z], [rightY, u.y, f.y]);
+    setSoundfieldOrientation(scene, [Math.sin(turn), 0, -Math.cos(turn)], [0, 1, 0]);
 }
