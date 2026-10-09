@@ -59,15 +59,15 @@ describe("goatcounter", () => {
 
     it("loads nothing at all when no site code is set", async () => {
         const { initGoatCounter, countEvent, createElement } = await loadAnalytics();
-        initGoatCounter();
+        initGoatCounter("chatham");
         countEvent("park-heard");
         expect(createElement).not.toHaveBeenCalled();
     });
 
     it("injects the counting script once, pointed at the site", async () => {
         const { initGoatCounter, createElement, appendChild } = await loadAnalytics("resonant-landscapes");
-        initGoatCounter();
-        initGoatCounter();
+        initGoatCounter("chatham");
+        initGoatCounter("chatham");
 
         expect(createElement).toHaveBeenCalledTimes(1);
         expect(appendChild).toHaveBeenCalledTimes(1);
@@ -75,11 +75,14 @@ describe("goatcounter", () => {
         expect(script.src).toBe("https://gc.zgo.at/count.js");
         // The /count path is the endpoint; the bare site is the dashboard.
         expect(script.dataset.goatcounter).toBe("https://resonant-landscapes.goatcounter.com/count");
+        // Its own pageview would be filed under the path, which is "/" for
+        // #/chatham; the visit is counted by hand instead.
+        expect(JSON.parse(script.dataset.goatcounterSettings)).toEqual({ no_onload: true });
     });
 
     it("queues an event fired before the script loads, and flushes on load", async () => {
         const { initGoatCounter, countEvent, firstScript, setGoatCounter } = await loadAnalytics("resonant-landscapes");
-        initGoatCounter();
+        initGoatCounter("chatham");
 
         const counted: CountOptions[] = [];
         countEvent("walk-started");
@@ -89,12 +92,15 @@ describe("goatcounter", () => {
             if (options) counted.push(options);
         });
         firstScript().onload?.();
-        expect(counted).toEqual([{ path: "walk-started", event: true }]);
+        expect(counted).toEqual([
+            { path: "/chatham", event: false },
+            { path: "chatham/walk-started", event: true },
+        ]);
     });
 
     it("counts an event once per page load when asked", async () => {
         const { initGoatCounter, countEventOnce, countEvent, setGoatCounter } = await loadAnalytics("resonant-landscapes");
-        initGoatCounter();
+        initGoatCounter("chatham");
 
         const counted: string[] = [];
         setGoatCounter((options) => {
@@ -105,7 +111,7 @@ describe("goatcounter", () => {
         countEventOnce("walk-started");
         countEvent("park-heard");
         countEvent("park-heard");
-        expect(counted).toEqual(["walk-started", "park-heard", "park-heard"]);
+        expect(counted).toEqual(["chatham/walk-started", "chatham/park-heard", "chatham/park-heard"]);
     });
 
     it("drops events fired before the visit starts being counted", async () => {
@@ -113,10 +119,50 @@ describe("goatcounter", () => {
         countEvent("park-heard");
         expect(createElement).not.toHaveBeenCalled();
 
-        initGoatCounter();
+        initGoatCounter("chatham");
         const count = vi.fn();
         setGoatCounter(count);
         firstScript().onload?.();
-        expect(count).not.toHaveBeenCalled();
+        // The visit, and not the event from before it.
+        expect(count.mock.calls).toEqual([[{ path: "/chatham", event: false }]]);
+    });
+
+    /*
+     * Chatham on its own (rl-qhn9). The walk is opened as #/chatham, which
+     * count.js would have filed as "/" alongside DSU, and the events carried
+     * no site at all.
+     */
+    it.each(["chatham", "terrace", "dsu"])("counts the visit and its events under %s", async (walk) => {
+        const { initGoatCounter, countEvent, firstScript, setGoatCounter } = await loadAnalytics("resonant-landscapes");
+        initGoatCounter(walk);
+        const paths: string[] = [];
+        setGoatCounter((options) => {
+            if (options?.path) paths.push(options.path);
+        });
+        firstScript().onload?.();
+        countEvent("park-heard");
+        expect(paths).toEqual([`/${walk}`, `${walk}/park-heard`]);
+    });
+
+    it("counts one visit however often it is started", async () => {
+        const { initGoatCounter, firstScript, setGoatCounter } = await loadAnalytics("resonant-landscapes");
+        initGoatCounter("chatham");
+        initGoatCounter("chatham");
+        const count = vi.fn();
+        setGoatCounter(count);
+        firstScript().onload?.();
+        expect(count).toHaveBeenCalledTimes(1);
+    });
+
+    it("files later events under the walk the page moved to", async () => {
+        const { initGoatCounter, countEvent, setCountingSite, setGoatCounter } = await loadAnalytics("resonant-landscapes");
+        initGoatCounter("dsu");
+        const paths: string[] = [];
+        setGoatCounter((options) => {
+            if (options?.path) paths.push(options.path);
+        });
+        setCountingSite("chatham");
+        countEvent("walk-started");
+        expect(paths).toEqual(["chatham/walk-started"]);
     });
 });
