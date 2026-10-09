@@ -19,9 +19,14 @@
  * events across offline walks to repair the count would be exactly the kind
  * of invasiveness this was asked not to have.
  *
- * count.js counts a pageview when it loads. The walk is a single page with
- * no routing, so that pageview is the visit; everything else is counted here
- * as events (walk-started, park-heard, install-prompt).
+ * Every count is tagged with the walk it came from (rl-qhn9). count.js would
+ * count the visit as the page's path, and Chatham is opened as #/chatham,
+ * which it records as plain "/", the same as DSU; the events carried no site
+ * at all. So its own pageview is switched off, and the visit is counted here
+ * as /chatham, /terrace or /dsu, with every event under the same name:
+ * chatham/walk-started, chatham/park-heard, chatham/install-prompt. Counts
+ * from before this landed on 2026-10-09 are under "/" and the bare event
+ * names.
  */
 const SITE_CODE: string | undefined = import.meta.env.VITE_GOATCOUNTER_SITE;
 const SCRIPT_URL = "https://gc.zgo.at/count.js";
@@ -29,6 +34,8 @@ const SCRIPT_URL = "https://gc.zgo.at/count.js";
 type CountOptions = { path: string; event: boolean };
 
 let injected = false;
+/** The walk being counted, which every path is filed under. */
+let site = "dsu";
 const pending: CountOptions[] = [];
 const countedOnce = new Set<string>();
 
@@ -58,15 +65,20 @@ function count(options: CountOptions): void {
     pending.push(options);
 }
 
-/** Load the counting script, which counts the visit itself. */
-export function initGoatCounter(): void {
+/** Load the counting script and count this visit, filed under `walk`. */
+export function initGoatCounter(walk: string): void {
     if (!enabled() || injected) return;
     injected = true;
+    site = walk;
+    // Held until the script arrives, like any early event.
+    pending.push({ path: `/${site}`, event: false });
 
     const script = document.createElement("script");
     script.async = true;
     script.src = SCRIPT_URL;
     script.dataset.goatcounter = endpoint();
+    // Its own pageview would be filed under the page's path; see above.
+    script.dataset.goatcounterSettings = JSON.stringify({ no_onload: true });
     script.onload = () => {
         for (const options of pending.splice(0)) {
             count(options);
@@ -90,5 +102,10 @@ export function countEventOnce(name: string): void {
 /** One event, every time it happens. For parks heard, which repeat honestly. */
 export function countEvent(name: string): void {
     if (!enabled() || !injected) return;
-    count({ path: name, event: true });
+    count({ path: `${site}/${name}`, event: true });
+}
+
+/** The walk changed under the page, so later events belong to the new one. */
+export function setCountingSite(walk: string): void {
+    site = walk;
 }
