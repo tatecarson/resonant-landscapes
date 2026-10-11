@@ -25,7 +25,7 @@ describe("MIN_ZOOM", () => {
     // the walker's heading, so fitting a site north-up is not enough: the two
     // farthest-apart listening spots have to fit across the narrow side of
     // the screen, whichever way the walker is facing.
-    it.each(["dsu", "terrace", "chatham"] as const)(
+    it.each(["dsu", "terrace", "chatham", "washpav"] as const)(
         "lets a walker at %s pinch out far enough to see every listening spot at once, in any rotation",
         (variant) => {
             const spots = (getScaledPoints(variant) as { scaledCoords: Coordinate }[]).map((p) => p.scaledCoords);

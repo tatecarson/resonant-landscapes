@@ -6,6 +6,7 @@ import terraceNoGoPolygons from '../data/terraceNoGoPolygons.json';
 import chathamNoGoPolygons from '../data/chathamNoGoPolygons.json';
 import chathamSurveyedNoGo from '../data/chathamSurveyedNoGo.json';
 import chathamCampus from '../data/chathamCampus.json';
+import washpavNoGoPolygons from '../data/washpavNoGoPolygons.json';
 import { scaleCoordinates, type Coordinate } from './geo';
 import type { Feature, MultiPolygon, Point, Polygon } from 'geojson';
 
@@ -239,7 +240,8 @@ function snapToAcceptable(
     start: Feature<Point>,
     noGo: NoGoSet,
     inside: Feature<Polygon> | null,
-    placed: Coordinate[] = []
+    placed: Coordinate[] = [],
+    want = CLEARANCE_TARGET_METERS
 ): Feature<Point> {
     const stepDeg = 0.00008; // ~ 9 m east, ~ 9 m north
     const maxIterations = 2000;
@@ -252,20 +254,20 @@ function snapToAcceptable(
     let iter = 0;
 
     let best = start;
-    let bestClearance = clearanceMeters(start, noGo, inside, CLEARANCE_TARGET_METERS, placed);
-    if (bestClearance >= CLEARANCE_TARGET_METERS) return start;
+    let bestClearance = clearanceMeters(start, noGo, inside, want, placed);
+    if (bestClearance >= want) return start;
 
     while (iter < maxIterations) {
         const [dx, dy] = dirs[dirIndex];
         const [lon, lat] = current.geometry.coordinates as Coordinate;
         current = point([lon + dx * stepDeg, lat + dy * stepDeg]);
 
-        const clearance = clearanceMeters(current, noGo, inside, CLEARANCE_TARGET_METERS, placed);
+        const clearance = clearanceMeters(current, noGo, inside, want, placed);
         if (clearance > bestClearance) {
             bestClearance = clearance;
             best = current;
         }
-        if (clearance >= CLEARANCE_TARGET_METERS) return current;
+        if (clearance >= want) return current;
 
         stepsThisLeg += 1;
         iter += 1;
@@ -302,7 +304,8 @@ function remapIntoSite(
     bounds: SiteBounds,
     buffer: number,
     noGo: NoGoSet,
-    inside: Feature<Polygon> | null = null
+    inside: Feature<Polygon> | null = null,
+    clearance = CLEARANCE_TARGET_METERS
 ) {
     const W = bounds.west + buffer;
     const E = bounds.east - buffer;
@@ -326,8 +329,8 @@ function remapIntoSite(
         let pt = point([scaledLon, scaledLat]);
         // Onto the site first, then off whatever it landed on.
         if (inside) pt = pullOntoSite(pt, inside);
-        if (clearanceMeters(pt, noGo, inside, CLEARANCE_TARGET_METERS, placed) < CLEARANCE_TARGET_METERS) {
-            pt = snapToAcceptable(pt, noGo, inside, placed);
+        if (clearanceMeters(pt, noGo, inside, clearance, placed) < clearance) {
+            pt = snapToAcceptable(pt, noGo, inside, placed, clearance);
         }
         const coords = pt.geometry.coordinates as Coordinate;
         placed.push(coords);
@@ -474,6 +477,120 @@ function chathamScaledPoints() {
     });
 }
 
+// ---- Downtown Sioux Falls, from the Washington Pavilion ------------------
+// Fourth site, alongside Terrace rather than replacing it. The wall label in
+// the Pavilion's gallery carries a QR code that opens /washpav, and the walk
+// is the downtown blocks outside: W 9th St to W 13th St, South Dakota Ave to
+// S 1st Ave, about 540 m north to south and 370 m east to west. Tall like
+// Terrace, so the same quarter turn.
+//
+// The bounds are the four street centrelines, which makes the rectangle the
+// site: there is no campus polygon downtown to pull points onto. Crossing
+// streets is fine here (Tate, 2026-10-11), so the roads in the no-go set only
+// stop a point standing in one.
+//
+// Downtown is the first site with almost no open ground, so it does not ask
+// for the 8 m of room the other sites do. Tate's rule (2026-10-11): a spot is
+// fine as long as a walker can reach its centre, where the sound is loudest
+// and rotation is offered, even if much of its circle is buildings. So the
+// centre only needs room to stand; see WASHPAV_CLEARANCE_METERS. Asking for
+// 8 m dragged points across downtown into the few open pockets and away from
+// where the map of South Dakota put them. Tate walks these and pins the bad
+// ones by hand, as at Chatham.
+const WASHPAV_BOUNDS: SiteBounds = {
+    west: -96.7299,   // South Dakota Ave
+    east: -96.7253,   // S 1st Ave
+    north: 43.54731,  // W 9th St
+    south: 43.54245,  // W 13th St
+};
+// About 12 m east-west and 17 m north-south: off the boundary streets' own
+// carriageway, so the remap does not start every edge point in traffic.
+const WASHPAV_BUFFER = 0.00015;
+
+/**
+ * Room to stand at a downtown centre, in metres.
+ *
+ * Two because clearance is measured in 2 m rings: a 3 m target would never
+ * be met and every point would spiral its whole search. A centre 2 m clear
+ * of any wall, car park or carriageway buffer is one a walker can stand on,
+ * which puts the 3 m rotation offer (CENTER_ROTATION_RADIUS_METERS) in reach.
+ */
+const WASHPAV_CLEARANCE_METERS = 2;
+
+const WASHPAV_SITE: Feature<Polygon> = {
+    type: 'Feature',
+    properties: { name: 'Downtown Sioux Falls' },
+    geometry: {
+        type: 'Polygon',
+        coordinates: [[
+            [WASHPAV_BOUNDS.west, WASHPAV_BOUNDS.south],
+            [WASHPAV_BOUNDS.east, WASHPAV_BOUNDS.south],
+            [WASHPAV_BOUNDS.east, WASHPAV_BOUNDS.north],
+            [WASHPAV_BOUNDS.west, WASHPAV_BOUNDS.north],
+            [WASHPAV_BOUNDS.west, WASHPAV_BOUNDS.south],
+        ]],
+    },
+};
+
+/**
+ * Downtown parks placed by hand, from Tate's look at the preview map.
+ *
+ * Swapped in after the remap, as at Chatham, so pinning one park never moves
+ * the others. Coordinates come from OSM sidewalk ways, not aerial imagery.
+ */
+export const washpavFieldPins: Record<string, Coordinate> = {
+    // The remap put it 1 m inside the Pavilion's surface lot (OSM way
+    // 404840507), which is probably private. Moved onto the public plaza in
+    // front of the Pavilion's Main Ave entrance, one of its main doors: on
+    // the paved walk between the two planting beds, about 14 m in from the
+    // Main Ave sidewalk. Read off aerial imagery.
+    'Palisades State Park': [-96.728585, 43.543672],
+    // The remap put it in the open lot behind the parking garage on the
+    // east side of S Main Ave, between a parking aisle and a driveway.
+    // Moved 10 m north onto the south sidewalk of W 12th St, clear of the
+    // garage (way 501299571) and both driveways.
+    'Oakwood Lakes State Park': [-96.72774, 43.54339],
+    // Was 2 m from the east wall of Architecture Incorporated, 415 S Main
+    // Ave (way 404182650). Moved out to the S Main Ave sidewalk, just
+    // outside the 8 m road buffer, and 25 m north: past the driveway where
+    // the Pavilion's lot meets Main (way 405057215), between it and the
+    // lot's next aisle. About 20 m from the firm's corner.
+    'Lake Herman State Park': [-96.7284, 43.54315],
+    // Was on the Pavilion's loading-dock apron, beside a parked car and the
+    // staff lawn. Moved about 35 m west onto the wide sidewalk on the east
+    // side of South Dakota Ave, just north of the W 12th St corner, read off
+    // aerial imagery: OSM maps no sidewalk here.
+    'Union Grove State Park': [-96.72967, 43.543604],
+    // Was in the dome's shadow beside the row of bins on its west side.
+    // Moved to the walkway along the planetarium dome's south side, between
+    // the dome and the first row of stalls, about 16 m from the bins. Inside
+    // the Pavilion's business frontage only because the dome is part of the
+    // building; there is no door on that side.
+    'Good Earth State Park': [-96.728779, 43.543339],
+    // Was on the roof of a building OSM does not have, near S 1st Ave. Moved
+    // 19 m south onto the W 13th St sidewalk.
+    'Hartford Beach State Park': [-96.725781, 43.54253],
+    // Was in the surface lot on the south side of W 9th St, west of Main.
+    // Moved 7 m north onto the W 9th St sidewalk, past the lot's edge.
+    'Custer State Park': [-96.728932, 43.54722],
+    // Was in the paved yard between two buildings on the south side of W 9th
+    // St, east of Main. Moved 6 m north onto the W 9th St sidewalk.
+    'Bear Butte State Park': [-96.727642, 43.547222],
+};
+
+function washpavScaledPoints() {
+    return remapIntoSite(
+        WASHPAV_BOUNDS,
+        WASHPAV_BUFFER,
+        washpavNoGoPolygons,
+        WASHPAV_SITE,
+        WASHPAV_CLEARANCE_METERS
+    ).map(park => {
+        const pin = washpavFieldPins[park.name];
+        return pin ? { ...park, scaledCoords: pin } : park;
+    });
+}
+
 // ---- Test parks (debug route) ------------------------------------------
 const testPark = {
     name: "Custer Test",
@@ -502,8 +619,14 @@ const testParks = [testPark, currentLocationTestPark];
  * the walk's own ground means those first tiles are the ones the walker is
  * about to need.
  */
-export function getVariantCenter(variant: 'dsu' | 'terrace' | 'chatham' = 'dsu'): Coordinate {
-    const bounds = variant === 'terrace' ? TERRACE_BOUNDS : variant === 'chatham' ? CHATHAM_BOUNDS : null;
+const SITE_BOUNDS: Record<string, SiteBounds> = {
+    terrace: TERRACE_BOUNDS,
+    chatham: CHATHAM_BOUNDS,
+    washpav: WASHPAV_BOUNDS,
+};
+
+export function getVariantCenter(variant: 'dsu' | 'terrace' | 'chatham' | 'washpav' = 'dsu'): Coordinate {
+    const bounds = SITE_BOUNDS[variant] ?? null;
     if (bounds) {
         return [(bounds.west + bounds.east) / 2, (bounds.north + bounds.south) / 2];
     }
@@ -513,6 +636,7 @@ export function getVariantCenter(variant: 'dsu' | 'terrace' | 'chatham' = 'dsu')
 export function getScaledPoints(variant = 'dsu') {
     if (variant === 'terrace') return terraceScaledPoints();
     if (variant === 'chatham') return chathamScaledPoints();
+    if (variant === 'washpav') return washpavScaledPoints();
     return dsuScaledPoints();
 }
 
