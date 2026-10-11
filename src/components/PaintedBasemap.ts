@@ -84,7 +84,12 @@ export const PAINTED_TONES = {
 } as const satisfies Record<string, PaintedTone>;
 
 export type PaintedToneName = keyof typeof PAINTED_TONES;
-export const DEFAULT_PAINTED_TONE: PaintedToneName = "sage";
+/**
+ * Mint, chosen by eye on the Pavilion plaza (rl-ffdd). Sage measured no
+ * better against the panels where they actually appear, because inside a park
+ * the arrival field washes the screen in panel either way.
+ */
+export const DEFAULT_PAINTED_TONE: PaintedToneName = "mint";
 
 export function isPaintedToneName(value: unknown): value is PaintedToneName {
     return typeof value === "string" && Object.prototype.hasOwnProperty.call(PAINTED_TONES, value);

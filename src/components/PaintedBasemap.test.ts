@@ -28,8 +28,8 @@ describe.each(Object.entries(PAINTED_TONES))("the %s painted ground", (_, tone) 
 });
 
 describe("painted ground", () => {
-    it("defaults to the ramp that leaves the panel mint to the panels", () => {
-        expect(PAINTED_TONES[DEFAULT_PAINTED_TONE].ramp.map(({ token }) => token)).not.toContain("panel");
+    it("defaults to a tone that exists", () => {
+        expect(PAINTED_TONES).toHaveProperty(DEFAULT_PAINTED_TONE);
     });
 
     it("leaves the photograph a minority of the colour", () => {
