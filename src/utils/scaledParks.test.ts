@@ -283,6 +283,17 @@ describe("room around each point", () => {
         }
     });
 
+    // Downtown asks less: only that a walker can stand at the centre, where
+    // the sound is loudest and rotation is offered (Tate, 2026-10-11).
+    it("gives every downtown centre room to stand", () => {
+        for (const park of getScaledPoints("washpav")) {
+            expect(
+                clearanceOf(park.scaledCoords as Coordinate, washpavNoGoPolygons, 2),
+                `${park.name}'s centre cannot be reached`
+            ).toBeGreaterThanOrEqual(2);
+        }
+    });
+
     // Not the hand-placed ones. Clearance stands in for a look at the ground,
     // and those were chosen by someone who had looked.
     it("gives every computed Chatham point somewhere to stand", () => {

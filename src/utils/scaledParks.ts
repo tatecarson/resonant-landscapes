@@ -240,7 +240,8 @@ function snapToAcceptable(
     start: Feature<Point>,
     noGo: NoGoSet,
     inside: Feature<Polygon> | null,
-    placed: Coordinate[] = []
+    placed: Coordinate[] = [],
+    want = CLEARANCE_TARGET_METERS
 ): Feature<Point> {
     const stepDeg = 0.00008; // ~ 9 m east, ~ 9 m north
     const maxIterations = 2000;
@@ -253,20 +254,20 @@ function snapToAcceptable(
     let iter = 0;
 
     let best = start;
-    let bestClearance = clearanceMeters(start, noGo, inside, CLEARANCE_TARGET_METERS, placed);
-    if (bestClearance >= CLEARANCE_TARGET_METERS) return start;
+    let bestClearance = clearanceMeters(start, noGo, inside, want, placed);
+    if (bestClearance >= want) return start;
 
     while (iter < maxIterations) {
         const [dx, dy] = dirs[dirIndex];
         const [lon, lat] = current.geometry.coordinates as Coordinate;
         current = point([lon + dx * stepDeg, lat + dy * stepDeg]);
 
-        const clearance = clearanceMeters(current, noGo, inside, CLEARANCE_TARGET_METERS, placed);
+        const clearance = clearanceMeters(current, noGo, inside, want, placed);
         if (clearance > bestClearance) {
             bestClearance = clearance;
             best = current;
         }
-        if (clearance >= CLEARANCE_TARGET_METERS) return current;
+        if (clearance >= want) return current;
 
         stepsThisLeg += 1;
         iter += 1;
@@ -303,7 +304,8 @@ function remapIntoSite(
     bounds: SiteBounds,
     buffer: number,
     noGo: NoGoSet,
-    inside: Feature<Polygon> | null = null
+    inside: Feature<Polygon> | null = null,
+    clearance = CLEARANCE_TARGET_METERS
 ) {
     const W = bounds.west + buffer;
     const E = bounds.east - buffer;
@@ -327,8 +329,8 @@ function remapIntoSite(
         let pt = point([scaledLon, scaledLat]);
         // Onto the site first, then off whatever it landed on.
         if (inside) pt = pullOntoSite(pt, inside);
-        if (clearanceMeters(pt, noGo, inside, CLEARANCE_TARGET_METERS, placed) < CLEARANCE_TARGET_METERS) {
-            pt = snapToAcceptable(pt, noGo, inside, placed);
+        if (clearanceMeters(pt, noGo, inside, clearance, placed) < clearance) {
+            pt = snapToAcceptable(pt, noGo, inside, placed, clearance);
         }
         const coords = pt.geometry.coordinates as Coordinate;
         placed.push(coords);
@@ -487,10 +489,14 @@ function chathamScaledPoints() {
 // streets is fine here (Tate, 2026-10-11), so the roads in the no-go set only
 // stop a point standing in one.
 //
-// Downtown is the first site with almost no open ground. Sidewalks are a few
-// metres wide, so the 8 m clearance the snap looks for mostly is not there,
-// and it settles for the roomiest spot it passed. Tate walks these and pins
-// the bad ones by hand, as at Chatham.
+// Downtown is the first site with almost no open ground, so it does not ask
+// for the 8 m of room the other sites do. Tate's rule (2026-10-11): a spot is
+// fine as long as a walker can reach its centre, where the sound is loudest
+// and rotation is offered, even if much of its circle is buildings. So the
+// centre only needs room to stand; see WASHPAV_CLEARANCE_METERS. Asking for
+// 8 m dragged points across downtown into the few open pockets and away from
+// where the map of South Dakota put them. Tate walks these and pins the bad
+// ones by hand, as at Chatham.
 const WASHPAV_BOUNDS: SiteBounds = {
     west: -96.7299,   // South Dakota Ave
     east: -96.7253,   // S 1st Ave
@@ -500,6 +506,16 @@ const WASHPAV_BOUNDS: SiteBounds = {
 // About 12 m east-west and 17 m north-south: off the boundary streets' own
 // carriageway, so the remap does not start every edge point in traffic.
 const WASHPAV_BUFFER = 0.00015;
+
+/**
+ * Room to stand at a downtown centre, in metres.
+ *
+ * Two because clearance is measured in 2 m rings: a 3 m target would never
+ * be met and every point would spiral its whole search. A centre 2 m clear
+ * of any wall, car park or carriageway buffer is one a walker can stand on,
+ * which puts the 3 m rotation offer (CENTER_ROTATION_RADIUS_METERS) in reach.
+ */
+const WASHPAV_CLEARANCE_METERS = 2;
 
 const WASHPAV_SITE: Feature<Polygon> = {
     type: 'Feature',
@@ -517,7 +533,13 @@ const WASHPAV_SITE: Feature<Polygon> = {
 };
 
 function washpavScaledPoints() {
-    return remapIntoSite(WASHPAV_BOUNDS, WASHPAV_BUFFER, washpavNoGoPolygons, WASHPAV_SITE);
+    return remapIntoSite(
+        WASHPAV_BOUNDS,
+        WASHPAV_BUFFER,
+        washpavNoGoPolygons,
+        WASHPAV_SITE,
+        WASHPAV_CLEARANCE_METERS
+    );
 }
 
 // ---- Test parks (debug route) ------------------------------------------
