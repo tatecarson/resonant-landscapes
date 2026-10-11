@@ -10,6 +10,13 @@ describe("parseBasemapParam", () => {
         expect(parseBasemapParam("", "#/terrace?debug&basemap=watercolor")).toBe("watercolor");
     });
 
+    it("reads a tone's name, or a tone on its own, as the painted ground", () => {
+        expect(parseBasemapParam("?basemap=sage", "")).toBe("painted");
+        expect(parseBasemapParam("?basemap=paper", "")).toBe("painted");
+        expect(parseBasemapParam("?tone=paper", "")).toBe("painted");
+        expect(parseBasemapParam("", "#/washpav?basemap=mint")).toBe("painted");
+    });
+
     it("ignores anything that is not a known basemap", () => {
         expect(parseBasemapParam("?basemap=toner", "")).toBeNull();
         expect(parseBasemapParam("", "")).toBeNull();
@@ -51,6 +58,12 @@ describe("parsePaintedTone", () => {
     it("reads the search string and the hash query", () => {
         expect(parsePaintedTone("?basemap=painted&tone=mint", "")).toBe("mint");
         expect(parsePaintedTone("", "#/terrace?tone=sage")).toBe("sage");
+    });
+
+    it("takes a tone named as the basemap, with ?tone= winning", () => {
+        expect(parsePaintedTone("?basemap=sage", "")).toBe("sage");
+        expect(parsePaintedTone("?basemap=sage&tone=paper", "")).toBe("paper");
+        expect(parsePaintedTone("?basemap=painted", "")).toBeNull();
     });
 
     it("ignores unknown tones", () => {

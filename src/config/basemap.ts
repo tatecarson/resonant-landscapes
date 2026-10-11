@@ -115,18 +115,31 @@ export function isBasemapMode(value: unknown): value is BasemapMode {
     return typeof value === "string" && (BASEMAP_MODES as readonly string[]).includes(value);
 }
 
-/** `?basemap=` from the search or from the query inside the hash, as `?mock=` is read. */
-export function parseBasemapParam(search: string, hash: string): BasemapMode | null {
+/** A query parameter from the search or from the query inside the hash, as `?mock=` is read. */
+function param(search: string, hash: string, name: string): string | null {
     const hashQuery = hash.includes("?") ? hash.slice(hash.indexOf("?") + 1) : "";
-    const raw = new URLSearchParams(search).get("basemap") ?? new URLSearchParams(hashQuery).get("basemap");
-    return isBasemapMode(raw) ? raw : null;
+    return new URLSearchParams(search).get(name) ?? new URLSearchParams(hashQuery).get(name);
 }
 
-/** `?tone=` picks the painted ground's ramp; see PAINTED_TONES. */
+/**
+ * The style a URL asks for. A tone's name is a style too: `?basemap=sage`
+ * is the painted ground in sage, because that is what someone typing it
+ * means, and it used to fall through to the default in silence. `?tone=` on
+ * its own asks for the painted ground as well, since nothing else has a tone.
+ */
+export function parseBasemapParam(search: string, hash: string): BasemapMode | null {
+    const raw = param(search, hash, "basemap");
+    if (isBasemapMode(raw)) return raw;
+    if (isPaintedToneName(raw) || isPaintedToneName(param(search, hash, "tone"))) return "painted";
+    return null;
+}
+
+/** The painted ground's ramp: `?tone=`, else a tone named as `?basemap=`. See PAINTED_TONES. */
 export function parsePaintedTone(search: string, hash: string): PaintedToneName | null {
-    const hashQuery = hash.includes("?") ? hash.slice(hash.indexOf("?") + 1) : "";
-    const raw = new URLSearchParams(search).get("tone") ?? new URLSearchParams(hashQuery).get("tone");
-    return isPaintedToneName(raw) ? raw : null;
+    const tone = param(search, hash, "tone");
+    if (isPaintedToneName(tone)) return tone;
+    const basemap = param(search, hash, "basemap");
+    return isPaintedToneName(basemap) ? basemap : null;
 }
 
 export function paintedToneFromLocation(): PaintedToneName {
