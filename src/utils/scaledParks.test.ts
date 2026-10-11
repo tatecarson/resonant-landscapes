@@ -196,14 +196,11 @@ describe("the downtown Sioux Falls placement", () => {
     });
 
     it("puts no park in a building, a car park or a road", () => {
-        // Two exceptions, chosen on the aerial imagery (Tate, 2026-10-11).
-        // The 7 m buffer either side of W 12th St assumes a street, and west
-        // of Main it is an 8 m drive, so Union Grove's sidewalk falls inside
-        // it. And the dome is part of the Pavilion, so the walkway along its
-        // south side is inside the Pavilion's business frontage, which only
-        // stands in for doors; there is no door there.
+        // One exception, chosen on the aerial imagery (Tate, 2026-10-11).
+        // The dome is part of the Pavilion, so the walkway along its south
+        // side is inside the Pavilion's business frontage, which only stands
+        // in for doors; there is no door there.
         const allowedOnPurpose: Record<string, { kind: string; osmId: number }> = {
-            "Union Grove State Park": { kind: "road", osmId: 237756099 },
             "Good Earth State Park": { kind: "business", osmId: 302520233 },
         };
         for (const park of points) {

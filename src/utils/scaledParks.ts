@@ -558,11 +558,10 @@ export const washpavFieldPins: Record<string, Coordinate> = {
     // lot's next aisle. About 20 m from the firm's corner.
     'Lake Herman State Park': [-96.7284, 43.54315],
     // Was on the Pavilion's loading-dock apron, beside a parked car and the
-    // staff lawn. Moved 5 m south onto the sidewalk along the north edge of
-    // the W 12th St drive, read off aerial imagery: OSM maps no sidewalk
-    // here. Inside the 7 m buffer OSM's street gets, because west of Main
-    // that street is an 8 m drive.
-    'Union Grove State Park': [-96.72927, 43.543525],
+    // staff lawn. Moved about 35 m west onto the wide sidewalk on the east
+    // side of South Dakota Ave, just north of the W 12th St corner, read off
+    // aerial imagery: OSM maps no sidewalk here.
+    'Union Grove State Park': [-96.72967, 43.543604],
     // Was in the dome's shadow beside the row of bins on its west side.
     // Moved to the walkway along the planetarium dome's south side, between
     // the dome and the first row of stalls, about 16 m from the bins. Inside
