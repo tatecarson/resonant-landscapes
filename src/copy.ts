@@ -37,7 +37,7 @@ export const welcome = {
     /**
      * One line per site, as a record rather than a chain of ternaries. Two
      * sites fit in a ternary; three is where it stops reading as a sentence
-     * and starts reading as a puzzle, and there will be a fourth.
+     * and starts reading as a puzzle.
      */
     intro: (variant: Variant) =>
         ({
@@ -45,6 +45,8 @@ export const welcome = {
             terrace: "Walk Terrace Park to hear the soundscapes of South Dakota's 13 state parks.",
             chatham:
                 "Walk Chatham's campus to hear the soundscapes of South Dakota's 13 state parks.",
+            washpav:
+                "Walk Downtown Sioux Falls to hear the soundscapes of South Dakota's 13 state parks.",
         })[variant],
     steps: [
         "As you approach a listening spot, its park name and audio controls appear. Walk toward the center icon to hear the sound grow louder.",

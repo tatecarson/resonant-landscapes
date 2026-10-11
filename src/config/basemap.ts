@@ -2,11 +2,13 @@ import { useSyncExternalStore } from "react";
 import { createXYZ } from "ol/tilegrid";
 import type TileGrid from "ol/tilegrid/TileGrid";
 import { isDebugEnabled } from "./debug";
+import { SATELLITE, basemapFor, requestedMap } from "../map/basemap";
 import { DEFAULT_PAINTED_TONE, isPaintedToneName, type PaintedToneName } from "../components/PaintedBasemap";
 
 /**
- * Candidate basemaps for a more painted ground (rl-ffdd), switchable under
- * debug so they can be judged by eye at the zoom the walk is actually read at.
+ * Candidate basemaps for a more painted ground (rl-ffdd), chosen per page load
+ * with `?basemap=` (and `?tone=` for the painted one) so they can be judged by
+ * eye, on foot, at the zoom the walk is actually read at.
  *
  * Stamen Watercolor is the look, but Stadia stops serving it at zoom 16 and the
  * walk rests at about 18.5, so asking for it there returns holes. The two
@@ -18,6 +20,17 @@ import { DEFAULT_PAINTED_TONE, isPaintedToneName, type PaintedToneName } from ".
  *   browser with a Kuwahara pass (PaintedBasemap.ts), so detail never runs out.
  *
  * `outdoors` is what ships, and the default everywhere.
+ *
+ * The parameters work without `?debug`, so a bookmark or a QR code can carry a
+ * style. They change only what the ground looks like; the position spoof and
+ * the other debug surfaces stay behind `?debug`.
+ *
+ * Where the tiles come from depends on the build, not the style: Stadia
+ * authorizes one domain, so deploy previews (VITE_MAP_TILES, see
+ * src/map/basemap.ts) cannot use it. There `outdoors` is the preview map that
+ * module picks (aerial, or streets with `?map=streets`), `painted` paints
+ * Esri's imagery instead of Stadia's, and `watercolor`, which only Stadia
+ * serves, falls back to the preview map.
  */
 export const BASEMAP_MODES = ["outdoors", "watercolor", "painted"] as const;
 export type BasemapMode = (typeof BASEMAP_MODES)[number];
@@ -29,6 +42,8 @@ export interface BasemapSpec {
     /** Needed when the pixels are read back, which a painted pass has to do. */
     crossOrigin?: string;
     attributions: string;
+    /** The layer's own ceiling: OpenStreetMap's tiles stop at 19. */
+    maxZoom: number;
     painted: boolean;
 }
 
@@ -51,12 +66,14 @@ export const BASEMAP_SPECS: Record<BasemapMode, BasemapSpec> = {
     outdoors: {
         url: "https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}.png",
         attributions: [STADIA_CREDIT, OPENMAPTILES_CREDIT, OSM_CREDIT].join(" "),
+        maxZoom: 20,
         painted: false,
     },
     watercolor: {
         url: "https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg",
         tileGrid: WATERCOLOR_GRID,
         attributions: [STADIA_CREDIT, STAMEN_CREDIT, OSM_CREDIT].join(" "),
+        maxZoom: 20,
         painted: false,
     },
     painted: {
@@ -67,9 +84,32 @@ export const BASEMAP_SPECS: Record<BasemapMode, BasemapSpec> = {
         // blank a returning walker's cached ground.
         crossOrigin: "anonymous",
         attributions: [IMAGERY_CREDIT, STADIA_CREDIT, OPENMAPTILES_CREDIT, OSM_CREDIT].join(" "),
+        maxZoom: 20,
         painted: true,
     },
 };
+
+/**
+ * The spec a build actually uses for a style. `tiles` is VITE_MAP_TILES:
+ * unset is production, where every style comes from Stadia. `requested` is
+ * the page's `?map=`, which only a preview listens to.
+ */
+export function basemapSpecFor(
+    mode: BasemapMode,
+    tiles: string | undefined = import.meta.env.VITE_MAP_TILES,
+    requested: string | null = typeof window === "undefined" ? null : requestedMap(window.location),
+): BasemapSpec {
+    if (!tiles) {
+        return BASEMAP_SPECS[mode];
+    }
+    if (mode === "painted") {
+        // Esri sends Access-Control-Allow-Origin: *, so its tiles can be
+        // read back and painted the same as Stadia's.
+        return { ...BASEMAP_SPECS.painted, url: SATELLITE.url, attributions: SATELLITE.attributions, maxZoom: SATELLITE.maxZoom };
+    }
+    const preview = basemapFor(tiles, requested);
+    return { url: preview.url, attributions: preview.attributions, maxZoom: preview.maxZoom, painted: false };
+}
 
 export function isBasemapMode(value: unknown): value is BasemapMode {
     return typeof value === "string" && (BASEMAP_MODES as readonly string[]).includes(value);
@@ -90,7 +130,7 @@ export function parsePaintedTone(search: string, hash: string): PaintedToneName 
 }
 
 export function paintedToneFromLocation(): PaintedToneName {
-    if (typeof window === "undefined" || !isDebugEnabled()) {
+    if (typeof window === "undefined") {
         return DEFAULT_PAINTED_TONE;
     }
     return parsePaintedTone(window.location.search, window.location.hash) ?? DEFAULT_PAINTED_TONE;
@@ -101,7 +141,7 @@ export function nextBasemapMode(mode: BasemapMode): BasemapMode {
 }
 
 function initialMode(): BasemapMode {
-    if (typeof window === "undefined" || !isDebugEnabled()) {
+    if (typeof window === "undefined") {
         return "outdoors";
     }
     return parseBasemapParam(window.location.search, window.location.hash) ?? "outdoors";
@@ -110,7 +150,8 @@ function initialMode(): BasemapMode {
 /*
  * In memory only, not localStorage: a prototype choice that outlived the page
  * load could leave a phone walking on the wrong ground with nothing on screen
- * to say why.
+ * to say why. The URL is where a choice lives. Switching live is the Field
+ * Console's, so it stays behind debug.
  */
 let mode: BasemapMode = initialMode();
 const listeners = new Set<() => void>();
@@ -135,4 +176,8 @@ export function setBasemapMode(next: BasemapMode) {
 
 export function useBasemapMode(): BasemapMode {
     return useSyncExternalStore(subscribe, getSnapshot, () => "outdoors" as const);
+}
+
+export function useBasemapSpec(): BasemapSpec {
+    return basemapSpecFor(useBasemapMode());
 }

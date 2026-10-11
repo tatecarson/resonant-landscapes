@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BASEMAP_MODES, BASEMAP_SPECS, WATERCOLOR_MAX_ZOOM, type BasemapMode, nextBasemapMode, parseBasemapParam, parsePaintedTone } from "./basemap";
+import { BASEMAP_MODES, BASEMAP_SPECS, WATERCOLOR_MAX_ZOOM, type BasemapMode, basemapSpecFor, nextBasemapMode, parseBasemapParam, parsePaintedTone } from "./basemap";
 
 describe("parseBasemapParam", () => {
     it("reads the search string", () => {
@@ -55,5 +55,27 @@ describe("parsePaintedTone", () => {
 
     it("ignores unknown tones", () => {
         expect(parsePaintedTone("?tone=magenta", "")).toBeNull();
+    });
+});
+
+describe("basemapSpecFor", () => {
+    it("draws every style from Stadia in production", () => {
+        for (const mode of BASEMAP_MODES) {
+            expect(basemapSpecFor(mode, undefined, null)).toBe(BASEMAP_SPECS[mode]);
+        }
+    });
+
+    it("paints Esri's imagery on a preview, where Stadia refuses the domain", () => {
+        const spec = basemapSpecFor("painted", "satellite", null);
+        expect(spec.url).toContain("server.arcgisonline.com");
+        expect(spec.painted).toBe(true);
+        expect(spec.crossOrigin).toBe("anonymous");
+    });
+
+    it("shows the preview's own map for the plain styles, honouring ?map=", () => {
+        expect(basemapSpecFor("outdoors", "satellite", null).url).toContain("server.arcgisonline.com");
+        expect(basemapSpecFor("outdoors", "satellite", "streets").url).toContain("tile.openstreetmap.org");
+        expect(basemapSpecFor("watercolor", "satellite", null).url).not.toContain("stadiamaps");
+        expect(basemapSpecFor("watercolor", "satellite", null).painted).toBe(false);
     });
 });

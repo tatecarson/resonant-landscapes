@@ -4,6 +4,7 @@ import {
     chathamFieldPins,
     getScaledPoints,
     getVariantCenter,
+    washpavFieldPins,
 } from "./scaledParks";
 import { distanceInMeters, type Coordinate } from "./geo";
 import { point } from "@turf/helpers";
@@ -12,6 +13,7 @@ import chathamNoGoPolygons from "../data/chathamNoGoPolygons.json";
 import chathamSurveyedNoGo from "../data/chathamSurveyedNoGo.json";
 import chathamCampus from "../data/chathamCampus.json";
 import terraceNoGoPolygons from "../data/terraceNoGoPolygons.json";
+import washpavNoGoPolygons from "../data/washpavNoGoPolygons.json";
 import type { Feature, Polygon } from "geojson";
 
 /** What placement avoids at Chatham: the OSM import plus what was found on foot. */
@@ -53,8 +55,15 @@ describe("getVariantCenter", () => {
         expect(center[1]).toBeLessThan(40.46);
     });
 
+    it("opens on downtown Sioux Falls for the washpav variant", () => {
+        const center = getVariantCenter("washpav");
+
+        // Within a block of the Washington Pavilion, where the QR code is.
+        expect(distanceInMeters(center, [-96.729018, 43.543889])).toBeLessThan(250);
+    });
+
     it("never opens on Null Island", () => {
-        for (const variant of ["dsu", "terrace", "chatham"] as const) {
+        for (const variant of ["dsu", "terrace", "chatham", "washpav"] as const) {
             expect(distanceInMeters(getVariantCenter(variant), [0, 0])).toBeGreaterThan(1_000_000);
         }
     });
@@ -166,6 +175,134 @@ describe("the Chatham placement", () => {
 });
 
 /**
+ * Downtown Sioux Falls, from the Washington Pavilion (rl-jb2p).
+ *
+ * The site is the rectangle between W 9th St, S 1st Ave, W 13th St and South
+ * Dakota Ave. Streets may be crossed but not stood in, so the roads are in the
+ * no-go set the same as buildings.
+ */
+describe("the downtown Sioux Falls placement", () => {
+    const points = getScaledPoints("washpav");
+
+    it("puts all 13 parks between 9th and 13th, South Dakota and 1st", () => {
+        expect(points).toHaveLength(13);
+        for (const park of points) {
+            const [lon, lat] = park.scaledCoords as Coordinate;
+            expect(lon, `${park.name} is west of South Dakota Ave`).toBeGreaterThan(-96.7299);
+            expect(lon, `${park.name} is east of S 1st Ave`).toBeLessThan(-96.7253);
+            expect(lat, `${park.name} is south of W 13th St`).toBeGreaterThan(43.54245);
+            expect(lat, `${park.name} is north of W 9th St`).toBeLessThan(43.54731);
+        }
+    });
+
+    it("puts no park in a building, a car park or a road", () => {
+        // One exception, chosen on the aerial imagery (Tate, 2026-10-11).
+        // The dome is part of the Pavilion, so the walkway along its south
+        // side is inside the Pavilion's business frontage, which only stands
+        // in for doors; there is no door there.
+        const allowedOnPurpose: Record<string, { kind: string; osmId: number }> = {
+            "Good Earth State Park": { kind: "business", osmId: 302520233 },
+        };
+        for (const park of points) {
+            const candidate = point(park.scaledCoords as Coordinate);
+            const allowed = allowedOnPurpose[park.name];
+            const hit = (washpavNoGoPolygons.features as unknown[]).find((feature) => {
+                const props = (feature as { properties: { kind: string; osm_id: number } }).properties;
+                if (allowed && props.kind === allowed.kind && props.osm_id === allowed.osmId) return false;
+                try {
+                    return booleanPointInPolygon(candidate, feature as Feature<Polygon>);
+                } catch {
+                    return false;
+                }
+            }) as { properties?: { kind?: string; name?: string | null } } | undefined;
+            expect(
+                hit,
+                `${park.name} landed in a ${hit?.properties?.kind} (${hit?.properties?.name ?? "unnamed"})`
+            ).toBeUndefined();
+        }
+    });
+
+    it("puts the hand-placed parks exactly where they were pinned", () => {
+        for (const [name, coords] of Object.entries(washpavFieldPins)) {
+            expect(points.find((park) => park.name === name)?.scaledCoords, name).toEqual(coords);
+        }
+    });
+
+    it("keeps the hand-placed parks out of every car park", () => {
+        // Palisades and Oakwood Lakes were both moved out of lots
+        // (Tate, 2026-10-11).
+        const lots = washpavNoGoPolygons.features.filter((f) => f.properties.kind === "parking");
+        for (const name of Object.keys(washpavFieldPins)) {
+            const park = points.find((p) => p.name === name)!;
+            for (const lot of lots) {
+                expect(
+                    booleanPointInPolygon(point(park.scaledCoords as Coordinate), lot as Feature<Polygon>),
+                    `${name} is in car park ${lot.properties.osm_id}`
+                ).toBe(false);
+            }
+        }
+    });
+
+    it("keeps Lake Herman off Architecture Incorporated's wall", () => {
+        // The firm's building, 415 S Main Ave (way 404182650); its north-east
+        // corner is where the pin was moved away from.
+        const herman = points.find((park) => park.name === "Lake Herman State Park")!;
+        expect(distanceInMeters(herman.scaledCoords as Coordinate, [-96.728459, 43.542972])).toBeGreaterThan(15);
+    });
+
+    it("keeps Palisades out of the Pavilion's surface lot", () => {
+        // OSM way 404840507, probably private (Tate, 2026-10-11).
+        const lot = washpavNoGoPolygons.features.find((f) => f.properties.osm_id === 404840507);
+        expect(lot, "the lot is no longer in the no-go data").toBeDefined();
+        const palisades = points.find((park) => park.name === "Palisades State Park")!;
+        expect(booleanPointInPolygon(point(palisades.scaledCoords as Coordinate), lot as Feature<Polygon>)).toBe(false);
+        // And not hugging it either: on the sidewalk well north of its edge.
+        expect(distanceInMeters(palisades.scaledCoords as Coordinate, [-96.728436, 43.543421])).toBeGreaterThan(20);
+    });
+
+    /*
+     * Tate, 2026-10-11: no spots in parking lots, and none at a business's
+     * front door. Doors are almost never mapped downtown, so the no-go data
+     * carries a strip in front of every business instead, and lots mapped
+     * only as aisles are covered by buffering the aisles wide. These check
+     * the data still says so; the no-go test above checks the spots obey it.
+     */
+    it("keeps the sidewalk in front of a business off limits", () => {
+        const fronted = new Set(
+            washpavNoGoPolygons.features
+                .filter((f) => f.properties.kind === "business")
+                .map((f) => f.properties.osm_id)
+        );
+        // Architecture Incorporated, 415 S Main Ave, which Lake Herman was
+        // moved away from, and the Phillips Avenue Diner.
+        expect(fronted.has(404182650)).toBe(true);
+        expect(fronted.has(404182638)).toBe(true);
+    });
+
+    it("covers the stalls along a parking aisle, not just the aisle", () => {
+        // A point 7 m from the middle of an aisle is in a parking stall.
+        const aisle = washpavNoGoPolygons.features.find(
+            (f) => f.properties.kind === "road" && f.properties.service === "parking_aisle"
+        );
+        expect(aisle).toBeDefined();
+        const [[a, b, c]] = (aisle as Feature<Polygon>).geometry.coordinates;
+        const width = Math.min(distanceInMeters(a as Coordinate, b as Coordinate), distanceInMeters(b as Coordinate, c as Coordinate));
+        expect(width).toBeGreaterThanOrEqual(15);
+    });
+
+    it("keeps every pair of parks out of each other's listening area", () => {
+        for (let i = 0; i < points.length; i += 1) {
+            for (let j = i + 1; j < points.length; j += 1) {
+                expect(
+                    distanceInMeters(points[i].scaledCoords as Coordinate, points[j].scaledCoords as Coordinate),
+                    `${points[i].name} and ${points[j].name} would be heard as one place`
+                ).toBeGreaterThanOrEqual(15);
+            }
+        }
+    });
+});
+
+/**
  * Room to stand, on the sites that have obstacle data.
  *
  * The snap used to stop at the first position that was not inside a no-go
@@ -222,6 +359,20 @@ describe("room around each point", () => {
                 clearanceOf(park.scaledCoords as Coordinate, terraceNoGoPolygons),
                 `${park.name} is wedged against something`
             ).toBeGreaterThanOrEqual(8);
+        }
+    });
+
+    // Downtown asks less: only that a walker can stand at the centre, where
+    // the sound is loudest and rotation is offered (Tate, 2026-10-11).
+    // Hand pins excepted, as at Chatham: Palisades is on a sidewalk between
+    // the Pavilion's wall and S Main Ave, narrower than the road buffer allows.
+    it("gives every computed downtown centre room to stand", () => {
+        for (const park of getScaledPoints("washpav")) {
+            if (park.name in washpavFieldPins) continue;
+            expect(
+                clearanceOf(park.scaledCoords as Coordinate, washpavNoGoPolygons, 2),
+                `${park.name}'s centre cannot be reached`
+            ).toBeGreaterThanOrEqual(2);
         }
     });
 

@@ -45,7 +45,7 @@ import ProximityWarmth from "./ProximityWarmth";
 import { getVariantCenter } from "../utils/scaledParks";
 import { debugLog, isDebugEnabled } from "../config/debug";
 import { basemapOpacity } from "../utils/arrival";
-import { BASEMAP_SPECS, paintedToneFromLocation, useBasemapMode } from "../config/basemap";
+import { basemapSpecFor, paintedToneFromLocation, useBasemapMode, useBasemapSpec } from "../config/basemap";
 import { createPaintedBasemapListener } from "./PaintedBasemap";
 import {
     CENTER_ROTATION_RADIUS_METERS,
@@ -852,7 +852,7 @@ function BasemapController(): null {
         if (!layer) {
             return;
         }
-        const spec = BASEMAP_SPECS[mode];
+        const spec = basemapSpecFor(mode);
         layer.getSource()?.setAttributions(spec.attributions);
         if (isDebugEnabled()) {
             window.__basemapMode = mode;
@@ -929,7 +929,7 @@ export default function GeolocationMap({
      * reads the answer (rl-5yp).
      */
     const guideInstall = useInstallHint();
-    const basemap = BASEMAP_SPECS[useBasemapMode()];
+    const basemap = useBasemapSpec();
 
     useRenderDebug("GeolocationMap", {
         debug,
@@ -982,7 +982,7 @@ export default function GeolocationMap({
                 url={basemap.url}
                 tileGrid={basemap.tileGrid}
                 crossOrigin={basemap.crossOrigin}
-                maxZoom={20}
+                maxZoom={basemap.maxZoom}
                 attributions={basemap.attributions}
             />
             <BasemapController />

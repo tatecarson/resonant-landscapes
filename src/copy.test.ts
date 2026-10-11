@@ -17,6 +17,7 @@ function collectStrings(value: unknown, path = "copy"): [string, string][] {
             ["dsu"],
             ["terrace"],
             ["chatham"],
+            ["washpav"],
             [30, 15],
             [null, 15],
             [12],

@@ -61,6 +61,23 @@ describe("netlify caching rules", () => {
         }
     });
 
+    it("gives previews a map Stadia will not refuse", () => {
+        // Stadia authorizes one domain, so preview tiles were 401s and the
+        // map was blank (rl-qavo). Production must not get the variable.
+        for (const context of ["deploy-preview", "branch-deploy"]) {
+            const section = new RegExp(
+                String.raw`\[context\.${context}\.environment\][^\[]*VITE_MAP_TILES\s*=\s*"satellite"`
+            );
+            expect(toml, `${context} builds would ask Stadia and get 401s`).toMatch(section);
+        }
+        expect(toml).not.toMatch(/\[build\.environment\][^[]*VITE_MAP_TILES/);
+
+        const policy = toml.match(/Content-Security-Policy\s*=\s*"([^"]+)"/)?.[1] ?? "";
+        const imgSrc = policy.match(/img-src([^;]*)/)?.[1] ?? "";
+        expect(imgSrc, "the policy would block the preview street map").toContain("https://tile.openstreetmap.org");
+        expect(imgSrc, "the policy would block the preview imagery").toContain("https://server.arcgisonline.com");
+    });
+
     it("lets the counting script through the policy that would block it", () => {
         // The script is served from gc.zgo.at, which is not *.goatcounter.com
         // — the host the endpoint is on. Allowing only the latter blocks the
