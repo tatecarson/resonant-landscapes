@@ -1,26 +1,35 @@
 import { describe, expect, it } from "vitest";
 import { palette } from "../theme/palette";
-import { ORIGINAL_COLOUR, TONE_CEILING, TONE_FLOOR, TONE_RAMP } from "./PaintedBasemap";
+import { DEFAULT_PAINTED_TONE, ORIGINAL_COLOUR, PAINTED_TONES, TONE_CEILING } from "./PaintedBasemap";
 
-describe("the painted ground's tone ramp", () => {
+/** Tokens at least as dark as the park markers' fill. */
+const MARKER_DARK_TOKENS = new Set(["edge", "accentSoft", "inkMuted", "ink"]);
+
+describe.each(Object.entries(PAINTED_TONES))("the %s painted ground", (_, tone) => {
     it("is made only of palette tokens", () => {
-        for (const { token } of TONE_RAMP) {
+        for (const { token } of tone.ramp) {
             expect(palette).toHaveProperty(token);
         }
     });
 
     it("runs from 0 to 1 in order, so every lightness lands on it", () => {
-        const stops = TONE_RAMP.map(({ at }) => at);
+        const stops = tone.ramp.map(({ at }) => at);
         expect(stops[0]).toBe(0);
         expect(stops[stops.length - 1]).toBe(1);
         expect([...stops].sort((a, b) => a - b)).toEqual(stops);
     });
 
     it("keeps the ground lighter than the tokens the park markers use", () => {
-        const markerStop = Math.max(
-            ...TONE_RAMP.filter(({ token }) => token === "edge" || token === "accentSoft").map(({ at }) => at),
+        const darkest = Math.max(
+            ...tone.ramp.filter(({ token }) => MARKER_DARK_TOKENS.has(token)).map(({ at }) => at),
         );
-        expect(TONE_FLOOR).toBeGreaterThan(markerStop);
+        expect(tone.floor).toBeGreaterThan(darkest);
+    });
+});
+
+describe("painted ground", () => {
+    it("defaults to the ramp that leaves the panel mint to the panels", () => {
+        expect(PAINTED_TONES[DEFAULT_PAINTED_TONE].ramp.map(({ token }) => token)).not.toContain("panel");
     });
 
     it("leaves the photograph a minority of the colour", () => {

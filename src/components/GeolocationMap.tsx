@@ -45,7 +45,7 @@ import ProximityWarmth from "./ProximityWarmth";
 import { getVariantCenter } from "../utils/scaledParks";
 import { debugLog, isDebugEnabled } from "../config/debug";
 import { basemapOpacity } from "../utils/arrival";
-import { BASEMAP_SPECS, useBasemapMode } from "../config/basemap";
+import { BASEMAP_SPECS, paintedToneFromLocation, useBasemapMode } from "../config/basemap";
 import { createPaintedBasemapListener } from "./PaintedBasemap";
 import {
     CENTER_ROTATION_RADIUS_METERS,
@@ -861,7 +861,7 @@ function BasemapController(): null {
         if (!spec.painted) {
             return;
         }
-        const painted = createPaintedBasemapListener();
+        const painted = createPaintedBasemapListener(paintedToneFromLocation());
         if (!painted) {
             return;
         }

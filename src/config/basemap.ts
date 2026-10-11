@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { createXYZ } from "ol/tilegrid";
 import type TileGrid from "ol/tilegrid/TileGrid";
 import { isDebugEnabled } from "./debug";
+import { DEFAULT_PAINTED_TONE, isPaintedToneName, type PaintedToneName } from "../components/PaintedBasemap";
 
 /**
  * Candidate basemaps for a more painted ground (rl-ffdd), switchable under
@@ -79,6 +80,20 @@ export function parseBasemapParam(search: string, hash: string): BasemapMode | n
     const hashQuery = hash.includes("?") ? hash.slice(hash.indexOf("?") + 1) : "";
     const raw = new URLSearchParams(search).get("basemap") ?? new URLSearchParams(hashQuery).get("basemap");
     return isBasemapMode(raw) ? raw : null;
+}
+
+/** `?tone=` picks the painted ground's ramp; see PAINTED_TONES. */
+export function parsePaintedTone(search: string, hash: string): PaintedToneName | null {
+    const hashQuery = hash.includes("?") ? hash.slice(hash.indexOf("?") + 1) : "";
+    const raw = new URLSearchParams(search).get("tone") ?? new URLSearchParams(hashQuery).get("tone");
+    return isPaintedToneName(raw) ? raw : null;
+}
+
+export function paintedToneFromLocation(): PaintedToneName {
+    if (typeof window === "undefined" || !isDebugEnabled()) {
+        return DEFAULT_PAINTED_TONE;
+    }
+    return parsePaintedTone(window.location.search, window.location.hash) ?? DEFAULT_PAINTED_TONE;
 }
 
 export function nextBasemapMode(mode: BasemapMode): BasemapMode {

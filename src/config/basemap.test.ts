@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BASEMAP_MODES, BASEMAP_SPECS, WATERCOLOR_MAX_ZOOM, type BasemapMode, nextBasemapMode, parseBasemapParam } from "./basemap";
+import { BASEMAP_MODES, BASEMAP_SPECS, WATERCOLOR_MAX_ZOOM, type BasemapMode, nextBasemapMode, parseBasemapParam, parsePaintedTone } from "./basemap";
 
 describe("parseBasemapParam", () => {
     it("reads the search string", () => {
@@ -44,5 +44,16 @@ describe("BASEMAP_SPECS", () => {
                 expect(spec.crossOrigin).toBe("anonymous");
             }
         }
+    });
+});
+
+describe("parsePaintedTone", () => {
+    it("reads the search string and the hash query", () => {
+        expect(parsePaintedTone("?basemap=painted&tone=mint", "")).toBe("mint");
+        expect(parsePaintedTone("", "#/terrace?tone=sage")).toBe("sage");
+    });
+
+    it("ignores unknown tones", () => {
+        expect(parsePaintedTone("?tone=magenta", "")).toBeNull();
     });
 });
