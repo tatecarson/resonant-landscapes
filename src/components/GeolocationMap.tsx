@@ -47,6 +47,7 @@ import { debugLog, isDebugEnabled } from "../config/debug";
 import { basemapOpacity } from "../utils/arrival";
 import { basemapSpecFor, paintedToneFromLocation, useBasemapMode, useBasemapSpec } from "../config/basemap";
 import { createPaintedBasemapListener } from "./PaintedBasemap";
+import StreetLinesLayer from "./StreetLinesLayer";
 import {
     CENTER_ROTATION_RADIUS_METERS,
     MAX_ZOOM,
@@ -929,6 +930,7 @@ export default function GeolocationMap({
      * reads the answer (rl-5yp).
      */
     const guideInstall = useInstallHint();
+    const basemapMode = useBasemapMode();
     const basemap = useBasemapSpec();
 
     useRenderDebug("GeolocationMap", {
@@ -986,6 +988,8 @@ export default function GeolocationMap({
                 attributions={basemap.attributions}
             />
             <BasemapController />
+            {/* Outdoors draws its own streets; the painted grounds lose them. */}
+            <StreetLinesLayer variant={variant} visible={basemapMode !== "outdoors"} basemapKey={basemapMode} />
             <GeolocationOverlay
                 debug={debug}
                 variant={variant}
