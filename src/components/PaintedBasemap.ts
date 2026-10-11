@@ -50,16 +50,20 @@ export interface PaintedTone {
      * ground reaches the dark greens the park markers are drawn in.
      */
     floor: number;
+    /** How much of the photograph's own colour survives the remap. */
+    original: number;
 }
 
 /**
- * Two grounds to compare under the panels (rl-ffdd), chosen with `?tone=`.
+ * Grounds to compare under the panels (rl-ffdd), chosen with `?tone=`.
  *
  * `mint` runs through `panel`, so most of the ground is the same mint as the
- * park strip and the modals, and a panel sliding up has nothing to stand out
- * from. `sage` leaves the mint out: a muted green for the canopy, then sage
- * and cream, so the ground reads as paper and the panels are the only mint on
- * the screen.
+ * park strip, the modals and the arrival field, and walking in changes the
+ * detail on screen but not its colour. `sage` leaves `panel` out, but
+ * `surface` is still a pale green and came out close to mint. `paper` is
+ * mostly cream: grey-green canopy, then sage into a long run of `ground`, with
+ * none of the photograph's own colour, so arriving reads as the screen turning
+ * from cream to mint.
  */
 export const PAINTED_TONES = {
     mint: {
@@ -71,6 +75,7 @@ export const PAINTED_TONES = {
             { token: "ground", at: 1 },
         ],
         floor: 0.5,
+        original: 0.15,
     },
     sage: {
         ramp: [
@@ -80,6 +85,18 @@ export const PAINTED_TONES = {
             { token: "ground", at: 1 },
         ],
         floor: 0.55,
+        original: 0.15,
+    },
+    paper: {
+        ramp: [
+            { token: "edge", at: 0 },
+            { token: "inkMuted", at: 0.3 },
+            { token: "surface", at: 0.6 },
+            { token: "ground", at: 0.8 },
+            { token: "ground", at: 1 },
+        ],
+        floor: 0.4,
+        original: 0,
     },
 } as const satisfies Record<string, PaintedTone>;
 
@@ -101,8 +118,6 @@ export function isPaintedToneName(value: unknown): value is PaintedToneName {
  * out of the rest of the ground.
  */
 export const TONE_CEILING = 0.8;
-/** How much of the photograph's own colour survives the remap. */
-export const ORIGINAL_COLOUR = 0.15;
 
 function tokenRgb(token: Token): [number, number, number] {
     const value = palette[token].replace("#", "");
@@ -209,7 +224,7 @@ void main() {
     // Aerial imagery sits in a narrow band of lightness; stretch it to the
     // whole ramp before lifting the floor.
     float t = mix(${glslFloat(tone.floor)}, 1.0, smoothstep(0.06, ${glslFloat(TONE_CEILING)}, lightness));
-    vec3 painted = mix(tone(t), straight, ${glslFloat(ORIGINAL_COLOUR)});
+    vec3 painted = mix(tone(t), straight, ${glslFloat(tone.original)});
 
     float grain = 1.0 + (hash(p) - 0.5) * 0.04;
     painted = clamp(painted * grain, 0.0, 1.0);

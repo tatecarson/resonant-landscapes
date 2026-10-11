@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { palette } from "../theme/palette";
-import { DEFAULT_PAINTED_TONE, ORIGINAL_COLOUR, PAINTED_TONES, TONE_CEILING } from "./PaintedBasemap";
+import { DEFAULT_PAINTED_TONE, PAINTED_TONES, TONE_CEILING } from "./PaintedBasemap";
 
 /** Tokens at least as dark as the park markers' fill. */
 const MARKER_DARK_TOKENS = new Set(["edge", "accentSoft", "inkMuted", "ink"]);
@@ -25,6 +25,11 @@ describe.each(Object.entries(PAINTED_TONES))("the %s painted ground", (_, tone) 
         );
         expect(tone.floor).toBeGreaterThan(darkest);
     });
+
+    it("leaves the photograph a minority of the colour", () => {
+        expect(tone.original).toBeGreaterThanOrEqual(0);
+        expect(tone.original).toBeLessThan(0.5);
+    });
 });
 
 describe("painted ground", () => {
@@ -32,9 +37,7 @@ describe("painted ground", () => {
         expect(PAINTED_TONES).toHaveProperty(DEFAULT_PAINTED_TONE);
     });
 
-    it("leaves the photograph a minority of the colour", () => {
-        expect(ORIGINAL_COLOUR).toBeGreaterThanOrEqual(0);
-        expect(ORIGINAL_COLOUR).toBeLessThan(0.5);
+    it("brings highlights to the top of the ramp before full white", () => {
         expect(TONE_CEILING).toBeGreaterThan(0);
         expect(TONE_CEILING).toBeLessThanOrEqual(1);
     });
