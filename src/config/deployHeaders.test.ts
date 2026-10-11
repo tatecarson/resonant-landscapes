@@ -66,7 +66,7 @@ describe("netlify caching rules", () => {
         // map was blank (rl-qavo). Production must not get the variable.
         for (const context of ["deploy-preview", "branch-deploy"]) {
             const section = new RegExp(
-                String.raw`\[context\.${context}\.environment\][^\[]*VITE_MAP_TILES\s*=\s*"osm"`
+                String.raw`\[context\.${context}\.environment\][^\[]*VITE_MAP_TILES\s*=\s*"satellite"`
             );
             expect(toml, `${context} builds would ask Stadia and get 401s`).toMatch(section);
         }
@@ -74,7 +74,8 @@ describe("netlify caching rules", () => {
 
         const policy = toml.match(/Content-Security-Policy\s*=\s*"([^"]+)"/)?.[1] ?? "";
         const imgSrc = policy.match(/img-src([^;]*)/)?.[1] ?? "";
-        expect(imgSrc, "the policy would block the preview tiles").toContain("https://tile.openstreetmap.org");
+        expect(imgSrc, "the policy would block the preview street map").toContain("https://tile.openstreetmap.org");
+        expect(imgSrc, "the policy would block the preview imagery").toContain("https://server.arcgisonline.com");
     });
 
     it("lets the counting script through the policy that would block it", () => {

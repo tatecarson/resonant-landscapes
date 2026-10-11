@@ -18,16 +18,18 @@
 # An empty string rather than a removal because that is what a context
 # override can express; the module treats it as unset and injects nothing.
 #
-# The same two contexts also take their map from OpenStreetMap (rl-qavo).
+# The same two contexts also take their map from somewhere else (rl-qavo).
 # Stadia authorizes only the real site's domain, so a preview's tiles came
-# back 401 and its map was blank. See src/map/basemap.ts.
+# back 401 and its map was blank. Previews open on aerial imagery, for
+# checking where listening spots stand; ?map=streets gives a street map.
+# See src/map/basemap.ts.
 [context.deploy-preview.environment]
   VITE_GOATCOUNTER_SITE = ""
-  VITE_MAP_TILES = "osm"
+  VITE_MAP_TILES = "satellite"
 
 [context.branch-deploy.environment]
   VITE_GOATCOUNTER_SITE = ""
-  VITE_MAP_TILES = "osm"
+  VITE_MAP_TILES = "satellite"
 
 # Vite fingerprints these filenames, so a changed file is a changed URL and the
 # old one can be cached forever. Without this they were revalidated on every
@@ -85,7 +87,7 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-eval' https://gc.zgo.at; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://tiles.stadiamaps.com https://tile.openstreetmap.org https://*.goatcounter.com; connect-src 'self' https://resonant-landscapes.b-cdn.net https://tiles.stadiamaps.com https://tile.openstreetmap.org https://*.goatcounter.com; worker-src 'self'; manifest-src 'self'; media-src 'self'"
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-eval' https://gc.zgo.at; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://tiles.stadiamaps.com https://tile.openstreetmap.org https://server.arcgisonline.com https://*.goatcounter.com; connect-src 'self' https://resonant-landscapes.b-cdn.net https://tiles.stadiamaps.com https://tile.openstreetmap.org https://server.arcgisonline.com https://*.goatcounter.com; worker-src 'self'; manifest-src 'self'; media-src 'self'"
     X-Content-Type-Options = "nosniff"
     # frame-ancestors above is the one browsers honour now; this is for the
     # ones that do not read it.
