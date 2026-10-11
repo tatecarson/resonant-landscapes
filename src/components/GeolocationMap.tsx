@@ -43,6 +43,7 @@ import { markParkHeard, useHeardParks } from "../hooks/heardParks";
 import { useInstallHint } from "../hooks/useInstallHint";
 import ProximityWarmth from "./ProximityWarmth";
 import { getVariantCenter } from "../utils/scaledParks";
+import { basemap } from "../map/basemap";
 import { debugLog, isDebugEnabled } from "../config/debug";
 import { basemapOpacity } from "../utils/arrival";
 import {
@@ -916,9 +917,9 @@ export default function GeolocationMap({
                 />
             )}
             <RLayerTile
-                url="https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}.png"
-                maxZoom={20}
-                attributions='Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
+                url={basemap.url}
+                maxZoom={basemap.maxZoom}
+                attributions={basemap.attributions}
             />
             <GeolocationOverlay
                 debug={debug}

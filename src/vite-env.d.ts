@@ -3,6 +3,8 @@
 interface ImportMetaEnv {
   /** Tate's GoatCounter site code; unset means counting is off entirely. */
   readonly VITE_GOATCOUNTER_SITE?: string;
+  /** "satellite" on deploy previews, where Stadia refuses the domain; unset is Stadia. */
+  readonly VITE_MAP_TILES?: string;
 }
 
 // Type for iOS-specific static requestPermission on DeviceOrientationEvent
