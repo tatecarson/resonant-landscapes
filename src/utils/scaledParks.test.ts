@@ -218,6 +218,28 @@ describe("the downtown Sioux Falls placement", () => {
         }
     });
 
+    it("keeps the hand-placed parks out of every car park", () => {
+        // Palisades and Oakwood Lakes were both moved out of lots
+        // (Tate, 2026-10-11).
+        const lots = washpavNoGoPolygons.features.filter((f) => f.properties.kind === "parking");
+        for (const name of Object.keys(washpavFieldPins)) {
+            const park = points.find((p) => p.name === name)!;
+            for (const lot of lots) {
+                expect(
+                    booleanPointInPolygon(point(park.scaledCoords as Coordinate), lot as Feature<Polygon>),
+                    `${name} is in car park ${lot.properties.osm_id}`
+                ).toBe(false);
+            }
+        }
+    });
+
+    it("keeps Lake Herman off Architecture Incorporated's wall", () => {
+        // The firm's building, 415 S Main Ave (way 404182650); its north-east
+        // corner is where the pin was moved away from.
+        const herman = points.find((park) => park.name === "Lake Herman State Park")!;
+        expect(distanceInMeters(herman.scaledCoords as Coordinate, [-96.728459, 43.542972])).toBeGreaterThan(15);
+    });
+
     it("keeps Palisades out of the Pavilion's surface lot", () => {
         // OSM way 404840507, probably private (Tate, 2026-10-11).
         const lot = washpavNoGoPolygons.features.find((f) => f.properties.osm_id === 404840507);

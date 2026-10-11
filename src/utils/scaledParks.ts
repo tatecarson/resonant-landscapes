@@ -545,6 +545,17 @@ export const washpavFieldPins: Record<string, Coordinate> = {
     // front (way 1497193983). About 3 m from the building, 10 m from the
     // street's centreline.
     'Palisades State Park': [-96.728412, 43.54365],
+    // The remap put it in the open lot behind the parking garage on the
+    // east side of S Main Ave, between a parking aisle and a driveway.
+    // Moved 10 m north onto the south sidewalk of W 12th St, clear of the
+    // garage (way 501299571) and both driveways.
+    'Oakwood Lakes State Park': [-96.72774, 43.54339],
+    // Was 2 m from the east wall of Architecture Incorporated, 415 S Main
+    // Ave (way 404182650). Moved out to the S Main Ave sidewalk, just
+    // outside the 8 m road buffer, and 25 m north: past the driveway where
+    // the Pavilion's lot meets Main (way 405057215), between it and the
+    // lot's next aisle. About 20 m from the firm's corner.
+    'Lake Herman State Park': [-96.7284, 43.54315],
 };
 
 function washpavScaledPoints() {
