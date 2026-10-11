@@ -15,9 +15,9 @@ import {
     getVariantCenter,
 } from '../src/utils/scaledParks';
 
-type Variant = 'dsu' | 'terrace' | 'chatham';
+type Variant = 'dsu' | 'terrace' | 'chatham' | 'washpav';
 
-const VARIANTS: Variant[] = ['dsu', 'terrace', 'chatham'];
+const VARIANTS: Variant[] = ['dsu', 'terrace', 'chatham', 'washpav'];
 
 const payload = Object.fromEntries(
     VARIANTS.map(variant => [

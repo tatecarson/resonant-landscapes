@@ -12,6 +12,7 @@ import chathamNoGoPolygons from "../data/chathamNoGoPolygons.json";
 import chathamSurveyedNoGo from "../data/chathamSurveyedNoGo.json";
 import chathamCampus from "../data/chathamCampus.json";
 import terraceNoGoPolygons from "../data/terraceNoGoPolygons.json";
+import washpavNoGoPolygons from "../data/washpavNoGoPolygons.json";
 import type { Feature, Polygon } from "geojson";
 
 /** What placement avoids at Chatham: the OSM import plus what was found on foot. */
@@ -53,8 +54,15 @@ describe("getVariantCenter", () => {
         expect(center[1]).toBeLessThan(40.46);
     });
 
+    it("opens on downtown Sioux Falls for the washpav variant", () => {
+        const center = getVariantCenter("washpav");
+
+        // Within a block of the Washington Pavilion, where the QR code is.
+        expect(distanceInMeters(center, [-96.729018, 43.543889])).toBeLessThan(250);
+    });
+
     it("never opens on Null Island", () => {
-        for (const variant of ["dsu", "terrace", "chatham"] as const) {
+        for (const variant of ["dsu", "terrace", "chatham", "washpav"] as const) {
             expect(distanceInMeters(getVariantCenter(variant), [0, 0])).toBeGreaterThan(1_000_000);
         }
     });
@@ -158,6 +166,56 @@ describe("the Chatham placement", () => {
                 );
                 expect(
                     metres,
+                    `${points[i].name} and ${points[j].name} would be heard as one place`
+                ).toBeGreaterThanOrEqual(15);
+            }
+        }
+    });
+});
+
+/**
+ * Downtown Sioux Falls, from the Washington Pavilion (rl-jb2p).
+ *
+ * The site is the rectangle between W 9th St, S 1st Ave, W 13th St and South
+ * Dakota Ave. Streets may be crossed but not stood in, so the roads are in the
+ * no-go set the same as buildings.
+ */
+describe("the downtown Sioux Falls placement", () => {
+    const points = getScaledPoints("washpav");
+
+    it("puts all 13 parks between 9th and 13th, South Dakota and 1st", () => {
+        expect(points).toHaveLength(13);
+        for (const park of points) {
+            const [lon, lat] = park.scaledCoords as Coordinate;
+            expect(lon, `${park.name} is west of South Dakota Ave`).toBeGreaterThan(-96.7299);
+            expect(lon, `${park.name} is east of S 1st Ave`).toBeLessThan(-96.7253);
+            expect(lat, `${park.name} is south of W 13th St`).toBeGreaterThan(43.54245);
+            expect(lat, `${park.name} is north of W 9th St`).toBeLessThan(43.54731);
+        }
+    });
+
+    it("puts no park in a building, a car park or a road", () => {
+        for (const park of points) {
+            const candidate = point(park.scaledCoords as Coordinate);
+            const hit = (washpavNoGoPolygons.features as unknown[]).find((feature) => {
+                try {
+                    return booleanPointInPolygon(candidate, feature as Feature<Polygon>);
+                } catch {
+                    return false;
+                }
+            }) as { properties?: { kind?: string; name?: string | null } } | undefined;
+            expect(
+                hit,
+                `${park.name} landed in a ${hit?.properties?.kind} (${hit?.properties?.name ?? "unnamed"})`
+            ).toBeUndefined();
+        }
+    });
+
+    it("keeps every pair of parks out of each other's listening area", () => {
+        for (let i = 0; i < points.length; i += 1) {
+            for (let j = i + 1; j < points.length; j += 1) {
+                expect(
+                    distanceInMeters(points[i].scaledCoords as Coordinate, points[j].scaledCoords as Coordinate),
                     `${points[i].name} and ${points[j].name} would be heard as one place`
                 ).toBeGreaterThanOrEqual(15);
             }

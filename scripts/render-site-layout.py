@@ -54,6 +54,18 @@ SITES = {
         # dropped on it during the site visit (rl-wc3.3).
         "start": (-79.9242351, 40.4490452, "Start: Gurrentz Gallery (approx.)"),
     },
+    "washpav": {
+        "title": "Downtown Sioux Falls, from the Washington Pavilion",
+        "nogo": ["washpavNoGoPolygons.json"],
+        # No site polygon in OSM: the site is the rectangle between the four
+        # boundary street centrelines, (west, south, east, north), matching
+        # WASHPAV_BOUNDS in scaledParks.ts.
+        "boundary": None,
+        "box": (-96.7299, 43.54245, -96.7253, 43.54731),
+        # The middle of the Pavilion's OSM footprint (way 302520233); the
+        # gallery is inside, and the walk starts from its doors on Main Ave.
+        "start": (-96.729018, 43.543889, "Start: Washington Pavilion"),
+    },
     "dsu": {
         "title": "Dakota State University, Madison",
         "nogo": [],
@@ -71,6 +83,14 @@ STREET_LABELS = {
         (-79.92450, 40.44420, "Wilkins Avenue", 0),
         (-79.92430, 40.44900, "Woodland Road", 65),
         (-79.92330, 40.45010, "N Woodland Road", 60),
+    ],
+    "washpav": [
+        (-96.72830, 43.54600, "S Main Ave", 90),
+        (-96.72670, 43.54600, "S Phillips Ave", 90),
+        (-96.72975, 43.54600, "S Dakota Ave", 90),
+        (-96.72540, 43.54600, "S 1st Ave", 90),
+        (-96.72750, 43.54731, "W 9th St", 0),
+        (-96.72750, 43.54245, "W 13th St", 0),
     ],
     "terrace": [
         (-96.74180, 43.55650, "N Grange Ave", 90),
@@ -137,6 +157,10 @@ def render(variant: str) -> pathlib.Path:
     boundary_ring = None
     if spec["boundary"]:
         boundary_ring = json.loads((DATA / spec["boundary"]).read_text())["geometry"]["coordinates"][0]
+    elif spec.get("box"):
+        west, south, east, north = spec["box"]
+        boundary_ring = [[west, south], [east, south], [east, north], [west, north], [west, south]]
+    if boundary_ring:
         axes.add_patch(MplPolygon(boundary_ring, closed=True, facecolor=SAGE_FILL,
                                   edgecolor=SAGE, linewidth=1.4, alpha=0.45, zorder=1))
 

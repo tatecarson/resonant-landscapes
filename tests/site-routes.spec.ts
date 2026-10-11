@@ -23,6 +23,7 @@ const WALKS = {
     dsu: /walk dsu's campus/i,
     terrace: /walk terrace park/i,
     chatham: /walk chatham's campus/i,
+    washpav: /walk downtown sioux falls/i,
 } as const;
 
 /*
@@ -41,6 +42,10 @@ const ROUTES: [string, keyof typeof WALKS][] = [
     ["/chatham/", "chatham"],
     ["/#/chatham", "chatham"],
     ["/#/chatham/", "chatham"],
+    ["/washpav", "washpav"],
+    ["/washpav/", "washpav"],
+    ["/#/washpav", "washpav"],
+    ["/#/washpav/", "washpav"],
 ];
 
 for (const [route, walk] of ROUTES) {

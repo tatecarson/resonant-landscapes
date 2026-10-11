@@ -1,5 +1,8 @@
-/** Which walk this page is: the DSU campus, Terrace Park or Chatham. */
-export type Variant = "dsu" | "terrace" | "chatham";
+/**
+ * Which walk this page is: the DSU campus, Terrace Park, Chatham, or downtown
+ * Sioux Falls from the Washington Pavilion.
+ */
+export type Variant = "dsu" | "terrace" | "chatham" | "washpav";
 
 /**
  * A route with its trailing slashes taken off, so `/terrace` and `/terrace/`
@@ -34,6 +37,9 @@ export function detectVariant(location: Location): Variant {
   }
   if (hashRoute === "/chatham" || path.endsWith("/chatham")) {
     return "chatham";
+  }
+  if (hashRoute === "/washpav" || path.endsWith("/washpav")) {
+    return "washpav";
   }
   return "dsu";
 }

@@ -6,6 +6,7 @@ import terraceNoGoPolygons from '../data/terraceNoGoPolygons.json';
 import chathamNoGoPolygons from '../data/chathamNoGoPolygons.json';
 import chathamSurveyedNoGo from '../data/chathamSurveyedNoGo.json';
 import chathamCampus from '../data/chathamCampus.json';
+import washpavNoGoPolygons from '../data/washpavNoGoPolygons.json';
 import { scaleCoordinates, type Coordinate } from './geo';
 import type { Feature, MultiPolygon, Point, Polygon } from 'geojson';
 
@@ -474,6 +475,51 @@ function chathamScaledPoints() {
     });
 }
 
+// ---- Downtown Sioux Falls, from the Washington Pavilion ------------------
+// Fourth site, alongside Terrace rather than replacing it. The wall label in
+// the Pavilion's gallery carries a QR code that opens /washpav, and the walk
+// is the downtown blocks outside: W 9th St to W 13th St, South Dakota Ave to
+// S 1st Ave, about 540 m north to south and 370 m east to west. Tall like
+// Terrace, so the same quarter turn.
+//
+// The bounds are the four street centrelines, which makes the rectangle the
+// site: there is no campus polygon downtown to pull points onto. Crossing
+// streets is fine here (Tate, 2026-10-11), so the roads in the no-go set only
+// stop a point standing in one.
+//
+// Downtown is the first site with almost no open ground. Sidewalks are a few
+// metres wide, so the 8 m clearance the snap looks for mostly is not there,
+// and it settles for the roomiest spot it passed. Tate walks these and pins
+// the bad ones by hand, as at Chatham.
+const WASHPAV_BOUNDS: SiteBounds = {
+    west: -96.7299,   // South Dakota Ave
+    east: -96.7253,   // S 1st Ave
+    north: 43.54731,  // W 9th St
+    south: 43.54245,  // W 13th St
+};
+// About 12 m east-west and 17 m north-south: off the boundary streets' own
+// carriageway, so the remap does not start every edge point in traffic.
+const WASHPAV_BUFFER = 0.00015;
+
+const WASHPAV_SITE: Feature<Polygon> = {
+    type: 'Feature',
+    properties: { name: 'Downtown Sioux Falls' },
+    geometry: {
+        type: 'Polygon',
+        coordinates: [[
+            [WASHPAV_BOUNDS.west, WASHPAV_BOUNDS.south],
+            [WASHPAV_BOUNDS.east, WASHPAV_BOUNDS.south],
+            [WASHPAV_BOUNDS.east, WASHPAV_BOUNDS.north],
+            [WASHPAV_BOUNDS.west, WASHPAV_BOUNDS.north],
+            [WASHPAV_BOUNDS.west, WASHPAV_BOUNDS.south],
+        ]],
+    },
+};
+
+function washpavScaledPoints() {
+    return remapIntoSite(WASHPAV_BOUNDS, WASHPAV_BUFFER, washpavNoGoPolygons, WASHPAV_SITE);
+}
+
 // ---- Test parks (debug route) ------------------------------------------
 const testPark = {
     name: "Custer Test",
@@ -502,8 +548,14 @@ const testParks = [testPark, currentLocationTestPark];
  * the walk's own ground means those first tiles are the ones the walker is
  * about to need.
  */
-export function getVariantCenter(variant: 'dsu' | 'terrace' | 'chatham' = 'dsu'): Coordinate {
-    const bounds = variant === 'terrace' ? TERRACE_BOUNDS : variant === 'chatham' ? CHATHAM_BOUNDS : null;
+const SITE_BOUNDS: Record<string, SiteBounds> = {
+    terrace: TERRACE_BOUNDS,
+    chatham: CHATHAM_BOUNDS,
+    washpav: WASHPAV_BOUNDS,
+};
+
+export function getVariantCenter(variant: 'dsu' | 'terrace' | 'chatham' | 'washpav' = 'dsu'): Coordinate {
+    const bounds = SITE_BOUNDS[variant] ?? null;
     if (bounds) {
         return [(bounds.west + bounds.east) / 2, (bounds.north + bounds.south) / 2];
     }
@@ -513,6 +565,7 @@ export function getVariantCenter(variant: 'dsu' | 'terrace' | 'chatham' = 'dsu')
 export function getScaledPoints(variant = 'dsu') {
     if (variant === 'terrace') return terraceScaledPoints();
     if (variant === 'chatham') return chathamScaledPoints();
+    if (variant === 'washpav') return washpavScaledPoints();
     return dsuScaledPoints();
 }
 
