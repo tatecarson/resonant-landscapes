@@ -31,8 +31,16 @@ export interface BasemapSpec {
     painted: boolean;
 }
 
-const OSM_CREDIT = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
-const STADIA_CREDIT = '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>';
+/*
+ * Credits as docs.stadiamaps.com/attribution asks for them. Watercolor is the
+ * one style that leaves out OpenMapTiles and adds Stamen; satellite adds the
+ * imagery providers, which need no link.
+ */
+const STADIA_CREDIT = '&copy; <a href="https://stadiamaps.com/attribution/" target="_blank">Stadia Maps</a>';
+const OPENMAPTILES_CREDIT = '&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a>';
+const OSM_CREDIT = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>';
+const STAMEN_CREDIT = '&copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a>';
+const IMAGERY_CREDIT = "&copy; CNES, Distribution Airbus DS, &copy; Airbus DS, &copy; PlanetObserver (Contains Copernicus Data)";
 
 /** The zoom Stadia stops serving Watercolor at; past it the tileset has holes. */
 export const WATERCOLOR_MAX_ZOOM = 16;
@@ -41,15 +49,13 @@ const WATERCOLOR_GRID = createXYZ({ maxZoom: WATERCOLOR_MAX_ZOOM });
 export const BASEMAP_SPECS: Record<BasemapMode, BasemapSpec> = {
     outdoors: {
         url: "https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}.png",
-        // Unchanged from what shipped before the switch existed.
-        attributions:
-            'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.',
+        attributions: [STADIA_CREDIT, OPENMAPTILES_CREDIT, OSM_CREDIT].join(" "),
         painted: false,
     },
     watercolor: {
         url: "https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg",
         tileGrid: WATERCOLOR_GRID,
-        attributions: `${STADIA_CREDIT} &copy; <a href="https://stamen.com/">Stamen Design</a> ${OSM_CREDIT}`,
+        attributions: [STADIA_CREDIT, STAMEN_CREDIT, OSM_CREDIT].join(" "),
         painted: false,
     },
     painted: {
@@ -59,7 +65,7 @@ export const BASEMAP_SPECS: Record<BasemapMode, BasemapSpec> = {
         // image request fails, so switching the shipped layer to CORS would
         // blank a returning walker's cached ground.
         crossOrigin: "anonymous",
-        attributions: `${STADIA_CREDIT} &copy; CNES, Distribution Airbus DS, &copy; Airbus DS, &copy; PlanetObserver (Contains Copernicus Data) ${OSM_CREDIT}`,
+        attributions: [IMAGERY_CREDIT, STADIA_CREDIT, OPENMAPTILES_CREDIT, OSM_CREDIT].join(" "),
         painted: true,
     },
 };
