@@ -5,13 +5,23 @@ import { palette } from "../theme/palette";
  * Paints the basemap in the browser (rl-ffdd).
  *
  * A Kuwahara filter: for each pixel, average the four overlapping quarter
- * discs that meet at it and keep the one whose colour varies least. Quarter
- * discs rather than the textbook squares, because squares leave hard
- * rectangular blocks that read as pixelation once the result is enlarged. Flat areas smooth into
- * patches, edges stay where they are because no square straddles them, and
- * foliage in aerial imagery turns into something close to brush dabs. A slow
- * displacement of where it samples gives the edges a hand-drawn wobble, and a
- * fine grain stops the patches reading as flat digital fill.
+ * discs that meet at it and favour the ones whose colour varies least. Flat
+ * areas smooth into patches, edges stay where they are because the discs on
+ * either side of one are each flat, and foliage in aerial imagery turns into
+ * something close to brush dabs. A slow displacement of where it samples gives
+ * the edges a hand-drawn wobble, and a fine grain stops the patches reading as
+ * flat digital fill.
+ *
+ * Built to hold still while the map moves under a walker. The first version
+ * shimmered: it painted at half a CSS pixel and enlarged, so building edges
+ * stepped in blocks that crawled as the map slid and turned; it kept only the
+ * flattest disc, so a pixel snapped between neighbours from one frame to the
+ * next; and its wobble and grain were fixed to the screen, so the ground swam
+ * through them. Now the source is shrunk in halving steps to one texel per
+ * brush step before upload, so sampling it does not alias; the output is one
+ * pixel per CSS pixel; the discs are blended by how flat each is rather than
+ * one picked; and the wobble and grain are computed from map coordinates, so
+ * they are painted on the ground and travel with it.
  *
  * Then the colour is taken away from the photograph and given to the palette:
  * each patch's lightness is looked up on a ramp of palette tokens, so the
@@ -26,15 +36,22 @@ import { palette } from "../theme/palette";
  * canvas already carries the layer's opacity, so the arrival dissolve fades the
  * painted ground the same as the plain one.
  *
- * Worked at reduced resolution on purpose: the map redraws on every heading
- * change, a full Kuwahara pass at a phone's 3x density is the expensive part,
- * and the enlargement back up only softens what is meant to look soft.
+ * Not at the phone's full density: the map redraws on every heading change,
+ * and a pass at 3x would be nine times the work for detail the painting is
+ * there to remove.
  */
 
-/** Sampling radius in output pixels; each pixel reads (2R+1)^2 texels. */
+/** Sampling radius in brush steps; each pixel reads the texels of a disc this wide. */
 export const KUWAHARA_RADIUS = 4;
-/** Output pixels per CSS pixel. Below 1 is cheaper and broader-brushed. */
-export const PAINT_RESOLUTION = 0.5;
+/** CSS pixels between samples. Sets the brush size with the radius: 8 px. */
+export const BRUSH_STEP = 2;
+/** Output pixels per CSS pixel. */
+export const PAINT_RESOLUTION = 0.75;
+/**
+ * How sharply the flattest disc wins. Higher approaches the textbook filter,
+ * which picks one and snaps; lower blurs across edges.
+ */
+export const DISC_SHARPNESS = 4;
 
 type Token = keyof typeof palette;
 type ToneStop = { token: Token; at: number };
@@ -150,10 +167,20 @@ function toneFunction(ramp: readonly ToneStop[]): string {
 
 // WebGL 1 for iOS 15: loop bounds have to be constants.
 const fragmentShader = (tone: PaintedTone) => `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
 precision mediump float;
+#endif
 uniform sampler2D u_image;
-/** One output pixel, in texture coordinates. */
+/** One brush step (one source texel), in texture coordinates. */
 uniform vec2 u_step;
+/** Output pixel to CSS pixel, and the output's height to flip y. */
+uniform vec2 u_outToCss;
+uniform float u_outHeight;
+/** CSS pixel to map coordinates, less a fixed origin so the numbers stay small. */
+uniform vec4 u_cssToMap;
+uniform vec2 u_mapOffset;
 varying vec2 v_uv;
 
 #define R ${KUWAHARA_RADIUS}
@@ -175,9 +202,20 @@ float noise(vec2 p) {
     );
 }
 
+float discWeight(vec3 variance) {
+    float spread = sqrt(variance.r + variance.g + variance.b);
+    return 1.0 / (1.0 + pow(spread * 40.0, ${glslFloat(DISC_SHARPNESS)}));
+}
+
 void main() {
-    vec2 p = gl_FragCoord.xy;
-    vec2 wobble = vec2(noise(p * 0.035), noise(p * 0.035 + 19.3)) - 0.5;
+    // Where this pixel is on the ground, so the texture belongs to the map.
+    vec2 css = vec2(gl_FragCoord.x, u_outHeight - gl_FragCoord.y) * u_outToCss;
+    vec2 ground = vec2(
+        u_cssToMap.x * css.x + u_cssToMap.z * css.y,
+        u_cssToMap.y * css.x + u_cssToMap.w * css.y
+    ) + u_mapOffset;
+
+    vec2 wobble = vec2(noise(ground * 0.3), noise(ground * 0.3 + 19.3)) - 0.5;
     vec2 uv = v_uv + wobble * u_step * 2.5;
 
     vec4 m0 = vec4(0.0); vec4 m1 = vec4(0.0); vec4 m2 = vec4(0.0); vec4 m3 = vec4(0.0);
@@ -199,20 +237,11 @@ void main() {
     }
 
     m0 /= n; m1 /= n; m2 /= n; m3 /= n;
-    vec3 v0 = abs(s0 / n - m0.rgb * m0.rgb);
-    vec3 v1 = abs(s1 / n - m1.rgb * m1.rgb);
-    vec3 v2 = abs(s2 / n - m2.rgb * m2.rgb);
-    vec3 v3 = abs(s3 / n - m3.rgb * m3.rgb);
-    float d0 = v0.r + v0.g + v0.b;
-    float d1 = v1.r + v1.g + v1.b;
-    float d2 = v2.r + v2.g + v2.b;
-    float d3 = v3.r + v3.g + v3.b;
-
-    vec4 colour = m0;
-    float least = d0;
-    if (d1 < least) { least = d1; colour = m1; }
-    if (d2 < least) { least = d2; colour = m2; }
-    if (d3 < least) { colour = m3; }
+    float w0 = discWeight(abs(s0 / n - m0.rgb * m0.rgb));
+    float w1 = discWeight(abs(s1 / n - m1.rgb * m1.rgb));
+    float w2 = discWeight(abs(s2 / n - m2.rgb * m2.rgb));
+    float w3 = discWeight(abs(s3 / n - m3.rgb * m3.rgb));
+    vec4 colour = (m0 * w0 + m1 * w1 + m2 * w2 + m3 * w3) / max(w0 + w1 + w2 + w3, 1e-6);
 
     if (colour.a <= 0.0) {
         gl_FragColor = vec4(0.0);
@@ -226,7 +255,7 @@ void main() {
     float t = mix(${glslFloat(tone.floor)}, 1.0, smoothstep(0.06, ${glslFloat(TONE_CEILING)}, lightness));
     vec3 painted = mix(tone(t), straight, ${glslFloat(tone.original)});
 
-    float grain = 1.0 + (hash(p) - 0.5) * 0.04;
+    float grain = 1.0 + (noise(ground * 1.0) - 0.5) * 0.04;
     painted = clamp(painted * grain, 0.0, 1.0);
     gl_FragColor = vec4(painted * colour.a, colour.a);
 }
@@ -250,7 +279,9 @@ class KuwaharaPass {
     private readonly gl: WebGLRenderingContext;
     private readonly program: WebGLProgram;
     private readonly texture: WebGLTexture;
-    private readonly stepLocation: WebGLUniformLocation | null;
+    private readonly uniforms: Record<"step" | "outToCss" | "outHeight" | "cssToMap" | "mapOffset", WebGLUniformLocation | null>;
+    /** Halving steps between the map canvas and the texture. */
+    private readonly shrinkCanvases: HTMLCanvasElement[] = [];
     private lost = false;
 
     constructor(tone: PaintedTone) {
@@ -295,7 +326,13 @@ class KuwaharaPass {
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
         gl.uniform1i(gl.getUniformLocation(program, "u_image"), 0);
-        this.stepLocation = gl.getUniformLocation(program, "u_step");
+        this.uniforms = {
+            step: gl.getUniformLocation(program, "u_step"),
+            outToCss: gl.getUniformLocation(program, "u_outToCss"),
+            outHeight: gl.getUniformLocation(program, "u_outHeight"),
+            cssToMap: gl.getUniformLocation(program, "u_cssToMap"),
+            mapOffset: gl.getUniformLocation(program, "u_mapOffset"),
+        };
         tone.ramp.forEach(({ token }, index) => {
             gl.uniform3fv(gl.getUniformLocation(program, `u_tone${index}`), tokenRgb(token));
         });
@@ -310,20 +347,73 @@ class KuwaharaPass {
         return !this.lost;
     }
 
-    /** Paints `source` at `width` x `height` and returns the canvas holding it. */
-    render(source: HTMLCanvasElement, width: number, height: number): HTMLCanvasElement {
-        const { gl } = this;
-        if (this.canvas.width !== width || this.canvas.height !== height) {
-            this.canvas.width = width;
-            this.canvas.height = height;
+    /**
+     * The map canvas shrunk to `width` x `height` by halving, never by more
+     * than half at once: one big step samples a few source pixels per texel
+     * and lets the rest flicker in and out as the map moves.
+     */
+    private shrink(source: HTMLCanvasElement, width: number, height: number): HTMLCanvasElement {
+        let current = source;
+        let level = 0;
+        while (current.width > width || current.height > height) {
+            const nextWidth = Math.max(width, Math.ceil(current.width / 2));
+            const nextHeight = Math.max(height, Math.ceil(current.height / 2));
+            const canvas = (this.shrinkCanvases[level] ??= document.createElement("canvas"));
+            if (canvas.width !== nextWidth || canvas.height !== nextHeight) {
+                canvas.width = nextWidth;
+                canvas.height = nextHeight;
+            }
+            const context = canvas.getContext("2d");
+            if (!context) return current;
+            context.globalCompositeOperation = "copy";
+            context.imageSmoothingEnabled = true;
+            context.imageSmoothingQuality = "high";
+            context.drawImage(current, 0, 0, nextWidth, nextHeight);
+            current = canvas;
+            level += 1;
         }
-        gl.viewport(0, 0, width, height);
+        return current;
+    }
+
+    /**
+     * Paints `source` into an output of `outWidth` x `outHeight` and returns
+     * the canvas holding it. `cssWidth` x `cssHeight` is the map's size in CSS
+     * pixels, and `cssToMap` the affine transform from them to map coordinates
+     * (OpenLayers' [a, b, c, d, e, f]) with `origin` taken off.
+     */
+    render(
+        source: HTMLCanvasElement,
+        frame: {
+            outWidth: number;
+            outHeight: number;
+            cssWidth: number;
+            cssHeight: number;
+            cssToMap: number[];
+            origin: [number, number];
+        },
+    ): HTMLCanvasElement {
+        const { gl, uniforms } = this;
+        const { outWidth, outHeight, cssWidth, cssHeight, cssToMap, origin } = frame;
+        const texWidth = Math.max(1, Math.round(cssWidth / BRUSH_STEP));
+        const texHeight = Math.max(1, Math.round(cssHeight / BRUSH_STEP));
+        const texture = this.shrink(source, texWidth, texHeight);
+
+        if (this.canvas.width !== outWidth || this.canvas.height !== outHeight) {
+            this.canvas.width = outWidth;
+            this.canvas.height = outHeight;
+        }
+        gl.viewport(0, 0, outWidth, outHeight);
         gl.useProgram(this.program);
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
         // Throws a SecurityError if any tile on the canvas was not CORS-clean.
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
-        gl.uniform2f(this.stepLocation, 1 / width, 1 / height);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture);
+        gl.uniform2f(uniforms.step, 1 / texture.width, 1 / texture.height);
+        gl.uniform2f(uniforms.outToCss, cssWidth / outWidth, cssHeight / outHeight);
+        gl.uniform1f(uniforms.outHeight, outHeight);
+        const [a, b, c, d, e, f] = cssToMap;
+        gl.uniform4f(uniforms.cssToMap, a, b, c, d);
+        gl.uniform2f(uniforms.mapOffset, e - origin[0], f - origin[1]);
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -353,20 +443,35 @@ export function createPaintedBasemapListener(toneName: PaintedToneName = DEFAULT
     }
 
     let failed = false;
+    let origin: [number, number] | undefined;
     const listener = (event: RenderEvent) => {
         const context = event.context;
         if (failed || !pass.usable || !(context instanceof CanvasRenderingContext2D)) {
             return;
         }
+        const frameState = event.frameState;
+        if (!frameState) {
+            return;
+        }
         const source = context.canvas;
-        const pixelRatio = event.frameState?.pixelRatio ?? window.devicePixelRatio ?? 1;
-        const scale = PAINT_RESOLUTION / pixelRatio;
-        const width = Math.max(1, Math.round(source.width * scale));
-        const height = Math.max(1, Math.round(source.height * scale));
+        const pixelRatio = frameState.pixelRatio || 1;
+        const cssWidth = source.width / pixelRatio;
+        const cssHeight = source.height / pixelRatio;
+        const cssToMap = frameState.pixelToCoordinateTransform;
+        // Fixed for the life of the pass, so the ground's texture does not
+        // jump; only there to keep the shader's numbers small.
+        origin ??= [Math.round(cssToMap[4]), Math.round(cssToMap[5])];
 
         let painted: HTMLCanvasElement;
         try {
-            painted = pass.render(source, width, height);
+            painted = pass.render(source, {
+                outWidth: Math.max(1, Math.round(cssWidth * PAINT_RESOLUTION)),
+                outHeight: Math.max(1, Math.round(cssHeight * PAINT_RESOLUTION)),
+                cssWidth,
+                cssHeight,
+                cssToMap,
+                origin,
+            });
         } catch (error) {
             failed = true;
             console.warn("[painted basemap] could not read the tiles back, showing plain imagery", error);
