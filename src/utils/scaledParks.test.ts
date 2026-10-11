@@ -4,6 +4,7 @@ import {
     chathamFieldPins,
     getScaledPoints,
     getVariantCenter,
+    washpavFieldPins,
 } from "./scaledParks";
 import { distanceInMeters, type Coordinate } from "./geo";
 import { point } from "@turf/helpers";
@@ -211,6 +212,22 @@ describe("the downtown Sioux Falls placement", () => {
         }
     });
 
+    it("puts the hand-placed parks exactly where they were pinned", () => {
+        for (const [name, coords] of Object.entries(washpavFieldPins)) {
+            expect(points.find((park) => park.name === name)?.scaledCoords, name).toEqual(coords);
+        }
+    });
+
+    it("keeps Palisades out of the Pavilion's surface lot", () => {
+        // OSM way 404840507, probably private (Tate, 2026-10-11).
+        const lot = washpavNoGoPolygons.features.find((f) => f.properties.osm_id === 404840507);
+        expect(lot, "the lot is no longer in the no-go data").toBeDefined();
+        const palisades = points.find((park) => park.name === "Palisades State Park")!;
+        expect(booleanPointInPolygon(point(palisades.scaledCoords as Coordinate), lot as Feature<Polygon>)).toBe(false);
+        // And not hugging it either: on the sidewalk well north of its edge.
+        expect(distanceInMeters(palisades.scaledCoords as Coordinate, [-96.728436, 43.543421])).toBeGreaterThan(20);
+    });
+
     it("keeps every pair of parks out of each other's listening area", () => {
         for (let i = 0; i < points.length; i += 1) {
             for (let j = i + 1; j < points.length; j += 1) {
@@ -285,8 +302,11 @@ describe("room around each point", () => {
 
     // Downtown asks less: only that a walker can stand at the centre, where
     // the sound is loudest and rotation is offered (Tate, 2026-10-11).
-    it("gives every downtown centre room to stand", () => {
+    // Hand pins excepted, as at Chatham: Palisades is on a sidewalk between
+    // the Pavilion's wall and S Main Ave, narrower than the road buffer allows.
+    it("gives every computed downtown centre room to stand", () => {
         for (const park of getScaledPoints("washpav")) {
+            if (park.name in washpavFieldPins) continue;
             expect(
                 clearanceOf(park.scaledCoords as Coordinate, washpavNoGoPolygons, 2),
                 `${park.name}'s centre cannot be reached`

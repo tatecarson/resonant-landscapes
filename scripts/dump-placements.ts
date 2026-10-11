@@ -13,6 +13,7 @@ import {
     chathamFieldPins,
     getScaledPoints,
     getVariantCenter,
+    washpavFieldPins,
 } from '../src/utils/scaledParks';
 
 type Variant = 'dsu' | 'terrace' | 'chatham' | 'washpav';
@@ -28,7 +29,9 @@ const payload = Object.fromEntries(
             points: getScaledPoints(variant).map(park => ({
                 name: park.name,
                 coords: park.scaledCoords,
-                pinned: variant === 'chatham' && park.name in chathamFieldPins,
+                pinned:
+                    (variant === 'chatham' && park.name in chathamFieldPins) ||
+                    (variant === 'washpav' && park.name in washpavFieldPins),
             })),
         },
     ])

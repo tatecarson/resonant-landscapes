@@ -532,6 +532,21 @@ const WASHPAV_SITE: Feature<Polygon> = {
     },
 };
 
+/**
+ * Downtown parks placed by hand, from Tate's look at the preview map.
+ *
+ * Swapped in after the remap, as at Chatham, so pinning one park never moves
+ * the others. Coordinates come from OSM sidewalk ways, not aerial imagery.
+ */
+export const washpavFieldPins: Record<string, Coordinate> = {
+    // The remap put it 1 m inside the Pavilion's surface lot (OSM way
+    // 404840507), which is probably private. Moved 28 m north onto the
+    // public sidewalk on the west side of S Main Ave, along the Pavilion's
+    // front (way 1497193983). About 3 m from the building, 10 m from the
+    // street's centreline.
+    'Palisades State Park': [-96.728412, 43.54365],
+};
+
 function washpavScaledPoints() {
     return remapIntoSite(
         WASHPAV_BOUNDS,
@@ -539,7 +554,10 @@ function washpavScaledPoints() {
         washpavNoGoPolygons,
         WASHPAV_SITE,
         WASHPAV_CLEARANCE_METERS
-    );
+    ).map(park => {
+        const pin = washpavFieldPins[park.name];
+        return pin ? { ...park, scaledCoords: pin } : park;
+    });
 }
 
 // ---- Test parks (debug route) ------------------------------------------
