@@ -45,6 +45,8 @@ import ProximityWarmth from "./ProximityWarmth";
 import { getVariantCenter } from "../utils/scaledParks";
 import { debugLog, isDebugEnabled } from "../config/debug";
 import { basemapOpacity } from "../utils/arrival";
+import { BASEMAP_SPECS, useBasemapMode } from "../config/basemap";
+import { createPaintedBasemapListener } from "./PaintedBasemap";
 import {
     CENTER_ROTATION_RADIUS_METERS,
     MAX_ZOOM,
@@ -608,6 +610,10 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
      * raw distance moves on every jitter of the fix, and nothing here can be
      * smoothed by a CSS transition the way the field above it is.
      */
+    // Switching the debug basemap (rl-ffdd) swaps the layer's source, which
+    // is the moment to make sure the new ground carries the same fade.
+    const basemapMode = useBasemapMode();
+
     useEffect(() => {
         const basemap = map
             ?.getLayers()
@@ -630,7 +636,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         if (isDebugEnabled()) {
             window.__basemapOpacity = opacity;
         }
-    }, [map, parkName, parkDistance, prefersReducedMotion]);
+    }, [map, parkName, parkDistance, prefersReducedMotion, basemapMode]);
 
     // Pinned to the middle of the screen, so it is only true while the map
     // is centred on the walker. Once they pan it would sit over some other
@@ -826,6 +832,51 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     );
 });
 
+/**
+ * Keeps the one tile layer in step with the debug basemap switch (rl-ffdd).
+ *
+ * rlayers swaps in a new source when the URL changes but sets attributions on
+ * the old one, so the credit is reapplied here. The painted pass hangs off the
+ * layer's postrender, so it is attached only while the painted ground is shown
+ * and nothing else pays for it.
+ */
+function BasemapController(): null {
+    const { map } = useOL();
+    const mode = useBasemapMode();
+
+    useEffect(() => {
+        const layer = map
+            ?.getLayers()
+            .getArray()
+            .find((candidate): candidate is TileLayer<TileSource> => candidate instanceof TileLayer);
+        if (!layer) {
+            return;
+        }
+        const spec = BASEMAP_SPECS[mode];
+        layer.getSource()?.setAttributions(spec.attributions);
+        if (isDebugEnabled()) {
+            window.__basemapMode = mode;
+        }
+
+        if (!spec.painted) {
+            return;
+        }
+        const painted = createPaintedBasemapListener();
+        if (!painted) {
+            return;
+        }
+        layer.on("postrender", painted.listener);
+        layer.changed();
+        return () => {
+            layer.un("postrender", painted.listener);
+            painted.dispose();
+            layer.changed();
+        };
+    }, [map, mode]);
+
+    return null;
+}
+
 function GeolocationOverlay({
     debug = false,
     variant,
@@ -878,6 +929,7 @@ export default function GeolocationMap({
      * reads the answer (rl-5yp).
      */
     const guideInstall = useInstallHint();
+    const basemap = BASEMAP_SPECS[useBasemapMode()];
 
     useRenderDebug("GeolocationMap", {
         debug,
@@ -916,10 +968,13 @@ export default function GeolocationMap({
                 />
             )}
             <RLayerTile
-                url="https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}.png"
+                url={basemap.url}
+                tileGrid={basemap.tileGrid}
+                crossOrigin={basemap.crossOrigin}
                 maxZoom={20}
-                attributions='Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
+                attributions={basemap.attributions}
             />
+            <BasemapController />
             <GeolocationOverlay
                 debug={debug}
                 variant={variant}
