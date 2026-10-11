@@ -567,6 +567,15 @@ export const washpavFieldPins: Record<string, Coordinate> = {
     // the Pavilion's business frontage only because the dome is part of the
     // building; there is no door on that side.
     'Good Earth State Park': [-96.728779, 43.543339],
+    // Was on the roof of a building OSM does not have, near S 1st Ave. Moved
+    // 19 m south onto the W 13th St sidewalk.
+    'Hartford Beach State Park': [-96.725781, 43.54253],
+    // Was in the surface lot on the south side of W 9th St, west of Main.
+    // Moved 7 m north onto the W 9th St sidewalk, past the lot's edge.
+    'Custer State Park': [-96.728932, 43.54722],
+    // Was in the paved yard between two buildings on the south side of W 9th
+    // St, east of Main. Moved 6 m north onto the W 9th St sidewalk.
+    'Bear Butte State Park': [-96.727642, 43.547222],
 };
 
 function washpavScaledPoints() {
