@@ -967,7 +967,18 @@ export default function GeolocationMap({
                     installed={guideInstall.installed}
                 />
             )}
+            {/*
+              * A new layer, not just a new source, whenever the painted pass
+              * comes or goes (rl-ffdd). The pass reads the layer's canvas back,
+              * and a canvas that has ever held a non-CORS tile stays unreadable
+              * for good, so switching from outdoors left the painted ground
+              * plain. A new layer brings a new canvas. zIndex keeps it under
+              * the rings and marker, since rlayers appends a remounted layer on
+              * top; it changes nothing for the default, which was already first.
+              */}
             <RLayerTile
+                key={basemap.painted ? "painted" : "plain"}
+                zIndex={-1}
                 url={basemap.url}
                 tileGrid={basemap.tileGrid}
                 crossOrigin={basemap.crossOrigin}
