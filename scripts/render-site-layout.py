@@ -116,6 +116,10 @@ ALERT = "#a63a20"
 KIND_STYLE = {
     "building": (BUILDING, 0.95),
     "parking": ("#c8c2b6", 0.9),
+    # Downtown only: the strip in front of a business, standing in for its
+    # unmapped door. Drawn in the alert colour so it reads as a rule, not a
+    # thing on the ground.
+    "business": (ALERT, 0.18),
     "water": (WATER, 0.85),
     "lake": (WATER, 0.85),
     "pool": (WATER, 0.85),

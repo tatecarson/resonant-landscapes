@@ -250,6 +250,36 @@ describe("the downtown Sioux Falls placement", () => {
         expect(distanceInMeters(palisades.scaledCoords as Coordinate, [-96.728436, 43.543421])).toBeGreaterThan(20);
     });
 
+    /*
+     * Tate, 2026-10-11: no spots in parking lots, and none at a business's
+     * front door. Doors are almost never mapped downtown, so the no-go data
+     * carries a strip in front of every business instead, and lots mapped
+     * only as aisles are covered by buffering the aisles wide. These check
+     * the data still says so; the no-go test above checks the spots obey it.
+     */
+    it("keeps the sidewalk in front of a business off limits", () => {
+        const fronted = new Set(
+            washpavNoGoPolygons.features
+                .filter((f) => f.properties.kind === "business")
+                .map((f) => f.properties.osm_id)
+        );
+        // Architecture Incorporated, 415 S Main Ave, which Lake Herman was
+        // moved away from, and the Phillips Avenue Diner.
+        expect(fronted.has(404182650)).toBe(true);
+        expect(fronted.has(404182638)).toBe(true);
+    });
+
+    it("covers the stalls along a parking aisle, not just the aisle", () => {
+        // A point 7 m from the middle of an aisle is in a parking stall.
+        const aisle = washpavNoGoPolygons.features.find(
+            (f) => f.properties.kind === "road" && f.properties.service === "parking_aisle"
+        );
+        expect(aisle).toBeDefined();
+        const [[a, b, c]] = (aisle as Feature<Polygon>).geometry.coordinates;
+        const width = Math.min(distanceInMeters(a as Coordinate, b as Coordinate), distanceInMeters(b as Coordinate, c as Coordinate));
+        expect(width).toBeGreaterThanOrEqual(15);
+    });
+
     it("keeps every pair of parks out of each other's listening area", () => {
         for (let i = 0; i < points.length; i += 1) {
             for (let j = i + 1; j < points.length; j += 1) {
