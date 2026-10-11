@@ -540,12 +540,11 @@ const WASHPAV_SITE: Feature<Polygon> = {
  */
 export const washpavFieldPins: Record<string, Coordinate> = {
     // The remap put it 1 m inside the Pavilion's surface lot (OSM way
-    // 404840507), which is probably private. Moved 28 m north onto the
-    // public sidewalk on the west side of S Main Ave, along the Pavilion's
-    // front (way 1497193983), 10 m from the street's centreline. The
-    // Pavilion's front steps back from Main Ave here, so the wall is 14 m
-    // away, outside the 4 m business frontage downtown keeps clear.
-    'Palisades State Park': [-96.728412, 43.54365],
+    // 404840507), which is probably private. Moved onto the public plaza in
+    // front of the Pavilion's Main Ave entrance, one of its main doors: on
+    // the paved walk between the two planting beds, about 14 m in from the
+    // Main Ave sidewalk. Read off aerial imagery.
+    'Palisades State Park': [-96.728585, 43.543672],
     // The remap put it in the open lot behind the parking garage on the
     // east side of S Main Ave, between a parking aisle and a driveway.
     // Moved 10 m north onto the south sidewalk of W 12th St, clear of the
