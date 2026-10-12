@@ -8,6 +8,9 @@
  * VITE_MAP_TILES for those contexts, the same way it switches counting off,
  * and the production build never sees it.
  *
+ * Which style is drawn, and so which of these a page asks for, is
+ * src/config/basemap.ts; this module says what a preview can show.
+ *
  * Previews open on aerial imagery, because they exist to check where the
  * listening spots stand: whether one is in a car park, on a sidewalk, at a
  * door. `?map=streets` swaps in OpenStreetMap's street map. Production
@@ -48,7 +51,7 @@ const STREETS: Basemap = {
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 };
 
-const SATELLITE: Basemap = {
+export const SATELLITE: Basemap = {
     // Esri's tile path is row before column: {y} then {x}.
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     maxZoom: 20,
@@ -83,8 +86,3 @@ export function requestedMap(location: Pick<Location, "search" | "hash">): strin
     const hashQuery = location.hash.split("?")[1] ?? "";
     return new URLSearchParams(hashQuery).get("map");
 }
-
-export const basemap = basemapFor(
-    import.meta.env.VITE_MAP_TILES,
-    typeof window === "undefined" ? null : requestedMap(window.location)
-);

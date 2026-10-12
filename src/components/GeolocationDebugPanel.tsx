@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAudioEngine, useAudioPlaybackState } from "../contexts/AudioContextProvider";
+import { nextBasemapMode, setBasemapMode, useBasemapMode } from "../config/basemap";
 
 interface GeolocationDebugPanelProps {
     position: [number, number] | null;
@@ -13,6 +14,7 @@ export default function GeolocationDebugPanel({
     debugPermission,
 }: GeolocationDebugPanelProps) {
     const [isCollapsed, setIsCollapsed] = useState(true);
+    const basemapMode = useBasemapMode();
     const { audioContext, bufferSourceRef, unlockAudio } = useAudioEngine();
     const { isLoading, isPlaying, isAudioUnlocked, buffers, loadError, lastUnlockError } = useAudioPlaybackState();
     const audioBuffer = buffers && "duration" in buffers ? buffers : null;
@@ -95,6 +97,16 @@ export default function GeolocationDebugPanel({
                             <span className="font-semibold text-ink">{position ? `${position[1].toFixed(5)}, ${position[0].toFixed(5)}` : "waiting"}</span>
                         </div>
                     </div>
+                    {/* rl-ffdd: candidate painted grounds, compared by eye at walking zoom. */}
+                    <button
+                        type="button"
+                        onClick={() => setBasemapMode(nextBasemapMode(basemapMode))}
+                        data-testid="basemap-toggle"
+                        className="flex w-full items-center justify-between rounded-full border border-edge/15 bg-white/45 px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted transition hover:border-edge/30 hover:bg-white/65"
+                    >
+                        <span>Basemap</span>
+                        <span className="text-ink">{basemapMode}</span>
+                    </button>
                     {!isAudioUnlocked && (
                         <button
                             type="button"

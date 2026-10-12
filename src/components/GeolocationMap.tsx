@@ -43,9 +43,13 @@ import { markParkHeard, useHeardParks } from "../hooks/heardParks";
 import { useInstallHint } from "../hooks/useInstallHint";
 import ProximityWarmth from "./ProximityWarmth";
 import { getVariantCenter } from "../utils/scaledParks";
-import { basemap } from "../map/basemap";
 import { debugLog, isDebugEnabled } from "../config/debug";
 import { basemapOpacity } from "../utils/arrival";
+import { basemapSpecFor, useBasemapMode, useBasemapSpec } from "../config/basemap";
+import { isTuningRequested, subscribePaintTuning, usePaintTuning } from "../config/paintTuning";
+import PaintTuningPanel from "./PaintTuningPanel";
+import { createPaintedBasemapListener } from "./PaintedBasemap";
+import StreetLinesLayer from "./StreetLinesLayer";
 import {
     CENTER_ROTATION_RADIUS_METERS,
     MAX_ZOOM,
@@ -609,6 +613,10 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
      * raw distance moves on every jitter of the fix, and nothing here can be
      * smoothed by a CSS transition the way the field above it is.
      */
+    // Switching the debug basemap (rl-ffdd) swaps the layer's source, which
+    // is the moment to make sure the new ground carries the same fade.
+    const basemapMode = useBasemapMode();
+
     useEffect(() => {
         const basemap = map
             ?.getLayers()
@@ -631,7 +639,7 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
         if (isDebugEnabled()) {
             window.__basemapOpacity = opacity;
         }
-    }, [map, parkName, parkDistance, prefersReducedMotion]);
+    }, [map, parkName, parkDistance, prefersReducedMotion, basemapMode]);
 
     // Pinned to the middle of the screen, so it is only true while the map
     // is centred on the walker. Once they pan it would sit over some other
@@ -827,6 +835,57 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
     );
 });
 
+/**
+ * Keeps the one tile layer in step with the debug basemap switch (rl-ffdd).
+ *
+ * rlayers swaps in a new source when the URL changes but sets attributions on
+ * the old one, so the credit is reapplied here. The painted pass hangs off the
+ * layer's postrender, so it is attached only while the painted ground is shown
+ * and nothing else pays for it.
+ */
+function BasemapController(): null {
+    const { map } = useOL();
+    const mode = useBasemapMode();
+    // The tone sets the shader's stops, so a new tone is a new pass; every
+    // other tuning value is read by the pass each frame.
+    const tone = usePaintTuning().tone;
+
+    useEffect(() => {
+        const layer = map
+            ?.getLayers()
+            .getArray()
+            .find((candidate): candidate is TileLayer<TileSource> => candidate instanceof TileLayer);
+        if (!layer) {
+            return;
+        }
+        const spec = basemapSpecFor(mode);
+        layer.getSource()?.setAttributions(spec.attributions);
+        if (isDebugEnabled()) {
+            window.__basemapMode = mode;
+        }
+
+        if (!spec.painted) {
+            return;
+        }
+        const painted = createPaintedBasemapListener(tone, spec.paintStyle);
+        if (!painted) {
+            return;
+        }
+        layer.on("postrender", painted.listener);
+        layer.changed();
+        // A moved slider repaints now rather than on the next fix.
+        const unsubscribe = subscribePaintTuning(() => layer.changed());
+        return () => {
+            unsubscribe();
+            layer.un("postrender", painted.listener);
+            painted.dispose();
+            layer.changed();
+        };
+    }, [map, mode, tone]);
+
+    return null;
+}
+
 function GeolocationOverlay({
     debug = false,
     variant,
@@ -879,6 +938,9 @@ export default function GeolocationMap({
      * reads the answer (rl-5yp).
      */
     const guideInstall = useInstallHint();
+    const basemapMode = useBasemapMode();
+    const basemap = useBasemapSpec();
+    const [tuning] = useState(() => isTuningRequested(window.location.search, window.location.hash));
 
     useRenderDebug("GeolocationMap", {
         debug,
@@ -916,11 +978,28 @@ export default function GeolocationMap({
                     installed={guideInstall.installed}
                 />
             )}
+            {/*
+              * A new layer, not just a new source, whenever the painted pass
+              * comes or goes (rl-ffdd). The pass reads the layer's canvas back,
+              * and a canvas that has ever held a non-CORS tile stays unreadable
+              * for good, so switching from outdoors left the painted ground
+              * plain. A new layer brings a new canvas. zIndex keeps it under
+              * the rings and marker, since rlayers appends a remounted layer on
+              * top; it changes nothing for the default, which was already first.
+              */}
             <RLayerTile
+                key={basemap.painted ? "painted" : "plain"}
+                zIndex={-1}
                 url={basemap.url}
+                tileGrid={basemap.tileGrid}
+                crossOrigin={basemap.crossOrigin}
                 maxZoom={basemap.maxZoom}
                 attributions={basemap.attributions}
             />
+            <BasemapController />
+            {/* Outdoors draws its own streets; the painted grounds lose them. */}
+            <StreetLinesLayer variant={variant} visible={basemapMode !== "outdoors"} basemapKey={basemapMode} />
+            {tuning && <PaintTuningPanel />}
             <GeolocationOverlay
                 debug={debug}
                 variant={variant}

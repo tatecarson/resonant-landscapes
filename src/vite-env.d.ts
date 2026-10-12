@@ -69,6 +69,8 @@ interface Window {
    * tiles, so a spec can neither reach the layer nor read the pixels.
    */
   __basemapOpacity?: number;
+  /** Which candidate ground is showing (rl-ffdd); see config/basemap.ts. */
+  __basemapMode?: import("./config/basemap").BasemapMode;
   __mapDebug?: {
     center: [number, number] | null;
     position: [number, number];
