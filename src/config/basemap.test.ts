@@ -15,6 +15,8 @@ describe("parseBasemapParam", () => {
         expect(parseBasemapParam("?basemap=paper", "")).toBe("painted");
         expect(parseBasemapParam("?tone=paper", "")).toBe("painted");
         expect(parseBasemapParam("", "#/washpav?basemap=mint")).toBe("painted");
+        expect(parseBasemapParam("?tune", "")).toBe("painted");
+        expect(parseBasemapParam("?tune&basemap=watercolor", "")).toBe("watercolor");
     });
 
     it("ignores anything that is not a known basemap", () => {

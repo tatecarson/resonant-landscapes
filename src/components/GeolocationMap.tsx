@@ -45,7 +45,9 @@ import ProximityWarmth from "./ProximityWarmth";
 import { getVariantCenter } from "../utils/scaledParks";
 import { debugLog, isDebugEnabled } from "../config/debug";
 import { basemapOpacity } from "../utils/arrival";
-import { basemapSpecFor, paintedToneFromLocation, useBasemapMode, useBasemapSpec } from "../config/basemap";
+import { basemapSpecFor, useBasemapMode, useBasemapSpec } from "../config/basemap";
+import { isTuningRequested, subscribePaintTuning, usePaintTuning } from "../config/paintTuning";
+import PaintTuningPanel from "./PaintTuningPanel";
 import { createPaintedBasemapListener } from "./PaintedBasemap";
 import StreetLinesLayer from "./StreetLinesLayer";
 import {
@@ -844,6 +846,9 @@ const GeolocationTrackingController = memo(function GeolocationTrackingControlle
 function BasemapController(): null {
     const { map } = useOL();
     const mode = useBasemapMode();
+    // The tone sets the shader's stops, so a new tone is a new pass; every
+    // other tuning value is read by the pass each frame.
+    const tone = usePaintTuning().tone;
 
     useEffect(() => {
         const layer = map
@@ -862,18 +867,21 @@ function BasemapController(): null {
         if (!spec.painted) {
             return;
         }
-        const painted = createPaintedBasemapListener(paintedToneFromLocation());
+        const painted = createPaintedBasemapListener(tone);
         if (!painted) {
             return;
         }
         layer.on("postrender", painted.listener);
         layer.changed();
+        // A moved slider repaints now rather than on the next fix.
+        const unsubscribe = subscribePaintTuning(() => layer.changed());
         return () => {
+            unsubscribe();
             layer.un("postrender", painted.listener);
             painted.dispose();
             layer.changed();
         };
-    }, [map, mode]);
+    }, [map, mode, tone]);
 
     return null;
 }
@@ -932,6 +940,7 @@ export default function GeolocationMap({
     const guideInstall = useInstallHint();
     const basemapMode = useBasemapMode();
     const basemap = useBasemapSpec();
+    const [tuning] = useState(() => isTuningRequested(window.location.search, window.location.hash));
 
     useRenderDebug("GeolocationMap", {
         debug,
@@ -990,6 +999,7 @@ export default function GeolocationMap({
             <BasemapController />
             {/* Outdoors draws its own streets; the painted grounds lose them. */}
             <StreetLinesLayer variant={variant} visible={basemapMode !== "outdoors"} basemapKey={basemapMode} />
+            {tuning && <PaintTuningPanel />}
             <GeolocationOverlay
                 debug={debug}
                 variant={variant}

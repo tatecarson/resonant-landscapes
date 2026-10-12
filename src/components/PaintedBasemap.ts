@@ -1,5 +1,15 @@
 import type RenderEvent from "ol/render/Event";
 import { palette } from "../theme/palette";
+import {
+    DEFAULT_PAINTED_TONE,
+    MAX_RADIUS,
+    PAINTED_TONES,
+    getPaintTuning,
+    type PaintTuning,
+    type PaintedTone,
+    type PaintedToneName,
+    type ToneStop,
+} from "../config/paintTuning";
 
 /**
  * Paints the basemap in the browser (rl-ffdd).
@@ -18,131 +28,31 @@ import { palette } from "../theme/palette";
  * flattest disc, so a pixel snapped between neighbours from one frame to the
  * next; and its wobble and grain were fixed to the screen, so the ground swam
  * through them. Now the source is shrunk in halving steps to one texel per
- * brush step before upload, so sampling it does not alias; the output is one
- * pixel per CSS pixel; the discs are blended by how flat each is rather than
- * one picked; and the wobble and grain are computed from map coordinates, so
- * they are painted on the ground and travel with it.
+ * brush step before upload, so sampling it does not alias; the discs are
+ * blended by how flat each is rather than one picked; and the wobble and grain
+ * are computed from map coordinates, so they are painted on the ground and
+ * travel with it.
  *
  * Then the colour is taken away from the photograph and given to the palette:
  * each patch's lightness is looked up on a ramp of palette tokens, so the
  * ground is the app's own greens and cream rather than a satellite's, and only
  * a little of the original hue is mixed back so roofs, roads and water still
  * part from the grass. The ramp starts partway up, which keeps the darkest
- * canopy lighter than the park markers drawn over it. Which ramp is
- * PAINTED_TONES below.
+ * canopy lighter than the park markers drawn over it.
  *
  * It runs on the tile layer's own canvas after the tiles are drawn and before
  * anything else is, so the rings, glow and marker above it stay crisp. The
  * canvas already carries the layer's opacity, so the arrival dissolve fades the
  * painted ground the same as the plain one.
  *
- * Not at the phone's full density: the map redraws on every heading change,
- * and a pass at 3x would be nine times the work for detail the painting is
- * there to remove.
+ * Every number that sets the look is read from the tuning each frame (see
+ * config/paintTuning.ts), so the `?tune` panel moves it live. Only the tone's
+ * tokens are built into the shader, because they set how many stops it has.
  */
 
-/** Sampling radius in brush steps; each pixel reads the texels of a disc this wide. */
-export const KUWAHARA_RADIUS = 4;
-/** CSS pixels between samples. Sets the brush size with the radius: 8 px. */
-export const BRUSH_STEP = 2;
-/** Output pixels per CSS pixel. */
-export const PAINT_RESOLUTION = 0.75;
-/**
- * How sharply the flattest disc wins. Higher approaches the textbook filter,
- * which picks one and snaps; lower blurs across edges.
- */
-export const DISC_SHARPNESS = 4;
-
-type Token = keyof typeof palette;
-type ToneStop = { token: Token; at: number };
-
-export interface PaintedTone {
-    /**
-     * The lightness ramp, dark to light, as palette tokens: no colour here is
-     * chosen, only which tokens and where on the ramp they sit.
-     */
-    ramp: readonly ToneStop[];
-    /**
-     * Where the darkest patch lands on the ramp. Above zero so nothing on the
-     * ground reaches the dark greens the park markers are drawn in.
-     */
-    floor: number;
-    /** How much of the photograph's own colour survives the remap. */
-    original: number;
-}
-
-/**
- * Grounds to compare under the panels (rl-ffdd), chosen with `?tone=`.
- *
- * `mint` runs through `panel`, so most of the ground is the same mint as the
- * park strip, the modals and the arrival field, and walking in changes the
- * detail on screen but not its colour. `sage` leaves `panel` out, but
- * `surface` is still a pale green and came out close to mint. `paper` is
- * mostly cream: grey-green canopy, then sage into a long run of `ground`, with
- * none of the photograph's own colour, so arriving reads as the screen turning
- * from cream to mint.
- */
-export const PAINTED_TONES = {
-    mint: {
-        ramp: [
-            { token: "edge", at: 0 },
-            { token: "accentSoft", at: 0.3 },
-            { token: "panel", at: 0.6 },
-            { token: "surface", at: 0.82 },
-            { token: "ground", at: 1 },
-        ],
-        floor: 0.5,
-        original: 0.15,
-    },
-    sage: {
-        ramp: [
-            { token: "edge", at: 0 },
-            { token: "inkMuted", at: 0.3 },
-            { token: "surface", at: 0.75 },
-            { token: "ground", at: 1 },
-        ],
-        floor: 0.55,
-        original: 0.15,
-    },
-    paper: {
-        ramp: [
-            { token: "edge", at: 0 },
-            { token: "inkMuted", at: 0.3 },
-            { token: "surface", at: 0.6 },
-            { token: "ground", at: 0.8 },
-            { token: "ground", at: 1 },
-        ],
-        floor: 0.4,
-        original: 0,
-    },
-} as const satisfies Record<string, PaintedTone>;
-
-export type PaintedToneName = keyof typeof PAINTED_TONES;
-/**
- * Mint, chosen by eye on the Pavilion plaza (rl-ffdd). Sage measured no
- * better against the panels where they actually appear, because inside a park
- * the arrival field washes the screen in panel either way.
- */
-export const DEFAULT_PAINTED_TONE: PaintedToneName = "mint";
-
-export function isPaintedToneName(value: unknown): value is PaintedToneName {
-    return typeof value === "string" && Object.prototype.hasOwnProperty.call(PAINTED_TONES, value);
-}
-
-/**
- * The source lightness that reaches the top of the ramp. Below 1 so that only
- * the brightest roofs and roads reach cream, and the highlights stop jumping
- * out of the rest of the ground.
- */
-export const TONE_CEILING = 0.8;
-
-function tokenRgb(token: Token): [number, number, number] {
+function tokenRgb(token: ToneStop["token"]): [number, number, number] {
     const value = palette[token].replace("#", "");
     return [0, 2, 4].map((i) => parseInt(value.slice(i, i + 2), 16) / 255) as [number, number, number];
-}
-
-function glslFloat(value: number): string {
-    return Number.isInteger(value) ? `${value}.0` : String(value);
 }
 
 const VERTEX_SHADER = `
@@ -154,18 +64,21 @@ void main() {
 }
 `;
 
-/** The ramp as GLSL: one uniform per stop, and a lookup with the stops baked in. */
+/** The ramp as GLSL: a colour per stop, the inner stops' positions as uniforms. */
 function toneFunction(ramp: readonly ToneStop[]): string {
-    const uniforms = ramp.map((_, index) => `uniform vec3 u_tone${index};`).join("\n");
-    const segments = ramp.slice(1).map(({ at }, index) => {
-        const from = ramp[index].at;
-        const mix = `mix(u_tone${index}, u_tone${index + 1}, (t - ${glslFloat(from)}) / ${glslFloat(at - from)})`;
-        return index === ramp.length - 2 ? `    return ${mix};` : `    if (t < ${glslFloat(at)}) return ${mix};`;
+    const last = ramp.length - 1;
+    const colours = ramp.map((_, index) => `uniform vec3 u_tone${index};`).join("\n");
+    const stops = ramp.slice(1, -1).map((_, index) => `uniform float u_at${index + 1};`).join("\n");
+    const at = (index: number) => (index === 0 ? "0.0" : index === last ? "1.0" : `u_at${index}`);
+    const segments = ramp.slice(1).map((_, index) => {
+        const mix = `mix(u_tone${index}, u_tone${index + 1}, clamp((t - ${at(index)}) / max(${at(index + 1)} - ${at(index)}, 0.0001), 0.0, 1.0))`;
+        return index === last - 1 ? `    return ${mix};` : `    if (t < ${at(index + 1)}) return ${mix};`;
     });
-    return `${uniforms}\n\nvec3 tone(float t) {\n${segments.join("\n")}\n}`;
+    return `${colours}\n${stops}\n\nvec3 tone(float t) {\n${segments.join("\n")}\n}`;
 }
 
-// WebGL 1 for iOS 15: loop bounds have to be constants.
+// WebGL 1 for iOS 15: loop bounds have to be constants, so the loops run to
+// MAX_RADIUS and skip what the tuning's radius leaves out.
 const fragmentShader = (tone: PaintedTone) => `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
@@ -181,9 +94,18 @@ uniform float u_outHeight;
 /** CSS pixel to map coordinates, less a fixed origin so the numbers stay small. */
 uniform vec4 u_cssToMap;
 uniform vec2 u_mapOffset;
+
+uniform float u_radius;
+uniform float u_sharpness;
+uniform float u_wobble;
+uniform float u_wobbleScale;
+uniform float u_grain;
+uniform float u_floor;
+uniform float u_ceiling;
+uniform float u_original;
 varying vec2 v_uv;
 
-#define R ${KUWAHARA_RADIUS}
+#define MAX_R ${MAX_RADIUS}
 
 ${toneFunction(tone.ramp)}
 
@@ -204,7 +126,7 @@ float noise(vec2 p) {
 
 float discWeight(vec3 variance) {
     float spread = sqrt(variance.r + variance.g + variance.b);
-    return 1.0 / (1.0 + pow(spread * 40.0, ${glslFloat(DISC_SHARPNESS)}));
+    return 1.0 / (1.0 + pow(spread * 40.0, u_sharpness));
 }
 
 void main() {
@@ -215,19 +137,22 @@ void main() {
         u_cssToMap.y * css.x + u_cssToMap.w * css.y
     ) + u_mapOffset;
 
-    vec2 wobble = vec2(noise(ground * 0.3), noise(ground * 0.3 + 19.3)) - 0.5;
-    vec2 uv = v_uv + wobble * u_step * 2.5;
+    vec2 wobble = vec2(noise(ground * u_wobbleScale), noise(ground * u_wobbleScale + 19.3)) - 0.5;
+    vec2 uv = v_uv + wobble * u_step * u_wobble;
 
     vec4 m0 = vec4(0.0); vec4 m1 = vec4(0.0); vec4 m2 = vec4(0.0); vec4 m3 = vec4(0.0);
     vec3 s0 = vec3(0.0); vec3 s1 = vec3(0.0); vec3 s2 = vec3(0.0); vec3 s3 = vec3(0.0);
     // Every quarter disc holds the same number of samples, by symmetry.
     float n = 0.0;
+    float reach = u_radius * u_radius + u_radius;
 
-    for (int j = -R; j <= R; j++) {
-        for (int i = -R; i <= R; i++) {
-            if (i * i + j * j > R * R + R) continue;
+    for (int j = -MAX_R; j <= MAX_R; j++) {
+        for (int i = -MAX_R; i <= MAX_R; i++) {
+            float fi = float(i);
+            float fj = float(j);
+            if (fi * fi + fj * fj > reach) continue;
             if (i <= 0 && j <= 0) n += 1.0;
-            vec4 c = texture2D(u_image, uv + vec2(float(i), float(j)) * u_step);
+            vec4 c = texture2D(u_image, uv + vec2(fi, fj) * u_step);
             vec3 c2 = c.rgb * c.rgb;
             if (i <= 0 && j <= 0) { m0 += c; s0 += c2; }
             if (i >= 0 && j <= 0) { m1 += c; s1 += c2; }
@@ -252,10 +177,10 @@ void main() {
     float lightness = dot(straight, vec3(0.299, 0.587, 0.114));
     // Aerial imagery sits in a narrow band of lightness; stretch it to the
     // whole ramp before lifting the floor.
-    float t = mix(${glslFloat(tone.floor)}, 1.0, smoothstep(0.06, ${glslFloat(TONE_CEILING)}, lightness));
-    vec3 painted = mix(tone(t), straight, ${glslFloat(tone.original)});
+    float t = mix(u_floor, 1.0, smoothstep(0.06, max(u_ceiling, 0.07), lightness));
+    vec3 painted = mix(tone(t), straight, u_original);
 
-    float grain = 1.0 + (noise(ground * 1.0) - 0.5) * 0.04;
+    float grain = 1.0 + (noise(ground) - 0.5) * u_grain;
     painted = clamp(painted * grain, 0.0, 1.0);
     gl_FragColor = vec4(painted * colour.a, colour.a);
 }
@@ -274,17 +199,25 @@ function compile(gl: WebGLRenderingContext, type: number, source: string): WebGL
     return shader;
 }
 
+const UNIFORMS = [
+    "step", "outToCss", "outHeight", "cssToMap", "mapOffset",
+    "radius", "sharpness", "wobble", "wobbleScale", "grain", "floor", "ceiling", "original",
+] as const;
+type UniformName = (typeof UNIFORMS)[number];
+
 class KuwaharaPass {
     readonly canvas = document.createElement("canvas");
     private readonly gl: WebGLRenderingContext;
     private readonly program: WebGLProgram;
     private readonly texture: WebGLTexture;
-    private readonly uniforms: Record<"step" | "outToCss" | "outHeight" | "cssToMap" | "mapOffset", WebGLUniformLocation | null>;
+    private readonly uniforms: Record<UniformName, WebGLUniformLocation | null>;
+    private readonly stopLocations: (WebGLUniformLocation | null)[];
     /** Halving steps between the map canvas and the texture. */
     private readonly shrinkCanvases: HTMLCanvasElement[] = [];
     private lost = false;
 
-    constructor(tone: PaintedTone) {
+    constructor(private readonly toneName: PaintedToneName) {
+        const tone = PAINTED_TONES[toneName];
         const gl = this.canvas.getContext("webgl", {
             premultipliedAlpha: true,
             // Read back with drawImage in the same frame; kept so a browser
@@ -326,13 +259,10 @@ class KuwaharaPass {
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
         gl.uniform1i(gl.getUniformLocation(program, "u_image"), 0);
-        this.uniforms = {
-            step: gl.getUniformLocation(program, "u_step"),
-            outToCss: gl.getUniformLocation(program, "u_outToCss"),
-            outHeight: gl.getUniformLocation(program, "u_outHeight"),
-            cssToMap: gl.getUniformLocation(program, "u_cssToMap"),
-            mapOffset: gl.getUniformLocation(program, "u_mapOffset"),
-        };
+        this.uniforms = Object.fromEntries(
+            UNIFORMS.map((name) => [name, gl.getUniformLocation(program, `u_${name}`)]),
+        ) as Record<UniformName, WebGLUniformLocation | null>;
+        this.stopLocations = tone.ramp.slice(1, -1).map((_, index) => gl.getUniformLocation(program, `u_at${index + 1}`));
         tone.ramp.forEach(({ token }, index) => {
             gl.uniform3fv(gl.getUniformLocation(program, `u_tone${index}`), tokenRgb(token));
         });
@@ -376,27 +306,24 @@ class KuwaharaPass {
     }
 
     /**
-     * Paints `source` into an output of `outWidth` x `outHeight` and returns
-     * the canvas holding it. `cssWidth` x `cssHeight` is the map's size in CSS
-     * pixels, and `cssToMap` the affine transform from them to map coordinates
-     * (OpenLayers' [a, b, c, d, e, f]) with `origin` taken off.
+     * Paints `source` with `tuning` and returns the canvas holding it.
+     * `cssWidth` x `cssHeight` is the map's size in CSS pixels, and `cssToMap`
+     * the affine transform from them to map coordinates (OpenLayers'
+     * [a, b, c, d, e, f]), with `origin` taken off.
      */
     render(
         source: HTMLCanvasElement,
-        frame: {
-            outWidth: number;
-            outHeight: number;
-            cssWidth: number;
-            cssHeight: number;
-            cssToMap: number[];
-            origin: [number, number];
-        },
+        tuning: PaintTuning,
+        frame: { cssWidth: number; cssHeight: number; cssToMap: number[]; origin: [number, number] },
     ): HTMLCanvasElement {
         const { gl, uniforms } = this;
-        const { outWidth, outHeight, cssWidth, cssHeight, cssToMap, origin } = frame;
-        const texWidth = Math.max(1, Math.round(cssWidth / BRUSH_STEP));
-        const texHeight = Math.max(1, Math.round(cssHeight / BRUSH_STEP));
+        const { cssWidth, cssHeight, cssToMap, origin } = frame;
+        const outWidth = Math.max(1, Math.round(cssWidth * tuning.resolution));
+        const outHeight = Math.max(1, Math.round(cssHeight * tuning.resolution));
+        const texWidth = Math.max(1, Math.round(cssWidth / tuning.brushStep));
+        const texHeight = Math.max(1, Math.round(cssHeight / tuning.brushStep));
         const texture = this.shrink(source, texWidth, texHeight);
+        const tone = tuning.tones[this.toneName];
 
         if (this.canvas.width !== outWidth || this.canvas.height !== outHeight) {
             this.canvas.width = outWidth;
@@ -414,6 +341,15 @@ class KuwaharaPass {
         const [a, b, c, d, e, f] = cssToMap;
         gl.uniform4f(uniforms.cssToMap, a, b, c, d);
         gl.uniform2f(uniforms.mapOffset, e - origin[0], f - origin[1]);
+        gl.uniform1f(uniforms.radius, tuning.radius);
+        gl.uniform1f(uniforms.sharpness, tuning.sharpness);
+        gl.uniform1f(uniforms.wobble, tuning.wobble);
+        gl.uniform1f(uniforms.wobbleScale, tuning.wobbleScale);
+        gl.uniform1f(uniforms.grain, tuning.grain);
+        gl.uniform1f(uniforms.floor, tone.floor);
+        gl.uniform1f(uniforms.ceiling, tuning.ceiling);
+        gl.uniform1f(uniforms.original, tone.original);
+        this.stopLocations.forEach((location, index) => gl.uniform1f(location, tone.stops[index]));
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -436,7 +372,7 @@ export function createPaintedBasemapListener(toneName: PaintedToneName = DEFAULT
 } | null {
     let pass: KuwaharaPass;
     try {
-        pass = new KuwaharaPass(PAINTED_TONES[toneName]);
+        pass = new KuwaharaPass(toneName);
     } catch (error) {
         console.warn("[painted basemap] unavailable, showing plain imagery", error);
         return null;
@@ -455,8 +391,6 @@ export function createPaintedBasemapListener(toneName: PaintedToneName = DEFAULT
         }
         const source = context.canvas;
         const pixelRatio = frameState.pixelRatio || 1;
-        const cssWidth = source.width / pixelRatio;
-        const cssHeight = source.height / pixelRatio;
         const cssToMap = frameState.pixelToCoordinateTransform;
         // Fixed for the life of the pass, so the ground's texture does not
         // jump; only there to keep the shader's numbers small.
@@ -464,11 +398,9 @@ export function createPaintedBasemapListener(toneName: PaintedToneName = DEFAULT
 
         let painted: HTMLCanvasElement;
         try {
-            painted = pass.render(source, {
-                outWidth: Math.max(1, Math.round(cssWidth * PAINT_RESOLUTION)),
-                outHeight: Math.max(1, Math.round(cssHeight * PAINT_RESOLUTION)),
-                cssWidth,
-                cssHeight,
+            painted = pass.render(source, getPaintTuning(), {
+                cssWidth: source.width / pixelRatio,
+                cssHeight: source.height / pixelRatio,
                 cssToMap,
                 origin,
             });

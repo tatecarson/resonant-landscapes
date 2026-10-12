@@ -3,7 +3,9 @@ import { createXYZ } from "ol/tilegrid";
 import type TileGrid from "ol/tilegrid/TileGrid";
 import { isDebugEnabled } from "./debug";
 import { SATELLITE, basemapFor, requestedMap } from "../map/basemap";
-import { DEFAULT_PAINTED_TONE, isPaintedToneName, type PaintedToneName } from "../components/PaintedBasemap";
+import { isPaintedToneName, isTuningRequested, queryParam } from "./paintTuning";
+
+export { parsePaintedTone } from "./paintTuning";
 
 /**
  * Candidate basemaps for a more painted ground (rl-ffdd), chosen per page load
@@ -115,38 +117,19 @@ export function isBasemapMode(value: unknown): value is BasemapMode {
     return typeof value === "string" && (BASEMAP_MODES as readonly string[]).includes(value);
 }
 
-/** A query parameter from the search or from the query inside the hash, as `?mock=` is read. */
-function param(search: string, hash: string, name: string): string | null {
-    const hashQuery = hash.includes("?") ? hash.slice(hash.indexOf("?") + 1) : "";
-    return new URLSearchParams(search).get(name) ?? new URLSearchParams(hashQuery).get(name);
-}
-
 /**
  * The style a URL asks for. A tone's name is a style too: `?basemap=sage`
  * is the painted ground in sage, because that is what someone typing it
  * means, and it used to fall through to the default in silence. `?tone=` on
- * its own asks for the painted ground as well, since nothing else has a tone.
+ * its own asks for the painted ground as well, since nothing else has a tone,
+ * and so does `?tune`, since the panel it opens only tunes the painted ground.
  */
 export function parseBasemapParam(search: string, hash: string): BasemapMode | null {
-    const raw = param(search, hash, "basemap");
+    const raw = queryParam(search, hash, "basemap");
     if (isBasemapMode(raw)) return raw;
-    if (isPaintedToneName(raw) || isPaintedToneName(param(search, hash, "tone"))) return "painted";
+    if (isPaintedToneName(raw) || isPaintedToneName(queryParam(search, hash, "tone"))) return "painted";
+    if (isTuningRequested(search, hash)) return "painted";
     return null;
-}
-
-/** The painted ground's ramp: `?tone=`, else a tone named as `?basemap=`. See PAINTED_TONES. */
-export function parsePaintedTone(search: string, hash: string): PaintedToneName | null {
-    const tone = param(search, hash, "tone");
-    if (isPaintedToneName(tone)) return tone;
-    const basemap = param(search, hash, "basemap");
-    return isPaintedToneName(basemap) ? basemap : null;
-}
-
-export function paintedToneFromLocation(): PaintedToneName {
-    if (typeof window === "undefined") {
-        return DEFAULT_PAINTED_TONE;
-    }
-    return parsePaintedTone(window.location.search, window.location.hash) ?? DEFAULT_PAINTED_TONE;
 }
 
 export function nextBasemapMode(mode: BasemapMode): BasemapMode {
