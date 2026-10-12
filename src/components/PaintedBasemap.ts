@@ -1,5 +1,5 @@
 import type RenderEvent from "ol/render/Event";
-import { invert, multiply, type Transform } from "ol/transform";
+import { apply, invert, multiply, type Transform } from "ol/transform";
 import { palette } from "../theme/palette";
 import {
     DEFAULT_PAINTED_TONE,
@@ -93,6 +93,11 @@ uniform vec2 u_step;
 /** Output pixel to the tile canvas's pixel, and the output's height to flip y. */
 uniform vec2 u_outToCanvas;
 uniform float u_outHeight;
+/** Where the output's first pixel sits on the canvas: on a lattice fixed to the ground. */
+uniform vec2 u_outOrigin;
+/** The photograph's texture: its corner on the canvas and the canvas span it covers. */
+uniform vec2 u_texOrigin;
+uniform vec2 u_texSpan;
 /**
  * Tile canvas pixel to map coordinates, less a fixed origin so the numbers
  * stay small. The canvas, not the screen: OpenLayers draws a turned map on a
@@ -109,11 +114,15 @@ uniform float u_grain;
 uniform float u_floor;
 uniform float u_ceiling;
 uniform float u_original;
-varying vec2 v_uv;
 
 #define MAX_R ${MAX_RADIUS}
 
 ${toneFunction(tone.ramp)}
+
+/** A tile canvas pixel as a coordinate in the photograph's texture. */
+vec2 texUv(vec2 px) {
+    return vec2((px.x - u_texOrigin.x) / u_texSpan.x, 1.0 - (px.y - u_texOrigin.y) / u_texSpan.y);
+}
 
 float hash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -137,14 +146,14 @@ float discWeight(vec3 variance) {
 
 void main() {
     // Where this pixel is on the ground, so the texture belongs to the map.
-    vec2 px = vec2(gl_FragCoord.x, u_outHeight - gl_FragCoord.y) * u_outToCanvas;
+    vec2 px = vec2(gl_FragCoord.x, u_outHeight - gl_FragCoord.y) * u_outToCanvas + u_outOrigin;
     vec2 ground = vec2(
         u_canvasToMap.x * px.x + u_canvasToMap.z * px.y,
         u_canvasToMap.y * px.x + u_canvasToMap.w * px.y
     ) + u_canvasMapOffset;
 
     vec2 wobble = vec2(noise(ground * u_wobbleScale), noise(ground * u_wobbleScale + 19.3)) - 0.5;
-    vec2 uv = v_uv + wobble * u_step * u_wobble;
+    vec2 uv = texUv(px) + wobble * u_step * u_wobble;
 
     vec4 m0 = vec4(0.0); vec4 m1 = vec4(0.0); vec4 m2 = vec4(0.0); vec4 m3 = vec4(0.0);
     vec3 s0 = vec3(0.0); vec3 s1 = vec3(0.0); vec3 s2 = vec3(0.0); vec3 s3 = vec3(0.0);
@@ -221,14 +230,19 @@ precision highp float;
 precision mediump float;
 #endif
 uniform sampler2D u_image;
+/** Output pixel to the tile canvas's pixel, and the output's height to flip y. */
 uniform vec2 u_outToCanvas;
 uniform float u_outHeight;
+/** Where the output's first pixel sits on the canvas: on a lattice fixed to the ground. */
+uniform vec2 u_outOrigin;
+/** The photograph's texture: its corner on the canvas and the canvas span it covers. */
+uniform vec2 u_texOrigin;
+uniform vec2 u_texSpan;
 uniform vec4 u_canvasToMap;
 uniform vec2 u_canvasMapOffset;
 /** Map coordinates (less the origin) back to tile canvas pixels, to sample the photo. */
 uniform vec4 u_mapToCanvas;
 uniform vec2 u_mapToCanvasOffset;
-uniform vec2 u_canvasSize;
 /** A step on the ground to a step on the screen and back, in CSS pixels. */
 uniform vec4 u_mapToScreen;
 uniform vec4 u_screenToMap;
@@ -247,9 +261,13 @@ uniform vec3 u_printEdge;
 uniform float u_floor;
 uniform float u_ceiling;
 uniform float u_original;
-varying vec2 v_uv;
 
 ${toneFunction(tone.ramp)}
+
+/** A tile canvas pixel as a coordinate in the photograph's texture. */
+vec2 texUv(vec2 px) {
+    return vec2((px.x - u_texOrigin.x) / u_texSpan.x, 1.0 - (px.y - u_texOrigin.y) / u_texSpan.y);
+}
 
 float hash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -296,11 +314,11 @@ vec4 photoAt(vec2 ground) {
         u_mapToCanvas.x * ground.x + u_mapToCanvas.z * ground.y,
         u_mapToCanvas.y * ground.x + u_mapToCanvas.w * ground.y
     ) + u_mapToCanvasOffset;
-    return texture2D(u_image, vec2(px.x / u_canvasSize.x, 1.0 - px.y / u_canvasSize.y));
+    return texture2D(u_image, texUv(px));
 }
 
 void main() {
-    vec2 px = vec2(gl_FragCoord.x, u_outHeight - gl_FragCoord.y) * u_outToCanvas;
+    vec2 px = vec2(gl_FragCoord.x, u_outHeight - gl_FragCoord.y) * u_outToCanvas + u_outOrigin;
     vec2 ground = vec2(
         u_canvasToMap.x * px.x + u_canvasToMap.z * px.y,
         u_canvasToMap.y * px.x + u_canvasToMap.w * px.y
@@ -403,6 +421,124 @@ void main() {
 }
 `;
 
+/**
+ * How much of each new frame shows while the map moves; the rest is the
+ * frames before it, lined up with the ground.
+ *
+ * Tate likes a high edge sharpness, and a high sharpness flickers: each pixel
+ * all but picks one quarter disc, and the imagery under it is resampled a
+ * little differently every frame as the canvas is redrawn, so pixels near an
+ * edge flip between two colours as the map turns (2.7% of them per pixel of
+ * movement at sharpness 12, measured). Averaging the last few frames turns
+ * those flips into small steps without softening anything that holds still,
+ * which a lower sharpness would. The ground does not move, only the view, so
+ * the earlier frames line up exactly; and history is only allowed the colours
+ * around it in the new frame, so nothing trails.
+ */
+export const TEMPORAL_BLEND = 0.25;
+
+const RESOLVE_SHADER = `
+precision mediump float;
+uniform sampler2D u_current;
+uniform sampler2D u_history;
+uniform vec2 u_size;
+uniform vec2 u_prevSize;
+/** This frame's pixel to where the same ground was in the last frame. */
+uniform vec4 u_toPrev;
+uniform vec2 u_toPrevOffset;
+uniform float u_blend;
+
+void main() {
+    vec2 frag = gl_FragCoord.xy;
+    vec4 current = texture2D(u_current, frag / u_size);
+    vec2 previous = vec2(u_toPrev.x * frag.x + u_toPrev.z * frag.y, u_toPrev.y * frag.x + u_toPrev.w * frag.y) + u_toPrevOffset;
+    if (u_blend >= 1.0 || previous.x < 0.0 || previous.y < 0.0 || previous.x > u_prevSize.x || previous.y > u_prevSize.y) {
+        gl_FragColor = current;
+        return;
+    }
+    vec4 history = texture2D(u_history, previous / u_prevSize);
+    // Only the colours already round this pixel: a flip between two of them
+    // is held, anything else in the history is let go.
+    vec4 low = current;
+    vec4 high = current;
+    vec4 n;
+    n = texture2D(u_current, (frag + vec2(1.0, 0.0)) / u_size); low = min(low, n); high = max(high, n);
+    n = texture2D(u_current, (frag - vec2(1.0, 0.0)) / u_size); low = min(low, n); high = max(high, n);
+    n = texture2D(u_current, (frag + vec2(0.0, 1.0)) / u_size); low = min(low, n); high = max(high, n);
+    n = texture2D(u_current, (frag - vec2(0.0, 1.0)) / u_size); low = min(low, n); high = max(high, n);
+    gl_FragColor = mix(clamp(history, low, high), current, u_blend);
+}
+`;
+
+const COPY_SHADER = `
+precision mediump float;
+uniform sampler2D u_image;
+uniform vec2 u_size;
+void main() {
+    gl_FragColor = texture2D(u_image, gl_FragCoord.xy / u_size);
+}
+`;
+
+/** A texture to draw into, and the framebuffer that draws into it. */
+interface Target {
+    texture: WebGLTexture;
+    framebuffer: WebGLFramebuffer;
+    width: number;
+    height: number;
+}
+
+function createTarget(gl: WebGLRenderingContext): Target {
+    const texture = gl.createTexture();
+    const framebuffer = gl.createFramebuffer();
+    if (!texture || !framebuffer) throw new Error("could not create a render target");
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return { texture, framebuffer, width: 1, height: 1 };
+}
+
+function sizeTarget(gl: WebGLRenderingContext, target: Target, width: number, height: number) {
+    if (target.width === width && target.height === height) return;
+    gl.bindTexture(gl.TEXTURE_2D, target.texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    target.width = width;
+    target.height = height;
+}
+
+function link(gl: WebGLRenderingContext, fragmentSource: string): WebGLProgram {
+    const program = gl.createProgram();
+    if (!program) throw new Error("createProgram failed");
+    gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERTEX_SHADER));
+    gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, fragmentSource));
+    // Every program draws the same quad from attribute 0.
+    gl.bindAttribLocation(program, 0, "a_position");
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        throw new Error(`program link failed: ${gl.getProgramInfoLog(program)}`);
+    }
+    return program;
+}
+
+/** True when two transforms put every pixel within a hair of the same place. */
+function sameTransform(a: Transform, size: [number, number], prevSize: [number, number]): boolean {
+    return (
+        size[0] === prevSize[0] &&
+        size[1] === prevSize[1] &&
+        Math.abs(a[0] - 1) < 1e-6 &&
+        Math.abs(a[1]) < 1e-6 &&
+        Math.abs(a[2]) < 1e-6 &&
+        Math.abs(a[3] - 1) < 1e-6 &&
+        Math.abs(a[4]) < 1e-3 &&
+        Math.abs(a[5]) < 1e-3
+    );
+}
+
 function compile(gl: WebGLRenderingContext, type: number, source: string): WebGLShader {
     const shader = gl.createShader(type);
     if (!shader) throw new Error("createShader failed");
@@ -419,9 +555,9 @@ function compile(gl: WebGLRenderingContext, type: number, source: string): WebGL
 // A pass sets every uniform; one its shader does not declare has a null
 // location, and setting a null location is a no-op in WebGL.
 const UNIFORMS = [
-    "step", "outToCanvas", "outHeight", "canvasToMap", "canvasMapOffset",
+    "step", "outToCanvas", "outHeight", "outOrigin", "texOrigin", "texSpan", "canvasToMap", "canvasMapOffset",
     "radius", "sharpness", "wobble", "wobbleScale", "grain", "floor", "ceiling", "original",
-    "mapToCanvas", "mapToCanvasOffset", "canvasSize", "mapToScreen", "screenToMap", "screenPerOut",
+    "mapToCanvas", "mapToCanvasOffset", "mapToScreen", "screenToMap", "screenPerOut",
     "cell", "turn", "shift", "overlap", "border", "bands", "planes",
 ] as const;
 type UniformName = (typeof UNIFORMS)[number];
@@ -436,6 +572,16 @@ class PaintPass {
     /** Halving steps between the map canvas and the texture. */
     private readonly shrinkCanvases: HTMLCanvasElement[] = [];
     private lost = false;
+    /** This frame's painting, the blend of it with the frames before, and that blend last frame. */
+    private readonly painting: Target;
+    private resolved: Target;
+    private history: Target;
+    private readonly resolveProgram: WebGLProgram;
+    private readonly copyProgram: WebGLProgram;
+    private readonly resolveUniforms: Record<"size" | "prevSize" | "toPrev" | "toPrevOffset" | "blend", WebGLUniformLocation | null>;
+    private readonly copySize: WebGLUniformLocation | null;
+    /** Map coordinates to last frame's output pixels, and what painted it. */
+    private previous: { mapToFrag: Transform; size: [number, number]; tuning: PaintTuning } | null = null;
 
     constructor(
         private readonly toneName: PaintedToneName,
@@ -453,23 +599,34 @@ class PaintPass {
         if (!gl) throw new Error("WebGL unavailable");
         this.gl = gl;
 
-        const program = gl.createProgram();
-        if (!program) throw new Error("createProgram failed");
-        gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERTEX_SHADER));
-        gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, (style === "collage" ? collageShader : brushShader)(tone)));
-        gl.linkProgram(program);
-        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-            throw new Error(`program link failed: ${gl.getProgramInfoLog(program)}`);
-        }
+        const program = link(gl, (style === "collage" ? collageShader : brushShader)(tone));
         this.program = program;
-        gl.useProgram(program);
+        this.resolveProgram = link(gl, RESOLVE_SHADER);
+        this.copyProgram = link(gl, COPY_SHADER);
 
         const buffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-        const position = gl.getAttribLocation(program, "a_position");
-        gl.enableVertexAttribArray(position);
-        gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+        gl.useProgram(this.resolveProgram);
+        gl.uniform1i(gl.getUniformLocation(this.resolveProgram, "u_current"), 0);
+        gl.uniform1i(gl.getUniformLocation(this.resolveProgram, "u_history"), 1);
+        this.resolveUniforms = {
+            size: gl.getUniformLocation(this.resolveProgram, "u_size"),
+            prevSize: gl.getUniformLocation(this.resolveProgram, "u_prevSize"),
+            toPrev: gl.getUniformLocation(this.resolveProgram, "u_toPrev"),
+            toPrevOffset: gl.getUniformLocation(this.resolveProgram, "u_toPrevOffset"),
+            blend: gl.getUniformLocation(this.resolveProgram, "u_blend"),
+        };
+        gl.useProgram(this.copyProgram);
+        gl.uniform1i(gl.getUniformLocation(this.copyProgram, "u_image"), 0);
+        this.copySize = gl.getUniformLocation(this.copyProgram, "u_size");
+        this.painting = createTarget(gl);
+        this.resolved = createTarget(gl);
+        this.history = createTarget(gl);
+        gl.useProgram(program);
 
         const texture = gl.createTexture();
         if (!texture) throw new Error("createTexture failed");
@@ -503,31 +660,53 @@ class PaintPass {
     }
 
     /**
-     * The map canvas shrunk to `width` x `height` by halving, never by more
-     * than half at once: one big step samples a few source pixels per texel
-     * and lets the rest flicker in and out as the map moves.
+     * The map canvas resampled to a texture whose texels sit on a lattice
+     * fixed to the ground: texel (0, 0) covers `texelPx` canvas pixels from
+     * (x0, y0), and the texture is `width` x `height` texels.
+     *
+     * Fixed to the ground because the canvas is not: OpenLayers moves and
+     * resizes it every frame as the map pans and turns, and a texture cut
+     * from wherever the canvas happens to start resamples the same ground a
+     * little differently each time, which a sharp brush turns into flicker.
+     * One scale step down to a power of two of the texel, then exact halvings,
+     * never more than half at once so nothing aliases on the way.
      */
-    private shrink(source: HTMLCanvasElement, width: number, height: number): HTMLCanvasElement {
-        let current = source;
-        let level = 0;
-        while (current.width > width || current.height > height) {
-            const nextWidth = Math.max(width, Math.ceil(current.width / 2));
-            const nextHeight = Math.max(height, Math.ceil(current.height / 2));
+    private shrink(source: HTMLCanvasElement, x0: number, y0: number, texelPx: number, width: number, height: number): HTMLCanvasElement {
+        const levels = Math.max(0, Math.floor(Math.log2(texelPx)));
+        const first = texelPx / 2 ** levels;
+        let w = width * 2 ** levels;
+        let h = height * 2 ** levels;
+        let current: HTMLCanvasElement | null = null;
+        for (let level = 0; level <= levels; level++) {
             const canvas = (this.shrinkCanvases[level] ??= document.createElement("canvas"));
-            if (canvas.width !== nextWidth || canvas.height !== nextHeight) {
-                canvas.width = nextWidth;
-                canvas.height = nextHeight;
+            if (canvas.width !== w || canvas.height !== h) {
+                canvas.width = w;
+                canvas.height = h;
             }
             const context = canvas.getContext("2d");
-            if (!context) return current;
-            context.globalCompositeOperation = "copy";
+            if (!context) throw new Error("2d context unavailable");
+            context.globalCompositeOperation = "source-over";
             context.imageSmoothingEnabled = true;
             context.imageSmoothingQuality = "high";
-            context.drawImage(current, 0, 0, nextWidth, nextHeight);
+            context.clearRect(0, 0, w, h);
+            if (!current) {
+                // Clipped by hand: older Safari draws nothing at all when the
+                // source rectangle runs off the image.
+                const sx = Math.max(0, x0);
+                const sy = Math.max(0, y0);
+                const ex = Math.min(source.width, x0 + w * first);
+                const ey = Math.min(source.height, y0 + h * first);
+                if (ex > sx && ey > sy) {
+                    context.drawImage(source, sx, sy, ex - sx, ey - sy, (sx - x0) / first, (sy - y0) / first, (ex - sx) / first, (ey - sy) / first);
+                }
+            } else {
+                context.drawImage(current, 0, 0, w, h);
+            }
             current = canvas;
-            level += 1;
+            w /= 2;
+            h /= 2;
         }
-        return current;
+        return current!;
     }
 
     /**
@@ -551,26 +730,43 @@ class PaintPass {
             /** Metres of ground per map unit at the centre of the view. */
             metresPerUnit: number;
         },
-    ): HTMLCanvasElement {
+    ): { canvas: HTMLCanvasElement; x: number; y: number; width: number; height: number } {
         const { gl, uniforms } = this;
         const { pixelRatio, canvasToMap, mapToCanvas, mapToScreen, screenToMap, origin, metresPerUnit } = frame;
-        // The source's size in CSS pixels, which sizes the work below.
-        const cssWidth = source.width / pixelRatio;
-        const cssHeight = source.height / pixelRatio;
-        const outWidth = Math.max(1, Math.round(cssWidth * tuning.resolution));
-        const outHeight = Math.max(1, Math.round(cssHeight * tuning.resolution));
-        // The collage shows the photograph itself, so it keeps a texel per
-        // CSS pixel; the brush only needs one per brush step.
+        // Where a fixed point on the ground falls on this frame's canvas: the
+        // anchor for both grids below, so each lies on a lattice that rides
+        // with the ground. The canvas is north-up and only slides against the
+        // ground as the map pans and turns, so that is all it takes.
+        const anchor = apply(mapToCanvas, [origin[0], origin[1]]);
+        const phase = (value: number, period: number) => (((value % period) + period) % period) - period;
+
+        // The output: one pixel per `outPx` canvas pixels, starting a pixel
+        // before the canvas so it covers it however the lattice falls.
+        const outPx = pixelRatio / tuning.resolution;
+        const outX0 = phase(anchor[0], outPx);
+        const outY0 = phase(anchor[1], outPx);
+        const outWidth = Math.max(1, Math.ceil((source.width - outX0) / outPx) + 1);
+        const outHeight = Math.max(1, Math.ceil((source.height - outY0) / outPx) + 1);
+
+        // The photograph: one texel per `texelPx` canvas pixels, with a margin
+        // for the brush's reach. The collage shows the photograph itself, so
+        // it keeps a texel per CSS pixel; the brush only needs one per step.
         const texelSpacing = this.style === "collage" ? 1 : tuning.brushStep;
-        const texWidth = Math.max(1, Math.round(cssWidth / texelSpacing));
-        const texHeight = Math.max(1, Math.round(cssHeight / texelSpacing));
-        const texture = this.shrink(source, texWidth, texHeight);
+        const texelPx = pixelRatio * texelSpacing;
+        const texX0 = phase(anchor[0], texelPx) - texelPx;
+        const texY0 = phase(anchor[1], texelPx) - texelPx;
+        const texWidth = Math.max(1, Math.ceil((source.width - texX0) / texelPx) + 2);
+        const texHeight = Math.max(1, Math.ceil((source.height - texY0) / texelPx) + 2);
+        const texture = this.shrink(source, texX0, texY0, texelPx, texWidth, texHeight);
         const tone = tuning.tones[this.toneName];
 
         if (this.canvas.width !== outWidth || this.canvas.height !== outHeight) {
             this.canvas.width = outWidth;
             this.canvas.height = outHeight;
         }
+        sizeTarget(gl, this.painting, outWidth, outHeight);
+        sizeTarget(gl, this.resolved, outWidth, outHeight);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.painting.framebuffer);
         gl.viewport(0, 0, outWidth, outHeight);
         gl.useProgram(this.program);
         gl.activeTexture(gl.TEXTURE0);
@@ -578,8 +774,11 @@ class PaintPass {
         // Throws a SecurityError if any tile on the canvas was not CORS-clean.
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture);
         gl.uniform2f(uniforms.step, 1 / texture.width, 1 / texture.height);
-        gl.uniform2f(uniforms.outToCanvas, source.width / outWidth, source.height / outHeight);
+        gl.uniform2f(uniforms.outToCanvas, outPx, outPx);
         gl.uniform1f(uniforms.outHeight, outHeight);
+        gl.uniform2f(uniforms.outOrigin, outX0, outY0);
+        gl.uniform2f(uniforms.texOrigin, texX0, texY0);
+        gl.uniform2f(uniforms.texSpan, texWidth * texelPx, texHeight * texelPx);
         const [a, b, c, d, e, f] = canvasToMap;
         gl.uniform4f(uniforms.canvasToMap, a, b, c, d);
         gl.uniform2f(uniforms.canvasMapOffset, e - origin[0], f - origin[1]);
@@ -596,10 +795,9 @@ class PaintPass {
         const [ia, ib, ic, id, ie, iff] = mapToCanvas;
         gl.uniform4f(uniforms.mapToCanvas, ia, ib, ic, id);
         gl.uniform2f(uniforms.mapToCanvasOffset, ia * origin[0] + ic * origin[1] + ie, ib * origin[0] + id * origin[1] + iff);
-        gl.uniform2f(uniforms.canvasSize, source.width, source.height);
         gl.uniform4f(uniforms.mapToScreen, mapToScreen[0], mapToScreen[1], mapToScreen[2], mapToScreen[3]);
         gl.uniform4f(uniforms.screenToMap, screenToMap[0], screenToMap[1], screenToMap[2], screenToMap[3]);
-        gl.uniform1f(uniforms.screenPerOut, cssWidth / outWidth);
+        gl.uniform1f(uniforms.screenPerOut, outPx / pixelRatio);
         const { collage } = tuning;
         gl.uniform1f(uniforms.cell, collage.fragment / metresPerUnit);
         gl.uniform1f(uniforms.turn, (collage.rotation * Math.PI) / 180);
@@ -611,7 +809,48 @@ class PaintPass {
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-        return this.canvas;
+
+        // Output pixel (gl_FragCoord, y up) to map coordinates, this frame.
+        const fragToMap = multiply(canvasToMap.slice() as Transform, [outPx, 0, 0, -outPx, outX0, outHeight * outPx + outY0]);
+        const size: [number, number] = [outWidth, outHeight];
+        let blend = TEMPORAL_BLEND;
+        let toPrev: Transform = [1, 0, 0, 1, 0, 0];
+        const { previous } = this;
+        if (!previous || previous.tuning !== tuning) {
+            // Nothing to line up with, or a slider just moved: show it now.
+            blend = 1;
+        } else {
+            toPrev = multiply(previous.mapToFrag.slice() as Transform, fragToMap);
+            // The view has not moved, so the new frame is the answer as it
+            // stands; blending would only make a still map settle slowly.
+            if (sameTransform(toPrev, size, previous.size)) blend = 1;
+        }
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.resolved.framebuffer);
+        gl.viewport(0, 0, outWidth, outHeight);
+        gl.useProgram(this.resolveProgram);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.painting.texture);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, this.history.texture);
+        gl.uniform2f(this.resolveUniforms.size, outWidth, outHeight);
+        gl.uniform2f(this.resolveUniforms.prevSize, this.history.width, this.history.height);
+        gl.uniform4f(this.resolveUniforms.toPrev, toPrev[0], toPrev[1], toPrev[2], toPrev[3]);
+        gl.uniform2f(this.resolveUniforms.toPrevOffset, toPrev[4], toPrev[5]);
+        gl.uniform1f(this.resolveUniforms.blend, blend);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, outWidth, outHeight);
+        gl.useProgram(this.copyProgram);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.resolved.texture);
+        gl.uniform2f(this.copySize, outWidth, outHeight);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+        [this.history, this.resolved] = [this.resolved, this.history];
+        this.previous = { mapToFrag: invert(fragToMap.slice() as Transform), size, tuning };
+        return { canvas: this.canvas, x: outX0, y: outY0, width: outWidth * outPx, height: outHeight * outPx };
     }
 
     dispose() {
@@ -669,7 +908,7 @@ export function createPaintedBasemapListener(
         // jump; only there to keep the shader's numbers small.
         origin ??= [Math.round(canvasToMap[4]), Math.round(canvasToMap[5])];
 
-        let painted: HTMLCanvasElement;
+        let painted: ReturnType<PaintPass["render"]>;
         try {
             painted = pass.render(source, getPaintTuning(), {
                 pixelRatio,
@@ -692,7 +931,9 @@ export function createPaintedBasemapListener(
         context.globalCompositeOperation = "copy";
         context.imageSmoothingEnabled = true;
         context.imageSmoothingQuality = "high";
-        context.drawImage(painted, 0, 0, source.width, source.height);
+        // At its place on the ground, which is a fraction of a pixel off the
+        // canvas's own grid; drawn with smoothing, so moving it is smooth.
+        context.drawImage(painted.canvas, painted.x, painted.y, painted.width, painted.height);
         context.restore();
     };
 
