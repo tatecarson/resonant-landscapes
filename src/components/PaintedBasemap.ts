@@ -1,4 +1,5 @@
 import type RenderEvent from "ol/render/Event";
+import { invert, multiply, type Transform } from "ol/transform";
 import { palette } from "../theme/palette";
 import {
     DEFAULT_PAINTED_TONE,
@@ -89,12 +90,16 @@ precision mediump float;
 uniform sampler2D u_image;
 /** One brush step (one source texel), in texture coordinates. */
 uniform vec2 u_step;
-/** Output pixel to CSS pixel, and the output's height to flip y. */
-uniform vec2 u_outToCss;
+/** Output pixel to the tile canvas's pixel, and the output's height to flip y. */
+uniform vec2 u_outToCanvas;
 uniform float u_outHeight;
-/** CSS pixel to map coordinates, less a fixed origin so the numbers stay small. */
-uniform vec4 u_cssToMap;
-uniform vec2 u_mapOffset;
+/**
+ * Tile canvas pixel to map coordinates, less a fixed origin so the numbers
+ * stay small. The canvas, not the screen: OpenLayers draws a turned map on a
+ * north-up canvas and turns the canvas.
+ */
+uniform vec4 u_canvasToMap;
+uniform vec2 u_canvasMapOffset;
 
 uniform float u_radius;
 uniform float u_sharpness;
@@ -132,11 +137,11 @@ float discWeight(vec3 variance) {
 
 void main() {
     // Where this pixel is on the ground, so the texture belongs to the map.
-    vec2 css = vec2(gl_FragCoord.x, u_outHeight - gl_FragCoord.y) * u_outToCss;
+    vec2 px = vec2(gl_FragCoord.x, u_outHeight - gl_FragCoord.y) * u_outToCanvas;
     vec2 ground = vec2(
-        u_cssToMap.x * css.x + u_cssToMap.z * css.y,
-        u_cssToMap.y * css.x + u_cssToMap.w * css.y
-    ) + u_mapOffset;
+        u_canvasToMap.x * px.x + u_canvasToMap.z * px.y,
+        u_canvasToMap.y * px.x + u_canvasToMap.w * px.y
+    ) + u_canvasMapOffset;
 
     vec2 wobble = vec2(noise(ground * u_wobbleScale), noise(ground * u_wobbleScale + 19.3)) - 0.5;
     vec2 uv = v_uv + wobble * u_step * u_wobble;
@@ -190,17 +195,24 @@ void main() {
 /**
  * The collage: after David Hockney's photo joiners, read through the cubists.
  *
- * The ground is covered in overlapping rectangular fragments on a jittered
- * grid in map coordinates, each a snapshot of the imagery turned by its own
- * small angle and taken from a slightly shifted spot, so neighbours meet a
- * little out of register, as prints laid by hand do. A pixel takes the topmost
- * fragment covering it. Inside a fragment the photograph's lightness is cut
+ * The ground is covered in overlapping rectangular prints, each pinned to a
+ * spot on a jittered grid in map coordinates and showing the imagery from a
+ * slightly shifted spot, so neighbours meet a little out of register, as
+ * prints laid by hand do. A pixel takes the topmost print covering it.
+ *
+ * The prints face the viewer: their frames are upright on the screen, as
+ * photographs laid on a page are, and only their contents turn as the map
+ * turns with the walker. Frames that turned with the ground (the first
+ * version) made the whole joiner swing like one sheet whenever the phone did,
+ * which Tate found killed it. Each print's centre is still on the ground, so
+ * the prints travel with the map as the walker moves. `u_turn` tilts a print
+ * on the page, and its photograph with it. Inside a fragment the photograph's lightness is cut
  * into a few flat bands on the palette ramp, so its shades become planes, and
  * each fragment is lit as a plane tilted its own way. A cream print edge runs
  * round each one.
  *
- * Built in map coordinates throughout, so fragments ride with the ground as
- * the map moves and turns instead of being re-cut every frame.
+ * Where prints sit and what they show is in map coordinates, so they ride
+ * with the ground instead of being re-cut every frame.
  */
 const collageShader = (tone: PaintedTone) => `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -209,16 +221,19 @@ precision highp float;
 precision mediump float;
 #endif
 uniform sampler2D u_image;
-uniform vec2 u_outToCss;
+uniform vec2 u_outToCanvas;
 uniform float u_outHeight;
-uniform vec4 u_cssToMap;
-uniform vec2 u_mapOffset;
-/** Map coordinates (less the origin) back to CSS pixels, to sample the photo. */
-uniform vec4 u_mapToCss;
-uniform vec2 u_mapToCssOffset;
-uniform vec2 u_cssSize;
-/** Map units per output pixel, for edges measured in pixels. */
-uniform float u_unitsPerPx;
+uniform vec4 u_canvasToMap;
+uniform vec2 u_canvasMapOffset;
+/** Map coordinates (less the origin) back to tile canvas pixels, to sample the photo. */
+uniform vec4 u_mapToCanvas;
+uniform vec2 u_mapToCanvasOffset;
+uniform vec2 u_canvasSize;
+/** A step on the ground to a step on the screen and back, in CSS pixels. */
+uniform vec4 u_mapToScreen;
+uniform vec4 u_screenToMap;
+/** Screen CSS pixels per output pixel. */
+uniform float u_screenPerOut;
 
 uniform float u_cell;
 uniform float u_turn;
@@ -244,54 +259,101 @@ vec2 hash2(vec2 p) {
     return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453);
 }
 
+/** A step on the ground as a step on the screen, in CSS pixels. */
+vec2 groundToScreen(vec2 d) {
+    return vec2(u_mapToScreen.x * d.x + u_mapToScreen.z * d.y, u_mapToScreen.y * d.x + u_mapToScreen.w * d.y);
+}
+
+/** A step on the screen as a step on the ground. */
+vec2 screenToGround(vec2 d) {
+    return vec2(u_screenToMap.x * d.x + u_screenToMap.z * d.y, u_screenToMap.y * d.x + u_screenToMap.w * d.y);
+}
+
+/**
+ * One print: its centre on the ground, the pixel's place in its upright frame
+ * in screen pixels, its half size, and its height in the stack.
+ */
+void printAt(vec2 candidate, vec2 ground, float cellPx, out vec2 centre, out vec2 local, out vec2 halfSize, out float z) {
+    vec2 r = hash2(candidate);
+    vec2 r2 = hash2(candidate + 17.13);
+    centre = (candidate + 0.5 + (r - 0.5) * 0.5) * u_cell;
+    float a = (r2.x - 0.5) * 2.0 * u_turn;
+    // Prints are rarely square and never all one size: vary the aspect and
+    // the scale, as a hand-laid joiner does.
+    float scale = mix(0.8, 1.3, hash(candidate + 41.7));
+    halfSize = cellPx * u_overlap * scale * vec2(0.8 + 0.4 * r2.y, 1.2 - 0.4 * r2.y);
+    // In screen pixels, so the frame stands upright on the page whatever the
+    // map's heading; a is the print's own tilt.
+    vec2 d = groundToScreen(ground - centre);
+    float ca = cos(a);
+    float sa = sin(a);
+    local = vec2(ca * d.x + sa * d.y, -sa * d.x + ca * d.y);
+    z = hash(candidate + 3.7);
+}
+
 vec4 photoAt(vec2 ground) {
-    vec2 css = vec2(
-        u_mapToCss.x * ground.x + u_mapToCss.z * ground.y,
-        u_mapToCss.y * ground.x + u_mapToCss.w * ground.y
-    ) + u_mapToCssOffset;
-    return texture2D(u_image, vec2(css.x / u_cssSize.x, 1.0 - css.y / u_cssSize.y));
+    vec2 px = vec2(
+        u_mapToCanvas.x * ground.x + u_mapToCanvas.z * ground.y,
+        u_mapToCanvas.y * ground.x + u_mapToCanvas.w * ground.y
+    ) + u_mapToCanvasOffset;
+    return texture2D(u_image, vec2(px.x / u_canvasSize.x, 1.0 - px.y / u_canvasSize.y));
 }
 
 void main() {
-    vec2 css = vec2(gl_FragCoord.x, u_outHeight - gl_FragCoord.y) * u_outToCss;
+    vec2 px = vec2(gl_FragCoord.x, u_outHeight - gl_FragCoord.y) * u_outToCanvas;
     vec2 ground = vec2(
-        u_cssToMap.x * css.x + u_cssToMap.z * css.y,
-        u_cssToMap.y * css.x + u_cssToMap.w * css.y
-    ) + u_mapOffset;
+        u_canvasToMap.x * px.x + u_canvasToMap.z * px.y,
+        u_canvasToMap.y * px.x + u_canvasToMap.w * px.y
+    ) + u_canvasMapOffset;
 
     vec2 cell = floor(ground / u_cell);
+    float cellPx = u_cell * length(vec2(u_mapToScreen.x, u_mapToScreen.y));
     float topmost = -1.0;
     vec2 id = cell;
     vec2 centre = ground;
     vec2 local = vec2(0.0);
     vec2 halfSize = vec2(1.0);
-    float angle = 0.0;
 
-    for (int dy = -1; dy <= 1; dy++) {
-        for (int dx = -1; dx <= 1; dx++) {
+    // Five by five: an upright print over a grid turned by the heading can
+    // reach further across the grid than the cells next to its own.
+    for (int dy = -2; dy <= 2; dy++) {
+        for (int dx = -2; dx <= 2; dx++) {
             vec2 candidate = cell + vec2(float(dx), float(dy));
-            vec2 r = hash2(candidate);
-            vec2 r2 = hash2(candidate + 17.13);
-            vec2 c = (candidate + 0.5 + (r - 0.5) * 0.5) * u_cell;
-            float a = (r2.x - 0.5) * 2.0 * u_turn;
-            // Prints are rarely square and never all one size: vary the
-            // aspect and the scale, as a hand-laid joiner does.
-            float scale = mix(0.8, 1.3, hash(candidate + 41.7));
-            vec2 h = u_cell * u_overlap * scale * vec2(0.8 + 0.4 * r2.y, 1.2 - 0.4 * r2.y);
-            vec2 d = ground - c;
-            float ca = cos(a);
-            float sa = sin(a);
-            vec2 l = vec2(ca * d.x + sa * d.y, -sa * d.x + ca * d.y);
-            if (abs(l.x) < h.x && abs(l.y) < h.y) {
-                float z = hash(candidate + 3.7);
-                if (z > topmost) {
-                    topmost = z;
-                    id = candidate;
-                    centre = c;
-                    local = l;
-                    halfSize = h;
-                    angle = a;
-                }
+            vec2 c;
+            vec2 l;
+            vec2 h;
+            float z;
+            printAt(candidate, ground, cellPx, c, l, h, z);
+            if (abs(l.x) < h.x && abs(l.y) < h.y && z > topmost) {
+                topmost = z;
+                id = candidate;
+                centre = c;
+                local = l;
+                halfSize = h;
+            }
+        }
+    }
+
+    // The print edges, from every print at or above the one showing, so an
+    // edge straddles its print's boundary and is softened on both sides: the
+    // switch from one print to the next is hard, and a turned map runs it
+    // diagonally across the pixels.
+    float soft = 1.0 * u_screenPerOut;
+    float printEdge = 0.0;
+    if (u_border > 0.0) {
+        for (int dy = -2; dy <= 2; dy++) {
+            for (int dx = -2; dx <= 2; dx++) {
+                vec2 candidate = cell + vec2(float(dx), float(dy));
+                vec2 c;
+                vec2 l;
+                vec2 h;
+                float z;
+                printAt(candidate, ground, cellPx, c, l, h, z);
+                if (z < topmost) continue;
+                // Positive inside the print, in screen pixels.
+                float e = min(h.x - abs(l.x), h.y - abs(l.y));
+                float band = smoothstep(-soft, soft, e) * (1.0 - smoothstep(u_border - soft, u_border + soft, e));
+                printEdge = max(printEdge, band);
             }
         }
     }
@@ -301,10 +363,12 @@ void main() {
         // A gap between prints: the ground itself shows through.
         colour = photoAt(ground);
     } else {
-        // This print's photograph: turned with the print, from a spot a
-        // little off where it lies, so neighbours meet out of register.
+        // This print's photograph: the ground under it, turned with the
+        // print's own tilt and taken from a spot a little off where it lies,
+        // so neighbours meet out of register. Ground-true, so it turns with
+        // the map inside the upright frame.
         vec2 offset = (hash2(id + 5.3) - 0.5) * u_shift * u_cell * 2.0;
-        vec2 taken = centre + local + offset;
+        vec2 taken = centre + screenToGround(local) + offset;
         // A few taps soften the photograph before it is cut into bands, so
         // the bands follow shapes rather than the photo's speckle.
         float s = u_cell * 0.03;
@@ -334,11 +398,7 @@ void main() {
     float t = mix(u_floor, 1.0, clamp(level, 0.0, 1.0));
     vec3 painted = mix(tone(t), straight, u_original);
 
-    if (topmost >= 0.0 && u_border > 0.0) {
-        float edge = min(halfSize.x - abs(local.x), halfSize.y - abs(local.y)) / u_unitsPerPx;
-        float print = 1.0 - smoothstep(u_border - 0.75, u_border + 0.75, edge);
-        painted = mix(painted, u_printEdge, print * 0.9);
-    }
+    painted = mix(painted, u_printEdge, printEdge * 0.9);
     gl_FragColor = vec4(painted * colour.a, colour.a);
 }
 `;
@@ -359,9 +419,9 @@ function compile(gl: WebGLRenderingContext, type: number, source: string): WebGL
 // A pass sets every uniform; one its shader does not declare has a null
 // location, and setting a null location is a no-op in WebGL.
 const UNIFORMS = [
-    "step", "outToCss", "outHeight", "cssToMap", "mapOffset",
+    "step", "outToCanvas", "outHeight", "canvasToMap", "canvasMapOffset",
     "radius", "sharpness", "wobble", "wobbleScale", "grain", "floor", "ceiling", "original",
-    "mapToCss", "mapToCssOffset", "cssSize", "unitsPerPx",
+    "mapToCanvas", "mapToCanvasOffset", "canvasSize", "mapToScreen", "screenToMap", "screenPerOut",
     "cell", "turn", "shift", "overlap", "border", "bands", "planes",
 ] as const;
 type UniformName = (typeof UNIFORMS)[number];
@@ -471,26 +531,32 @@ class PaintPass {
     }
 
     /**
-     * Paints `source` with `tuning` and returns the canvas holding it.
-     * `cssWidth` x `cssHeight` is the map's size in CSS pixels, and `cssToMap`
-     * the affine transform from them to map coordinates (OpenLayers'
-     * [a, b, c, d, e, f]), with `origin` taken off.
+     * Paints `source`, the tile layer's canvas, with `tuning` and returns the
+     * canvas holding it. The transforms are OpenLayers' [a, b, c, d, e, f]:
+     * `canvasToMap` and `mapToCanvas` between the source's own pixels and map
+     * coordinates, and `mapToScreen` and `screenToMap` between map
+     * coordinates and the screen's CSS pixels, which differ from the canvas
+     * whenever the map is turned. `origin` is taken off map coordinates.
      */
     render(
         source: HTMLCanvasElement,
         tuning: PaintTuning,
         frame: {
-            cssWidth: number;
-            cssHeight: number;
-            cssToMap: number[];
-            mapToCss: number[];
+            pixelRatio: number;
+            canvasToMap: number[];
+            mapToCanvas: number[];
+            mapToScreen: number[];
+            screenToMap: number[];
             origin: [number, number];
             /** Metres of ground per map unit at the centre of the view. */
             metresPerUnit: number;
         },
     ): HTMLCanvasElement {
         const { gl, uniforms } = this;
-        const { cssWidth, cssHeight, cssToMap, mapToCss, origin, metresPerUnit } = frame;
+        const { pixelRatio, canvasToMap, mapToCanvas, mapToScreen, screenToMap, origin, metresPerUnit } = frame;
+        // The source's size in CSS pixels, which sizes the work below.
+        const cssWidth = source.width / pixelRatio;
+        const cssHeight = source.height / pixelRatio;
         const outWidth = Math.max(1, Math.round(cssWidth * tuning.resolution));
         const outHeight = Math.max(1, Math.round(cssHeight * tuning.resolution));
         // The collage shows the photograph itself, so it keeps a texel per
@@ -512,11 +578,11 @@ class PaintPass {
         // Throws a SecurityError if any tile on the canvas was not CORS-clean.
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture);
         gl.uniform2f(uniforms.step, 1 / texture.width, 1 / texture.height);
-        gl.uniform2f(uniforms.outToCss, cssWidth / outWidth, cssHeight / outHeight);
+        gl.uniform2f(uniforms.outToCanvas, source.width / outWidth, source.height / outHeight);
         gl.uniform1f(uniforms.outHeight, outHeight);
-        const [a, b, c, d, e, f] = cssToMap;
-        gl.uniform4f(uniforms.cssToMap, a, b, c, d);
-        gl.uniform2f(uniforms.mapOffset, e - origin[0], f - origin[1]);
+        const [a, b, c, d, e, f] = canvasToMap;
+        gl.uniform4f(uniforms.canvasToMap, a, b, c, d);
+        gl.uniform2f(uniforms.canvasMapOffset, e - origin[0], f - origin[1]);
         gl.uniform1f(uniforms.radius, tuning.radius);
         gl.uniform1f(uniforms.sharpness, tuning.sharpness);
         gl.uniform1f(uniforms.wobble, tuning.wobble);
@@ -526,18 +592,20 @@ class PaintPass {
         gl.uniform1f(uniforms.ceiling, tuning.ceiling);
         gl.uniform1f(uniforms.original, tone.original);
         this.stopLocations.forEach((location, index) => gl.uniform1f(location, tone.stops[index]));
-        // Map to CSS, with the origin folded back in: css = A(g + origin) + t.
-        const [ia, ib, ic, id, ie, iff] = mapToCss;
-        gl.uniform4f(uniforms.mapToCss, ia, ib, ic, id);
-        gl.uniform2f(uniforms.mapToCssOffset, ia * origin[0] + ic * origin[1] + ie, ib * origin[0] + id * origin[1] + iff);
-        gl.uniform2f(uniforms.cssSize, cssWidth, cssHeight);
-        gl.uniform1f(uniforms.unitsPerPx, Math.hypot(a, b) * (cssWidth / outWidth));
+        // Map to canvas, with the origin folded back in: px = A(g + origin) + t.
+        const [ia, ib, ic, id, ie, iff] = mapToCanvas;
+        gl.uniform4f(uniforms.mapToCanvas, ia, ib, ic, id);
+        gl.uniform2f(uniforms.mapToCanvasOffset, ia * origin[0] + ic * origin[1] + ie, ib * origin[0] + id * origin[1] + iff);
+        gl.uniform2f(uniforms.canvasSize, source.width, source.height);
+        gl.uniform4f(uniforms.mapToScreen, mapToScreen[0], mapToScreen[1], mapToScreen[2], mapToScreen[3]);
+        gl.uniform4f(uniforms.screenToMap, screenToMap[0], screenToMap[1], screenToMap[2], screenToMap[3]);
+        gl.uniform1f(uniforms.screenPerOut, cssWidth / outWidth);
         const { collage } = tuning;
         gl.uniform1f(uniforms.cell, collage.fragment / metresPerUnit);
         gl.uniform1f(uniforms.turn, (collage.rotation * Math.PI) / 180);
         gl.uniform1f(uniforms.shift, collage.shift);
         gl.uniform1f(uniforms.overlap, collage.overlap);
-        gl.uniform1f(uniforms.border, collage.border * (outWidth / cssWidth));
+        gl.uniform1f(uniforms.border, collage.border);
         gl.uniform1f(uniforms.bands, collage.bands);
         gl.uniform1f(uniforms.planes, collage.planes);
         gl.clearColor(0, 0, 0, 0);
@@ -584,21 +652,31 @@ export function createPaintedBasemapListener(
         }
         const source = context.canvas;
         const pixelRatio = frameState.pixelRatio || 1;
-        const cssToMap = frameState.pixelToCoordinateTransform;
+        // Screen CSS pixels to this canvas's pixels; it carries the turn.
+        const screenToCanvas = event.inversePixelTransform;
+        if (!screenToCanvas) {
+            return;
+        }
+        const canvasToMap = multiply(
+            frameState.pixelToCoordinateTransform.slice() as Transform,
+            invert(screenToCanvas.slice() as Transform),
+        );
+        const mapToCanvas = multiply(screenToCanvas.slice() as Transform, frameState.coordinateToPixelTransform);
         const centreY = frameState.viewState.center[1];
         // Web Mercator: a map unit covers cos(latitude) metres of ground.
         const latitude = 2 * Math.atan(Math.exp(centreY / 6378137)) - Math.PI / 2;
         // Fixed for the life of the pass, so the ground's texture does not
         // jump; only there to keep the shader's numbers small.
-        origin ??= [Math.round(cssToMap[4]), Math.round(cssToMap[5])];
+        origin ??= [Math.round(canvasToMap[4]), Math.round(canvasToMap[5])];
 
         let painted: HTMLCanvasElement;
         try {
             painted = pass.render(source, getPaintTuning(), {
-                cssWidth: source.width / pixelRatio,
-                cssHeight: source.height / pixelRatio,
-                cssToMap,
-                mapToCss: frameState.coordinateToPixelTransform,
+                pixelRatio,
+                canvasToMap,
+                mapToCanvas,
+                mapToScreen: frameState.coordinateToPixelTransform,
+                screenToMap: frameState.pixelToCoordinateTransform,
                 origin,
                 metresPerUnit: Math.cos(latitude),
             });
