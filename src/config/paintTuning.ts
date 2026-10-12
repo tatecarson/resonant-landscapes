@@ -41,16 +41,19 @@ export interface PaintedTone {
  * from cream to mint.
  */
 export const PAINTED_TONES = {
+    // Tuned by Tate on the Pavilion plaza with the ?tune panel, 2026-10-12:
+    // darker and with more of the photograph's own colour than the first
+    // pass, for contrast against the panels.
     mint: {
         ramp: [
             { token: "edge", at: 0 },
-            { token: "accentSoft", at: 0.3 },
-            { token: "panel", at: 0.6 },
-            { token: "surface", at: 0.82 },
+            { token: "accentSoft", at: 0.14 },
+            { token: "panel", at: 0.45 },
+            { token: "surface", at: 0.81 },
             { token: "ground", at: 1 },
         ],
-        floor: 0.5,
-        original: 0.15,
+        floor: 0.21,
+        original: 0.48,
     },
     sage: {
         ramp: [
@@ -138,22 +141,33 @@ function toneDefaults(tone: PaintedTone): ToneTuning {
     return { floor: tone.floor, original: tone.original, stops: tone.ramp.slice(1, -1).map(({ at }) => at) };
 }
 
+/**
+ * Tate's tuning from the ?tune panel, 2026-10-12. A small, sharp brush at a
+ * high resolution: crisper building edges than the first pass, no grain, and
+ * a tighter, stronger wobble.
+ *
+ * The resolution is the expensive part, not the brush: in headless Chrome a
+ * frame took 93 ms at 0.75, 193 at 1 and 265 at 1.25, because every output
+ * pixel is read back to the map's canvas. Headless copies through the CPU and
+ * overstates it, but if turning stutters on a phone, this is the first number
+ * to bring down.
+ */
 export const DEFAULTS: PaintTuning = {
     tone: DEFAULT_PAINTED_TONE,
-    radius: 4,
+    radius: 2,
     brushStep: 2,
-    resolution: 0.75,
-    sharpness: 4,
-    ceiling: 0.8,
-    wobble: 2.5,
-    wobbleScale: 0.3,
-    grain: 0.04,
+    resolution: 1.25,
+    sharpness: 12,
+    ceiling: 0.71,
+    wobble: 3,
+    wobbleScale: 0.55,
+    grain: 0,
     tones: {
         mint: toneDefaults(PAINTED_TONES.mint),
         sage: toneDefaults(PAINTED_TONES.sage),
         paper: toneDefaults(PAINTED_TONES.paper),
     },
-    streets: { streetWidth: 7, streetOpacity: 0.92, pathWidth: 0.8, pathOpacity: 0.42 },
+    streets: { streetWidth: 9, streetOpacity: 0.8, pathWidth: 1.5, pathOpacity: 0.54 },
 };
 
 type NumberKey = { [K in keyof PaintTuning]: PaintTuning[K] extends number ? K : never }[keyof PaintTuning];
