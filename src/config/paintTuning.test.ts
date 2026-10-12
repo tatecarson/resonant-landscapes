@@ -139,3 +139,9 @@ describe("presets", () => {
         expect(brush.sharpness).toBe(12);
     });
 });
+
+describe("what ships", () => {
+    it("is Tate's brush preset", () => {
+        expect(DEFAULT_PRESET).toBe("brush-2026-10-12");
+    });
+});

@@ -4,6 +4,7 @@ import type TileGrid from "ol/tilegrid/TileGrid";
 import { isDebugEnabled } from "./debug";
 import { SATELLITE, basemapFor, requestedMap } from "../map/basemap";
 import { isPaintedToneName, isTuningRequested, queryParam, type PaintStyle } from "./paintTuning";
+import { detectVariant, type Variant } from "../utils/variant";
 
 export { parsePaintedTone } from "./paintTuning";
 
@@ -24,7 +25,9 @@ export { parsePaintedTone } from "./paintTuning";
  * - `painted` starts from imagery that is sharp to zoom 20 and paints it in the
  *   browser with a Kuwahara pass (PaintedBasemap.ts), so detail never runs out.
  *
- * `outdoors` is what ships, and the default everywhere.
+ * Each walk opens on its own style when the URL names none
+ * (DEFAULT_MODE_BY_VARIANT): the Pavilion walk is painted, and the walks
+ * that were already out in the world keep Outdoors, as they shipped.
  *
  * The parameters work without `?debug`, so a bookmark or a QR code can carry a
  * style. They change only what the ground looks like; the position spoof and
@@ -150,11 +153,26 @@ export function nextBasemapMode(mode: BasemapMode): BasemapMode {
     return BASEMAP_MODES[(BASEMAP_MODES.indexOf(mode) + 1) % BASEMAP_MODES.length];
 }
 
+/**
+ * The style each walk opens on when the URL names none. Painted only for the
+ * Pavilion walk, which Tate tuned it on (2026-10-12); DSU, Terrace and
+ * Chatham are already being walked and keep the ground they shipped with.
+ */
+export const DEFAULT_MODE_BY_VARIANT: Record<Variant, BasemapMode> = {
+    dsu: "outdoors",
+    terrace: "outdoors",
+    chatham: "outdoors",
+    washpav: "painted",
+};
+
 function initialMode(): BasemapMode {
     if (typeof window === "undefined") {
         return "outdoors";
     }
-    return parseBasemapParam(window.location.search, window.location.hash) ?? "outdoors";
+    return (
+        parseBasemapParam(window.location.search, window.location.hash) ??
+        DEFAULT_MODE_BY_VARIANT[detectVariant(window.location)]
+    );
 }
 
 /*

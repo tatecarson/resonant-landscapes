@@ -250,8 +250,12 @@ export function isPresetName(value: unknown): value is PresetName {
     return typeof value === "string" && Object.prototype.hasOwnProperty.call(PRESETS, value);
 }
 
-/** What ships: the newest preset. Change this line to go back to another. */
-export const DEFAULT_PRESET: PresetName = "collage-2026-10-12";
+/**
+ * What the painted ground ships as: Tate's brush tuning, chosen 2026-10-12
+ * for the Pavilion walk once the flicker at its high edge sharpness was
+ * fixed. Change this line to ship another preset.
+ */
+export const DEFAULT_PRESET: PresetName = "brush-2026-10-12";
 export const DEFAULTS: PaintTuning = PRESETS[DEFAULT_PRESET].tuning;
 
 type NumberKey = { [K in keyof PaintTuning]: PaintTuning[K] extends number ? K : never }[keyof PaintTuning];

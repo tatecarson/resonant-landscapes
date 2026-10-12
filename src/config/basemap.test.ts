@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BASEMAP_MODES, BASEMAP_SPECS, WATERCOLOR_MAX_ZOOM, type BasemapMode, basemapSpecFor, nextBasemapMode, parseBasemapParam, parsePaintedTone } from "./basemap";
+import { BASEMAP_MODES, BASEMAP_SPECS, DEFAULT_MODE_BY_VARIANT, WATERCOLOR_MAX_ZOOM, type BasemapMode, basemapSpecFor, nextBasemapMode, parseBasemapParam, parsePaintedTone } from "./basemap";
 
 describe("parseBasemapParam", () => {
     it("reads the search string", () => {
@@ -100,5 +100,16 @@ describe("basemapSpecFor", () => {
         expect(basemapSpecFor("outdoors", "satellite", "streets").url).toContain("tile.openstreetmap.org");
         expect(basemapSpecFor("watercolor", "satellite", null).url).not.toContain("stadiamaps");
         expect(basemapSpecFor("watercolor", "satellite", null).painted).toBe(false);
+    });
+});
+
+describe("DEFAULT_MODE_BY_VARIANT", () => {
+    it("paints only the Pavilion walk and leaves the walks already out there alone", () => {
+        expect(DEFAULT_MODE_BY_VARIANT).toEqual({
+            dsu: "outdoors",
+            terrace: "outdoors",
+            chatham: "outdoors",
+            washpav: "painted",
+        });
     });
 });
