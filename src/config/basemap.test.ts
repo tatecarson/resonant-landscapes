@@ -104,12 +104,12 @@ describe("basemapSpecFor", () => {
 });
 
 describe("DEFAULT_MODE_BY_VARIANT", () => {
-    it("paints only the Pavilion walk and leaves the walks already out there alone", () => {
+    it("opens every walk on Outdoors until the painted ground has a production satellite source", () => {
         expect(DEFAULT_MODE_BY_VARIANT).toEqual({
             dsu: "outdoors",
             terrace: "outdoors",
             chatham: "outdoors",
-            washpav: "painted",
+            washpav: "outdoors",
         });
     });
 });

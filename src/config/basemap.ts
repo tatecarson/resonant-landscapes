@@ -154,15 +154,21 @@ export function nextBasemapMode(mode: BasemapMode): BasemapMode {
 }
 
 /**
- * The style each walk opens on when the URL names none. Painted only for the
- * Pavilion walk, which Tate tuned it on (2026-10-12); DSU, Terrace and
- * Chatham are already being walked and keep the ground they shipped with.
+ * The style each walk opens on when the URL names none.
+ *
+ * The Pavilion walk shipped painted (2026-10-12) and is back on Outdoors:
+ * Stadia's Alidade Satellite answers the production domain with 403 and an
+ * "Upgrade for Access" tile on this account's plan, which the painted pass
+ * then painted across the whole map. It only ever worked on localhost, which
+ * Stadia lets through for development, and on previews, which use Esri. Put
+ * washpav back to "painted" once the painted styles have a satellite source
+ * production is allowed to use.
  */
 export const DEFAULT_MODE_BY_VARIANT: Record<Variant, BasemapMode> = {
     dsu: "outdoors",
     terrace: "outdoors",
     chatham: "outdoors",
-    washpav: "painted",
+    washpav: "outdoors",
 };
 
 function initialMode(): BasemapMode {
