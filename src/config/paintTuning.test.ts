@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { palette } from "../theme/palette";
 import {
     DEFAULTS,
+    DEFAULT_PRESET,
+    PRESETS,
+    TONE_SLIDERS,
     DEFAULT_PAINTED_TONE,
     PAINTED_TONES,
     decodeTuning,
@@ -35,9 +38,10 @@ describe.each(Object.entries(PAINTED_TONES))("the %s painted ground", (_, tone) 
         expect(tone.floor).toBeGreaterThan(darkest);
     });
 
-    it("leaves the photograph a minority of the colour", () => {
-        expect(tone.original).toBeGreaterThanOrEqual(0);
-        expect(tone.original).toBeLessThan(0.5);
+    it("keeps the photograph's colour within what the panel allows", () => {
+        const range = TONE_SLIDERS.find(({ key }) => key === "original")!;
+        expect(tone.original).toBeGreaterThanOrEqual(range.min);
+        expect(tone.original).toBeLessThanOrEqual(range.max);
     });
 });
 
@@ -115,5 +119,23 @@ describe("URL switches", () => {
     it("takes a tone from ?tone= first, then from ?basemap=", () => {
         expect(parsePaintedTone("?basemap=sage&tone=paper", "")).toBe("paper");
         expect(parsePaintedTone("?basemap=sage", "")).toBe("sage");
+    });
+});
+
+describe("presets", () => {
+    it.each(Object.entries(PRESETS))("%s is whole and in range", (_, preset) => {
+        expect(normalizeTuning(preset.tuning)).toEqual(preset.tuning);
+    });
+
+    it("ships the default preset", () => {
+        expect(DEFAULTS).toEqual(PRESETS[DEFAULT_PRESET].tuning);
+    });
+
+    it("keeps Tate's brush tuning as he gave it, at resolution 0.75", () => {
+        const brush = PRESETS["brush-2026-10-12"].tuning;
+        expect(brush.resolution).toBe(0.75);
+        expect(brush.tones.mint).toEqual({ floor: 0.21, original: 0.48, stops: [0.14, 0.45, 0.81] });
+        expect(brush.radius).toBe(2);
+        expect(brush.sharpness).toBe(12);
     });
 });

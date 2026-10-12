@@ -3,6 +3,9 @@ import { createPortal } from "react-dom";
 import {
     BRUSH_SLIDERS,
     COLLAGE_SLIDERS,
+    PRESETS,
+    PRESET_NAMES,
+    loadPreset,
     PAINTED_TONES,
     PAINTED_TONE_NAMES,
     STREET_SLIDERS,
@@ -140,6 +143,24 @@ export default function PaintTuningPanel() {
             </div>
 
             <div className="space-y-3 overflow-y-auto overscroll-contain px-3 pb-3">
+                <Section title="Presets">
+                    <div className="grid grid-cols-3 gap-2">
+                        {PRESET_NAMES.map((name) => (
+                            <button
+                                key={name}
+                                type="button"
+                                onClick={() => {
+                                    loadPreset(name);
+                                    setNotice(`loaded ${PRESETS[name].label}`);
+                                }}
+                                className={`${button} px-2 normal-case tracking-[0.04em]`}
+                            >
+                                {PRESETS[name].label}
+                            </button>
+                        ))}
+                    </div>
+                </Section>
+
                 <Section title="Colour scheme">
                     <div className="flex gap-2">
                         {PAINTED_TONE_NAMES.map((name) => (

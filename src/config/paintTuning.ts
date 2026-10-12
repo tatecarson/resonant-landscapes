@@ -53,7 +53,7 @@ export const PAINTED_TONES = {
             { token: "ground", at: 1 },
         ],
         floor: 0.21,
-        original: 0.48,
+        original: 0.59,
     },
     sage: {
         ramp: [
@@ -160,34 +160,99 @@ function toneDefaults(tone: PaintedTone): ToneTuning {
     return { floor: tone.floor, original: tone.original, stops: tone.ramp.slice(1, -1).map(({ at }) => at) };
 }
 
-/**
- * Tate's tuning from the ?tune panel, 2026-10-12. A small, sharp brush:
- * crisper building edges than the first pass, no grain, and
- * a tighter, stronger wobble.
- *
- * Resolution is 0.75 rather than the 1.25 it was tuned at: Tate found it
- * looked much the same, and it is the expensive part, not the brush. In
- * headless Chrome a frame took 93 ms at 0.75, 193 at 1 and 265 at 1.25,
- * because every output pixel is read back to the map's canvas.
- */
-export const DEFAULTS: PaintTuning = {
-    tone: DEFAULT_PAINTED_TONE,
-    radius: 2,
-    brushStep: 2,
-    resolution: 0.75,
-    sharpness: 12,
-    ceiling: 0.71,
-    wobble: 3,
-    wobbleScale: 0.55,
-    grain: 0,
-    tones: {
-        mint: toneDefaults(PAINTED_TONES.mint),
-        sage: toneDefaults(PAINTED_TONES.sage),
-        paper: toneDefaults(PAINTED_TONES.paper),
-    },
-    collage: { fragment: 22, rotation: 10, shift: 0.18, overlap: 0.66, border: 1.25, bands: 4, planes: 0.1 },
-    streets: { streetWidth: 9, streetOpacity: 0.8, pathWidth: 1.5, pathOpacity: 0.54 },
+const SAGE_AND_PAPER = {
+    sage: toneDefaults(PAINTED_TONES.sage),
+    paper: toneDefaults(PAINTED_TONES.paper),
 };
+
+/**
+ * Named tunings, kept so a look can be gone back to. Each is whole, so loading
+ * one restores every slider, including the tone values the brush and the
+ * collage share. Load one from the ?tune panel or with `?preset=<name>`.
+ */
+export const PRESETS = {
+    /** What the painted ground looked like before any tuning by eye. */
+    "first-pass": {
+        label: "First pass",
+        tuning: {
+            tone: "mint",
+            radius: 4,
+            brushStep: 2,
+            resolution: 0.75,
+            sharpness: 4,
+            ceiling: 0.8,
+            wobble: 2.5,
+            wobbleScale: 0.3,
+            grain: 0.04,
+            tones: { mint: { floor: 0.5, original: 0.15, stops: [0.3, 0.6, 0.82] }, ...SAGE_AND_PAPER },
+            collage: { fragment: 14, rotation: 8, shift: 0.12, overlap: 0.62, border: 1.5, bands: 5, planes: 0.06 },
+            streets: { streetWidth: 7, streetOpacity: 0.92, pathWidth: 0.8, pathOpacity: 0.42 },
+        },
+    },
+    /**
+     * Tate's brush tuning from the ?tune panel on the Pavilion plaza,
+     * 2026-10-12: a small, sharp brush, crisper building edges, no grain, a
+     * tighter and stronger wobble, the mint ramp pulled darker. Tuned at
+     * resolution 1.25 and brought to 0.75, which Tate found looked much the
+     * same: resolution is the expensive setting (headless Chrome took 93 ms a
+     * frame at 0.75, 265 at 1.25, because every output pixel is read back).
+     * Use with ?basemap=painted. The collage values are the ones it shipped
+     * beside, before the collage was tuned.
+     */
+    "brush-2026-10-12": {
+        label: "Brush (12 Oct)",
+        tuning: {
+            tone: "mint",
+            radius: 2,
+            brushStep: 2,
+            resolution: 0.75,
+            sharpness: 12,
+            ceiling: 0.71,
+            wobble: 3,
+            wobbleScale: 0.55,
+            grain: 0,
+            tones: { mint: { floor: 0.21, original: 0.48, stops: [0.14, 0.45, 0.81] }, ...SAGE_AND_PAPER },
+            collage: { fragment: 22, rotation: 10, shift: 0.18, overlap: 0.66, border: 1.25, bands: 4, planes: 0.1 },
+            streets: { streetWidth: 9, streetOpacity: 0.8, pathWidth: 1.5, pathOpacity: 0.54 },
+        },
+    },
+    /**
+     * Tate's collage tuning, 2026-10-12: square-on prints (no turn), barely
+     * overlapping, a heavy 2.5 px print edge, and a single tone band, so the
+     * joiner reads as a grid of offset snapshots rather than cubist planes.
+     * More of the photograph's colour (0.59) than the brush tuning; that
+     * value is the mint tone's, so it moves the brush too. Use with
+     * ?basemap=collage.
+     */
+    "collage-2026-10-12": {
+        label: "Collage (12 Oct)",
+        tuning: {
+            tone: "mint",
+            radius: 2,
+            brushStep: 2,
+            resolution: 0.75,
+            sharpness: 12,
+            ceiling: 0.71,
+            wobble: 3,
+            wobbleScale: 0.55,
+            grain: 0,
+            tones: { mint: { floor: 0.21, original: 0.59, stops: [0.14, 0.45, 0.81] }, ...SAGE_AND_PAPER },
+            collage: { fragment: 22, rotation: 0, shift: 0.12, overlap: 0.52, border: 2.5, bands: 1, planes: 0 },
+            streets: { streetWidth: 9, streetOpacity: 0.8, pathWidth: 1.5, pathOpacity: 0.54 },
+        },
+    },
+} satisfies Record<string, { label: string; tuning: PaintTuning }>;
+
+export type PresetName = keyof typeof PRESETS;
+export const PRESET_NAMES = Object.keys(PRESETS) as PresetName[];
+
+export function isPresetName(value: unknown): value is PresetName {
+    return typeof value === "string" && Object.prototype.hasOwnProperty.call(PRESETS, value);
+}
+
+/** What ships: the newest preset. Change this line to go back to another. */
+export const DEFAULT_PRESET: PresetName = "collage-2026-10-12";
+export const DEFAULTS: PaintTuning = PRESETS[DEFAULT_PRESET].tuning;
 
 type NumberKey = { [K in keyof PaintTuning]: PaintTuning[K] extends number ? K : never }[keyof PaintTuning];
 type StreetKey = keyof PaintTuning["streets"];
@@ -330,15 +395,20 @@ function readSaved(): PaintTuning | null {
 }
 
 /**
- * Where a page load starts: a shared `?paint=` link, else this device's saved
- * tuning, else the defaults. A tone named in the URL wins over any of them,
+ * Where a page load starts: a shared `?paint=` link, else a named `?preset=`,
+ * else this device's saved tuning, else the defaults. A tone named in the URL wins over any of them,
  * so `?basemap=paper` still shows paper.
  */
 function initialTuning(): PaintTuning {
     if (typeof window === "undefined") return clone(DEFAULTS);
     const { search, hash } = window.location;
     const shared = queryParam(search, hash, "paint");
-    const tuning = (shared ? decodeTuning(shared) : null) ?? readSaved() ?? clone(DEFAULTS);
+    const preset = queryParam(search, hash, "preset");
+    const tuning =
+        (shared ? decodeTuning(shared) : null) ??
+        (isPresetName(preset) ? normalizeTuning(PRESETS[preset].tuning) : null) ??
+        readSaved() ??
+        clone(DEFAULTS);
     const tone = parsePaintedTone(search, hash);
     return tone ? { ...tuning, tone } : tuning;
 }
@@ -358,6 +428,11 @@ export function subscribePaintTuning(listener: () => void) {
 
 export function getPaintTuning(): PaintTuning {
     return current;
+}
+
+/** Loads a named preset into the panel; not saved until Save is pressed. */
+export function loadPreset(name: PresetName) {
+    setPaintTuning(PRESETS[name].tuning);
 }
 
 export function setPaintTuning(next: PaintTuning) {
