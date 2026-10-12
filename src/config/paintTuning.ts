@@ -142,21 +142,20 @@ function toneDefaults(tone: PaintedTone): ToneTuning {
 }
 
 /**
- * Tate's tuning from the ?tune panel, 2026-10-12. A small, sharp brush at a
- * high resolution: crisper building edges than the first pass, no grain, and
+ * Tate's tuning from the ?tune panel, 2026-10-12. A small, sharp brush:
+ * crisper building edges than the first pass, no grain, and
  * a tighter, stronger wobble.
  *
- * The resolution is the expensive part, not the brush: in headless Chrome a
- * frame took 93 ms at 0.75, 193 at 1 and 265 at 1.25, because every output
- * pixel is read back to the map's canvas. Headless copies through the CPU and
- * overstates it, but if turning stutters on a phone, this is the first number
- * to bring down.
+ * Resolution is 0.75 rather than the 1.25 it was tuned at: Tate found it
+ * looked much the same, and it is the expensive part, not the brush. In
+ * headless Chrome a frame took 93 ms at 0.75, 193 at 1 and 265 at 1.25,
+ * because every output pixel is read back to the map's canvas.
  */
 export const DEFAULTS: PaintTuning = {
     tone: DEFAULT_PAINTED_TONE,
     radius: 2,
     brushStep: 2,
-    resolution: 1.25,
+    resolution: 0.75,
     sharpness: 12,
     ceiling: 0.71,
     wobble: 3,
