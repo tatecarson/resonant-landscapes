@@ -32,8 +32,16 @@ export type Basemap = {
 const STADIA: Basemap = {
     url: "https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}.png",
     maxZoom: 20,
-    attributions:
-        'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.',
+    /**
+     * The credit Stadia requires for Outdoors (docs.stadiamaps.com/attribution).
+     * This used to credit Stamen under CC BY 3.0, left over from the Stamen tiles
+     * the map showed before PR #26 moved it to Outdoors (rl-lar8).
+     */
+    attributions: [
+        '&copy; <a href="https://stadiamaps.com/attribution/" target="_blank">Stadia Maps</a>',
+        '&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a>',
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+    ].join(" "),
 };
 
 const STREETS: Basemap = {

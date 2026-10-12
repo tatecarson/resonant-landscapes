@@ -7,6 +7,15 @@ describe("basemapFor", () => {
         expect(basemapFor("").url).toMatch(/^https:\/\/tiles\.stadiamaps\.com\//);
     });
 
+    it("credits Stadia, OpenMapTiles and OpenStreetMap for Outdoors, not Stamen", () => {
+        // Stadia's required credit for Outdoors (rl-lar8).
+        const { attributions } = basemapFor(undefined);
+        expect(attributions).toMatch(/Stadia Maps/);
+        expect(attributions).toMatch(/OpenMapTiles/);
+        expect(attributions).toMatch(/OpenStreetMap/);
+        expect(attributions).not.toMatch(/Stamen/);
+    });
+
     it("never lets a URL take production off Stadia", () => {
         expect(basemapFor(undefined, "satellite").url).toMatch(/^https:\/\/tiles\.stadiamaps\.com\//);
         expect(basemapFor(undefined, "streets").url).toMatch(/^https:\/\/tiles\.stadiamaps\.com\//);
