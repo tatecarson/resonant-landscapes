@@ -80,6 +80,14 @@ describe("basemapSpecFor", () => {
         }
     });
 
+    it("paints the collage from the same imagery, by its own pass", () => {
+        expect(BASEMAP_SPECS.collage.url).toBe(BASEMAP_SPECS.painted.url);
+        expect(BASEMAP_SPECS.collage.paintStyle).toBe("collage");
+        expect(BASEMAP_SPECS.painted.paintStyle).toBe("brush");
+        expect(basemapSpecFor("collage", "satellite", null).url).toContain("server.arcgisonline.com");
+        expect(basemapSpecFor("collage", "satellite", null).paintStyle).toBe("collage");
+    });
+
     it("paints Esri's imagery on a preview, where Stadia refuses the domain", () => {
         const spec = basemapSpecFor("painted", "satellite", null);
         expect(spec.url).toContain("server.arcgisonline.com");

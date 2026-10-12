@@ -867,7 +867,7 @@ function BasemapController(): null {
         if (!spec.painted) {
             return;
         }
-        const painted = createPaintedBasemapListener(tone);
+        const painted = createPaintedBasemapListener(tone, spec.paintStyle);
         if (!painted) {
             return;
         }

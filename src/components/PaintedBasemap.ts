@@ -5,6 +5,7 @@ import {
     MAX_RADIUS,
     PAINTED_TONES,
     getPaintTuning,
+    type PaintStyle,
     type PaintTuning,
     type PaintedTone,
     type PaintedToneName,
@@ -79,7 +80,7 @@ function toneFunction(ramp: readonly ToneStop[]): string {
 
 // WebGL 1 for iOS 15: loop bounds have to be constants, so the loops run to
 // MAX_RADIUS and skip what the tuning's radius leaves out.
-const fragmentShader = (tone: PaintedTone) => `
+const brushShader = (tone: PaintedTone) => `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
 #else
@@ -186,6 +187,162 @@ void main() {
 }
 `;
 
+/**
+ * The collage: after David Hockney's photo joiners, read through the cubists.
+ *
+ * The ground is covered in overlapping rectangular fragments on a jittered
+ * grid in map coordinates, each a snapshot of the imagery turned by its own
+ * small angle and taken from a slightly shifted spot, so neighbours meet a
+ * little out of register, as prints laid by hand do. A pixel takes the topmost
+ * fragment covering it. Inside a fragment the photograph's lightness is cut
+ * into a few flat bands on the palette ramp, so its shades become planes, and
+ * each fragment is lit as a plane tilted its own way. A cream print edge runs
+ * round each one.
+ *
+ * Built in map coordinates throughout, so fragments ride with the ground as
+ * the map moves and turns instead of being re-cut every frame.
+ */
+const collageShader = (tone: PaintedTone) => `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+uniform sampler2D u_image;
+uniform vec2 u_outToCss;
+uniform float u_outHeight;
+uniform vec4 u_cssToMap;
+uniform vec2 u_mapOffset;
+/** Map coordinates (less the origin) back to CSS pixels, to sample the photo. */
+uniform vec4 u_mapToCss;
+uniform vec2 u_mapToCssOffset;
+uniform vec2 u_cssSize;
+/** Map units per output pixel, for edges measured in pixels. */
+uniform float u_unitsPerPx;
+
+uniform float u_cell;
+uniform float u_turn;
+uniform float u_shift;
+uniform float u_overlap;
+uniform float u_border;
+uniform float u_bands;
+uniform float u_planes;
+uniform vec3 u_printEdge;
+
+uniform float u_floor;
+uniform float u_ceiling;
+uniform float u_original;
+varying vec2 v_uv;
+
+${toneFunction(tone.ramp)}
+
+float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+vec2 hash2(vec2 p) {
+    return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453);
+}
+
+vec4 photoAt(vec2 ground) {
+    vec2 css = vec2(
+        u_mapToCss.x * ground.x + u_mapToCss.z * ground.y,
+        u_mapToCss.y * ground.x + u_mapToCss.w * ground.y
+    ) + u_mapToCssOffset;
+    return texture2D(u_image, vec2(css.x / u_cssSize.x, 1.0 - css.y / u_cssSize.y));
+}
+
+void main() {
+    vec2 css = vec2(gl_FragCoord.x, u_outHeight - gl_FragCoord.y) * u_outToCss;
+    vec2 ground = vec2(
+        u_cssToMap.x * css.x + u_cssToMap.z * css.y,
+        u_cssToMap.y * css.x + u_cssToMap.w * css.y
+    ) + u_mapOffset;
+
+    vec2 cell = floor(ground / u_cell);
+    float topmost = -1.0;
+    vec2 id = cell;
+    vec2 centre = ground;
+    vec2 local = vec2(0.0);
+    vec2 halfSize = vec2(1.0);
+    float angle = 0.0;
+
+    for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            vec2 candidate = cell + vec2(float(dx), float(dy));
+            vec2 r = hash2(candidate);
+            vec2 r2 = hash2(candidate + 17.13);
+            vec2 c = (candidate + 0.5 + (r - 0.5) * 0.5) * u_cell;
+            float a = (r2.x - 0.5) * 2.0 * u_turn;
+            // Prints are rarely square and never all one size: vary the
+            // aspect and the scale, as a hand-laid joiner does.
+            float scale = mix(0.8, 1.3, hash(candidate + 41.7));
+            vec2 h = u_cell * u_overlap * scale * vec2(0.8 + 0.4 * r2.y, 1.2 - 0.4 * r2.y);
+            vec2 d = ground - c;
+            float ca = cos(a);
+            float sa = sin(a);
+            vec2 l = vec2(ca * d.x + sa * d.y, -sa * d.x + ca * d.y);
+            if (abs(l.x) < h.x && abs(l.y) < h.y) {
+                float z = hash(candidate + 3.7);
+                if (z > topmost) {
+                    topmost = z;
+                    id = candidate;
+                    centre = c;
+                    local = l;
+                    halfSize = h;
+                    angle = a;
+                }
+            }
+        }
+    }
+
+    vec4 colour;
+    if (topmost < 0.0) {
+        // A gap between prints: the ground itself shows through.
+        colour = photoAt(ground);
+    } else {
+        // This print's photograph: turned with the print, from a spot a
+        // little off where it lies, so neighbours meet out of register.
+        vec2 offset = (hash2(id + 5.3) - 0.5) * u_shift * u_cell * 2.0;
+        vec2 taken = centre + local + offset;
+        // A few taps soften the photograph before it is cut into bands, so
+        // the bands follow shapes rather than the photo's speckle.
+        float s = u_cell * 0.03;
+        colour = (photoAt(taken) * 2.0 + photoAt(taken + vec2(s, 0.0)) + photoAt(taken - vec2(s, 0.0))
+            + photoAt(taken + vec2(0.0, s)) + photoAt(taken - vec2(0.0, s))) / 6.0;
+    }
+
+    if (colour.a <= 0.0) {
+        gl_FragColor = vec4(0.0);
+        return;
+    }
+    vec3 straight = colour.rgb / colour.a;
+    float lightness = dot(straight, vec3(0.299, 0.587, 0.114));
+    float level = smoothstep(0.06, max(u_ceiling, 0.07), lightness);
+    if (u_bands > 0.5) {
+        // Flat bands with a sliver of blend between them, so a band edge
+        // does not crawl a pixel at a time as the map moves.
+        float scaled = level * u_bands;
+        float band = floor(scaled);
+        level = (band + smoothstep(0.45, 0.55, scaled - band)) / u_bands;
+    }
+    if (topmost >= 0.0) {
+        // Each print lit as a plane leaning its own way.
+        vec2 lean = normalize(hash2(id + 9.1) - 0.5 + 0.0001);
+        level += dot(local / halfSize, lean) * u_planes;
+    }
+    float t = mix(u_floor, 1.0, clamp(level, 0.0, 1.0));
+    vec3 painted = mix(tone(t), straight, u_original);
+
+    if (topmost >= 0.0 && u_border > 0.0) {
+        float edge = min(halfSize.x - abs(local.x), halfSize.y - abs(local.y)) / u_unitsPerPx;
+        float print = 1.0 - smoothstep(u_border - 0.75, u_border + 0.75, edge);
+        painted = mix(painted, u_printEdge, print * 0.9);
+    }
+    gl_FragColor = vec4(painted * colour.a, colour.a);
+}
+`;
+
 function compile(gl: WebGLRenderingContext, type: number, source: string): WebGLShader {
     const shader = gl.createShader(type);
     if (!shader) throw new Error("createShader failed");
@@ -199,13 +356,17 @@ function compile(gl: WebGLRenderingContext, type: number, source: string): WebGL
     return shader;
 }
 
+// A pass sets every uniform; one its shader does not declare has a null
+// location, and setting a null location is a no-op in WebGL.
 const UNIFORMS = [
     "step", "outToCss", "outHeight", "cssToMap", "mapOffset",
     "radius", "sharpness", "wobble", "wobbleScale", "grain", "floor", "ceiling", "original",
+    "mapToCss", "mapToCssOffset", "cssSize", "unitsPerPx",
+    "cell", "turn", "shift", "overlap", "border", "bands", "planes",
 ] as const;
 type UniformName = (typeof UNIFORMS)[number];
 
-class KuwaharaPass {
+class PaintPass {
     readonly canvas = document.createElement("canvas");
     private readonly gl: WebGLRenderingContext;
     private readonly program: WebGLProgram;
@@ -216,7 +377,10 @@ class KuwaharaPass {
     private readonly shrinkCanvases: HTMLCanvasElement[] = [];
     private lost = false;
 
-    constructor(private readonly toneName: PaintedToneName) {
+    constructor(
+        private readonly toneName: PaintedToneName,
+        private readonly style: PaintStyle,
+    ) {
         const tone = PAINTED_TONES[toneName];
         const gl = this.canvas.getContext("webgl", {
             premultipliedAlpha: true,
@@ -232,7 +396,7 @@ class KuwaharaPass {
         const program = gl.createProgram();
         if (!program) throw new Error("createProgram failed");
         gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERTEX_SHADER));
-        gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, fragmentShader(tone)));
+        gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, (style === "collage" ? collageShader : brushShader)(tone)));
         gl.linkProgram(program);
         if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
             throw new Error(`program link failed: ${gl.getProgramInfoLog(program)}`);
@@ -266,6 +430,7 @@ class KuwaharaPass {
         tone.ramp.forEach(({ token }, index) => {
             gl.uniform3fv(gl.getUniformLocation(program, `u_tone${index}`), tokenRgb(token));
         });
+        gl.uniform3fv(gl.getUniformLocation(program, "u_printEdge"), tokenRgb("ground"));
 
         this.canvas.addEventListener("webglcontextlost", (event) => {
             event.preventDefault();
@@ -314,14 +479,25 @@ class KuwaharaPass {
     render(
         source: HTMLCanvasElement,
         tuning: PaintTuning,
-        frame: { cssWidth: number; cssHeight: number; cssToMap: number[]; origin: [number, number] },
+        frame: {
+            cssWidth: number;
+            cssHeight: number;
+            cssToMap: number[];
+            mapToCss: number[];
+            origin: [number, number];
+            /** Metres of ground per map unit at the centre of the view. */
+            metresPerUnit: number;
+        },
     ): HTMLCanvasElement {
         const { gl, uniforms } = this;
-        const { cssWidth, cssHeight, cssToMap, origin } = frame;
+        const { cssWidth, cssHeight, cssToMap, mapToCss, origin, metresPerUnit } = frame;
         const outWidth = Math.max(1, Math.round(cssWidth * tuning.resolution));
         const outHeight = Math.max(1, Math.round(cssHeight * tuning.resolution));
-        const texWidth = Math.max(1, Math.round(cssWidth / tuning.brushStep));
-        const texHeight = Math.max(1, Math.round(cssHeight / tuning.brushStep));
+        // The collage shows the photograph itself, so it keeps a texel per
+        // CSS pixel; the brush only needs one per brush step.
+        const texelSpacing = this.style === "collage" ? 1 : tuning.brushStep;
+        const texWidth = Math.max(1, Math.round(cssWidth / texelSpacing));
+        const texHeight = Math.max(1, Math.round(cssHeight / texelSpacing));
         const texture = this.shrink(source, texWidth, texHeight);
         const tone = tuning.tones[this.toneName];
 
@@ -350,6 +526,20 @@ class KuwaharaPass {
         gl.uniform1f(uniforms.ceiling, tuning.ceiling);
         gl.uniform1f(uniforms.original, tone.original);
         this.stopLocations.forEach((location, index) => gl.uniform1f(location, tone.stops[index]));
+        // Map to CSS, with the origin folded back in: css = A(g + origin) + t.
+        const [ia, ib, ic, id, ie, iff] = mapToCss;
+        gl.uniform4f(uniforms.mapToCss, ia, ib, ic, id);
+        gl.uniform2f(uniforms.mapToCssOffset, ia * origin[0] + ic * origin[1] + ie, ib * origin[0] + id * origin[1] + iff);
+        gl.uniform2f(uniforms.cssSize, cssWidth, cssHeight);
+        gl.uniform1f(uniforms.unitsPerPx, Math.hypot(a, b) * (cssWidth / outWidth));
+        const { collage } = tuning;
+        gl.uniform1f(uniforms.cell, collage.fragment / metresPerUnit);
+        gl.uniform1f(uniforms.turn, (collage.rotation * Math.PI) / 180);
+        gl.uniform1f(uniforms.shift, collage.shift);
+        gl.uniform1f(uniforms.overlap, collage.overlap);
+        gl.uniform1f(uniforms.border, collage.border * (outWidth / cssWidth));
+        gl.uniform1f(uniforms.bands, collage.bands);
+        gl.uniform1f(uniforms.planes, collage.planes);
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -366,13 +556,16 @@ class KuwaharaPass {
  * Returns null when this browser cannot run the pass, which leaves the plain
  * imagery showing rather than a blank ground.
  */
-export function createPaintedBasemapListener(toneName: PaintedToneName = DEFAULT_PAINTED_TONE): {
+export function createPaintedBasemapListener(
+    toneName: PaintedToneName = DEFAULT_PAINTED_TONE,
+    style: PaintStyle = "brush",
+): {
     listener: (event: RenderEvent) => void;
     dispose: () => void;
 } | null {
-    let pass: KuwaharaPass;
+    let pass: PaintPass;
     try {
-        pass = new KuwaharaPass(toneName);
+        pass = new PaintPass(toneName, style);
     } catch (error) {
         console.warn("[painted basemap] unavailable, showing plain imagery", error);
         return null;
@@ -392,6 +585,9 @@ export function createPaintedBasemapListener(toneName: PaintedToneName = DEFAULT
         const source = context.canvas;
         const pixelRatio = frameState.pixelRatio || 1;
         const cssToMap = frameState.pixelToCoordinateTransform;
+        const centreY = frameState.viewState.center[1];
+        // Web Mercator: a map unit covers cos(latitude) metres of ground.
+        const latitude = 2 * Math.atan(Math.exp(centreY / 6378137)) - Math.PI / 2;
         // Fixed for the life of the pass, so the ground's texture does not
         // jump; only there to keep the shader's numbers small.
         origin ??= [Math.round(cssToMap[4]), Math.round(cssToMap[5])];
@@ -402,7 +598,9 @@ export function createPaintedBasemapListener(toneName: PaintedToneName = DEFAULT
                 cssWidth: source.width / pixelRatio,
                 cssHeight: source.height / pixelRatio,
                 cssToMap,
+                mapToCss: frameState.coordinateToPixelTransform,
                 origin,
+                metresPerUnit: Math.cos(latitude),
             });
         } catch (error) {
             failed = true;

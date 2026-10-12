@@ -68,6 +68,14 @@ describe("normalizeTuning", () => {
         expect(tuning.streets.streetWidth).toBe(DEFAULTS.streets.streetWidth);
     });
 
+    it("holds the collage to its ranges and counts its bands whole", () => {
+        const { collage } = normalizeTuning({ collage: { fragment: 500, bands: 3.4, overlap: 0.1 } });
+        expect(collage.fragment).toBe(60);
+        expect(collage.bands).toBe(3);
+        expect(collage.overlap).toBe(0.5);
+        expect(collage.rotation).toBe(DEFAULTS.collage.rotation);
+    });
+
     it("rounds the radius, which the shader counts in whole steps", () => {
         expect(normalizeTuning({ radius: 3.6 }).radius).toBe(4);
     });

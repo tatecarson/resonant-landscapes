@@ -92,6 +92,9 @@ export function isPaintedToneName(value: unknown): value is PaintedToneName {
     return typeof value === "string" && Object.prototype.hasOwnProperty.call(PAINTED_TONES, value);
 }
 
+/** The two painted passes: Kuwahara brushwork, or the cubist joiner collage. */
+export type PaintStyle = "brush" | "collage";
+
 /** The largest brush radius the shader's loops are built for. */
 export const MAX_RADIUS = 6;
 
@@ -122,6 +125,22 @@ export interface PaintTuning {
     /** Paper grain, as a fraction of brightness. */
     grain: number;
     tones: Record<PaintedToneName, ToneTuning>;
+    collage: {
+        /** Size of a fragment on the ground, in metres. */
+        fragment: number;
+        /** How far each fragment is turned, at most, in degrees. */
+        rotation: number;
+        /** How far the photo inside a fragment is shifted, as a share of its size. */
+        shift: number;
+        /** How much fragments overlap their neighbours; below about 0.55 gaps open. */
+        overlap: number;
+        /** The print edge round each fragment, in CSS pixels. */
+        border: number;
+        /** How many flat bands of tone the photograph is cut into; 0 keeps it smooth. */
+        bands: number;
+        /** How strongly each fragment is lit as a tilted plane. */
+        planes: number;
+    };
     streets: {
         /** Drawn width of a street on the ground, in metres. */
         streetWidth: number;
@@ -166,11 +185,13 @@ export const DEFAULTS: PaintTuning = {
         sage: toneDefaults(PAINTED_TONES.sage),
         paper: toneDefaults(PAINTED_TONES.paper),
     },
+    collage: { fragment: 22, rotation: 10, shift: 0.18, overlap: 0.66, border: 1.25, bands: 4, planes: 0.1 },
     streets: { streetWidth: 9, streetOpacity: 0.8, pathWidth: 1.5, pathOpacity: 0.54 },
 };
 
 type NumberKey = { [K in keyof PaintTuning]: PaintTuning[K] extends number ? K : never }[keyof PaintTuning];
 type StreetKey = keyof PaintTuning["streets"];
+type CollageKey = keyof PaintTuning["collage"];
 
 export interface Slider<K extends string> {
     key: K;
@@ -194,6 +215,15 @@ export const BRUSH_SLIDERS: Slider<NumberKey>[] = [
 export const TONE_SLIDERS: Slider<"floor" | "original">[] = [
     { key: "floor", label: "Darkest tone", min: 0, max: 0.9, step: 0.01 },
     { key: "original", label: "Photo colour", min: 0, max: 0.6, step: 0.01 },
+];
+export const COLLAGE_SLIDERS: Slider<CollageKey>[] = [
+    { key: "fragment", label: "Fragment size (m)", min: 3, max: 60, step: 1 },
+    { key: "rotation", label: "Turn (degrees)", min: 0, max: 30, step: 0.5 },
+    { key: "shift", label: "Photo shift", min: 0, max: 0.5, step: 0.01 },
+    { key: "overlap", label: "Overlap", min: 0.5, max: 1, step: 0.01 },
+    { key: "border", label: "Print edge (px)", min: 0, max: 6, step: 0.25 },
+    { key: "bands", label: "Tone bands (0 = smooth)", min: 0, max: 12, step: 1 },
+    { key: "planes", label: "Plane shading", min: 0, max: 0.3, step: 0.01 },
 ];
 export const STREET_SLIDERS: Slider<StreetKey>[] = [
     { key: "streetWidth", label: "Street width (m)", min: 0, max: 16, step: 0.5 },
@@ -220,6 +250,11 @@ export function normalizeTuning(input: unknown): PaintTuning {
         tuning[slider.key] = clampTo(slider, raw[slider.key], DEFAULTS[slider.key]);
     }
     tuning.radius = Math.round(tuning.radius);
+    const rawCollage = (raw.collage && typeof raw.collage === "object" ? raw.collage : {}) as Record<string, unknown>;
+    for (const slider of COLLAGE_SLIDERS) {
+        tuning.collage[slider.key] = clampTo(slider, rawCollage[slider.key], DEFAULTS.collage[slider.key]);
+    }
+    tuning.collage.bands = Math.round(tuning.collage.bands);
     const rawStreets = (raw.streets && typeof raw.streets === "object" ? raw.streets : {}) as Record<string, unknown>;
     for (const slider of STREET_SLIDERS) {
         tuning.streets[slider.key] = clampTo(slider, rawStreets[slider.key], DEFAULTS.streets[slider.key]);

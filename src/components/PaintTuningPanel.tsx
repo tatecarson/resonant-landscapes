@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import {
     BRUSH_SLIDERS,
+    COLLAGE_SLIDERS,
     PAINTED_TONES,
     PAINTED_TONE_NAMES,
     STREET_SLIDERS,
@@ -16,6 +17,7 @@ import {
     usePaintTuning,
     type PaintTuning,
 } from "../config/paintTuning";
+import { BASEMAP_SPECS, useBasemapMode } from "../config/basemap";
 
 /**
  * Sliders for the painted ground, opened with `?tune` (rl-ffdd).
@@ -108,6 +110,7 @@ const buttonStrong = `${buttonShape} border-edge bg-edge text-ground hover:bg-in
 
 export default function PaintTuningPanel() {
     const tuning = usePaintTuning();
+    const collage = BASEMAP_SPECS[useBasemapMode()].paintStyle === "collage";
     const saved = useSyncExternalStore(subscribePaintTuning, isPaintTuningSaved, () => false);
     const [open, setOpen] = useState(true);
     const [notice, setNotice] = useState<string | null>(null);
@@ -175,6 +178,32 @@ export default function PaintTuningPanel() {
                     ))}
                 </Section>
 
+                {collage ? (
+                    <Section title="Collage">
+                        {COLLAGE_SLIDERS.map((slider) => (
+                            <SliderRow
+                                key={slider.key}
+                                label={slider.label}
+                                min={slider.min}
+                                max={slider.max}
+                                step={slider.step}
+                                value={tuning.collage[slider.key]}
+                                onChange={(value) => update((draft) => { draft.collage[slider.key] = value; })}
+                            />
+                        ))}
+                        {BRUSH_SLIDERS.filter(({ key }) => key === "resolution" || key === "ceiling").map((slider) => (
+                            <SliderRow
+                                key={slider.key}
+                                label={slider.label}
+                                min={slider.min}
+                                max={slider.max}
+                                step={slider.step}
+                                value={tuning[slider.key]}
+                                onChange={(value) => update((draft) => { draft[slider.key] = value; })}
+                            />
+                        ))}
+                    </Section>
+                ) : (
                 <Section title="Brush">
                     {BRUSH_SLIDERS.map((slider) => (
                         <SliderRow
@@ -188,6 +217,7 @@ export default function PaintTuningPanel() {
                         />
                     ))}
                 </Section>
+                )}
 
                 <Section title="Streets and sidewalks">
                     {STREET_SLIDERS.map((slider) => (

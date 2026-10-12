@@ -3,7 +3,7 @@ import { createXYZ } from "ol/tilegrid";
 import type TileGrid from "ol/tilegrid/TileGrid";
 import { isDebugEnabled } from "./debug";
 import { SATELLITE, basemapFor, requestedMap } from "../map/basemap";
-import { isPaintedToneName, isTuningRequested, queryParam } from "./paintTuning";
+import { isPaintedToneName, isTuningRequested, queryParam, type PaintStyle } from "./paintTuning";
 
 export { parsePaintedTone } from "./paintTuning";
 
@@ -18,6 +18,9 @@ export { parsePaintedTone } from "./paintTuning";
  *
  * - `watercolor` caps the source at 16 and lets OpenLayers enlarge those tiles
  *   (about 5.6x at resting zoom). The detail goes; the washes stay.
+ * - `collage` starts from the same imagery and cuts it into overlapping,
+ *   slightly turned fragments with their tones flattened into planes, after
+ *   Hockney's photo joiners and the cubists (PaintedBasemap.ts).
  * - `painted` starts from imagery that is sharp to zoom 20 and paints it in the
  *   browser with a Kuwahara pass (PaintedBasemap.ts), so detail never runs out.
  *
@@ -34,7 +37,7 @@ export { parsePaintedTone } from "./paintTuning";
  * Esri's imagery instead of Stadia's, and `watercolor`, which only Stadia
  * serves, falls back to the preview map.
  */
-export const BASEMAP_MODES = ["outdoors", "watercolor", "painted"] as const;
+export const BASEMAP_MODES = ["outdoors", "watercolor", "painted", "collage"] as const;
 export type BasemapMode = (typeof BASEMAP_MODES)[number];
 
 export interface BasemapSpec {
@@ -47,6 +50,8 @@ export interface BasemapSpec {
     /** The layer's own ceiling: OpenStreetMap's tiles stop at 19. */
     maxZoom: number;
     painted: boolean;
+    /** Which pass paints it, for the painted styles. */
+    paintStyle?: PaintStyle;
 }
 
 /*
@@ -88,6 +93,15 @@ export const BASEMAP_SPECS: Record<BasemapMode, BasemapSpec> = {
         attributions: [IMAGERY_CREDIT, STADIA_CREDIT, OPENMAPTILES_CREDIT, OSM_CREDIT].join(" "),
         maxZoom: 20,
         painted: true,
+        paintStyle: "brush",
+    },
+    collage: {
+        url: "https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}.jpg",
+        crossOrigin: "anonymous",
+        attributions: [IMAGERY_CREDIT, STADIA_CREDIT, OPENMAPTILES_CREDIT, OSM_CREDIT].join(" "),
+        maxZoom: 20,
+        painted: true,
+        paintStyle: "collage",
     },
 };
 
@@ -104,10 +118,10 @@ export function basemapSpecFor(
     if (!tiles) {
         return BASEMAP_SPECS[mode];
     }
-    if (mode === "painted") {
+    if (BASEMAP_SPECS[mode].painted) {
         // Esri sends Access-Control-Allow-Origin: *, so its tiles can be
         // read back and painted the same as Stadia's.
-        return { ...BASEMAP_SPECS.painted, url: SATELLITE.url, attributions: SATELLITE.attributions, maxZoom: SATELLITE.maxZoom };
+        return { ...BASEMAP_SPECS[mode], url: SATELLITE.url, attributions: SATELLITE.attributions, maxZoom: SATELLITE.maxZoom };
     }
     const preview = basemapFor(tiles, requested);
     return { url: preview.url, attributions: preview.attributions, maxZoom: preview.maxZoom, painted: false };
