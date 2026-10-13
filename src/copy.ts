@@ -210,7 +210,7 @@ export const help = {
     paperUrl: "https://dl.acm.org/doi/10.1145/3678299.3678354",
     projectLabel: "Project page: photos, code, and more",
     projectAriaLabel: "Project page with photos, code and more, opens in new tab",
-    projectUrl: "https://www.tatecarson.com/blog/2024-09-29-resonant-landscapes",
+    projectUrl: "https://www.tatecarson.com/works/resonant-landscapes/",
     close: "Close",
 } as const;
 
