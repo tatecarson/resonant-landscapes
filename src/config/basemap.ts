@@ -29,15 +29,21 @@ export { parsePaintedTone } from "./paintTuning";
  * (DEFAULT_MODE_BY_VARIANT): the Pavilion walk is painted, and the walks
  * that were already out in the world keep Outdoors, as they shipped.
  *
+ * The painted styles paint Esri's World Imagery on every build. Stadia's own
+ * satellite (Alidade) is not on this account's plan: on the production domain
+ * it answers each tile with 403 and an "Upgrade for Access" image, which the
+ * Pavilion walk shipped painted across its whole map (rl-91yl). Esri needs no
+ * key, sends Access-Control-Allow-Origin: * so its pixels can be read back,
+ * and is what Tate approved the look on, through the deploy previews.
+ *
  * The parameters work without `?debug`, so a bookmark or a QR code can carry a
  * style. They change only what the ground looks like; the position spoof and
  * the other debug surfaces stay behind `?debug`.
  *
- * Where the tiles come from depends on the build, not the style: Stadia
- * authorizes one domain, so deploy previews (VITE_MAP_TILES, see
- * src/map/basemap.ts) cannot use it. There `outdoors` is the preview map that
- * module picks (aerial, or streets with `?map=streets`), `painted` paints
- * Esri's imagery instead of Stadia's, and `watercolor`, which only Stadia
+ * Where the Stadia styles come from depends on the build: Stadia authorizes
+ * one domain, so deploy previews (VITE_MAP_TILES, see src/map/basemap.ts)
+ * cannot use it. There `outdoors` is the preview map that module picks
+ * (aerial, or streets with `?map=streets`), and `watercolor`, which only Stadia
  * serves, falls back to the preview map.
  */
 export const BASEMAP_MODES = ["outdoors", "watercolor", "painted", "collage"] as const;
@@ -66,7 +72,8 @@ const STADIA_CREDIT = '&copy; <a href="https://stadiamaps.com/attribution/" targ
 const OPENMAPTILES_CREDIT = '&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a>';
 const OSM_CREDIT = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>';
 const STAMEN_CREDIT = '&copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a>';
-const IMAGERY_CREDIT = "&copy; CNES, Distribution Airbus DS, &copy; Airbus DS, &copy; PlanetObserver (Contains Copernicus Data)";
+/** Esri's source credit, and the "Powered by Esri" its basemap terms ask for. */
+const ESRI_CREDIT = `${SATELLITE.attributions} &middot; Powered by <a href="https://www.esri.com/" target="_blank">Esri</a>`;
 
 /** The zoom Stadia stops serving Watercolor at; past it the tileset has holes. */
 export const WATERCOLOR_MAX_ZOOM = 16;
@@ -87,22 +94,22 @@ export const BASEMAP_SPECS: Record<BasemapMode, BasemapSpec> = {
         painted: false,
     },
     painted: {
-        url: "https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}.jpg",
-        // Only here. Tiles already cached by the service worker from a
-        // no-cors request come back opaque, and an opaque response to a CORS
-        // image request fails, so switching the shipped layer to CORS would
-        // blank a returning walker's cached ground.
+        url: SATELLITE.url,
+        // Only on the painted styles, which have to read their pixels back.
+        // Outdoors tiles already cached by the service worker came from
+        // no-cors requests and are opaque, and an opaque response to a CORS
+        // image request fails, so the shipped layer stays as it was.
         crossOrigin: "anonymous",
-        attributions: [IMAGERY_CREDIT, STADIA_CREDIT, OPENMAPTILES_CREDIT, OSM_CREDIT].join(" "),
-        maxZoom: 20,
+        attributions: ESRI_CREDIT,
+        maxZoom: SATELLITE.maxZoom,
         painted: true,
         paintStyle: "brush",
     },
     collage: {
-        url: "https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}.jpg",
+        url: SATELLITE.url,
         crossOrigin: "anonymous",
-        attributions: [IMAGERY_CREDIT, STADIA_CREDIT, OPENMAPTILES_CREDIT, OSM_CREDIT].join(" "),
-        maxZoom: 20,
+        attributions: ESRI_CREDIT,
+        maxZoom: SATELLITE.maxZoom,
         painted: true,
         paintStyle: "collage",
     },
@@ -110,21 +117,17 @@ export const BASEMAP_SPECS: Record<BasemapMode, BasemapSpec> = {
 
 /**
  * The spec a build actually uses for a style. `tiles` is VITE_MAP_TILES:
- * unset is production, where every style comes from Stadia. `requested` is
- * the page's `?map=`, which only a preview listens to.
+ * unset is production, where the plain styles come from Stadia. `requested`
+ * is the page's `?map=`, which only a preview listens to. The painted styles
+ * are Esri everywhere, so they are the same on both.
  */
 export function basemapSpecFor(
     mode: BasemapMode,
     tiles: string | undefined = import.meta.env.VITE_MAP_TILES,
     requested: string | null = typeof window === "undefined" ? null : requestedMap(window.location),
 ): BasemapSpec {
-    if (!tiles) {
+    if (!tiles || BASEMAP_SPECS[mode].painted) {
         return BASEMAP_SPECS[mode];
-    }
-    if (BASEMAP_SPECS[mode].painted) {
-        // Esri sends Access-Control-Allow-Origin: *, so its tiles can be
-        // read back and painted the same as Stadia's.
-        return { ...BASEMAP_SPECS[mode], url: SATELLITE.url, attributions: SATELLITE.attributions, maxZoom: SATELLITE.maxZoom };
     }
     const preview = basemapFor(tiles, requested);
     return { url: preview.url, attributions: preview.attributions, maxZoom: preview.maxZoom, painted: false };

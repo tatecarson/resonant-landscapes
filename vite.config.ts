@@ -85,6 +85,27 @@ export default defineConfig({
           },
           {
             /*
+             * Esri's aerial imagery, which the painted Pavilion walk paints
+             * (rl-91yl), kept for the same reason as the tiles above. These
+             * are requested with CORS, so a failed tile has a real status and
+             * only a 200 is cached; and they are not opaque, so they are not
+             * padded in quota accounting the way the Stadia tiles are. Their
+             * own cache, so neither set can push the other out.
+             */
+            urlPattern: /^https:\/\/server\.arcgisonline\.com\/ArcGIS\/rest\/services\/World_Imagery\/MapServer\/tile\/.*/,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "resonant-imagery-v1",
+              expiration: {
+                maxEntries: 400,
+                maxAgeSeconds: 30 * 24 * 60 * 60,
+                purgeOnQuotaError: true,
+              },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+          {
+            /*
              * The typeface stylesheet. Stale-while-revalidate rather than
              * cache-first: it is a pointer to font files, cheap to refresh,
              * and a pointing hand that goes stale misdirects for longer than

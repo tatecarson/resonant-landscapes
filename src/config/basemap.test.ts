@@ -74,9 +74,23 @@ describe("parsePaintedTone", () => {
 });
 
 describe("basemapSpecFor", () => {
-    it("draws every style from Stadia in production", () => {
+    it("uses each style's own spec in production", () => {
         for (const mode of BASEMAP_MODES) {
             expect(basemapSpecFor(mode, undefined, null)).toBe(BASEMAP_SPECS[mode]);
+        }
+    });
+
+    it("paints Esri's imagery everywhere, never Stadia's satellite, which this plan does not include", () => {
+        // rl-91yl: Stadia answered the production domain with 403 "Upgrade
+        // for Access" tiles, and the Pavilion walk shipped them painted.
+        for (const mode of BASEMAP_MODES.filter((m) => BASEMAP_SPECS[m].painted)) {
+            for (const tiles of [undefined, "satellite", "osm"]) {
+                const spec = basemapSpecFor(mode, tiles, null);
+                expect(spec.url).toContain("server.arcgisonline.com");
+                expect(spec.url).not.toContain("alidade_satellite");
+                expect(spec.crossOrigin).toBe("anonymous");
+                expect(spec.attributions).toContain("Esri");
+            }
         }
     });
 
